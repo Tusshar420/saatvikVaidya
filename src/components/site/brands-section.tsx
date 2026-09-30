@@ -7,20 +7,18 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/cn";
 import type { BrandItem } from "@/server/content/home";
 
-const toneStyles = {
+const toneStyles: Partial<Record<string, string>> = {
   orange: "bg-orange-soft",
   teal: "bg-teal-soft",
   gold: "bg-gold-soft",
   blue: "bg-blue-soft",
-  navy: "bg-navy-soft",
 } as const;
 
-const toneTextStyles = {
+const toneTextStyles: Partial<Record<string, string>> = {
   orange: "text-orange-ink",
   teal: "text-teal",
   gold: "text-gold-ink",
   blue: "text-blue",
-  navy: "text-navy",
 } as const;
 
 type BrandsSectionProps = {
@@ -57,8 +55,8 @@ export function BrandsSection({ heading, brands }: BrandsSectionProps) {
                 <div
                   className={cn(
                     "flex h-32 items-center justify-center text-3xl font-extrabold",
-                    toneStyles[brand.tone],
-                    toneTextStyles[brand.tone]
+                    toneStyles[brand.tone] || "bg-surface-alt",
+                    toneTextStyles[brand.tone] || "text-ink"
                   )}
                 >
                   {brand.monogram}
@@ -90,8 +88,8 @@ export function BrandsSection({ heading, brands }: BrandsSectionProps) {
                 <div
                   className={cn(
                     "flex h-24 items-center justify-center text-2xl font-extrabold",
-                    toneStyles[brand.tone],
-                    toneTextStyles[brand.tone]
+                    toneStyles[brand.tone] || "bg-surface-alt",
+                    toneTextStyles[brand.tone] || "text-ink"
                   )}
                 >
                   {brand.monogram}
