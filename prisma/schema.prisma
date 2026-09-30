@@ -1,6 +1,8 @@
 // Saatvik Vaidya database schema.
-// Models arrive in chunk A4 (content) and A5 (users and auth).
 // The connection URL lives in prisma.config.ts, read from DATABASE_URL.
+//
+// Sections, in order: users and access, site settings, homepage content.
+// Later phases add their own section (catalogue, orders, coins, ebooks...).
 
 generator client {
   provider = "prisma-client"
@@ -9,4 +11,313 @@ generator client {
 
 datasource db {
   provider = "mysql"
+}
+
+// ─── Users and access ───────────────────────────────────────────────────────
+// A5 adds User (with userTypeId → UserType) and Better Auth's Session, Account
+// and Verification tables here.
+
+/// A kind of account, chosen at sign-up. Stored as data so admins can add
+/// types later. Admin is a role on User, not a user type.
+model UserType {
+  id                   Int      @id @default(autoincrement())
+  /// Stable identifier used in code and the seed, e.g. "customer", "doctor".
+  key                  String   @unique @db.VarChar(40)
+  label                String   @db.VarChar(80)
+  /// Professional types get professional prices once verified.
+  isProfessional       Boolean  @default(false)
+  /// Needs documents approved by an admin before professional prices apply.
+  requiresVerification Boolean  @default(false)
+  sortOrder            Int      @default(0)
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── Site settings ──────────────────────────────────────────────────────────
+
+/// One admin-editable site value (phone number, footer text, popular
+/// searches...). Read through getSetting(), which validates the value and
+/// falls back to the default in src/content/settings.ts.
+model Setting {
+  key       String           @id @db.VarChar(100)
+  value     Json
+  updatedAt DateTime         @updatedAt
+  /// Id of the user who last changed it; null when set by the seed. Becomes a
+  /// relation to User once A5 adds it.
+  updatedBy String?
+  history   SettingHistory[]
+}
+
+/// Every value a setting has had, newest last, including the seeded one.
+model SettingHistory {
+  id         Int      @id @default(autoincrement())
+  settingKey String   @db.VarChar(100)
+  setting    Setting  @relation(fields: [settingKey], references: [key], onDelete: Cascade)
+  value      Json
+  changedAt  DateTime @default(now())
+  /// Id of the user who made the change; null for the seed.
+  changedBy  String?
+
+  @@index([settingKey, changedAt])
+}
+
+// ─── Homepage content ───────────────────────────────────────────────────────
+// Read through getHomeContent() in src/server/content/home.ts.
+//
+// Conventions:
+// - `key` is a stable identifier used by the seed (upserts) and tests.
+// - `sortOrder` ascending, then id. Only `active` items are shown.
+// - Link targets (`*Href`) are a site path ("/coins", "/#launch"), or
+//   "modal:sign-in" / "modal:track-order" to open a site modal. Null means the
+//   destination isn't built yet, so the UI shows a "coming soon" state.
+// - Decorative glyphs (→ arrows, ✓ ticks, ▶ play) aren't stored; components
+//   draw them.
+
+/// Which homepage sections show, in what order, and their heading copy.
+/// Section-specific extra copy (steps, panels...) is in `content`, validated
+/// per section by src/server/content/home-schema.ts.
+model HomeSection {
+  key           String   @id @db.VarChar(40)
+  enabled       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  eyebrow       String?  @db.VarChar(80)
+  title         String?  @db.VarChar(160)
+  /// Second line of a two-part title, shown in teal.
+  titleEmphasis String?  @db.VarChar(160)
+  description   String?  @db.VarChar(400)
+  linkLabel     String?  @db.VarChar(80)
+  linkHref      String?  @db.VarChar(200)
+  content       Json?
+  updatedAt     DateTime @updatedAt
+}
+
+enum Tone {
+  ORANGE
+  TEAL
+  BLUE
+  GOLD
+  NAVY
+  GREEN
+}
+
+enum HeroPanelKind {
+  LAUNCH_STUDIO
+  BRAND_SHOWCASE
+  LEARNING_BOARD
+}
+
+/// One hero carousel slide: copy on the left, a panel on the right.
+model HeroSlide {
+  id             Int           @id @default(autoincrement())
+  key            String        @unique @db.VarChar(64)
+  sortOrder      Int           @default(0)
+  active         Boolean       @default(true)
+  eyebrow        String        @db.VarChar(80)
+  title          String        @db.VarChar(160)
+  titleEmphasis  String?       @db.VarChar(160)
+  body           String        @db.VarChar(400)
+  primaryLabel   String        @db.VarChar(80)
+  primaryHref    String?       @db.VarChar(200)
+  secondaryLabel String?       @db.VarChar(80)
+  secondaryHref  String?       @db.VarChar(200)
+  /// Optional social-proof row under the buttons.
+  proof          Json?
+  panelKind      HeroPanelKind
+  /// Copy for the right-hand panel; its shape depends on panelKind.
+  panel          Json
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+/// Trust strip figure, e.g. "150+" / "Classical formulations".
+model StatItem {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  value     String   @db.VarChar(40)
+  label     String   @db.VarChar(80)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Reel filter group.
+enum ReelType {
+  PRODUCT
+  FEEDBACK
+  LEARNING
+  OFFER
+}
+
+enum ReelMediaKind {
+  VIDEO
+  IMAGE
+  /// No media file: a designed poster built from the poster* fields.
+  POSTER
+}
+
+model Reel {
+  id           Int           @id @default(autoincrement())
+  key          String        @unique @db.VarChar(64)
+  sortOrder    Int           @default(0)
+  active       Boolean       @default(true)
+  type         ReelType
+  mediaKind    ReelMediaKind
+  /// Path under public/, e.g. "/media/brand-launch.mp4".
+  mediaSrc     String?       @db.VarChar(200)
+  /// Poster frame for a video (path under public/).
+  posterSrc    String?       @db.VarChar(200)
+  /// Image alt text, or the play button's label for a video.
+  mediaLabel   String?       @db.VarChar(200)
+  badge        String?       @db.VarChar(60)
+  badgeTone    Tone?
+  /// Small corner chip: duration, source or time.
+  metaLabel    String?       @db.VarChar(60)
+  /// Highlighted value over the media, e.g. "1,000 Coins = ₹100".
+  valueLabel   String?       @db.VarChar(60)
+  posterKicker String?       @db.VarChar(80)
+  /// Poster headline; may contain line breaks.
+  posterText   String?       @db.VarChar(200)
+  posterByline String?       @db.VarChar(80)
+  title        String        @db.VarChar(200)
+  linkLabel    String        @db.VarChar(80)
+  linkHref     String?       @db.VarChar(200)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Offer {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  tone      Tone
+  iconText  String   @db.VarChar(8)
+  eyebrow   String   @db.VarChar(80)
+  title     String   @db.VarChar(160)
+  body      String   @db.VarChar(300)
+  /// Accessible name of the card's arrow link.
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// "Start here" tiles.
+model QuickAction {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(64)
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  tone        Tone
+  iconText    String   @db.VarChar(8)
+  title       String   @db.VarChar(80)
+  description String   @db.VarChar(160)
+  href        String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum CategoryKind {
+  FORM
+  PRACTICE_AREA
+}
+
+/// Catalogue entry point: a product form (Vati, Churna...) or a practice area.
+model Category {
+  id        Int          @id @default(autoincrement())
+  /// Also the future URL slug.
+  key       String       @unique @db.VarChar(64)
+  kind      CategoryKind
+  sortOrder Int          @default(0)
+  active    Boolean      @default(true)
+  name      String       @db.VarChar(80)
+  /// Short Devanagari mark shown on the tile, e.g. "चू".
+  glyph     String?      @db.VarChar(8)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Brand {
+  id          Int      @id @default(autoincrement())
+  /// Also the future URL slug.
+  key         String   @unique @db.VarChar(64)
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  featured    Boolean  @default(false)
+  name        String   @db.VarChar(80)
+  monogram    String   @db.VarChar(4)
+  tone        Tone
+  eyebrow     String   @db.VarChar(80)
+  description String   @db.VarChar(300)
+  linkLabel   String   @db.VarChar(80)
+  linkHref    String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CourseTeaser {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  tag       String   @db.VarChar(60)
+  title     String   @db.VarChar(160)
+  body      String   @db.VarChar(300)
+  metaLabel String   @db.VarChar(40)
+  metaValue String   @db.VarChar(80)
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Saatvik Live session teaser.
+model LiveSession {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  tag       String   @db.VarChar(60)
+  title     String   @db.VarChar(160)
+  body      String   @db.VarChar(300)
+  metaLabel String   @db.VarChar(40)
+  /// Display text for when it runs, e.g. "Monday • 8 PM".
+  metaValue String   @db.VarChar(80)
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Verified testimonial with a photo of the original (letterhead, note...).
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  /// Shown large in the homepage feedback section.
+  featured  Boolean  @default(false)
+  imageSrc  String   @db.VarChar(200)
+  imageAlt  String   @db.VarChar(200)
+  badge     String   @db.VarChar(60)
+  quote     String   @db.VarChar(600)
+  caption   String   @db.VarChar(160)
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// "Why Saatvik" step. Its number comes from the order.
+model WhyStep {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  title     String   @db.VarChar(80)
+  body      String   @db.VarChar(300)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
