@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 import { testDatabaseUrl } from "./tests/setup/test-database.ts";
 
@@ -25,6 +26,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "vitest-only-secret-0123456789abcdefghijkl",
       BETTER_AUTH_URL: "http://localhost:3000",
       DEV_SHOW_OTP: "false",
+      // Uploaded files go to a temporary folder, never the dev one.
+      STORAGE_DIR: join(tmpdir(), "saatvik-vaidya-vitest-storage"),
     },
     globalSetup: ["./tests/setup/global-setup.ts"],
     projects: [

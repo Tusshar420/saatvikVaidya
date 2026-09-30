@@ -85,3 +85,23 @@ export function securityHeaders(options: SecurityHeaderOptions): Header[] {
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   ];
 }
+
+/** Path of the route that serves uploaded documents (see next.config.ts). */
+export const documentFilePath = "/api/documents/:path*";
+
+/**
+ * Overrides for uploaded files (/api/documents/[id]), applied after the
+ * site-wide headers. The admin review page shows PDFs in an iframe, so these
+ * may be framed by the site itself (and nothing else). The files are only
+ * PDFs and images, so their CSP allows nothing to run or load.
+ */
+export function documentFileHeaders(): Header[] {
+  return [
+    {
+      key: "Content-Security-Policy",
+      value:
+        "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'self'",
+    },
+    { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  ];
+}

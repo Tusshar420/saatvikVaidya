@@ -1,4 +1,6 @@
 import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { resolve, sep } from "node:path";
 import { randomBytes, randomInt } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
@@ -149,7 +151,12 @@ export const E2E_QUIZ_PREFIX = "E2E ";
 export async function signInAs(
   page: Page,
   baseURL: string,
-  options: { role: "user" | "admin"; userType?: string; name?: string },
+  options: {
+    role: "user" | "admin";
+    userType?: string;
+    name?: string;
+    verificationStatus?: "none" | "pending" | "approved" | "rejected";
+  },
 ) {
   const db = e2eDb();
   const type = await db.userType.findUniqueOrThrow({
@@ -167,6 +174,7 @@ export async function signInAs(
       emailVerified: true,
       role: options.role,
       userTypeId: type.id,
+      verificationStatus: options.verificationStatus,
       termsAcceptedAt: new Date(),
       accounts: {
         create: {
@@ -205,8 +213,8 @@ export async function createPendingProfessional(name: string, userType = "doctor
 }
 
 /**
- * Deletes every user, code, rate-limit row, audit row and piece of admin
- * content the e2e tests made.
+ * Deletes every user (with their uploaded files), code, rate-limit row, audit
+ * row and piece of admin content the e2e tests made.
  */
 export async function cleanUpE2eData() {
   const db = e2eDb();
@@ -221,6 +229,16 @@ export async function cleanUpE2eData() {
     select: { id: true },
   });
   const ids = users.map((user) => user.id);
+  // Uploaded files live on disk (STORAGE_DIR), not in the database.
+  const documents = await db.professionalDocument.findMany({
+    where: { userId: { in: ids } },
+    select: { fileKey: true },
+  });
+  const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
+  for (const { fileKey } of documents) {
+    const path = resolve(storageDir, fileKey);
+    if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
+  }
   await db.$transaction([
     // Audit rows written by e2e admins, or about e2e users.
     db.adminLog.deleteMany({

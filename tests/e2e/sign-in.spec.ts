@@ -3,6 +3,7 @@ import { account } from "../../src/content/account";
 import { authErrors } from "../../src/content/auth";
 import { shell } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
+import { verification } from "../../src/content/verification";
 import {
   createEmailAccount,
   exhaustOtpSends,
@@ -174,8 +175,14 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
     `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`,
   );
   await expect(main).toContainText("Ayurveda Doctor");
-  await expect(main).toContainText(account.status.pending.badge);
-  await expect(main).toContainText(account.status.pending.text);
+  // A new doctor is asked for their documents (P1.2).
+  await expect(main).toContainText(verification.state.needed.badge);
+  await expect(main).toContainText(verification.state.needed.text);
+  await expect(
+    main.getByRole("listitem", {
+      name: verification.documentTypes.registration_certificate.label,
+    }),
+  ).toContainText(verification.missing);
   expect(await axeViolations(page)).toEqual([]);
   expect(await horizontalOverflow(page)).toBe(0);
   if (isMobile) {

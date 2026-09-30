@@ -13,13 +13,15 @@ export async function assertTestDatabase(db: PrismaClient): Promise<void> {
 }
 
 /**
- * Empties the admin log and the user, session, account, verification and
- * rate-limit tables.
+ * Empties the admin log, professional documents and decisions, and the user,
+ * session, account, verification and rate-limit tables.
  */
 export async function clearAuthTables(db: PrismaClient): Promise<void> {
   await assertTestDatabase(db);
   await db.$transaction([
     db.adminLog.deleteMany(),
+    db.verificationComment.deleteMany(),
+    db.professionalDocument.deleteMany(),
     db.session.deleteMany(),
     db.account.deleteMany(),
     db.verification.deleteMany(),

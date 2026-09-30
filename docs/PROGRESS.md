@@ -1172,6 +1172,18 @@ at the start). Nothing needed fixing first.
 - Email verification links for email sign-ups (from A5).
 - Make `Setting.updatedBy` / `SettingHistory.changedBy` relations to `User`
   (from A4/A5).
+- **Required documents per user type (from P1.2)** are a code map in
+  `src/lib/verification.ts`. When admins can add user types, move the list to
+  the `UserType` table. Until then an unmapped professional type asks for a
+  registration certificate.
+- **Storage before deploying (from P1.2):** point `STORAGE_DIR` at a folder
+  outside the deployed app (so a redeploy doesn't wipe uploads) and back it
+  up, or move to R2. Two uploads of the same document at the same moment can
+  leave one orphaned file on disk; a periodic sweep of keys not in
+  `ProfessionalDocument` would tidy that up.
+- Uploads are checked by their first bytes only. Consider a virus scan when
+  moving to R2, and re-encoding images to strip metadata such as location
+  (from P1.2).
 
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
@@ -1259,3 +1271,134 @@ checks and wouldn't match the chunk.
 
 Nothing was changed apart from this entry. Checks were not run for this
 chunk; the tree holds P1.1's unfinished work.
+
+## P1.2. Professional document uploads and verification (2026-10-01)
+
+P1.1 was paused and uncommitted when this chunk started, and P1.2 builds on
+its approvals page, so P1.1 was finished and committed first (see its entry).
+
+**Built**
+- **Database** (migration `p1_2_documents`):
+  - `ProfessionalDocument`: one current file per user and document type. The
+    spec's `fileUrl` is `fileKey`, a Storage key, because files are never
+    public. Also stores the cleaned file name, the type detected from the
+    file's content, the size, `uploadedAt` and `verifiedAt`.
+  - `VerificationComment`: every approve/reject decision with its optional
+    comment. The deciding admin is `authorId` (the spec's `approvedBy`) and
+    is set to null if that admin is deleted.
+  - `User.verificationSubmittedAt`: set when the last required document
+    comes in.
+- **Storage** (`src/server/storage/`): a `Storage` interface (`put`, `get`
+  as a stream, `delete`) with a local-disk implementation in `STORAGE_DIR`
+  (default `./storage`, git-ignored, outside `public/`).
+  - Keys are random (`documents/<user>/<32 hex>.<ext>`), checked against a
+    pattern and kept inside the folder.
+  - Writes go to a temporary file and are then renamed into place.
+  - `files.ts` checks uploads: the real type from the first bytes (PDF, JPEG
+    or PNG), a 5 MB limit, cleaned file names, a request body read with a
+    hard cap, and `Content-Disposition`.
+  - R2, product images and ebooks can reuse it.
+- **Rules** (`src/lib/verification.ts`): Doctor needs a registration
+  certificate; Clinic needs clinic registration and GST; Pharmacy and Stockist
+  need a drug licence and GST.
+- **Flow** (`src/server/verification/documents.ts`):
+  - Uploading replaces that document's old file, which is deleted.
+  - When every required document is in, the account goes to `pending` with a
+    new submitted date. This is also how a rejected account goes back for
+    review.
+  - Verified accounts can't change their documents. The user row is locked
+    during an upload, so a decision made at the same moment can't be undone.
+  - Admin decisions (single, bulk and from the review page) now also write a
+    `VerificationComment`. Approval sets `verifiedAt` on the documents and
+    rejection clears it.
+  - Deleting a user deletes their files.
+- **Routes:**
+  - `POST /api/account/documents`: signed-in users only, same origin, 20
+    uploads per hour per account, Zod-checked, with the body capped before
+    parsing. It's a route handler rather than a server action so the browser
+    can show upload progress.
+  - `GET /api/documents/[id]`: the owner or an admin only; everyone else gets
+    the same 404. `?download=1` downloads the file. Responses are
+    `no-store` and `nosniff`.
+  - `next.config.ts` overrides this path's headers so only the site itself
+    can frame it (`frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`),
+    with a `default-src 'none'` CSP. In real Google Chrome the admin PDF
+    preview renders under these headers with no console errors.
+- **Notifications** (`src/server/notify/verification.ts`, dev log):
+  - The professional gets a confirmation for each upload.
+  - Every admin with an email gets an upload notice with a link to the
+    review.
+  - The professional gets an approval or rejection email, with the comment
+    as the reason.
+  - Phone-only accounts get an SMS instead of an email.
+- **`/account` for professionals:**
+  - The status card shows "Documents needed", "Pending review" (with the
+    submitted date), "Verified", or "Not approved" with the reason, a
+    re-upload prompt and the phone number.
+  - "Your documents" has one card per required document: the file on
+    record with a View link, then choose (checked in the browser for type
+    and size) → preview (thumbnail for images) → Upload with a progress bar
+    → toast and refresh.
+  - Once verified, the cards are read-only.
+- **Admin:**
+  - `/admin/approvals/detail/[userId]` shows each document with a preview
+    (images inline; PDFs in a frame from 820 px, with Open/Download on
+    phones), the applicant, the decision form and the decision history.
+  - The approvals list shows "n of m uploaded", the submitted date (accounts
+    with complete sets first) and a Review link.
+  - The user detail page links to the review.
+  - The decision comment's help text says the professional sees it when
+    rejected.
+- Copy lives in `src/content/verification.ts` and `src/content/admin.ts`
+  (`review`).
+
+**Decisions**
+- PNG is accepted alongside the spec's PDF and JPG (phone screenshots are
+  common). The type always comes from the file's content, never from the
+  name or the browser.
+- There's no separate "submit" button. A complete set of documents submits
+  itself, which saves a step on phones.
+- A new professional still starts as `pending` (from A5). "Pending" with no
+  submitted date shows as "Documents needed".
+- A rejection's comment is shown to the professional; approval comments are
+  kept for the history and the audit log.
+
+**Tests**
+- Vitest (250 in total, 33 new):
+  - Storage: keys, path traversal, round trips.
+  - File checks: type, size, names, the body cap.
+  - Flow: status changes, replacing files, wrong document types, customers,
+    locked accounts, the SMS fallback, reject → re-upload → approve with
+    history, file access rules, file cleanup on delete.
+  - Routes: origin, sign-in, 413/415/403/400, rate limit, file headers,
+    404s.
+- Playwright (`tests/e2e/verification.spec.ts`, phone and desktop):
+  - A doctor's upload, including the browser's type and size errors and the
+    server refusing a renamed text file.
+  - The pharmacy two-document flow.
+  - The admin reject → re-upload (JPG) → approve flow, with download and
+    preview.
+  - Privacy: another user or a visitor gets 404; cross-site, signed-out and
+    customer uploads are refused; the framing headers.
+  - axe, overflow and console checks on `/account` and the review page.
+- `sign-in.spec.ts` now expects a new doctor to see "Documents needed"
+  instead of the Stage A "Pending" text. That's the intended change.
+- The admin 404 check includes the review page.
+
+**Checks:** `typecheck`, `lint`, `test` (250), `test:e2e` (148 passed, 4
+skipped by design) and `build` all pass. `/account` (needed, file selected,
+rejected) and the review page were checked in screenshots at 375 and 1280 px.
+
+**Known gaps**
+- Headless Chromium (used by the tests) can't draw PDFs, so the automated
+  tests check the preview frame exists. Actual PDF rendering was checked once
+  by hand in Google Chrome.
+- No virus scan or image metadata stripping; see "Later".
+- Emails are printed to the server log only (no provider yet), as the rules
+  require.
+- Admins can decide without any documents (for checks done offline); the
+  review page shows what's missing.
+
+**Next steps:** P1.3 (catalogue) can reuse `getStorage()` and
+`src/server/storage/files.ts` for product images.
+

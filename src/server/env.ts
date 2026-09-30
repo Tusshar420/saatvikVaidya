@@ -11,6 +11,11 @@ const serverEnvSchema = z.object({
     protocol: /^mysql$/,
     error: "DATABASE_URL must be a mysql:// URL",
   }),
+  /**
+   * Folder for uploaded files (local-disk Storage). Must be outside public/.
+   * Relative paths are from the app's working directory.
+   */
+  STORAGE_DIR: z.string().trim().min(1).default("storage"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

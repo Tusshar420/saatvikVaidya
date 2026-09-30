@@ -2,15 +2,23 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BadgeCheck, Phone } from "lucide-react";
+import { DocumentUpload } from "@/components/site/account/document-upload";
 import { SignOutButton } from "@/components/site/auth/sign-out-button";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { account as copy } from "@/content/account";
+import { verification as documents } from "@/content/verification";
 import { signInPath } from "@/lib/auth-routes";
+import { formatDate } from "@/lib/format";
 import { formatIndianPhone, telHref } from "@/lib/phone";
 import { readAccount } from "@/server/auth/account";
 import { requireUser } from "@/server/auth/session";
 import { getSetting } from "@/server/content/settings";
+import {
+  readProfessionalVerification,
+  type ProfessionalVerification,
+} from "@/server/verification/documents";
+import { documentUpload, formatFileSize } from "@/lib/verification";
 
 export const metadata: Metadata = {
   title: copy.metaTitle,
@@ -26,14 +34,16 @@ const statusBadge = {
 
 /**
  * The signed-in user's profile: name, contact, user type and professional
- * verification status. Protected: the proxy sends visitors without a session
+ * verification status. Professionals whose type needs verification also get
+ * their document uploads here. Protected: the proxy sends visitors without a session
  * cookie to sign-in, and requireUser() checks the session itself.
  */
 export default async function AccountPage() {
   const { user } = await requireUser("/account");
-  const [profile, phone] = await Promise.all([
+  const [profile, phone, professional] = await Promise.all([
     readAccount(user.id),
     getSetting("contact.phone"),
+    readProfessionalVerification(user.id),
   ]);
   if (!profile) redirect(signInPath("/account"));
 
@@ -83,28 +93,131 @@ export default async function AccountPage() {
             <h2 id="account-status" className="text-h3 text-ink">
               {copy.statusTitle}
             </h2>
-            <Badge
-              variant={statusBadge[profile.verificationStatus]}
-              className="mt-4"
-            >
-              {status.badge}
-            </Badge>
-            <p className="mt-3 text-body text-ink">{status.text}</p>
-            {profile.verificationStatus === "rejected" && (
-              <a
-                href={telHref(phone)}
-                className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal underline-offset-4 hover:underline"
-              >
-                <Phone aria-hidden className="size-4" />
-                {copy.call(phone)}
-              </a>
+            {professional ? (
+              <ProfessionalStatus verification={professional} phone={phone} />
+            ) : (
+              <>
+                <Badge
+                  variant={statusBadge[profile.verificationStatus]}
+                  className="mt-4"
+                >
+                  {status.badge}
+                </Badge>
+                <p className="mt-3 text-body text-ink">{status.text}</p>
+                {profile.verificationStatus === "rejected" && (
+                  <CallUs phone={phone} />
+                )}
+              </>
             )}
           </Card>
         </div>
 
+        {professional && <Documents verification={professional} />}
+
         <SignOutButton className="mt-8 max-sm:w-full" />
       </div>
     </div>
+  );
+}
+
+const stateBadge = {
+  needed: "orange",
+  review: "orange",
+  approved: "teal",
+  rejected: "live",
+} as const;
+
+/** The status card for professionals: where they are, and what's next. */
+function ProfessionalStatus({
+  verification,
+  phone,
+}: {
+  verification: ProfessionalVerification;
+  phone: string;
+}) {
+  const state = documents.state[verification.state];
+  return (
+    <>
+      <Badge variant={stateBadge[verification.state]} className="mt-4">
+        {state.badge}
+      </Badge>
+      <p className="mt-3 text-body text-ink">{state.text}</p>
+      {verification.state === "review" && verification.submittedAt && (
+        <p className="mt-2 text-small font-semibold text-muted">
+          {documents.submittedOn(formatDate(verification.submittedAt))}
+        </p>
+      )}
+      {verification.rejection && (
+        <>
+          <div className="mt-4 rounded-md bg-danger-soft p-3.5">
+            <p className="text-small font-extrabold text-danger">
+              {documents.reasonTitle}
+            </p>
+            <p className="mt-1 text-sm break-words text-ink">
+              {verification.rejection.comment ?? documents.noReason}
+            </p>
+          </div>
+          <p className="mt-3 text-sm text-ink">{documents.reuploadPrompt}</p>
+          <CallUs phone={phone} />
+        </>
+      )}
+    </>
+  );
+}
+
+/** Upload cards for each required document. */
+function Documents({ verification }: { verification: ProfessionalVerification }) {
+  const locked = verification.status === "approved";
+  const byType = new Map(
+    verification.documents.map((document) => [document.documentType, document]),
+  );
+  return (
+    <Card as="section" aria-labelledby="account-documents" className="mt-5">
+      <h2 id="account-documents" className="text-h3 text-ink">
+        {documents.documentsTitle}
+      </h2>
+      <p className="mt-1.5 text-sm text-muted">
+        {locked
+          ? documents.documentsLocked
+          : documents.documentsIntro(formatFileSize(documentUpload.maxBytes))}
+      </p>
+      <ul className="mt-5 grid gap-4 md:grid-cols-2">
+        {verification.required.map((type) => {
+          const document = byType.get(type);
+          return (
+            <DocumentUpload
+              key={type}
+              documentType={type}
+              locked={locked}
+              current={
+                document
+                  ? {
+                      id: document.id,
+                      fileName: document.fileName,
+                      contentType: document.contentType,
+                      sizeBytes: document.sizeBytes,
+                      uploadedOn: formatDate(document.uploadedAt),
+                      verified: document.verifiedAt !== null,
+                    }
+                  : null
+              }
+            />
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+function CallUs({ phone }: { phone: string }) {
+  return (
+    <a
+      href={telHref(phone)}
+      className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal underline-offset-4 hover:underline"
+    >
+      <Phone aria-hidden className="size-4" />
+      {copy.call(phone)}
+    </a>
   );
 }
 

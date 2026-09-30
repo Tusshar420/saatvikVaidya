@@ -41,4 +41,10 @@ export const rateLimitRules = {
    * reset) from one IP: 10 per 15 minutes.
    */
   signInPerIp: { name: "sign-in:ip", windowSeconds: 15 * 60, max: 10 },
+  /** Professional document uploads by one account: 20 per hour. */
+  documentUploadPerUser: {
+    name: "document-upload:user",
+    windowSeconds: 60 * 60,
+    max: 20,
+  },
 } as const satisfies Record<string, RateLimitRule>;

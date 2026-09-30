@@ -12,12 +12,12 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ComingSoon } from "@/components/ui/empty-state";
 import { admin as copy } from "@/content/admin";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatIndianPhone } from "@/lib/phone";
 import { getUserDetail } from "@/server/admin/users";
 import { requireAdmin } from "@/server/auth/session";
+import { readProfessionalVerification } from "@/server/verification/documents";
 import { deleteUserAction } from "../actions";
 
 export const metadata: Metadata = { title: copy.userDetail.metaTitle };
@@ -30,7 +30,10 @@ export default async function UserDetailPage({
 }: PageProps<"/admin/users/[id]">) {
   const session = await requireAdmin();
   const { id } = await params;
-  const user = await getUserDetail(id);
+  const [user, verification] = await Promise.all([
+    getUserDetail(id),
+    readProfessionalVerification(id),
+  ]);
   if (!user) notFound();
   const isSelf = user.id === session.user.id;
 
@@ -130,13 +133,26 @@ export default async function UserDetailPage({
           </div>
           {user.requiresVerification ? (
             <>
-              <ComingSoon
-                as="h3"
-                icon={<FileText aria-hidden />}
-                title={text.documentsTitle}
-                description={text.documentsSoon}
-                className="mt-4 py-6"
-              />
+              <div className="mt-4 flex flex-col gap-3 rounded-lg bg-surface-alt p-4 sm:flex-row sm:items-center">
+                <p className="flex flex-1 items-start gap-2 text-sm text-ink">
+                  <FileText aria-hidden className="mt-0.5 size-4.5 shrink-0 text-teal" />
+                  <span>
+                    <span className="block font-bold">{text.documentsTitle}</span>
+                    {verification &&
+                      text.documentsSummary(
+                        verification.required.length -
+                          verification.missing.length,
+                        verification.required.length,
+                      )}
+                  </span>
+                </p>
+                <Link
+                  href={`/admin/approvals/detail/${user.id}`}
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                >
+                  {text.reviewDocuments}
+                </Link>
+              </div>
               <DecisionForm
                 userId={user.id}
                 name={user.name}

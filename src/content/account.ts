@@ -21,7 +21,7 @@ export const account = {
     },
     pending: {
       badge: "Pending",
-      text: "Professional prices unlock after our team verifies your documents — document upload is coming soon. Until then you see retail prices (MRP).",
+      text: "Professional prices unlock after our team verifies your documents. Until then you see retail prices (MRP).",
     },
     approved: {
       badge: "Verified",

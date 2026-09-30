@@ -4,6 +4,7 @@ import { z } from "zod";
 import { admin as copy } from "@/content/admin";
 import type { Prisma } from "@/generated/prisma/client";
 import { toIndianE164 } from "@/lib/phone";
+import { requiredDocumentsFor, type DocumentType } from "@/lib/verification";
 import { newId } from "@/server/auth/admin";
 import { isCommonPassword } from "@/server/auth/common-passwords";
 import {
@@ -12,6 +13,12 @@ import {
 } from "@/server/auth/placeholder-email";
 import { passwordPolicy } from "@/server/auth/policy";
 import { db } from "@/server/db";
+import { deleteFilesQuietly } from "@/server/storage";
+import {
+  documentKeysOf,
+  recordDecision,
+  sendDecisions,
+} from "@/server/verification/documents";
 import {
   createdFields,
   diffFields,
@@ -146,18 +153,46 @@ export async function listUsers(filters: UserFilters): Promise<{
   return { rows: users.map(toRow), total, page, pageCount };
 }
 
-/** Professional accounts waiting for a decision, oldest first. */
-export async function listPendingApprovals(): Promise<UserRow[]> {
+export type ApprovalRow = UserRow & {
+  /** When the full set of documents came in; null while some are missing. */
+  submittedAt: Date | null;
+  documentCount: number;
+  requiredCount: number;
+};
+
+/**
+ * Professional accounts waiting for a decision: those with all documents in
+ * first (longest waiting first), then those still uploading.
+ */
+export async function listPendingApprovals(): Promise<ApprovalRow[]> {
   const users = await db.user.findMany({
     where: {
       verificationStatus: "pending",
       userType: { requiresVerification: true },
     },
-    select: rowSelect,
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: {
+      ...rowSelect,
+      verificationSubmittedAt: true,
+      documents: { select: { documentType: true } },
+    },
+    orderBy: [
+      { verificationSubmittedAt: { sort: "asc", nulls: "last" } },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
     take: 200,
   });
-  return users.map(toRow);
+  return users.map((user) => {
+    const required = requiredDocumentsFor(user.userType.key);
+    return {
+      ...toRow(user),
+      submittedAt: user.verificationSubmittedAt,
+      documentCount: user.documents.filter((document) =>
+        required.includes(document.documentType as DocumentType),
+      ).length,
+      requiredCount: required.length,
+    };
+  });
 }
 
 export type UserTypeOption = {
@@ -524,7 +559,9 @@ export const noteSchema = z.preprocess(
 
 /**
  * Sets the verification decision on users whose type needs verification;
- * others are skipped. One audit row per changed user.
+ * others are skipped. Each changed user gets an audit row and a decision in
+ * their verification history (the note is the comment; on a rejection the
+ * professional sees it as the reason), and is then told by email or SMS.
  */
 export async function decideVerification(
   ids: string[],
@@ -533,21 +570,30 @@ export async function decideVerification(
   actorId: string,
 ): Promise<{ changed: number; skipped: number }> {
   const unique = [...new Set(ids)].slice(0, BULK_LIMIT);
-  return db.$transaction(async (tx) => {
+  const decided = await db.$transaction(async (tx) => {
     const users = await tx.user.findMany({
       where: { id: { in: unique } },
       select: {
         id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
         verificationStatus: true,
         userType: { select: { requiresVerification: true } },
       },
     });
-    let changed = 0;
+    const changed: typeof users = [];
     for (const user of users) {
       if (!user.userType.requiresVerification) continue;
       await tx.user.update({
         where: { id: user.id },
         data: { verificationStatus: decision },
+      });
+      await recordDecision(tx, {
+        userId: user.id,
+        decision,
+        comment: note,
+        actorId,
       });
       await logAdminAction(tx, {
         actorId,
@@ -560,10 +606,12 @@ export async function decideVerification(
         ),
         note,
       });
-      changed += 1;
+      changed.push(user);
     }
-    return { changed, skipped: unique.length - changed };
+    return changed;
   });
+  await sendDecisions(decided, decision, note);
+  return { changed: decided.length, skipped: unique.length - decided.length };
 }
 
 /**
@@ -576,7 +624,9 @@ export async function deleteUsers(
 ): Promise<{ changed: number; skipped: number }> {
   const unique = [...new Set(ids)].slice(0, BULK_LIMIT);
   const deletable = unique.filter((id) => id !== actorId);
-  return db.$transaction(async (tx) => {
+  // Uploaded files aren't in the database, so they're removed separately.
+  const fileKeys = await documentKeysOf(deletable);
+  const result = await db.$transaction(async (tx) => {
     const users = await tx.user.findMany({
       where: { id: { in: deletable } },
       select: {
@@ -605,4 +655,6 @@ export async function deleteUsers(
     });
     return { changed: count, skipped: unique.length - count };
   });
+  if (result.changed > 0) await deleteFilesQuietly(fileKeys);
+  return result;
 }

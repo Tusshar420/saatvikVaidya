@@ -42,6 +42,7 @@ export function DecisionForm({
     idleForm,
   );
   const noteId = `note-${userId}`;
+  const helpId = `${noteId}-help`;
 
   return (
     <form action={action} className={cn("flex flex-col gap-3", className)}>
@@ -63,8 +64,14 @@ export function DecisionForm({
               ? copy.approvals.commentPlaceholder
               : copy.userDetail.decide.notePlaceholder
           }
+          aria-describedby={compact ? undefined : helpId}
           className={cn(inputClasses, compact && "md:h-10")}
         />
+        {!compact && (
+          <p id={helpId} className="-mt-1.5 text-small text-muted">
+            {copy.userDetail.decide.noteHelp}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <Button
             type="submit"

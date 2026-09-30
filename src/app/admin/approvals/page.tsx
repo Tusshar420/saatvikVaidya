@@ -13,7 +13,6 @@ import {
 } from "@/components/admin/data-table";
 import { DecisionForm } from "@/components/admin/decision-form";
 import { AdminPageHeader } from "@/components/admin/page-header";
-import { Badge } from "@/components/ui/badge";
 import { admin as copy } from "@/content/admin";
 import { formatDate } from "@/lib/format";
 import { listPendingApprovals } from "@/server/admin/users";
@@ -53,7 +52,7 @@ export default async function ApprovalsPage() {
             <Tr key={user.id}>
               <Td>
                 <Link
-                  href={`/admin/users/${user.id}`}
+                  href={`/admin/approvals/detail/${user.id}`}
                   aria-label={text.viewNamed(user.name)}
                   className="font-bold break-words text-teal hover:underline"
                 >
@@ -62,15 +61,28 @@ export default async function ApprovalsPage() {
               </Td>
               <Td label={text.columns.type}>{user.userTypeLabel}</Td>
               <Td label={text.columns.submitted} className="whitespace-nowrap">
-                {formatDate(user.createdAt)}
+                {user.submittedAt ? (
+                  formatDate(user.submittedAt)
+                ) : (
+                  <span className="text-muted">{text.notSubmitted}</span>
+                )}
               </Td>
               <Td label={text.columns.status}>
                 <VerificationBadge status={user.verificationStatus} />
               </Td>
               <Td label={text.documents}>
-                <span className="inline-flex items-center gap-1.5">
-                  <FileText aria-hidden className="size-4 text-muted" />
-                  <Badge variant="soon">{text.documentsSoon}</Badge>
+                <span className="flex flex-col items-start gap-1">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <FileText aria-hidden className="size-4 text-muted" />
+                    {text.documentCount(user.documentCount, user.requiredCount)}
+                  </span>
+                  <Link
+                    href={`/admin/approvals/detail/${user.id}`}
+                    aria-label={text.reviewNamed(user.name)}
+                    className="inline-flex min-h-11 items-center font-bold text-teal hover:underline md:min-h-0"
+                  >
+                    {text.review}
+                  </Link>
                 </span>
               </Td>
               <Td className="max-md:mt-2 md:min-w-72">

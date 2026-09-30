@@ -53,29 +53,38 @@ enum VerificationStatus {
 }
 
 model User {
-  id                  String             @id @db.VarChar(64)
-  name                String             @db.VarChar(191)
+  id                      String                 @id @db.VarChar(64)
+  name                    String                 @db.VarChar(191)
   /// Better Auth requires an email. Accounts created by phone OTP get a
   /// placeholder on the reserved ".invalid" domain (see
   /// src/server/auth/placeholder-email.ts), which is never shown or mailed.
-  email               String             @unique @db.VarChar(191)
-  emailVerified       Boolean            @default(false)
-  image               String?            @db.Text
+  email                   String                 @unique @db.VarChar(191)
+  emailVerified           Boolean                @default(false)
+  image                   String?                @db.Text
   /// E.164, Indian mobiles only: "+91XXXXXXXXXX".
-  phoneNumber         String?            @unique @db.VarChar(20)
-  phoneNumberVerified Boolean            @default(false)
-  userTypeId          Int
-  userType            UserType           @relation(fields: [userTypeId], references: [id], onDelete: Restrict)
-  role                UserRole           @default(user)
-  verificationStatus  VerificationStatus @default(none)
-  marketingOptIn      Boolean            @default(false)
+  phoneNumber             String?                @unique @db.VarChar(20)
+  phoneNumberVerified     Boolean                @default(false)
+  userTypeId              Int
+  userType                UserType               @relation(fields: [userTypeId], references: [id], onDelete: Restrict)
+  role                    UserRole               @default(user)
+  verificationStatus      VerificationStatus     @default(none)
+  /// When the professional last completed their set of required documents
+  /// (see src/lib/verification.ts). Null until every required document is
+  /// uploaded; shown as "submitted" on /account and in admin approvals.
+  verificationSubmittedAt DateTime?
+  marketingOptIn          Boolean                @default(false)
   /// When the user accepted the terms at sign-up (set by the server).
-  termsAcceptedAt     DateTime
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  sessions            Session[]
-  accounts            Account[]
-  adminLogs           AdminLog[]
+  termsAcceptedAt         DateTime
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  sessions                Session[]
+  accounts                Account[]
+  adminLogs               AdminLog[]
+  documents               ProfessionalDocument[]
+  /// Decisions about this user's verification.
+  verificationComments    VerificationComment[]  @relation("VerificationSubject")
+  /// Decisions this admin made about other users' verification.
+  verificationDecisions   VerificationComment[]  @relation("VerificationAuthor")
 
   @@index([userTypeId])
 }
@@ -163,6 +172,56 @@ model AdminLog {
   @@index([resource, resourceId])
   @@index([createdAt])
   @@index([userId])
+}
+
+// ─── Professional verification ──────────────────────────────────────────────
+// Professionals upload documents from /account; admins review them at
+// /admin/approvals/detail/[userId]. Files live in Storage (src/server/storage)
+// and are only served through /api/documents/[id], to their owner or an admin.
+
+/// One uploaded document. A user has at most one current file per document
+/// type; uploading again replaces it (and the old file is deleted).
+model ProfessionalDocument {
+  id           Int       @id @default(autoincrement())
+  userId       String    @db.VarChar(64)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Key from src/lib/verification.ts, e.g. "drug_licence".
+  documentType String    @db.VarChar(40)
+  /// The file's key in Storage. Not a URL: files are never public.
+  fileKey      String    @unique @db.VarChar(191)
+  /// The name the file had on the user's device (cleaned), for display.
+  fileName     String    @db.VarChar(191)
+  /// Checked from the file's contents on upload, not taken from the browser.
+  contentType  String    @db.VarChar(64)
+  sizeBytes    Int
+  uploadedAt   DateTime  @default(now())
+  /// When an admin approved the account with this file on record.
+  verifiedAt   DateTime?
+
+  @@unique([userId, documentType])
+}
+
+enum VerificationDecision {
+  approved
+  rejected
+}
+
+/// An admin's approve or reject decision, with an optional comment. The
+/// latest rejection's comment is shown to the professional as the reason.
+model VerificationComment {
+  id        Int                  @id @default(autoincrement())
+  /// The professional the decision is about.
+  userId    String               @db.VarChar(64)
+  user      User                 @relation("VerificationSubject", fields: [userId], references: [id], onDelete: Cascade)
+  /// The admin who decided; null once that account is deleted.
+  authorId  String?              @db.VarChar(64)
+  author    User?                @relation("VerificationAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  decision  VerificationDecision
+  comment   String?              @db.Text
+  createdAt DateTime             @default(now())
+
+  @@index([userId, createdAt])
+  @@index([authorId])
 }
 
 // ─── Site settings ──────────────────────────────────────────────────────────
@@ -391,13 +450,13 @@ model Brand {
 }
 
 model CourseTeaser {
-  id        Int      @id @default(autoincrement())
-  key       String   @unique @db.VarChar(64)
-  sortOrder Int      @default(0)
-  active    Boolean  @default(true)
-  tag       String   @db.VarChar(60)
-  title     String   @db.VarChar(160)
-  body      String   @db.VarChar(300)
+  id         Int      @id @default(autoincrement())
+  key        String   @unique @db.VarChar(64)
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  tag        String   @db.VarChar(60)
+  title      String   @db.VarChar(160)
+  body       String   @db.VarChar(300)
   metaLabel  String   @db.VarChar(40)
   metaValue  String   @db.VarChar(80)
   /// For the admin list and the future course page (Phase 3).

@@ -51,6 +51,7 @@ test("a signed-in customer gets a 404 on every admin page", async ({
     "/admin/users",
     "/admin/users/new",
     "/admin/approvals",
+    "/admin/approvals/detail/anyone",
     "/admin/content/reels",
     "/admin/content/quiz/new",
     "/admin/orders",
