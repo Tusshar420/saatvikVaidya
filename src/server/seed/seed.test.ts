@@ -5,7 +5,13 @@ import { settingDefaults } from "@/content/settings";
 import { db } from "@/server/db";
 import { homeSectionKeys } from "@/server/content/home-schema";
 import { clearContentTables } from "../../../tests/setup/content-db";
-import { feedbackSeed, reelSeed } from "./home-content";
+import {
+  brandSeed,
+  courseTeaserSeed,
+  feedbackSeed,
+  offerSeed,
+  reelSeed,
+} from "./home-content";
 import { seedDatabase } from ".";
 
 const root = resolve(import.meta.dirname, "../../..");
@@ -120,8 +126,8 @@ describe("seedDatabase", () => {
       where: { key: "reels" },
       data: { enabled: false, sortOrder: 999, title: "Edited" },
     });
-    await db.reel.update({
-      where: { key: "product-range" },
+    await db.offer.update({
+      where: { key: offerSeed[0].key },
       data: { active: false, title: "Edited" },
     });
 
@@ -138,11 +144,43 @@ describe("seedDatabase", () => {
       await db.homeSection.findUnique({ where: { key: "reels" } }),
     ).toMatchObject({ enabled: false, sortOrder: 999, title: "Saatvik Reels" });
     expect(
-      await db.reel.findUnique({ where: { key: "product-range" } }),
-    ).toMatchObject({
-      active: false,
-      title: "Explore low-MOQ Ayurveda formulations.",
+      await db.offer.findUnique({ where: { key: offerSeed[0].key } }),
+    ).toMatchObject({ active: false, title: offerSeed[0].title });
+  });
+
+  it("never overwrites reels, brands or courses edited in the admin panel", async () => {
+    await seedDatabase(db);
+    await db.reel.update({
+      where: { key: "product-range" },
+      data: { active: false, title: "Edited reel" },
     });
+    await db.brand.update({
+      where: { key: brandSeed[0].key },
+      data: { name: "Edited brand" },
+    });
+    await db.courseTeaser.update({
+      where: { key: courseTeaserSeed[0].key },
+      data: { title: "Edited course" },
+    });
+    await db.reel.delete({ where: { key: "brand-launch" } });
+
+    await seedDatabase(db);
+
+    expect(
+      await db.reel.findUnique({ where: { key: "product-range" } }),
+    ).toMatchObject({ active: false, title: "Edited reel" });
+    expect(
+      await db.brand.findUnique({ where: { key: brandSeed[0].key } }),
+    ).toMatchObject({ name: "Edited brand" });
+    expect(
+      await db.courseTeaser.findUnique({
+        where: { key: courseTeaserSeed[0].key },
+      }),
+    ).toMatchObject({ title: "Edited course" });
+    // A missing seeded row is created again.
+    expect(
+      await db.reel.findUnique({ where: { key: "brand-launch" } }),
+    ).not.toBeNull();
   });
 
   it("stores every piece of text from the mockup homepage, exactly", async () => {

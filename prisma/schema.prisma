@@ -1,8 +1,9 @@
 // Saatvik Vaidya database schema.
 // The connection URL lives in prisma.config.ts, read from DATABASE_URL.
 //
-// Sections, in order: users and access, site settings, homepage content.
-// Later phases add their own section (catalogue, orders, coins, ebooks...).
+// Sections, in order: users and access, admin, site settings, homepage
+// content, learning. Later phases add their own section (catalogue, orders,
+// coins, ebooks...).
 
 generator client {
   provider = "prisma-client"
@@ -74,6 +75,7 @@ model User {
   updatedAt           DateTime           @updatedAt
   sessions            Session[]
   accounts            Account[]
+  adminLogs           AdminLog[]
 
   @@index([userTypeId])
 }
@@ -136,6 +138,31 @@ model AuthRateLimit {
   resetAtMs BigInt
 
   @@index([resetAtMs])
+}
+
+// ─── Admin ──────────────────────────────────────────────────────────────────
+
+/// Audit trail: one row per change made in the admin panel, written in the
+/// same transaction as the change (src/server/admin/audit.ts). Never holds
+/// secrets such as passwords or tokens.
+model AdminLog {
+  id         Int      @id @default(autoincrement())
+  /// The admin who made the change; null once that account is deleted.
+  userId     String?  @db.VarChar(64)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// What was done, e.g. "user.approve", "reel.update".
+  action     String   @db.VarChar(40)
+  /// Model name of what was changed, e.g. "User", "Reel".
+  resource   String   @db.VarChar(40)
+  /// Id of the changed row (kept after the row is deleted).
+  resourceId String?  @db.VarChar(64)
+  /// Changed fields as { field: { from, to } }, plus a note where given.
+  changes    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@index([userId])
 }
 
 // ─── Site settings ──────────────────────────────────────────────────────────
@@ -352,6 +379,8 @@ model Brand {
   featured    Boolean  @default(false)
   name        String   @db.VarChar(80)
   monogram    String   @db.VarChar(4)
+  /// Logo image (path under public/). Uploads come with R2 later.
+  logoSrc     String?  @db.VarChar(200)
   tone        Tone
   eyebrow     String   @db.VarChar(80)
   description String   @db.VarChar(300)
@@ -369,12 +398,18 @@ model CourseTeaser {
   tag       String   @db.VarChar(60)
   title     String   @db.VarChar(160)
   body      String   @db.VarChar(300)
-  metaLabel String   @db.VarChar(40)
-  metaValue String   @db.VarChar(80)
-  linkLabel String   @db.VarChar(80)
-  linkHref  String?  @db.VarChar(200)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  metaLabel  String   @db.VarChar(40)
+  metaValue  String   @db.VarChar(80)
+  /// For the admin list and the future course page (Phase 3).
+  instructor String?  @db.VarChar(80)
+  /// Display text, e.g. "3 days" or "6 hours".
+  duration   String?  @db.VarChar(40)
+  /// YouTube video or embed URL (courses are YouTube-based).
+  videoUrl   String?  @db.VarChar(300)
+  linkLabel  String   @db.VarChar(80)
+  linkHref   String?  @db.VarChar(200)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 /// Saatvik Live session teaser.
@@ -424,4 +459,43 @@ model WhyStep {
   body      String   @db.VarChar(300)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Learning ───────────────────────────────────────────────────────────────
+// Managed in the admin panel. Quiz & Win itself (attempts, coins,
+// leaderboards) is Phase 2; until then quizzes are only authored.
+
+model Quiz {
+  id          Int            @id @default(autoincrement())
+  title       String         @db.VarChar(160)
+  description String?        @db.VarChar(600)
+  /// Finished and ready to publish once Quiz & Win launches.
+  active      Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  questions   QuizQuestion[]
+}
+
+model QuizQuestion {
+  id        Int          @id @default(autoincrement())
+  quizId    Int
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  sortOrder Int          @default(0)
+  prompt    String       @db.VarChar(400)
+  points    Int          @default(10)
+  options   QuizOption[]
+
+  @@index([quizId, sortOrder])
+}
+
+/// An answer choice. Exactly one per question is correct.
+model QuizOption {
+  id         Int          @id @default(autoincrement())
+  questionId Int
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  sortOrder  Int          @default(0)
+  text       String       @db.VarChar(200)
+  isCorrect  Boolean      @default(false)
+
+  @@index([questionId, sortOrder])
 }

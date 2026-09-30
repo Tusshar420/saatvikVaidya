@@ -28,7 +28,7 @@ export const adminInputSchema = z.object({
 export type AdminInput = z.input<typeof adminInputSchema>;
 
 /** Better Auth-style id: 32 random URL-safe characters. */
-function newId(): string {
+export function newId(): string {
   return randomBytes(24).toString("base64url");
 }
 

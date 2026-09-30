@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { PrismaClient } from "../../src/generated/prisma/client";
@@ -13,7 +14,8 @@ import { rateLimitRules } from "../../src/server/auth/policy";
 // - phones start +91 6999 (E2E_PHONE_PREFIX),
 // - emails end @e2e.saatvikvaidya.test,
 // - request IPs start 10.99. (sent as x-forwarded-for, so each test has its
-//   own per-IP rate limits and the real limits stay untouched).
+//   own per-IP rate limits and the real limits stay untouched),
+// - admin-panel content keys start "e2e-" and quiz titles "E2E ".
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -136,7 +138,76 @@ export async function createEmailAccount(
   expect(response.status()).toBe(200);
 }
 
-/** Deletes every user, code and rate-limit row the e2e tests made. */
+export const E2E_CONTENT_PREFIX = "e2e-";
+export const E2E_QUIZ_PREFIX = "E2E ";
+
+/**
+ * Creates an account straight in the database (role "user" or "admin") with
+ * a password, then signs the page's browser context in as it through the
+ * real sign-in endpoint.
+ */
+export async function signInAs(
+  page: Page,
+  baseURL: string,
+  options: { role: "user" | "admin"; userType?: string; name?: string },
+) {
+  const db = e2eDb();
+  const type = await db.userType.findUniqueOrThrow({
+    where: { key: options.userType ?? "customer" },
+  });
+  const id = randomBytes(24).toString("base64url");
+  const email = freshEmail();
+  const password = `e2e-${randomBytes(12).toString("base64url")}`;
+  const name = options.name ?? (options.role === "admin" ? "E2E Admin" : "E2E Customer");
+  await db.user.create({
+    data: {
+      id,
+      name,
+      email,
+      emailVerified: true,
+      role: options.role,
+      userTypeId: type.id,
+      termsAcceptedAt: new Date(),
+      accounts: {
+        create: {
+          id: randomBytes(24).toString("base64url"),
+          accountId: id,
+          providerId: "credential",
+          password: await hashPassword(password),
+        },
+      },
+    },
+  });
+  const response = await page.request.post("/api/auth/sign-in/email", {
+    headers: { origin: baseURL, "x-forwarded-for": freshIp() },
+    data: { email, password },
+  });
+  expect(response.status()).toBe(200);
+  return { id, email, name };
+}
+
+/** A professional account waiting for approval, made straight in the database. */
+export async function createPendingProfessional(name: string, userType = "doctor") {
+  const db = e2eDb();
+  const type = await db.userType.findUniqueOrThrow({ where: { key: userType } });
+  const id = randomBytes(24).toString("base64url");
+  await db.user.create({
+    data: {
+      id,
+      name,
+      email: freshEmail(),
+      userTypeId: type.id,
+      verificationStatus: "pending",
+      termsAcceptedAt: new Date(),
+    },
+  });
+  return id;
+}
+
+/**
+ * Deletes every user, code, rate-limit row, audit row and piece of admin
+ * content the e2e tests made.
+ */
 export async function cleanUpE2eData() {
   const db = e2eDb();
   const phones = { startsWith: `+91${E2E_PHONE_PREFIX}` };
@@ -151,8 +222,18 @@ export async function cleanUpE2eData() {
   });
   const ids = users.map((user) => user.id);
   await db.$transaction([
+    // Audit rows written by e2e admins, or about e2e users.
+    db.adminLog.deleteMany({
+      where: { OR: [{ userId: { in: ids } }, { resourceId: { in: ids } }] },
+    }),
     // Sessions and accounts go with their users (onDelete: Cascade).
     db.user.deleteMany({ where: { id: { in: ids } } }),
+    db.reel.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
+    db.brand.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
+    db.courseTeaser.deleteMany({
+      where: { key: { startsWith: E2E_CONTENT_PREFIX } },
+    }),
+    db.quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } }),
     db.verification.deleteMany({
       where: { OR: [{ identifier: phones }, { value: { in: ids } }] },
     }),

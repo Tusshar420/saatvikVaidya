@@ -12,10 +12,14 @@ export async function assertTestDatabase(db: PrismaClient): Promise<void> {
   }
 }
 
-/** Empties the user, session, account, verification and rate-limit tables. */
+/**
+ * Empties the admin log and the user, session, account, verification and
+ * rate-limit tables.
+ */
 export async function clearAuthTables(db: PrismaClient): Promise<void> {
   await assertTestDatabase(db);
   await db.$transaction([
+    db.adminLog.deleteMany(),
     db.session.deleteMany(),
     db.account.deleteMany(),
     db.verification.deleteMany(),
@@ -47,5 +51,7 @@ export async function clearContentTables(db: PrismaClient): Promise<void> {
     db.liveSession.deleteMany(),
     db.feedback.deleteMany(),
     db.whyStep.deleteMany(),
+    // Questions and options go with their quiz (onDelete: Cascade).
+    db.quiz.deleteMany(),
   ]);
 }

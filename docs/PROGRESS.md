@@ -1172,3 +1172,90 @@ at the start). Nothing needed fixing first.
 - Email verification links for email sign-ups (from A5).
 - Make `Setting.updatedBy` / `SettingHistory.changedBy` relations to `User`
   (from A4/A5).
+
+## P1.1. Admin dashboard: users and approvals (2026-10-01)
+
+Started in an earlier run, paused, and finished at the start of the P1.2 run
+(P1.2 builds on the approvals page).
+
+**Fixed first (pre-existing breakage, own commit)**
+- Lint errors (feedback quotes, unused imports), gold reel badge contrast,
+  `aria-pressed` on the launch tabs.
+- Rewrote the A7/A8 homepage specs (wrong selectors, viewport-pinned tests);
+  coin-pill shell tests follow A8's "hidden when signed out"; the dock test
+  scrolls instantly; the A9 screenshot specs are merged, assert widths and
+  write to `test-results/` (they no longer overwrite `docs/screenshots/`).
+- Playwright timeouts raised (60 s per test, 10 s per expect). A stale orphaned
+  `pnpm start --port 3100` had made most e2e tests fail; stop any leftover one
+  before `pnpm test:e2e`.
+
+**Built**
+- Migration `p1_1_admin`: `AdminLog`, `Quiz`/`QuizQuestion`/`QuizOption`,
+  `Brand.logoSrc`, `CourseTeaser.instructor/duration/videoUrl`.
+- Server code in `src/server/admin/`: audit log, form helpers, users, content,
+  quiz, dashboard, orders filters and a redacted database browser. Server
+  actions in `src/app/admin/users/actions.ts` and
+  `src/app/admin/content/actions.ts` each call `requireAdmin()`.
+- UI: admin layout and nav (sidebar from 1100 px, scrolling strip below),
+  dashboard, users (search, filters, bulk approve/reject/delete with
+  confirmation, detail, new, edit), approvals (one-click decide with a
+  comment), reels/brands/courses/quiz CRUD, orders placeholder with filters,
+  settings "coming soon", database browser at `/admin/database`. Copy lives in
+  `src/content/admin.ts`.
+- Seed: reels, brands and courses are now create-only, so admin edits survive
+  a re-seed.
+
+**Finished in this run**
+- The users list always renders its table (with a "no results" row when
+  filtered), so a bulk action's message survives an empty list.
+- The admin e2e checks the admin's name inside the banner only.
+- The approvals list's compact decision form stacked the comment and buttons
+  in one row from 1100 px and clipped the Reject button at 1280 px; it now
+  stacks the comment above the two buttons.
+
+**Checks:** `typecheck`, `lint`, `test` (217), `test:e2e` (140 passed, 4
+skipped by design: the A9 screenshot spec sets its own widths and runs in the
+desktop project only) and `build` all pass. Admin screens checked at 375 and
+1280 px.
+
+**Known gaps**
+- No document upload (P1.2), no email on approval/rejection (P1.2 adds the dev
+  log version), orders are a placeholder (P1.5), no admin two-factor login
+  (P1.11), bulk delete has no undo.
+- Screenshots of the phone project in headless Chromium draw disabled
+  secondary buttons (translucent white at 60% opacity) as bright cyan. The
+  computed styles are correct (white/70, teal text), so this is a headless
+  compositor artifact, not a CSS bug; worth a look on a real phone.
+- `docs/CHUNKS.md` has uncommitted edits (the Phase 1 list and a new Phase 2
+  section) that were being made while this ran, so they were left for their
+  author to commit.
+
+## P1.12. Phase 1 quality and security pass (BLOCKED, 2026-10-01)
+
+Not started. P1.12 reviews everything Phase 1 built, and almost none of Phase 1
+exists yet, so there is nothing to review. Per the task rules this chunk stops
+here instead of building the missing chunks itself.
+
+**What's missing (checked in code, schema and git on 2026-10-01)**
+- **P1.1** (admin dashboard) is paused mid-chunk and uncommitted; see the
+  entry above for its remaining steps.
+- **P1.2 to P1.11 are not started.** There is no `src/server/storage`,
+  `pricing`, `payments` or `shipping`, and no `Product`, `ProductImage`,
+  `BulkPriceTier`, `Cart`, `Address`, `Order`, `OrderItem`, `Payment`,
+  `ShipmentEvent`, `Invoice`, `CoinLedger`, `Ebook` or `ProfessionalDocument`
+  models. There is no two-factor login or per-role admin permissions either.
+  No `P1.x` commits exist on `dev` (the latest is `a41036b`).
+
+**Why it can't go ahead partially:** each item in the security review
+(uploads, payment and shipping state changes, price tampering, admin
+permissions, download access) and the Lighthouse runs on the product page and
+checkout need those features. A pass over only P1.1 would duplicate P1.1's own
+checks and wouldn't match the chunk.
+
+**Next steps**
+1. Finish and commit P1.1 (steps listed in its entry).
+2. Run P1.2 to P1.11 in order.
+3. Re-queue P1.12 once P1.11 has a done entry here.
+
+Nothing was changed apart from this entry. Checks were not run for this
+chunk; the tree holds P1.1's unfinished work.

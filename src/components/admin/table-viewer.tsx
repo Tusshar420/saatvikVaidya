@@ -1,17 +1,33 @@
 "use client";
 
-import { ColumnInfo } from "@/server/admin/schema";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { FormAlert } from "@/components/site/auth/form-alert";
 import { Button } from "@/components/ui/button";
+import { admin as copy } from "@/content/admin";
+import type { ColumnInfo } from "@/server/admin/schema";
 
-interface TableViewerProps {
+const PAGE_SIZE = 50;
+
+type TableViewerProps = {
   tableName: string;
   columns: ColumnInfo[];
   initialData: Record<string, unknown>[];
   totalRows: number;
+};
+
+function formatValue(value: unknown): string {
+  if (value === null) return "NULL";
+  if (value === undefined) return "—";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "object") return JSON.stringify(value).slice(0, 100);
+  return String(value).slice(0, 200);
 }
 
+/**
+ * Raw rows of one table, 50 at a time. Tables are wide, so this one scrolls
+ * sideways inside its frame (the page itself doesn't).
+ */
 export function TableViewer({
   tableName,
   columns,
@@ -20,59 +36,48 @@ export function TableViewer({
 }: TableViewerProps) {
   const [page, setPage] = useState(0);
   const [data, setData] = useState(initialData);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const pageCount = Math.ceil(totalRows / PAGE_SIZE);
 
-  const pageSize = 50;
-  const maxPages = Math.ceil(totalRows / pageSize);
-
-  const handleLoadMore = async (direction: "next" | "prev") => {
-    const newPage = direction === "next" ? page + 1 : Math.max(0, page - 1);
-    if (newPage < 0 || newPage >= maxPages) return;
-
-    setIsLoading(true);
+  async function load(target: number) {
+    if (target < 0 || target >= pageCount) return;
+    setLoading(true);
+    setFailed(false);
     try {
       const response = await fetch(
-        `/api/admin/tables/${tableName}?page=${newPage}&limit=${pageSize}`,
+        `/api/admin/tables/${encodeURIComponent(tableName)}?page=${target}&limit=${PAGE_SIZE}`,
       );
-      if (!response.ok) throw new Error("Failed to load table data");
-      const result = await response.json();
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = (await response.json()) as {
+        data: Record<string, unknown>[];
+      };
       setData(result.data);
-      setPage(newPage);
-    } catch (error) {
-      console.error(error);
+      setPage(target);
+    } catch {
+      setFailed(true);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  const formatValue = (value: unknown): string => {
-    if (value === null) return "NULL";
-    if (value === undefined) return "—";
-    if (typeof value === "boolean") return value ? "true" : "false";
-    if (typeof value === "object")
-      return JSON.stringify(value, null, 0).substring(0, 100);
-    return String(value).substring(0, 200);
-  };
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto border border-line rounded-lg">
+    <div className="flex flex-col gap-4">
+      <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <table className="w-full text-small">
+          <caption className="sr-only">{tableName}</caption>
           <thead>
-            <tr className="border-b border-line bg-soft-teal">
+            <tr className="border-b border-line bg-surface-alt">
               {columns.map((col) => (
                 <th
                   key={col.name}
-                  className="px-4 py-3 text-left font-semibold text-body"
+                  scope="col"
+                  className="px-4 py-3 text-left align-top font-bold text-ink"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="text-body font-semibold">{col.name}</div>
-                    <div className="text-label text-muted">
-                      {col.type}
-                      {col.isPrimary && " (PK)"}
-                      {col.nullable && " (NULL)"}
-                    </div>
-                  </div>
+                  {col.name}
+                  <span className="block text-xs font-medium text-muted">
+                    {col.type}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -84,21 +89,18 @@ export function TableViewer({
                   colSpan={columns.length}
                   className="px-4 py-8 text-center text-muted"
                 >
-                  No data found
+                  {copy.database.noRows}
                 </td>
               </tr>
             ) : (
-              data.map((row, idx) => (
-                <tr
-                  key={idx}
-                  className="border-b border-line hover:bg-soft-teal/30"
-                >
+              data.map((row, index) => (
+                <tr key={index} className="border-b border-line last:border-0">
                   {columns.map((col) => (
                     <td
                       key={col.name}
-                      className="px-4 py-3 text-body align-top break-words max-w-xs"
+                      className="max-w-xs px-4 py-2.5 align-top break-words"
                     >
-                      <code className="text-label bg-soft text-dark rounded px-2 py-1 inline-block max-w-full truncate">
+                      <code className="inline-block max-w-full truncate rounded-sm bg-surface-alt px-1.5 py-0.5 text-xs text-ink">
                         {formatValue(row[col.name])}
                       </code>
                     </td>
@@ -110,34 +112,35 @@ export function TableViewer({
         </table>
       </div>
 
-      {maxPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-small text-muted">
-            Showing rows {(page * pageSize) + 1}–{Math.min((page + 1) * pageSize, totalRows)} of {totalRows.toLocaleString()}
-          </div>
+      {failed && <FormAlert>{copy.database.loadFailed}</FormAlert>}
+
+      {pageCount > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-small text-muted">
+            {copy.database.showing(
+              page * PAGE_SIZE + 1,
+              Math.min((page + 1) * PAGE_SIZE, totalRows),
+              totalRows,
+            )}
+          </p>
           <div className="flex gap-2">
             <Button
               variant="secondary"
               size="sm"
-              icon="start"
-              onClick={() => handleLoadMore("prev")}
-              disabled={page === 0 || isLoading}
-              aria-label="Previous page"
+              icon={<ChevronLeft aria-hidden className="size-4" />}
+              onClick={() => load(page - 1)}
+              disabled={page === 0 || loading}
             >
-              <ChevronLeft className="w-4 h-4" />
+              {copy.common.previous}
             </Button>
-            <div className="flex items-center gap-2 px-4">
-              Page {page + 1} of {maxPages}
-            </div>
             <Button
               variant="secondary"
               size="sm"
-              icon="end"
-              onClick={() => handleLoadMore("next")}
-              disabled={page >= maxPages - 1 || isLoading}
-              aria-label="Next page"
+              onClick={() => load(page + 1)}
+              disabled={page >= pageCount - 1 || loading}
             >
-              <ChevronRight className="w-4 h-4" />
+              {copy.common.next}
+              <ChevronRight aria-hidden className="size-4" />
             </Button>
           </div>
         </div>

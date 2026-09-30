@@ -1,88 +1,88 @@
-import { getTableInfo, getTableData, getTableNames } from "@/server/admin/schema";
-import { TableViewer } from "@/components/admin/table-viewer";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { TableViewer } from "@/components/admin/table-viewer";
+import { Card } from "@/components/ui/card";
+import { admin as copy } from "@/content/admin";
+import {
+  getTableData,
+  getTableInfo,
+  isHiddenColumn,
+  isTableName,
+} from "@/server/admin/schema";
+import { requireAdmin } from "@/server/auth/session";
 
-export const metadata = {
-  title: "Table · Admin Panel · Saatvik Vaidya",
-};
-
-export async function generateStaticParams() {
-  try {
-    const tableNames = await getTableNames();
-    return tableNames.map((name) => ({
-      table: name,
-    }));
-  } catch {
-    return [];
-  }
-}
+export const metadata: Metadata = { title: copy.database.metaTitle };
 
 export default async function TableDetailPage({
   params,
-}: {
-  params: Promise<{ table: string }>;
-}) {
-  const { table: tableName } = await params;
+}: PageProps<"/admin/tables/[table]">) {
+  await requireAdmin();
+  const { table } = await params;
+  // Only names that exist in the database reach the raw queries.
+  if (!(await isTableName(table))) notFound();
 
-  // Validate table name to prevent injection
-  const validTables = await getTableNames();
-  if (!validTables.includes(tableName)) {
-    notFound();
-  }
-
-  const tableInfo = await getTableInfo(tableName);
-  const data = await getTableData(tableName, 50, 0);
+  const [info, rows] = await Promise.all([
+    getTableInfo(table),
+    getTableData(table, 50, 0),
+  ]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 text-teal hover:text-teal-dark"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to tables
-        </Link>
-      </div>
+    <>
+      <Link
+        href="/admin/database"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+        {copy.database.back}
+      </Link>
+      <AdminPageHeader
+        className="mt-2"
+        eyebrow={copy.database.eyebrow}
+        title={table}
+        description={copy.database.rows(info.rowCount)}
+      />
 
-      <div>
-        <h1 className="text-h2 mb-2">{tableName}</h1>
-        <p className="text-body text-muted">
-          {tableInfo.rowCount.toLocaleString()} row
-          {tableInfo.rowCount !== 1 ? "s" : ""} • {tableInfo.columns.length}{" "}
-          column{tableInfo.columns.length !== 1 ? "s" : ""}
-        </p>
-      </div>
-
-      <div className="grid gap-2 p-4 bg-soft rounded-lg">
-        <h2 className="font-semibold text-body mb-2">Columns</h2>
-        <div className="grid gap-2">
-          {tableInfo.columns.map((col) => (
-            <div key={col.name} className="flex items-start gap-4 text-small">
-              <span className="font-mono font-semibold text-dark w-40 flex-shrink-0">
+      <Card as="section" aria-labelledby="table-columns" className="mt-6">
+        <h2 id="table-columns" className="text-h3 text-ink">
+          {copy.database.columnsTitle}
+        </h2>
+        <dl className="mt-4 grid gap-x-6 gap-y-2 text-small sm:grid-cols-2">
+          {info.columns.map((col) => (
+            <div key={col.name} className="flex flex-col">
+              <dt className="font-mono font-bold break-all text-ink">
                 {col.name}
-              </span>
-              <span className="text-muted">
-                {col.type}
-                {col.isPrimary && " • Primary Key"}
-                {!col.nullable && " • NOT NULL"}
-              </span>
+                {isHiddenColumn(table, col.name) && (
+                  <span className="ml-2 font-sans text-xs text-muted">
+                    {copy.database.hidden}
+                  </span>
+                )}
+              </dt>
+              <dd className="text-muted">
+                {copy.database.columnMeta(
+                  col.type,
+                  Boolean(col.isPrimary),
+                  Boolean(col.nullable),
+                )}
+              </dd>
             </div>
           ))}
-        </div>
-      </div>
+        </dl>
+      </Card>
 
-      <div>
-        <h2 className="font-semibold text-body mb-4">Data</h2>
+      <section aria-labelledby="table-data" className="mt-6">
+        <h2 id="table-data" className="mb-3 text-h3 text-ink">
+          {copy.database.dataTitle}
+        </h2>
         <TableViewer
-          tableName={tableName}
-          columns={tableInfo.columns}
-          initialData={data}
-          totalRows={tableInfo.rowCount}
+          tableName={table}
+          columns={info.columns}
+          initialData={rows}
+          totalRows={info.rowCount}
         />
-      </div>
-    </div>
+      </section>
+    </>
   );
 }

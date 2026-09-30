@@ -20,3 +20,29 @@ export function initialsOf(name: string): string {
       : [Array.from(words[0])[0], Array.from(words[words.length - 1])[0]];
   return letters.join("").toUpperCase();
 }
+
+const dateFormat = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "Asia/Kolkata",
+});
+
+const dateTimeFormat = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "Asia/Kolkata",
+});
+
+/** India date: "1 Oct 2026". */
+export function formatDate(date: Date): string {
+  return dateFormat.format(date);
+}
+
+/** India date and time: "1 Oct 2026, 2:05 pm". */
+export function formatDateTime(date: Date): string {
+  return dateTimeFormat.format(date);
+}

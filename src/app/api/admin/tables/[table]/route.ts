@@ -1,41 +1,36 @@
-import { requireAdmin } from "@/server/auth/session";
-import { getTableData, getTableNames } from "@/server/admin/schema";
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { getTableData, isTableName } from "@/server/admin/schema";
+import { getSession } from "@/server/auth/session";
 
+const querySchema = z.object({
+  page: z.coerce.number().int().min(0).max(100_000).catch(0),
+  limit: z.coerce.number().int().min(1).max(100).catch(50),
+});
+
+/**
+ * A page of rows for the database browser. Admins only: anyone else gets
+ * the same 404 as an unknown table, so the route doesn't reveal itself.
+ */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ table: string }> },
+  { params }: RouteContext<"/api/admin/tables/[table]">,
 ) {
+  const session = await getSession();
+  const notFound = NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (session?.user.role !== "admin") return notFound;
+
+  const { table } = await params;
+  if (!(await isTableName(table))) return notFound;
+
+  const { page, limit } = querySchema.parse(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
   try {
-    await requireAdmin();
-
-    const { table: tableName } = await params;
-    const { searchParams } = new URL(request.url);
-
-    const page = Math.max(0, parseInt(searchParams.get("page") ?? "0", 10));
-    const limit = Math.min(
-      100,
-      Math.max(1, parseInt(searchParams.get("limit") ?? "50", 10)),
-    );
-
-    // Validate table name to prevent injection
-    const validTables = await getTableNames();
-    if (!validTables.includes(tableName)) {
-      return NextResponse.json(
-        { error: "Table not found" },
-        { status: 404 },
-      );
-    }
-
-    const offset = page * limit;
-    const data = await getTableData(tableName, limit, offset);
-
+    const data = await getTableData(table, limit, page * limit);
     return NextResponse.json({ data });
   } catch (error) {
-    console.error("Error fetching table data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch table data" },
-      { status: 500 },
-    );
+    console.error("Admin table read failed.", error);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

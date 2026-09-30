@@ -29,6 +29,8 @@ import { userTypeSeed } from "./user-types";
  * - User types and content are upserted by `key`. Re-running restores the
  *   seeded copy, but keeps placement and visibility (`sortOrder`, `active`,
  *   `enabled`, `featured`), which only apply when a row is first created.
+ * - Reels, brands and courses are edited in the admin panel, so they are only
+ *   created when missing; their copy is never overwritten.
  * - Settings are only created when missing, so edited values are never
  *   overwritten. Each creation also writes a SettingHistory row.
  * - Rows the seed doesn't know about are left alone.
@@ -46,12 +48,12 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
       await syncByKey(homeSectionSeed, (args) => tx.homeSection.upsert(args));
       await syncByKey(heroSlideSeed, (args) => tx.heroSlide.upsert(args));
       await syncByKey(statItemSeed, (args) => tx.statItem.upsert(args));
-      await syncByKey(reelSeed, (args) => tx.reel.upsert(args));
+      await createMissing(reelSeed, (args) => tx.reel.upsert(args));
       await syncByKey(offerSeed, (args) => tx.offer.upsert(args));
       await syncByKey(quickActionSeed, (args) => tx.quickAction.upsert(args));
       await syncByKey(categorySeed, (args) => tx.category.upsert(args));
-      await syncByKey(brandSeed, (args) => tx.brand.upsert(args));
-      await syncByKey(courseTeaserSeed, (args) => tx.courseTeaser.upsert(args));
+      await createMissing(brandSeed, (args) => tx.brand.upsert(args));
+      await createMissing(courseTeaserSeed, (args) => tx.courseTeaser.upsert(args));
       await syncByKey(liveSessionSeed, (args) => tx.liveSession.upsert(args));
       await syncByKey(feedbackSeed, (args) => tx.feedback.upsert(args));
       await syncByKey(whyStepSeed, (args) => tx.whyStep.upsert(args));
@@ -108,6 +110,20 @@ async function syncByKey<T extends { key: string }>(
       // Safe: the filter removes exactly the omitted fields.
     ) as Omit<T, "key" | PlacementField>;
     await upsert({ where: { key: row.key }, create: row, update });
+  }
+}
+
+/** Creates rows whose key is missing; existing rows are left untouched. */
+async function createMissing<T extends { key: string }>(
+  rows: readonly T[],
+  upsert: (args: {
+    where: { key: string };
+    create: T;
+    update: Record<string, never>;
+  }) => Promise<unknown>,
+): Promise<void> {
+  for (const row of rows) {
+    await upsert({ where: { key: row.key }, create: row, update: {} });
   }
 }
 
