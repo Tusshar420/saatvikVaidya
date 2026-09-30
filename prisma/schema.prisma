@@ -14,8 +14,9 @@ datasource db {
 }
 
 // ─── Users and access ───────────────────────────────────────────────────────
-// A5 adds User (with userTypeId → UserType) and Better Auth's Session, Account
-// and Verification tables here.
+// User, Session, Account and Verification are Better Auth's tables (see
+// src/server/auth/). Column names must match what Better Auth expects; the
+// extra User fields are declared in src/server/auth/user-fields.ts too.
 
 /// A kind of account, chosen at sign-up. Stored as data so admins can add
 /// types later. Admin is a role on User, not a user type.
@@ -32,6 +33,109 @@ model UserType {
   active               Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+  users                User[]
+}
+
+/// `admin` is only ever set by `pnpm admin:create` or directly in the
+/// database, never from sign-up or profile input.
+enum UserRole {
+  user
+  admin
+}
+
+/// Professional document checks. `none` for types that need no check.
+enum VerificationStatus {
+  none
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id                  String             @id @db.VarChar(64)
+  name                String             @db.VarChar(191)
+  /// Better Auth requires an email. Accounts created by phone OTP get a
+  /// placeholder on the reserved ".invalid" domain (see
+  /// src/server/auth/placeholder-email.ts), which is never shown or mailed.
+  email               String             @unique @db.VarChar(191)
+  emailVerified       Boolean            @default(false)
+  image               String?            @db.Text
+  /// E.164, Indian mobiles only: "+91XXXXXXXXXX".
+  phoneNumber         String?            @unique @db.VarChar(20)
+  phoneNumberVerified Boolean            @default(false)
+  userTypeId          Int
+  userType            UserType           @relation(fields: [userTypeId], references: [id], onDelete: Restrict)
+  role                UserRole           @default(user)
+  verificationStatus  VerificationStatus @default(none)
+  marketingOptIn      Boolean            @default(false)
+  /// When the user accepted the terms at sign-up (set by the server).
+  termsAcceptedAt     DateTime
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+
+  @@index([userTypeId])
+}
+
+model Session {
+  id        String   @id @db.VarChar(64)
+  expiresAt DateTime
+  token     String   @unique @db.VarChar(191)
+  ipAddress String?  @db.VarChar(64)
+  userAgent String?  @db.Text
+  userId    String   @db.VarChar(64)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// A way to sign in. Email + password and phone-set passwords are
+/// providerId "credential" with the password hash here.
+model Account {
+  id                    String    @id @db.VarChar(64)
+  accountId             String    @db.VarChar(191)
+  providerId            String    @db.VarChar(64)
+  userId                String    @db.VarChar(64)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+/// Short-lived values: phone OTPs ("code:attempts", keyed by phone number)
+/// and password-reset tokens.
+model Verification {
+  id         String   @id @db.VarChar(64)
+  identifier String   @db.VarChar(191)
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+/// Fixed-window counters for the auth rate limits in
+/// src/server/auth/rate-limit.ts, e.g. key "otp-send:phone:+919876543210".
+/// Kept in the database so limits survive restarts.
+model AuthRateLimit {
+  key       String @id @db.VarChar(191)
+  count     Int
+  /// When the current window ends, in epoch milliseconds (timezone-free).
+  resetAtMs BigInt
+
+  @@index([resetAtMs])
 }
 
 // ─── Site settings ──────────────────────────────────────────────────────────
