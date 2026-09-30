@@ -255,6 +255,193 @@ and as a centred card.
 **Next:** A3, site shell (header, nav rail, footer, mobile dock) using these
 primitives.
 
+## A3. Site shell (2026-09-30)
+
+A1 and A2 were confirmed done (commits on `dev`; typecheck, lint and 47 unit
+tests were green at the start). Nothing needed fixing first. One stale
+generated file under `.next/dev/types` (left by an earlier `pnpm dev`) broke
+`pnpm typecheck` after the home page moved; deleting `.next/dev` fixed it. If
+typecheck complains about a missing `src/app/page.js`, do the same.
+
+**Built**
+- **Route group `src/app/(site)/`.** Its layout wraps every public page in the
+  shell: skip link, header, `<main id="main">`, footer and mobile dock.
+  `/design` stays outside the group, so it has no shell. The home page and its
+  unit test moved into the group.
+- **`getSetting(key)`** in `src/server/content/settings.ts` (server-only,
+  async). Defaults live in `src/content/settings.ts`. Keys are
+  `contact.phone`, `contact.supportNote`, `search.popular` and
+  `footer.tagline`. Each key has a Zod schema, and `resolveSetting(key,
+  stored)` returns a stored value only if it's valid, otherwise the default.
+  In A4, `getSetting` reads the Setting table and passes the value to
+  `resolveSetting`; callers don't change.
+- **Site components** in `src/components/site/`:
+  - `Header`: a sticky bar, 82 px (67 px on phones), with a translucent
+    blurred background. It holds the logo, search, Track Order, CoinPill,
+    bag with count, and the profile trigger. It matches the mockup's steps:
+    - Below 1100 px, Track Order and the coin pill show their icon only, and
+      the profile label and chevron are hidden.
+    - Below 820 px, search becomes an icon link to `/search` and Track Order
+      is hidden.
+    - Below 560 px, the bag is hidden (the dock has Cart).
+  - `HeaderSearch`: a GET form to `/search?q=`, with a ⌘K / Ctrl+K hint and
+    shortcut (`aria-keyshortcuts`). While the field is focused and has fewer
+    than 2 characters, a popover shows the popular searches as links. Esc
+    closes the popover; ArrowDown moves into the suggestions. Where the field
+    is hidden (phones), the shortcut goes to `/search`.
+  - `NavRail`: Home icon plus the eight mockup sections, as links to
+    `/#id`, so they work from any page. Partner & Grow has a "Soon" tag
+    (PLAN says its menu link shows "coming soon"). The rail:
+    - Scrolls sideways with a fade on whichever edge has more content.
+    - Highlights the section on screen on the homepage with
+      `aria-current="location"` (scroll-spy), and scrolls itself to keep
+      that link in view.
+    - Ends with the support phone number from 1280 px up.
+    - Links are 44 px tall, with the mockup's 36 px pill inside.
+  - `Footer`: brand block with the tagline, Platform and Support columns
+    (Track Order opens the modal), the assistance note and phone link, and
+    the legal row with policy links. Grid steps are 1 / 2 / 3 / 4 columns.
+    Bottom padding clears the dock on phones.
+  - `MobileDock`: under 560 px. Home, Cart, Orders and Coins are links (with
+    `aria-current="page"`); Profile opens sign-in. Labels are 11 px, and it
+    uses `safe-area-inset-bottom`. Its 67 px height matches the toast offset
+    from A2.
+  - `SkipLink` to `#main` (main has `tabIndex=-1` so focus lands there).
+  - `Logo` with `default` and `light` (footer) tones.
+  - `SiteModalsProvider` / `useSiteModal()` / `SiteModalButton`: the
+    sign-in and track-order modals are mounted once and open from any
+    button. Radix only returns focus to its own Trigger, so the provider
+    remembers the opening button and returns focus to it on close.
+  - **Sign-in modal** (placeholder until A6): the mockup's eyebrow, title and
+    description, a ComingSoon block and a "Continue browsing" button.
+  - **Track order modal**: an "Example" Stepper (Confirmed, Production,
+    Quality check, Dispatch, as in the mockup), a "live order tracking is
+    coming soon" note and a call link.
+  - `ComingSoonPage` and `PolicyPage`.
+- **Routes:**
+  - `/search`: dynamic; `q` is validated with Zod (trimmed, 1–100 chars,
+    otherwise ignored) and echoed back as text.
+  - `/cart`, `/orders` and `/coins`: ComingSoon, each with a helpful line,
+    "Back to home" and a call link.
+  - `/privacy`, `/terms`, `/shipping` and `/rewards-policy`: placeholders
+    that say the policy is being prepared, with a call link and links to the
+    other policies.
+
+  Titles use a new root template, `%s · Saatvik Vaidya`.
+- **Home placeholder**: keeps the A1 hero (now `id="top"`) and adds one stub
+  section per nav-rail item, so the rail links and scroll-spy have targets.
+  A7/A8 replace it.
+- **A2 primitive additions:**
+  - `ModalContent` gets an `eyebrow` prop.
+  - `EmptyState` / `ComingSoon` accept `as="h1"`.
+  - `CoinPill` gets `compactBelow="sm" | "lg"`.
+  - HScroller's edge-fade logic moved to `src/lib/use-scroll-edges.ts`,
+    shared with NavRail.
+
+  `/design` shows the Logo (both tones), the modal eyebrow and the compact
+  CoinPill.
+- **Tokens**:
+  - `night` (#102c32, footer band) and `night-ink` (footer text).
+  - `green-light` and `orange-light` (footer wordmark).
+  - `scroll-padding-top` (150 px, 125 px under 820 px), so section links
+    land below the sticky header.
+- `telHref()` in `src/lib/phone.ts`.
+- **Strings**:
+  - `src/content/shell.ts`: header, nav, footer, dock and modals.
+  - `src/content/pages.ts`: ComingSoon and policy pages.
+  - `src/content/settings.ts`: setting defaults.
+- **Tests**:
+  - `src/server/content/settings.test.ts` (5): defaults, schema validity,
+    valid stored values used, invalid or missing ones fall back.
+  - A `telHref` test.
+  - A home unit test that every nav item has a matching section.
+  - `tests/e2e/shell.spec.ts` (18 per viewport):
+    - Header contents per viewport, including the phone number not being
+      clipped, and stickiness.
+    - Search popover, ⌘K, Esc, submit and suggestion links.
+    - Coin pill and bag go to their pages.
+    - The nav rail overflows on phones, scroll-spy highlights the last
+      section, the rail auto-scrolls, and rail links jump to their sections
+      (also from other pages).
+    - The dock is visible and fixed on phones, clears the footer, navigates
+      and sets `aria-current`; it's hidden on desktop.
+    - Sign-in (header and dock) and track order (header and footer) open,
+      move focus in, close with Esc and return focus to their trigger. Their
+      content is checked.
+    - axe with each modal open.
+    - Skip link.
+    - Each ComingSoon route: title, h1, line, call link, back home, no
+      overflow, no console errors.
+    - Every footer policy link.
+    - Footer settings text.
+    - axe and no overflow on `/`, `/cart` and `/privacy`.
+  - `tests/e2e/helpers.ts` holds the shared axe, overflow and console-error
+    helpers (`design.spec.ts` now uses them too).
+
+**Decisions**
+- **Wordmark colours follow DESIGN.md: "Saatvik" green, "Vaidya" orange.**
+  The mockup actually renders the opposite ("Saatvik" orange, "Vaidya"
+  green). DESIGN.md wins by its own rule, but this may be a slip in
+  DESIGN.md. **Needs confirmation** (see Later); it's a two-class swap in
+  `logo.tsx`.
+- **Logo contrast.** The wordmark and mark keep the exact brand colours.
+  WCAG 1.4.3 exempts logotypes from contrast minimums, but axe can't tell, so
+  the Logo carries `data-logo` and the axe helper excludes it (commented in
+  both places). Wordmark sizes are the mockup's 17 / 19 / 24 px. A bigger
+  phone size (for "large text") didn't fit three 44 px buttons at 360 px.
+- **Header phone number.** The chunk asks for one, but the mockup header
+  doesn't have it. It sits at the right end of the nav rail from 1280 px up,
+  where there's room (rail gaps tighten slightly at that width). On smaller
+  screens the number is in the footer, the track-order modal and every
+  ComingSoon page.
+- **Bag from 560 px up.** The mockup hides the bag under 820 px, which leaves
+  560–820 px with no way to the cart (there's no dock there). Under 560 px
+  the dock's Cart replaces it.
+- **Coin pill shows 0 and the bag shows 0.** Nobody can sign in yet, and a
+  fake "1,240" / "3" would be dishonest. The layout passes `coinBalance={0}`
+  and `bagCount={0}`. `coinBalance={null}` hides the pill, which is what A8
+  does when signed out.
+- **Signed-out profile trigger** shows a user icon, not the mockup's "AG"
+  initials; A6 swaps in the Avatar.
+- **The dock's Orders item goes to `/orders`** (per the chunk), not the
+  track modal as in the mockup. The dock's "My Brand" item is Cart until
+  Phase 2 (DESIGN.md).
+- **Readability over the mockup:**
+  - Footer links are 14 px, and 44 px tall for touch. The mockup uses 11 px
+    links and a 9 px legal row.
+  - Popular-search chips are 44 px tall.
+  - Footer text uses `night-ink` (#9cb6b3, 6.7:1). The mockup's #779591
+    would fail AA.
+- **A1's placeholder brand line removed from the home hero.** Its small
+  green "Saatvik" failed axe contrast (4.3:1), and the header logo now does
+  that job.
+- Scroll-spy is scroll-position based: a section is active once its top
+  passes 40% of the viewport, and the last one wins at the page end. It's
+  rAF-throttled. Short sections can't be skipped, which could happen with
+  the mockup's IntersectionObserver band.
+
+**Checks.** `pnpm typecheck`, `lint`, `format:check`, `test` (54 tests),
+`test:e2e` (46 tests: 23 per viewport) and `build` pass. Screens were
+reviewed in screenshots against the mockup at 360, 375, 768, 1024 and 1280 px
+(header, rail, footer, dock), plus both modals at 375 and 1280, the search
+popover, and `/search` at 375. There's no sideways scroll at any of those
+widths.
+
+**Known gaps**
+- The home page is still a placeholder with stub sections (A7/A8).
+- No branded 404: `/_not-found` is outside the `(site)` group, so it has no
+  shell.
+- The footer year is computed at build time (static pages), so it updates
+  with each deploy.
+- ⌘K is shown as "⌘ K" on every platform (Ctrl+K works too). A per-platform
+  hint would need client detection after hydration.
+- Only Chromium is tested. `backdrop-filter` on the header and dock needs
+  checking in Safari (A9).
+
+**Next:** A4, database schema and seed. Seed the four setting keys above,
+and switch `getSetting()` to read the Setting table through
+`resolveSetting()`.
+
 ## Later
 
 (Ideas and follow-ups outside the current chunk's scope go here.)
@@ -273,3 +460,12 @@ primitives.
   `#ef6c1c` is 3.1:1. If the client prefers the brighter orange, the options
   are dark text on it (5:1) or larger button text. Update DESIGN.md with
   whichever is chosen.
+- **Confirm the wordmark colours (from A3).** DESIGN.md says "Saatvik" green
+  and "Vaidya" orange; the mockup renders "Saatvik" orange and "Vaidya"
+  green. The site follows DESIGN.md for now. Fix whichever document is wrong
+  (the swap is two classes in `src/components/site/logo.tsx`).
+- Policy page text should come from the database and be editable in the
+  admin panel once the real policies are written. The pages are placeholders
+  now.
+- A branded 404 page with the site shell (for example a `not-found.tsx`
+  rendered inside the `(site)` layout).
