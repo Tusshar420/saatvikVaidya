@@ -23,10 +23,13 @@ Project docs live in `docs/`: the plan (`PLAN.md`), the design system
 
 ```bash
 pnpm install                  # also generates the Prisma client
-cp .env.example .env.local    # then adjust values if your MySQL differs
+cp .env.example .env.local    # then adjust values if your MySQL differs,
+                              # set BETTER_AUTH_SECRET (openssl rand -base64 32)
+                              # and ADMIN_EMAIL / ADMIN_PASSWORD
 pnpm exec playwright install chromium
 pnpm db:migrate               # creates the saatvik_vaidya database
 pnpm db:seed
+pnpm admin:create             # the admin account, from .env.local
 pnpm dev                      # http://localhost:3000
 ```
 
@@ -45,6 +48,7 @@ pnpm dev                      # http://localhost:3000
 | `pnpm db:seed` | Seed the dev database (idempotent) |
 | `pnpm db:reset` | Drop and recreate the dev database, then seed |
 | `pnpm db:test:prepare` | Create and migrate the test database by hand |
+| `pnpm admin:create` | Create the admin from `ADMIN_EMAIL` / `ADMIN_PASSWORD`, or update its password (signs it out everywhere) |
 
 ## Databases
 
@@ -59,6 +63,21 @@ read through a cache (`src/server/content/`), so a change made straight in the
 database shows up within 5 minutes, even on `pnpm dev`. To see it at once,
 restart the server after deleting `.next/dev/cache/fetch-cache` (or
 `.next/cache/fetch-cache` for `pnpm start`).
+
+## Sign-in (auth)
+
+Better Auth, in `src/server/auth/`, with email + password and phone OTP
+(Indian mobiles). Endpoints are under `/api/auth/*`; server code uses
+`getSession()`, `requireUser()` and `requireAdmin()` from
+`src/server/auth/session.ts`.
+
+- There's no real SMS or email yet. OTPs and reset links are printed to the
+  `pnpm dev` log as `[notify:dev] ...`.
+- With `DEV_SHOW_OTP=true` (never in production), `GET
+  /api/dev/otp?phone=98XXXXXXXX` returns the latest OTP for that number.
+- Rate limits are stored in the `AuthRateLimit` table. If you lock yourself
+  out while testing locally, empty it:
+  `/opt/homebrew/opt/mysql/bin/mysql -uroot saatvik_vaidya -e "DELETE FROM AuthRateLimit"`.
 
 ## Environment
 

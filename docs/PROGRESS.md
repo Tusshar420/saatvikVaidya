@@ -619,6 +619,248 @@ placeholder.
 **Next:** A5, auth backend. Add User and Better Auth's tables in the "Users and
 access" part of the schema, with `userTypeId` pointing at `UserType`.
 
+## A5. Auth backend (2026-09-30)
+
+A1–A4 were confirmed done (commits on `dev`; typecheck, lint and 70 unit tests
+were green at the start). Nothing needed fixing first.
+
+**Built**
+- **Better Auth 1.7.6** with the Prisma adapter (`src/server/auth/index.ts`),
+  served at `/api/auth/*` (`src/app/api/auth/[...all]/route.ts`).
+  - Cookie prefix `sv` (`sv.session_token`).
+  - Telemetry off.
+  - The phone-number plugin and our policy plugin, with `nextCookies()`
+    last.
+- **Schema + migration `20260930080254_a5_auth`**, in the "Users and access"
+  part:
+  - `User`, `Session`, `Account` and `Verification`, matching Better Auth's
+    core schema.
+  - Enums `UserRole` (`user`/`admin`) and `VerificationStatus`
+    (`none`/`pending`/`approved`/`rejected`).
+  - `AuthRateLimit` for our rate limits.
+  - `User.userTypeId` → `UserType` (`onDelete: Restrict`, NOT NULL).
+    `phoneNumber` is unique VARCHAR(20) in E.164.
+- **Email + password:**
+  - Passwords are 8–128 characters and not in a list of ~18k common
+    passwords (`common-passwords.ts`, from `@zxcvbn-ts/language-common`,
+    plus a few site words).
+  - Sign-up never signs in; its reply is always `{ status: true }` (see
+    Decisions).
+- **Phone OTP** (Better Auth's `phoneNumber` plugin):
+  - 6 digits, 5-minute expiry, 5 attempts.
+  - Numbers are validated as Indian mobiles and stored as `+91XXXXXXXXXX`.
+    Input like `98765 43210`, `+91-…` or `0…` is normalised
+    (`toIndianE164` in `src/lib/phone.ts`).
+  - `/phone-number/verify` signs in a known number. For a new number it
+    creates the account once registration fields are included (see
+    Decisions for the flow).
+- **Extra user fields** (`user-fields.ts`):
+  - `userTypeId` (must be an active UserType).
+  - `role`, `verificationStatus` and `termsAcceptedAt`, which are
+    `input: false`.
+  - `marketingOptIn`.
+
+  The create hook `prepareNewUser()` builds every self-service account from
+  the checked request:
+  - Role is always `user`.
+  - `verificationStatus` is `pending` when the type `requiresVerification`,
+    otherwise `none`.
+  - `termsAcceptedAt` is the server time and requires
+    `termsAccepted: true`.
+
+  Anything else is refused.
+- **Policy plugin** (`policy-plugin.ts`). Before each auth endpoint:
+  1. IP rate limits.
+  2. A strict Zod schema for the body (`schemas.ts`), which refuses unknown
+     keys such as `role`, plus per-phone/per-email send limits.
+  3. The new-password rules.
+  4. An active user-type check at sign-up.
+  5. The phone registration step.
+
+  After each endpoint, Better Auth's error messages are replaced with ours
+  from `src/content/auth.ts` (same code, status and headers). Profile updates
+  (`/update-user`) accept only `name` and `marketingOptIn`.
+- **Rate limits** (`rate-limit.ts`, rules in `policy.ts`). Fixed windows in
+  MySQL; the upsert and read are one transaction, so concurrent requests are
+  counted exactly. Refusals are 429 `RATE_LIMITED` with `Retry-After`.
+  - OTP/reset SMS: 3 per 10 min per phone.
+  - Reset emails: 3 per 10 min per address.
+  - All SMS and email sends: 10 per hour per IP.
+  - Sign-in and other credential checks (email and phone sign-in, sign-up,
+    OTP verify, both password resets): 10 per 15 min per IP.
+- **Password reset:**
+  - By email: link to `/api/auth/reset-password/<token>`, 1 hour, single use.
+    It revokes the user's sessions.
+  - By phone OTP: `/phone-number/request-password-reset` then
+    `/phone-number/reset-password`. This also gives phone-only accounts a
+    password for phone + password sign-in.
+- **Dev notify sender** (`src/server/notify/`):
+  - OTP SMS, reset emails and "someone tried to register your email" emails
+    print to the server log as `[notify:dev] …`. Text is in
+    `src/content/auth.ts`.
+  - With `DEV_SHOW_OTP=true` and not production, the latest OTP per phone is
+    kept in memory (`dev-outbox.ts`, on `globalThis`).
+  - `GET /api/dev/otp?phone=…` returns it. Otherwise that route is a 404.
+- **Session helpers** (`session.ts`):
+  - `getSession()`: per-request cached, checked against the database (no
+    cookie cache).
+  - `requireUser(returnTo)`: redirects to sign-in.
+  - `requireAdmin()`: redirects when signed out, 404 for non-admins.
+- **`src/proxy.ts`** (Next 16's middleware). `/account` and `/admin`
+  (and below) without a session cookie redirect to
+  `/?auth=sign-in&next=<path>`. It only checks that the cookie exists; pages
+  must call `requireUser()`/`requireAdmin()`. `src/lib/auth-routes.ts` has
+  `signInPath()` and `safeNextPath()` (site paths only, no open redirects).
+- **`pnpm admin:create`** (`scripts/admin-create.ts`, logic in
+  `src/server/auth/admin.ts`):
+  - Creates the admin from `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`,
+    or updates an existing one (role, name, password).
+  - Signs the admin out everywhere.
+  - Admin passwords need 12+ characters and mustn't be common.
+  - It's the only code that sets `role: "admin"`.
+- **Env:**
+  - `authEnv()` validates `BETTER_AUTH_SECRET` (32+ characters),
+    `BETTER_AUTH_URL` and `DEV_SHOW_OTP`, separately from the database
+    variables.
+  - `.env.example` lists these and the `ADMIN_*` variables.
+  - Vitest sets fixed test auth values.
+  - Playwright's server gets `BETTER_AUTH_URL=http://localhost:3100`.
+- **Tests** (82 new Vitest tests, most through the real HTTP handler against
+  the test database, via `tests/setup/auth.ts`):
+  - `sign-up.test.ts` (24):
+    - Sign-up by email and by phone OTP for each of the 5 user types,
+      checking the verification status.
+    - Terms, the user type, the placeholder domain and the password rules.
+    - Role can't be escalated at sign-up (email or phone) or via
+      `update-user`, and the create hook forces `role: user`.
+    - Only Indian numbers are accepted.
+  - `otp.test.ts` (7): format and 5-minute expiry, expired codes refused, 5
+    wrong attempts then locked, 4 wrong then right works, the registration
+    step counts attempts, and only the latest code works after a resend.
+  - `rate-limit.test.ts` (9): the window logic, exact counting under a
+    concurrent burst, each endpoint limit with `Retry-After`, the reset
+    after the window, and identical behaviour for existing and unknown
+    accounts.
+  - `generic-errors.test.ts` (8): identical status and body for existing
+    and unknown accounts on:
+    - Email and phone sign-in, and sign-up (the owner gets an email).
+    - OTP send and verify.
+    - Both kinds of reset request.
+
+    No message says whether an account exists.
+  - `password-reset.test.ts` (9): the email link (one-time, revokes
+    sessions, password rules, no off-site redirect) and the phone OTP (wrong
+    code, replay, a sign-in code can't be used, no email for phone-only
+    accounts).
+  - `session.test.ts` (5), `admin.test.ts` (4), `api/dev/otp/route.test.ts`
+    (8), `src/proxy.test.ts` (4) and `src/lib/auth-helpers.test.ts` (4).
+  - `tests/e2e/auth.spec.ts` (7 per viewport):
+    - `/account`, `/admin` and `/admin/users` redirect when signed out.
+    - A forged cookie reaches no page.
+    - `get-session` works.
+    - `/api/dev/otp` is a 404 in the production build even though
+      `.env.local` has `DEV_SHOW_OTP=true`.
+    - Cross-origin POSTs are refused (403).
+  - `clearContentTables()` now clears the auth tables first, via
+    `clearAuthTables()`.
+- README: first-run steps, the `admin:create` script, and a sign-in section
+  (log output, the dev OTP route, clearing rate limits).
+
+**Decisions**
+- **Phone-only accounts get a placeholder email**, `91XXXXXXXXXX@phone.saatvikvaidya.invalid`.
+  - Why: Better Auth requires a unique email on every user; PLAN had email
+    as optional. `.invalid` is a reserved domain that can't receive mail.
+  - Nobody can register an email on that domain.
+  - Reset and notice emails to it are skipped.
+  - `isPlaceholderEmail()` tells the UI to show "no email".
+- **Sign-up doesn't sign in (`autoSignIn: false`).** Every successful sign-up
+  reply is `{ status: true }`, and an existing email isn't touched; the owner
+  gets a "someone tried to register" email.
+  - Better Auth's own duplicate reply (a made-up user) could still differ,
+    for example in `verificationStatus`. An after-hook therefore reduces all
+    sign-up replies to the same body.
+  - **A6 must call sign-in after a successful sign-up.**
+  - Fully hiding account existence at email sign-up would need email
+    verification before use. That's out of scope and impossible without
+    real email. Someone who then tries to sign in with the password they
+    chose can still infer an existing account; that's rate-limited.
+- **Phone registration flow.** For a new number, `/phone-number/verify`
+  works like this:
+  - A **correct** code without registration fields gets
+    `{ status: false, registrationRequired: true }` **without using up the
+    code**.
+  - The UI then asks for name, user type and terms, and sends the same code
+    again with them.
+  - A wrong, expired or locked code is handled by Better Auth exactly as for
+    a known number (and counts as an attempt), so nothing about the account
+    leaks and there are no free guesses.
+  - The details must be sent within the OTP's 5 minutes; otherwise the user
+    asks for a new code.
+- **The admin's user type is `customer`** (admin is a role, and
+  `userTypeId` is required).
+- **`verificationStatus` follows `UserType.requiresVerification`** (all four
+  professional types have it).
+- **Our own database-backed limiter; Better Auth's in-memory limiter is off.**
+  - The chunk needs per-phone limits, which Better Auth's limiter (keyed on
+    IP and path) can't do.
+  - A database store survives restarts and can be cleared for tests.
+  - Two additions beyond the chunk: per-address limits on reset emails, and
+    counting sign-up, OTP verify and password resets in the sign-in bucket
+    (PLAN: "sign-in and sign-up are rate-limited").
+  - An OTP resend resets its attempt counter (Better Auth stores a new
+    code). With 3 sends per 10 min that's at most 15 guesses per 10 minutes
+    out of a million codes.
+- **The IP comes from `x-forwarded-for`** (Better Auth's `getIP`, IPv6
+  grouped by /64). Without an IP (production only), requests share an
+  `unknown` bucket. See Later for proxies.
+- **Error codes:**
+  - Our codes are `INVALID_INPUT`, `INVALID_PHONE_NUMBER`, `INVALID_EMAIL`,
+    `TERMS_NOT_ACCEPTED`, `INVALID_USER_TYPE`, `PASSWORD_TOO_SHORT/LONG/COMMON`
+    and `RATE_LIMITED`.
+  - Better Auth's codes are kept (`INVALID_OTP`, `OTP_EXPIRED`,
+    `TOO_MANY_ATTEMPTS`, `INVALID_EMAIL_OR_PASSWORD`, …), with messages from
+    `authErrors`.
+  - A6 should show `authErrors[code]`.
+- `prismaAdapter(..., { transaction: true })`, so sign-up and OTP consumption
+  run in transactions.
+- Session length is Better Auth's default (7 days, refreshed daily).
+
+**Checks.** `pnpm typecheck`, `lint`, `format:check`, `test` (152 tests),
+`test:e2e` (60 tests: 30 per viewport) and `build` pass. The build lists
+`/api/auth/[...all]` and `/api/dev/otp` as dynamic and the proxy as
+middleware; site pages are still static. On `pnpm dev`:
+- A real `send-otp` printed the SMS to the log.
+- `/api/dev/otp` returned the same code.
+- `/account` redirected to `/?auth=sign-in&next=%2Faccount`.
+
+`pnpm admin:create` created, then updated, `admin@saatvikvaidya.test` in the
+dev database (password in `.env.local`), and refused a common password. The
+manual check's OTP and rate-limit rows were deleted afterwards. There are no
+screen changes in this chunk.
+
+**Known gaps (mostly for A6)**
+- **E2E and rate limits.** Playwright runs against the dev database from
+  127.0.0.1, so A6's sign-in tests will hit 10 per 15 min per IP and 10 sends
+  per hour quickly (this chunk's e2e uses 2 sign-in slots per run).
+  - A6 needs one of:
+    - A Playwright `globalSetup` that empties `AuthRateLimit`.
+    - Better, its own e2e database (see Later).
+  - A6 also needs a unique phone number per test.
+- **OTP in E2E.** `/api/dev/otp` is a 404 in the production build that
+  Playwright uses. A6 tests can read the code from the `Verification` table
+  instead: identifier `+91…`, value `code:attempts`, latest row.
+- `/account` doesn't exist yet (A6). With a session cookie the proxy lets the
+  request through and it's a 404; A6's page must call `requireUser()`.
+- The sign-in modal isn't opened by `?auth=sign-in&next=…` yet (A6).
+- No email verification: `emailVerified` stays false for email sign-ups.
+- The rate-limit hook runs before Better Auth's origin check, so refused
+  cross-origin requests still count against the IP's sign-in limit (A9).
+
+**Next:** A6, auth UI. Build the sign-in/register modal on these endpoints,
+using the `registrationRequired` reply for new phone numbers, calling sign-in
+after email sign-up, and showing `authErrors[code]`. Also build `/account`,
+the header avatar menu, and the dev OTP banner (poll `/api/dev/otp`).
+
 ## Later
 
 (Ideas and follow-ups outside the current chunk's scope go here.)
@@ -655,3 +897,22 @@ access" part of the schema, with `userTypeId` pointing at `UserType`.
 - Give Playwright its own database (for example `saatvik_vaidya_e2e`,
   migrated and seeded before the build), so e2e tests can change content
   safely (from A4).
+- **Before deploying (from A5):**
+  - Set Better Auth's `advanced.ipAddress.trustedProxies` to Hostinger's
+    proxy. Without it, a multi-hop `x-forwarded-for` gives no IP, and those
+    requests share one rate-limit bucket.
+  - Make sure the proxy overwrites `x-forwarded-for`, so clients can't
+    spoof their IP.
+  - Also make sure `getNotifier()` never returns the dev log sender in
+    production, because it prints OTPs.
+- Mobile carriers in India use carrier-grade NAT, so many people can share one
+  IP. If 10 sign-ins per 15 minutes per IP causes lockouts, add per-account
+  limits and loosen the per-IP one (from A5).
+- Better Auth's phone plugin stores OTPs in plain text in `Verification`
+  (5-minute lifetime). Consider hashing them when MSG91 is added, for example
+  with the plugin's `verifyOTP` hook (from A5).
+- Admin two-factor login (PLAN: "two-factor login required") isn't built yet;
+  add it with the admin panel (from A5).
+- Email verification links for email sign-ups (from A5).
+- Make `Setting.updatedBy` / `SettingHistory.changedBy` relations to `User`
+  (from A4/A5).
