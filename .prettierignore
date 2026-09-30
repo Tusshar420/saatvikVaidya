@@ -1,0 +1,13 @@
+pnpm-lock.yaml
+.next/
+out/
+build/
+coverage/
+playwright-report/
+test-results/
+src/generated/
+public/
+# Hand-written docs and the read-only client mockup
+docs/
+*.md
+*.MD

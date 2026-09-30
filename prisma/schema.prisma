@@ -1,0 +1,12 @@
+// Saatvik Vaidya database schema.
+// Models arrive in chunk A4 (content) and A5 (users and auth).
+// The connection URL lives in prisma.config.ts, read from DATABASE_URL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}

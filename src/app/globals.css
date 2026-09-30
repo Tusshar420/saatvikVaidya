@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens from docs/DESIGN.md. Components use these, never raw hex.
+ * A1 adds the colours only; chunk A2 adds type, radius, shadow, gradients
+ * and motion.
+ */
+@theme {
+  --color-orange: #ef6c1c;
+  --color-orange-dark: #d9560d;
+  --color-orange-soft: #fff0e7;
+  --color-teal: #08737a;
+  --color-teal-dark: #064f56;
+  --color-teal-soft: #e6f6f3;
+  --color-green: #16895a;
+  --color-blue: #115f93;
+  --color-blue-soft: #e7f1fa;
+  --color-gold: #f0b429;
+  --color-gold-soft: #fff8dd;
+  --color-gold-ink: #765b00;
+  --color-ink: #14262c;
+  --color-muted: #65747a;
+  --color-line: #dfe8e5;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fbfa;
+  --color-cream: #fff9f1;
+  --color-danger: #c6411b;
+  --color-danger-soft: #fff0ea;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
