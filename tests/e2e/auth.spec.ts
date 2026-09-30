@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { collectErrors } from "./helpers";
 
 // Auth backend checks against the production build. The sign-in UI and its
-// flows are tested in A6.
+// flows are in sign-in.spec.ts.
 
 test.describe("protected pages", () => {
   for (const path of ["/account", "/admin", "/admin/users"]) {
@@ -26,10 +26,14 @@ test.describe("protected pages", () => {
     await context.addCookies([
       { name: "sv.session_token", value: "forged.value", url: baseURL! },
     ]);
-    const response = await page.goto("/account");
-    // The proxy lets it through (cookie present); the page itself must check
-    // the session. /account arrives in A6, so for now there's no page.
-    expect(response?.status()).toBe(404);
+    await page.goto("/account");
+    // The proxy lets it through (cookie present); the page itself checks the
+    // session and sends the visitor to sign-in.
+    const url = new URL(page.url());
+    expect(url.pathname).toBe("/");
+    expect(url.searchParams.get("auth")).toBe("sign-in");
+    expect(url.searchParams.get("next")).toBe("/account");
+    await expect(page.locator("main#main")).not.toContainText("Namaste");
   });
 });
 

@@ -9,13 +9,28 @@
 
 export type SecurityHeaderOptions = {
   isDev: boolean;
+  /**
+   * The site's own origin (BETTER_AUTH_URL). `upgrade-insecure-requests` is
+   * only sent when it's https (or unknown): on a plain-http production build,
+   * such as the local e2e server, it turns same-site redirects into https
+   * requests that fail.
+   */
+  siteOrigin?: string;
 };
+
+/** True unless the site is known to be served over plain http. */
+export function shouldUpgradeInsecureRequests({
+  isDev,
+  siteOrigin,
+}: SecurityHeaderOptions): boolean {
+  if (isDev) return false;
+  return !siteOrigin?.startsWith("http:");
+}
 
 export type Header = { key: string; value: string };
 
-export function contentSecurityPolicy({
-  isDev,
-}: SecurityHeaderOptions): string {
+export function contentSecurityPolicy(options: SecurityHeaderOptions): string {
+  const { isDev } = options;
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     "script-src": [
@@ -40,7 +55,8 @@ export function contentSecurityPolicy({
   const policy = Object.entries(directives).map(
     ([name, sources]) => `${name} ${sources.join(" ")}`,
   );
-  if (!isDev) policy.push("upgrade-insecure-requests");
+  if (shouldUpgradeInsecureRequests(options))
+    policy.push("upgrade-insecure-requests");
 
   return policy.join("; ");
 }

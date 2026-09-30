@@ -161,6 +161,20 @@ export function OtpInput({
         event.preventDefault();
         focusBox(length - 1);
         break;
+      default:
+        // Typing the digit a box already holds leaves its value unchanged,
+        // so the browser fires no input event and focus wouldn't move on
+        // (the next digit would land in this box). Treat it as typed.
+        if (
+          event.key === slots[index] &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey
+        ) {
+          event.preventDefault();
+          commit([...slots]);
+          focusBox(index + 1);
+        }
     }
   };
 

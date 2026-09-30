@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ChevronDown, ShoppingBag, Truck, UserRound } from "lucide-react";
+import { ShoppingBag, Truck } from "lucide-react";
 import { CoinPill } from "@/components/ui/coin-pill";
 import { cn } from "@/lib/cn";
 import { shell, type NavItem } from "@/content/shell";
 import { HeaderSearch } from "./header-search";
 import { Logo } from "./logo";
 import { NavRail } from "./nav-rail";
+import { ProfileMenu } from "./profile-menu";
 import { SiteModalButton } from "./site-modals";
 
 export type HeaderProps = {
@@ -77,29 +78,7 @@ export function Header({
               {bagCount}
             </span>
           </Link>
-          <SiteModalButton
-            modal="signIn"
-            className={cn(actionClasses, "text-ink lg:pr-1 lg:pl-1.5")}
-          >
-            <span
-              aria-hidden
-              className="grid size-9.75 place-items-center rounded-[11px] bg-teal text-white lg:size-8.75"
-            >
-              <UserRound className="size-5" />
-            </span>
-            <span className="flex flex-col items-start leading-none max-lg:sr-only">
-              <span className="text-xs font-bold">
-                {shell.header.profileTitle}
-              </span>{" "}
-              <span className="mt-0.75 text-[11px] font-medium text-muted">
-                {shell.header.profileSubtitle}
-              </span>
-            </span>
-            <ChevronDown
-              aria-hidden
-              className="size-4.25 text-muted max-lg:hidden"
-            />
-          </SiteModalButton>
+          <ProfileMenu className={actionClasses} />
         </div>
       </div>
       <NavRail items={navItems} phone={phone} />

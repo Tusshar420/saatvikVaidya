@@ -112,6 +112,16 @@ describe("OtpInput", () => {
     expect(boxes[3]).toHaveFocus();
   });
 
+  it("moves on when typing the digit a box already holds", async () => {
+    // Typing over a selected "2" with "2" changes nothing, so browsers fire
+    // no input event; the next digit must still go to the next box.
+    const { boxes, onComplete, user } = setup({ defaultValue: "12" });
+    await user.click(boxes[0]);
+    await user.keyboard("425261");
+    expect(values(boxes)).toBe("425261");
+    expect(onComplete).toHaveBeenCalledWith("425261");
+  });
+
   it("moves with the arrow keys", async () => {
     const { boxes, user } = setup();
     await user.click(boxes[2]);

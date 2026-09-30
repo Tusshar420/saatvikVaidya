@@ -4,7 +4,8 @@ import type { Page } from "@playwright/test";
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 /**
- * WCAG A/AA violations as a compact list, so failures read well. The logo
+ * WCAG A/AA violations as a compact list, so failures read well (set
+ * AXE_DETAILS=1 to include axe's reason for each node). The logo
  * ([data-logo]) is skipped: its brand colours are a logotype, which WCAG
  * 1.4.3 exempts from contrast minimums.
  */
@@ -16,7 +17,11 @@ export async function axeViolations(page: Page) {
   return results.violations.map((v) => ({
     rule: v.id,
     impact: v.impact,
-    nodes: v.nodes.map((n) => n.target.join(" ")),
+    nodes: v.nodes.map((n) =>
+      process.env.AXE_DETAILS
+        ? `${n.target.join(" ")}: ${n.failureSummary}`
+        : n.target.join(" "),
+    ),
   }));
 }
 

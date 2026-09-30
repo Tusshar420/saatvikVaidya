@@ -8,6 +8,7 @@ import { unstable_cache } from "next/cache";
 export const contentTags = {
   settings: "content:settings",
   home: "content:home",
+  userTypes: "content:user-types",
 } as const;
 
 export type ContentTag = (typeof contentTags)[keyof typeof contentTags];

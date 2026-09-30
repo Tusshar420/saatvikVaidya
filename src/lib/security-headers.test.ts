@@ -29,6 +29,24 @@ describe("security headers", () => {
     expect(csp).toContain("base-uri 'self'");
   });
 
+  it("upgrades insecure requests in production unless the site is plain http", () => {
+    const upgrade = "upgrade-insecure-requests";
+    expect(contentSecurityPolicy({ isDev: false })).toContain(upgrade);
+    expect(
+      contentSecurityPolicy({
+        isDev: false,
+        siteOrigin: "https://saatvikvaidya.com",
+      }),
+    ).toContain(upgrade);
+    expect(
+      contentSecurityPolicy({
+        isDev: false,
+        siteOrigin: "http://localhost:3100",
+      }),
+    ).not.toContain(upgrade);
+    expect(contentSecurityPolicy({ isDev: true })).not.toContain(upgrade);
+  });
+
   it("sets referrer and permissions policies", () => {
     expect(header(false, "Referrer-Policy")).toBe(
       "strict-origin-when-cross-origin",

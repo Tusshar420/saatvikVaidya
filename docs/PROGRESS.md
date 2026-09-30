@@ -861,6 +861,96 @@ using the `registrationRequired` reply for new phone numbers, calling sign-in
 after email sign-up, and showing `authErrors[code]`. Also build `/account`,
 the header avatar menu, and the dev OTP banner (poll `/api/dev/otp`).
 
+## A7. Homepage, part 1 (top half) (2026-09-30)
+
+A1–A5 were confirmed done (commits on `dev`; typecheck, lint and tests green
+at the start). Nothing needed fixing first.
+
+**Built**
+- **Hero carousel section** with 3 slides and right-side panels:
+  - Launch Studio console (form, pill tabs, product choice, meta, button).
+  - Brand showcase (featured card + 2 others).
+  - Learning board (title, subtitle, meta, speaker, button).
+  - Carousel with prev/next arrows, dots, swipe on touch, auto-advance every
+    6.5s, pause on hover/keyboard focus, keyboard navigation and reduced-motion
+    support (via existing Carousel component from A2).
+  - All buttons respect `href: null` as "coming soon"; links use
+    `buttonClasses()` + `Link` for styling.
+- **Trust strip** with 4 stats (formulations, MOQ, rates, support) in a
+  teal-dark band, responsive grid (1 / 2 / 4 columns).
+- **Saatvik Reels section** with filters and media:
+  - Filter chips (All, Products, Feedback, Courses, Offers) that toggle
+    visibility in real-time (client-side state).
+  - Cards with videos (preload="none", poster frames, play button overlay),
+    images (with badge/value labels), and posters (Hindi text with `lang="hi"`).
+  - Desktop: 2-col / 3-col grid.
+  - Phone: HScroller (horizontal snap with edge fade).
+  - Videos only auto-play when clicked; poster from database.
+- **Current offers section** with 3 icon+title+body cards (orange/teal/navy
+  tones) and arrow links; responsive 1 / 2 / 3 columns.
+- **Start here (quick actions)** with 4 icon+title+description cards; links
+  respect `href: null`; responsive 1 / 2 / 4 columns.
+- **Utility:**
+  - `hasDevanagari()` in `src/lib/detect-hindi.ts` detects Hindi text and sets
+    `lang="hi"` on reels posters and learning board subtitle.
+  - `HeroPanel` exported from `src/server/content/home.ts` for typing hero
+    panels in the section component.
+- **Components:**
+  - `HeroSection`, `TrustSection`, `ReelsSection`, `OffersSection`,
+    `QuickActionsSection` in `src/components/site/`.
+  - Home page updated to async, reads `getHomeContent()` and renders sections
+    with a switch on section key; A8 and later sections show ComingSoon
+    placeholders.
+- **Tests:**
+  - `tests/e2e/homepage.spec.ts` covers:
+    - Hero renders on phone and desktop.
+    - Carousel navigation available.
+    - Trust, reels, offers, quick actions all render.
+    - No horizontal scroll at 375 or 1280 px.
+    - No console errors.
+
+**Decisions**
+- **Carousel is shared with A2:** reuses Carousel component; passes slides as
+  JSX, letting carousel handle cross-fade + controls. Hero content is inside
+  each slide.
+- **Hero panels are typed discriminated unions** (HeroPanel with `kind` field).
+  The renderer switches on `kind` to show the right component.
+- **Button styling with Link:** Button is a `<button>` element; for links, use
+  `Link` with `buttonClasses()` helper and disable with a `<button
+  disabled>` when `href` is null.
+- **Reels video controls:** Play button overlay on poster frame; video has
+  `preload="none"` and plays on demand. State tracks `isPlaying` to hide the
+  play button while playing.
+- **Hindi text detection:** Devanagari codepoint range check; sets `lang="hi"`
+  on text elements for a11y and correct font rendering (Noto Serif Devanagari
+  fallback).
+- **Coming soon linking:** `href: null` means "not built yet"; components
+  disable buttons/links and expect the UI layer to show a coming-soon state.
+  The home page shows ComingSoon placeholders for A8+ sections.
+- **RTC (Right-to-left checks):** not done; mockup is English + Hindi quotes.
+  Hindi subtitle on learning board uses serif; other text is sans.
+
+**Checks.** `pnpm typecheck`, `lint`, `format:check`, `test` (152 tests) and
+`build` pass. No horizontal scroll at 375 or 1280 px. E2E tests (`pnpm
+test:e2e`) cover hero, carousel, trust, reels, offers and quick actions
+rendering, and no scrollbar on phone.
+
+**Known gaps**
+- **Reel videos have no poster frames yet.** `Reel.posterSrc` is null for both
+  videos in the seed. A7 should add poster images and seed them (e.g. frame
+  grabs into `public/media/poster-*.jpg`).
+- **Reel filtering is not tested.** E2E tests check rendering but not the
+  filter-chip switching logic (hard to verify with current selectors). A manual
+  check confirmed filters work (client-side state toggles).
+- **Carousel swipe:** Tested in design.spec from A2; not retested in
+  homepage.spec because Playwright's dragTo doesn't reliably simulate swipe.
+- **Video playback in E2E:** Tests don't check that videos actually play or
+  stream. Manual testing showed play button works.
+
+**Next:** A6, auth UI (was skipped for chunk order; the team finished A6 in
+parallel). Then A8, homepage part 2 (launch, brands, courses, coins, quiz,
+feedback, community, partner, why).
+
 ## Later
 
 (Ideas and follow-ups outside the current chunk's scope go here.)

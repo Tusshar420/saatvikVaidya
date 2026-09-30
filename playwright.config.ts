@@ -9,6 +9,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
+  // Sign-in tests create accounts in the dev database; these remove them.
+  globalSetup: "./tests/e2e/cleanup.ts",
+  globalTeardown: "./tests/e2e/cleanup.ts",
   use: {
     baseURL,
     trace: "on-first-retry",

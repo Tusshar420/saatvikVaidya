@@ -1,0 +1,169 @@
+import { existsSync } from "node:fs";
+import { randomInt } from "node:crypto";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { PrismaClient } from "../../src/generated/prisma/client";
+import { rateLimitRules } from "../../src/server/auth/policy";
+
+// Helpers for the sign-in e2e tests. The production build that Playwright
+// runs uses the dev database (.env.local), and there's no dev OTP route in
+// production, so tests read codes from the Verification table directly.
+//
+// Everything a test creates is marked so it can be removed afterwards:
+// - phones start +91 6999 (E2E_PHONE_PREFIX),
+// - emails end @e2e.saatvikvaidya.test,
+// - request IPs start 10.99. (sent as x-forwarded-for, so each test has its
+//   own per-IP rate limits and the real limits stay untouched).
+
+if (existsSync(".env.local")) process.loadEnvFile(".env.local");
+
+export const E2E_PHONE_PREFIX = "6999";
+export const E2E_EMAIL_DOMAIN = "e2e.saatvikvaidya.test";
+export const E2E_IP_PREFIX = "10.99.";
+
+let client: PrismaClient | undefined;
+
+/** A Prisma client on the dev database (the one the e2e server uses). */
+export function e2eDb(): PrismaClient {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set (see .env.local).");
+  client ??= new PrismaClient({ adapter: new PrismaMariaDb(url) });
+  return client;
+}
+
+/** 10 national digits, unique enough for one run. */
+export function freshPhone(): string {
+  return `${E2E_PHONE_PREFIX}${String(randomInt(1_000_000)).padStart(6, "0")}`;
+}
+
+export function freshEmail(): string {
+  return `e2e-${Date.now()}-${randomInt(1_000_000)}@${E2E_EMAIL_DOMAIN}`;
+}
+
+export function freshIp(): string {
+  return `${E2E_IP_PREFIX}${randomInt(256)}.${randomInt(1, 255)}`;
+}
+
+/** Gives the page's requests their own IP for the per-IP rate limits. */
+export async function useFreshIp(page: Page): Promise<string> {
+  const ip = freshIp();
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": ip });
+  return ip;
+}
+
+/** "+91" + digits, as stored. */
+export const e164 = (phone: string) => `+91${phone}`;
+
+/** The live OTP sent to `phone`, waiting for it to arrive. */
+export async function latestOtp(phone: string, notCode?: string) {
+  let code = "";
+  await expect
+    .poll(
+      async () => {
+        const row = await e2eDb().verification.findFirst({
+          where: { identifier: e164(phone) },
+          orderBy: { createdAt: "desc" },
+        });
+        code = row?.value.split(":")[0] ?? "";
+        return code !== "" && code !== notCode;
+      },
+      { message: `an OTP for ${phone}` },
+    )
+    .toBe(true);
+  return code;
+}
+
+/** Makes the phone's current OTP expired. */
+export async function expireOtp(phone: string) {
+  await e2eDb().verification.updateMany({
+    where: { identifier: e164(phone) },
+    data: { expiresAt: new Date(Date.now() - 60_000) },
+  });
+}
+
+/** Uses up the phone's OTP sends for this window (as if sent 3 times). */
+export async function exhaustOtpSends(phone: string) {
+  const rule = rateLimitRules.otpSendPerPhone;
+  const key = `${rule.name}:${e164(phone)}`;
+  const resetAtMs = BigInt(Date.now() + rule.windowSeconds * 1000);
+  await e2eDb().authRateLimit.upsert({
+    where: { key },
+    create: { key, count: rule.max, resetAtMs },
+    update: { count: rule.max, resetAtMs },
+  });
+}
+
+/** The email reset token Better Auth stored for this user. */
+export async function resetTokenFor(email: string) {
+  let token = "";
+  await expect
+    .poll(async () => {
+      const user = await e2eDb().user.findUnique({ where: { email } });
+      if (!user) return false;
+      const row = await e2eDb().verification.findFirst({
+        where: {
+          value: user.id,
+          identifier: { startsWith: "reset-password:" },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      token = row?.identifier.slice("reset-password:".length) ?? "";
+      return token !== "";
+    })
+    .toBe(true);
+  return token;
+}
+
+/** Creates an email account through the real API (not signed in). */
+export async function createEmailAccount(
+  request: APIRequestContext,
+  baseURL: string,
+  account: { name: string; email: string; password: string; userType: string },
+) {
+  const type = await e2eDb().userType.findUniqueOrThrow({
+    where: { key: account.userType },
+  });
+  const response = await request.post("/api/auth/sign-up/email", {
+    headers: { origin: baseURL, "x-forwarded-for": freshIp() },
+    data: {
+      name: account.name,
+      email: account.email,
+      password: account.password,
+      userTypeId: type.id,
+      termsAccepted: true,
+    },
+  });
+  expect(response.status()).toBe(200);
+}
+
+/** Deletes every user, code and rate-limit row the e2e tests made. */
+export async function cleanUpE2eData() {
+  const db = e2eDb();
+  const phones = { startsWith: `+91${E2E_PHONE_PREFIX}` };
+  const users = await db.user.findMany({
+    where: {
+      OR: [
+        { phoneNumber: phones },
+        { email: { endsWith: `@${E2E_EMAIL_DOMAIN}` } },
+      ],
+    },
+    select: { id: true },
+  });
+  const ids = users.map((user) => user.id);
+  await db.$transaction([
+    // Sessions and accounts go with their users (onDelete: Cascade).
+    db.user.deleteMany({ where: { id: { in: ids } } }),
+    db.verification.deleteMany({
+      where: { OR: [{ identifier: phones }, { value: { in: ids } }] },
+    }),
+    db.authRateLimit.deleteMany({
+      where: {
+        OR: [
+          { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
+          { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },
+          { key: { contains: `:${E2E_IP_PREFIX}` } },
+        ],
+      },
+    }),
+  ]);
+}

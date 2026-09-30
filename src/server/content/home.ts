@@ -23,6 +23,8 @@ import {
   type SectionContentKey,
 } from "./home-schema";
 
+export type { HeroPanel };
+
 // ─── Types returned to the homepage ─────────────────────────────────────────
 
 /** `href` null means the destination isn't built yet: show "coming soon". */

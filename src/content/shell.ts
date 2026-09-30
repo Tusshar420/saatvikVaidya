@@ -83,16 +83,6 @@ export const shell = {
     coins: "Coins",
     profile: "Profile",
   },
-  signIn: {
-    eyebrow: "My profile",
-    title: "One profile. Your complete Saatvik journey.",
-    description:
-      "Sign in with your mobile number or email to save products, track orders, access courses and earn Saatvik Coins.",
-    soonTitle: "Sign-in is almost here",
-    soonBody:
-      "Accounts for customers, doctors, clinics, pharmacies and stockists open with our next update.",
-    close: "Continue browsing",
-  },
   trackOrder: {
     eyebrow: "Track order",
     title: "Know exactly what happens next.",

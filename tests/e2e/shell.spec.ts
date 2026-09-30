@@ -7,6 +7,8 @@ import {
 } from "../../src/content/pages";
 import { settingDefaults } from "../../src/content/settings";
 import { navItems, policyLinks, shell } from "../../src/content/shell";
+import { signIn } from "../../src/content/sign-in";
+import { ui } from "../../src/content/ui";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 const phone = settingDefaults["contact.phone"];
@@ -313,7 +315,7 @@ test.describe("modals", () => {
     const dialog = await openAndEscape(
       page,
       header(page).getByRole("button", { name: shell.header.profileTitle }),
-      shell.signIn.title,
+      signIn.title,
     );
     await expect(dialog).toHaveCount(0);
 
@@ -321,12 +323,12 @@ test.describe("modals", () => {
       await openAndEscape(
         page,
         dock(page).getByRole("button", { name: shell.dock.profile }),
-        shell.signIn.title,
+        signIn.title,
       );
     }
   });
 
-  test("sign-in shows the placeholder and closes from its button", async ({
+  test("sign-in starts in the phone field and closes from its close button", async ({
     page,
   }) => {
     await page.goto("/");
@@ -334,12 +336,18 @@ test.describe("modals", () => {
       name: shell.header.profileTitle,
     });
     await trigger.click();
-    const dialog = page.getByRole("dialog", { name: shell.signIn.title });
-    await expect(dialog).toHaveAccessibleDescription(shell.signIn.description);
+    const dialog = page.getByRole("dialog", { name: signIn.title });
+    await expect(dialog).toHaveAccessibleDescription(signIn.description);
     await expect(
-      dialog.getByRole("heading", { name: shell.signIn.soonTitle }),
+      dialog.getByRole("tab", { name: signIn.tabs.mobile }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(
+      dialog.getByRole("tab", { name: signIn.tabs.email }),
     ).toBeVisible();
-    await dialog.getByRole("button", { name: shell.signIn.close }).click();
+    await expect(
+      dialog.getByRole("textbox", { name: signIn.phone.label }),
+    ).toBeFocused();
+    await dialog.getByRole("button", { name: ui.close }).click();
     await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();
   });
@@ -389,7 +397,7 @@ test.describe("modals", () => {
       .getByRole("button", { name: shell.header.profileTitle })
       .click();
     await expect(
-      page.getByRole("dialog", { name: shell.signIn.title }),
+      page.getByRole("dialog", { name: signIn.title }),
     ).toBeVisible();
     expect(await axeViolations(page)).toEqual([]);
     await page.keyboard.press("Escape");
