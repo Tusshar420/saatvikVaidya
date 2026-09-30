@@ -1238,9 +1238,10 @@ desktop project only) and `build` all pass. Admin screens checked at 375 and
   secondary buttons (translucent white at 60% opacity) as bright cyan. The
   computed styles are correct (white/70, teal text), so this is a headless
   compositor artifact, not a CSS bug; worth a look on a real phone.
-- `docs/CHUNKS.md` has uncommitted edits (the Phase 1 list and a new Phase 2
-  section) that were being made while this ran, so they were left for their
-  author to commit.
+- `docs/CHUNKS.md` had uncommitted edits (the Phase 1 list and a new Phase 2
+  section) while this ran. They were committed separately after P1.2, once all
+  checks passed again (typecheck, lint, test 250, test:e2e 148 passed with 4
+  skipped by design, build).
 
 ## P1.12. Phase 1 quality and security pass (BLOCKED, 2026-10-01)
 
