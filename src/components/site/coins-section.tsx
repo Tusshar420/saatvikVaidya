@@ -25,7 +25,7 @@ export function CoinsSection({
         <SectionHeading
           eyebrow={heading.eyebrow}
           title={heading.title}
-          titleEmphasis={heading.titleEmphasis}
+          emphasis={heading.titleEmphasis}
           description={heading.description}
         />
 

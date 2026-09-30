@@ -15,7 +15,7 @@ export function WhySection({ heading, steps }: WhySectionProps) {
         <SectionHeading
           eyebrow={heading.eyebrow}
           title={heading.title}
-          titleEmphasis={heading.titleEmphasis}
+          emphasis={heading.titleEmphasis}
           description={heading.description}
         />
 

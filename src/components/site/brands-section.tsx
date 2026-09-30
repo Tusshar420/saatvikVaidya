@@ -36,9 +36,8 @@ export function BrandsSection({ heading, brands }: BrandsSectionProps) {
         <SectionHeading
           eyebrow={heading.eyebrow}
           title={heading.title}
-          titleEmphasis={heading.titleEmphasis}
+          emphasis={heading.titleEmphasis}
           description={heading.description}
-          link={null}
         />
 
         <div className="mt-16">

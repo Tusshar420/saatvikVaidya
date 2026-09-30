@@ -50,7 +50,7 @@ export function CoursesSection({
         <SectionHeading
           eyebrow={heading.eyebrow}
           title={heading.title}
-          titleEmphasis={heading.titleEmphasis}
+          emphasis={heading.titleEmphasis}
           description={heading.description}
         />
 

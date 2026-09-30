@@ -20,9 +20,9 @@ export function CommunitySection({
         <SectionHeading
           eyebrow={heading.eyebrow}
           title={heading.title}
-          titleEmphasis={heading.titleEmphasis}
+          emphasis={heading.titleEmphasis}
           description={heading.description}
-          tone="light"
+          tone="dark"
         />
 
         <Card interactive className="mt-16 bg-teal/10">
