@@ -1,34 +1,10 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { designPage } from "../../src/content/design";
-
-const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-async function axeViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-  // A compact summary makes failures readable in the test output.
-  return results.violations.map((v) => ({
-    rule: v.id,
-    impact: v.impact,
-    nodes: v.nodes.map((n) => n.target.join(" ")),
-  }));
-}
-
-async function horizontalOverflow(page: Page) {
-  return page.evaluate(
-    () =>
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth,
-  );
-}
+import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 test.describe("/design showcase", () => {
   test("loads cleanly with every group", async ({ page }) => {
-    const errors: string[] = [];
-    page.on("console", (msg) => {
-      if (msg.type() === "error") errors.push(msg.text());
-    });
-    page.on("pageerror", (error) => errors.push(error.message));
+    const errors = collectErrors(page);
 
     const response = await page.goto("/design");
     expect(response?.status()).toBe(200);
