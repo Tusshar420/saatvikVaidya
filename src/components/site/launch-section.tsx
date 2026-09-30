@@ -77,6 +77,8 @@ export function LaunchSection({
                   ].map((tabOption) => (
                     <button
                       key={tabOption.tab}
+                      type="button"
+                      aria-pressed={activeTab === tabOption.tab}
                       onClick={() => setActiveTab(tabOption.tab)}
                       className={cn(
                         "pb-3 text-body font-500 transition border-b-2 -mb-px",

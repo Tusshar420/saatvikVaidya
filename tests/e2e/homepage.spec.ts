@@ -1,122 +1,80 @@
 import { test, expect } from "@playwright/test";
+import { ui } from "../../src/content/ui";
+import { collectErrors, horizontalOverflow } from "./helpers";
+
+// Top half of the homepage (A7). Runs in both projects (375 and 1280 px).
 
 test.describe("Homepage sections (A7)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
   });
 
-  test("hero section renders with slides (phone)", async ({ page, viewport }) => {
-    expect(viewport?.width).toBe(375);
-
-    // Hero carousel should be visible
-    const heroSection = page.locator("section").first();
-    await expect(heroSection).toBeVisible();
-
-    // Should have heading content
-    const heading = page.locator("h1").first();
-    await expect(heading).toBeVisible();
+  test("hero shows its first slide heading", async ({ page }) => {
+    const hero = page.locator("#top");
+    await expect(hero).toBeVisible();
+    await expect(
+      hero.getByRole("heading", { level: 1, name: /Build your Ayurveda brand/ }),
+    ).toBeVisible();
   });
 
-  test("hero section renders with slides (desktop)", async ({ page, viewport }) => {
-    expect(viewport?.width).toBe(1280);
-
-    // Hero carousel should be visible
-    const heroSection = page.locator("section").first();
-    await expect(heroSection).toBeVisible();
-
-    // Should have heading content
-    const heading = page.locator("h1").first();
-    await expect(heading).toBeVisible();
+  test("hero carousel has previous, next and slide buttons", async ({
+    page,
+  }) => {
+    const hero = page.locator("#top");
+    await expect(
+      hero.getByRole("button", { name: ui.carousel.previous }),
+    ).toBeVisible();
+    await expect(
+      hero.getByRole("button", { name: ui.carousel.next }),
+    ).toBeVisible();
+    await expect(
+      hero.getByRole("button", { name: ui.carousel.goTo(2) }),
+    ).toBeVisible();
   });
 
-  test("hero carousel has navigation buttons", async ({ page }) => {
-    // Look for carousel navigation - buttons should be present
-    const buttons = page.locator("button");
-    
-    // At minimum should have some buttons visible (prev, next, dots)
-    expect(await buttons.count()).toBeGreaterThan(0);
+  test("trust strip shows its figures", async ({ page }) => {
+    await expect(
+      page.getByText("Classical formulations", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Low MOQ", { exact: true })).toBeVisible();
   });
 
-  test("trust strip renders (phone)", async ({ page, viewport }) => {
-    expect(viewport?.width).toBe(375);
-
-    // Scroll down to find trust section
-    await page.locator("body").evaluate(el => el.scrollTop = el.scrollHeight / 3);
-    await page.waitForTimeout(300);
-
-    // Should have some heading or text about formulations, MOQ, etc
-    const text = page.locator("text=/classical formulations|MOQ|rates|support/i");
-    await expect(text).toBeVisible({ timeout: 5000 });
-  });
-
-  test("reels section renders with filtering capability", async ({ page }) => {
-    // Scroll to reels section
-    const reelsHeading = page.locator("text=Saatvik Reels");
-    await reelsHeading.scrollIntoViewIfNeeded();
-
-    // Should have reel cards
-    const articles = page.locator("article");
-    const count = await articles.count();
-    expect(count).toBeGreaterThan(0);
+  test("reels section renders reel cards", async ({ page }) => {
+    const reels = page.locator("#reels");
+    await reels.scrollIntoViewIfNeeded();
+    await expect(
+      reels.getByRole("heading", { level: 2, name: "Saatvik Reels" }),
+    ).toBeVisible();
+    expect(await reels.locator("article").count()).toBeGreaterThan(0);
   });
 
   test("offers section renders", async ({ page }) => {
-    // Scroll down
-    await page.locator("body").evaluate(el => el.scrollTop = el.scrollHeight * 0.5);
-    await page.waitForTimeout(300);
-
-    // Should have offer-related content
-    const offerText = page.locator("text=/Offers|opportunities/i");
-    await expect(offerText).toBeVisible({ timeout: 5000 }).catch(() => {
-      // Offers might not be visible, that's ok for this basic test
-    });
+    const offers = page.locator("#offers");
+    await offers.scrollIntoViewIfNeeded();
+    await expect(
+      offers.getByRole("heading", { level: 2, name: "Offers worth acting on" }),
+    ).toBeVisible();
   });
 
   test("quick actions section renders", async ({ page }) => {
-    // Scroll down
-    await page.locator("body").evaluate(el => el.scrollTop = el.scrollHeight * 0.55);
-    await page.waitForTimeout(300);
-
-    // Should have action cards with text like "Launch", "Explore", etc
-    const quickActionsText = page.locator("text=/Launch Your Brand|Explore|Track Your Order/i");
-    await expect(quickActionsText).toBeVisible({ timeout: 5000 });
+    const actions = page.locator("#quick-actions");
+    await actions.scrollIntoViewIfNeeded();
+    await expect(
+      actions.getByRole("heading", {
+        level: 2,
+        name: "What would you like to do?",
+      }),
+    ).toBeVisible();
   });
 
-  test("no horizontal scroll on phone (375px)", async ({ page, viewport }) => {
-    expect(viewport?.width).toBe(375);
-
-    // Check for horizontal scroll
-    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1); // +1 for rounding
-  });
-
-  test("no horizontal scroll on desktop (1280px)", async ({ page, viewport }) => {
-    expect(viewport?.width).toBe(1280);
-
-    // Check for horizontal scroll
-    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+  test("doesn't scroll sideways", async ({ page }) => {
+    expect(await horizontalOverflow(page)).toBe(0);
   });
 
   test("no console errors or CSP violations", async ({ page }) => {
-    const errors: string[] = [];
-
-    page.on("console", (msg) => {
-      if (msg.type() === "error") {
-        errors.push(msg.text());
-      }
-    });
-
+    const errors = collectErrors(page);
     await page.reload();
     await page.waitForLoadState("networkidle");
-
-    // No critical errors (warnings are ok)
-    const criticalErrors = errors.filter(e => !e.includes("Warning") && !e.includes("timeout"));
-    expect(criticalErrors).toHaveLength(0);
+    expect(errors).toEqual([]);
   });
 });

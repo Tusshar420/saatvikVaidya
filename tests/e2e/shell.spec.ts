@@ -61,9 +61,10 @@ test.describe("header", () => {
     await expect(
       bar.getByRole("link", { name: shell.brand.homeLabel }),
     ).toBeVisible();
+    // Signed out there's no coin balance to show, so no coin pill (A8).
     await expect(
-      bar.getByRole("link", { name: /0 Saatvik Coins/ }),
-    ).toHaveAttribute("href", "/coins");
+      bar.getByRole("link", { name: /^[\d,]+ Saatvik Coins$/ }),
+    ).toHaveCount(0);
     await expect(
       bar.getByRole("button", { name: shell.header.profileTitle }),
     ).toBeVisible();
@@ -170,20 +171,19 @@ test.describe("header", () => {
     ).toBeVisible();
   });
 
-  test("coin pill and bag lead to their ComingSoon pages", async ({
+  test("coins and bag lead to their ComingSoon pages", async ({
     page,
     isMobile,
   }) => {
     await page.goto("/");
-    await header(page)
-      .getByRole("link", { name: /0 Saatvik Coins/ })
-      .click();
-    await expect(page).toHaveURL("/coins");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      comingSoonPages.coins.title,
-    );
-
-    if (!isMobile) {
+    if (isMobile) {
+      // Signed out, coins are reached from the dock (no header pill).
+      await dock(page).getByRole("link", { name: shell.dock.coins }).click();
+      await expect(page).toHaveURL("/coins");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        comingSoonPages.coins.title,
+      );
+    } else {
       await header(page)
         .getByRole("link", { name: shell.header.bag(0) })
         .click();
@@ -283,16 +283,22 @@ test.describe("mobile dock", () => {
     expect(Math.round(dockBox.y + dockBox.height)).toBe(viewport.height);
 
     // At the end of the page the footer's last line sits above the dock.
-    await page.evaluate(() =>
-      window.scrollTo(0, document.documentElement.scrollHeight),
-    );
+    // The page scrolls smoothly, so jump instantly and wait for it to settle.
     const lastPolicy = footer(page)
       .getByRole("link", { name: policyLinks[policyLinks.length - 1].label })
       .last();
-    const policyBox = await lastPolicy.boundingBox();
-    expect(policyBox).toBeTruthy();
-    if (policyBox)
-      expect(policyBox.y + policyBox.height).toBeLessThanOrEqual(dockBox.y);
+    await expect
+      .poll(async () => {
+        await page.evaluate(() =>
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "instant",
+          }),
+        );
+        const box = await lastPolicy.boundingBox();
+        return box ? box.y + box.height : Infinity;
+      })
+      .toBeLessThanOrEqual(dockBox.y);
 
     // Dock links go to their pages and mark themselves current.
     await bar.getByRole("link", { name: shell.dock.orders }).click();

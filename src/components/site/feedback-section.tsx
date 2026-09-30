@@ -44,7 +44,7 @@ export function FeedbackSection({ heading, feedback }: FeedbackSectionProps) {
                     {featured[0].badge}
                   </div>
                   <blockquote className="text-h3 mt-4">
-                    "{featured[0].quote}"
+                    {featured[0].quote}
                   </blockquote>
                   <div className="mt-6">
                     <p className="text-body font-600">{featured[0].caption}</p>
@@ -83,7 +83,7 @@ export function FeedbackSection({ heading, feedback }: FeedbackSectionProps) {
                       {item.badge}
                     </div>
                     <p className="text-body font-500 mt-3 line-clamp-3">
-                      "{item.quote}"
+                      {item.quote}
                     </p>
                     <p className="text-small text-muted mt-3">{item.caption}</p>
                   </div>

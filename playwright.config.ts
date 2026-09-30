@@ -9,6 +9,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
+  // The whole suite runs in parallel against one production server (and axe
+  // scans are slow), so allow more than the defaults (30 s and 5 s) before
+  // calling a step stuck.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   // Sign-in tests create accounts in the dev database; these remove them.
   globalSetup: "./tests/e2e/cleanup.ts",
   globalTeardown: "./tests/e2e/cleanup.ts",

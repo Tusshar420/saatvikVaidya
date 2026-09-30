@@ -1,4 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Browser, type TestInfo } from "@playwright/test";
+import { shell } from "../../src/content/shell";
+import { horizontalOverflow } from "./helpers";
+
+// Full-page screenshots at the six widths from docs/DESIGN.md, with checks
+// that each page fits the width. Images go to Playwright's output folder
+// (test-results/); copy them to docs/screenshots/ by hand when the docs need
+// fresh ones. Each test opens its own browser context per width, so they
+// only run in one project.
 
 const widths = [360, 375, 414, 768, 1024, 1280];
 const heights: Record<number, number> = {
@@ -10,95 +18,74 @@ const heights: Record<number, number> = {
   1280: 800,
 };
 
-test.describe("A9 Screenshots", () => {
-  test("homepage screenshots at all widths", async ({ browser }) => {
-    for (const width of widths) {
-      const context = await browser.newContext({
-        viewport: { width, height: heights[width] },
-        isMobile: width <= 414,
-        hasTouch: width <= 414,
-      });
-      const page = await context.newPage();
+test.describe.configure({ timeout: 120_000 });
 
-      await page.goto("http://localhost:3100/");
-      await page.waitForLoadState("networkidle");
+/** These tests set their own viewports, so one project is enough. */
+function runOnce(testInfo: TestInfo) {
+  test.skip(
+    testInfo.project.name !== "desktop",
+    "Sets its own viewports; the desktop project runs it.",
+  );
+}
 
-      const filename = `docs/screenshots/homepage-${width}px.png`;
-      await page.screenshot({ path: filename, fullPage: true });
-      console.log(`Saved ${filename}`);
-
-      await context.close();
-    }
+async function atWidth(browser: Browser, width: number) {
+  const context = await browser.newContext({
+    viewport: { width, height: heights[width] },
+    isMobile: width <= 414,
+    hasTouch: width <= 414,
   });
+  return { context, page: await context.newPage() };
+}
 
-  test("sign-in modal screenshots at all widths", async ({ browser }) => {
-    for (const width of widths) {
-      const context = await browser.newContext({
-        viewport: { width, height: heights[width] },
-        isMobile: width <= 414,
-        hasTouch: width <= 414,
-      });
-      const page = await context.newPage();
-
-      await page.goto("http://localhost:3100/");
-      await page.waitForLoadState("networkidle");
-
-      // Open sign-in modal
-      if (width <= 560) {
-        // On mobile, click the profile icon in the dock
-        await page.click('[aria-current="page"][href="/#profile"]');
-      } else {
-        // On desktop, click the profile trigger in the header
-        const profileTrigger = page.locator("button").filter({ hasText: /Sign in|Register/ }).first();
-        await profileTrigger.click();
+test.describe("A9 screenshots", () => {
+  for (const [name, path] of [
+    ["homepage", "/"],
+    ["design", "/design"],
+  ] as const) {
+    test(`${name} fits every width`, async ({ browser }, testInfo) => {
+      runOnce(testInfo);
+      for (const width of widths) {
+        const { context, page } = await atWidth(browser, width);
+        await page.goto(path, { waitUntil: "load" });
+        expect(await horizontalOverflow(page), `${name} at ${width}px`).toBe(0);
+        await page.screenshot({
+          path: testInfo.outputPath(`${name}-${width}px.png`),
+          fullPage: true,
+        });
+        await context.close();
       }
+    });
+  }
 
-      await page.waitForSelector('[role="dialog"]');
-      const filename = `docs/screenshots/sign-in-modal-${width}px.png`;
-      await page.screenshot({ path: filename, fullPage: true });
-      console.log(`Saved ${filename}`);
-
+  test("sign-in modal opens at every width", async ({ browser }, testInfo) => {
+    runOnce(testInfo);
+    for (const width of widths) {
+      const { context, page } = await atWidth(browser, width);
+      await page.goto("/");
+      await page
+        .getByRole("banner")
+        .getByRole("button", { name: shell.header.profileTitle })
+        .click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.screenshot({
+        path: testInfo.outputPath(`sign-in-modal-${width}px.png`),
+      });
       await context.close();
     }
   });
 
-  test("/account page screenshots at all widths", async ({ browser }) => {
+  test("/account sends a signed-out visitor to sign-in at every width", async ({
+    browser,
+  }, testInfo) => {
+    runOnce(testInfo);
     for (const width of widths) {
-      const context = await browser.newContext({
-        viewport: { width, height: heights[width] },
-        isMobile: width <= 414,
-        hasTouch: width <= 414,
+      const { context, page } = await atWidth(browser, width);
+      await page.goto("/account");
+      await expect(page).toHaveURL(/auth=sign-in/);
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.screenshot({
+        path: testInfo.outputPath(`account-signed-out-${width}px.png`),
       });
-      const page = await context.newPage();
-
-      // Try to navigate to /account (will redirect to sign-in if not signed in)
-      await page.goto("http://localhost:3100/account");
-      await page.waitForLoadState("networkidle");
-
-      const filename = `docs/screenshots/account-${width}px.png`;
-      await page.screenshot({ path: filename, fullPage: true });
-      console.log(`Saved ${filename}`);
-
-      await context.close();
-    }
-  });
-
-  test("/design page screenshots at all widths", async ({ browser }) => {
-    for (const width of widths) {
-      const context = await browser.newContext({
-        viewport: { width, height: heights[width] },
-        isMobile: width <= 414,
-        hasTouch: width <= 414,
-      });
-      const page = await context.newPage();
-
-      await page.goto("http://localhost:3100/design");
-      await page.waitForLoadState("networkidle");
-
-      const filename = `docs/screenshots/design-${width}px.png`;
-      await page.screenshot({ path: filename, fullPage: true });
-      console.log(`Saved ${filename}`);
-
       await context.close();
     }
   });

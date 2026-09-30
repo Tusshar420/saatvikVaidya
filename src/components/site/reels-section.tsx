@@ -140,7 +140,8 @@ function ReelCard({ reel }: { reel: ReelItem }) {
                   reel.badgeTone === "ORANGE"
                     ? "bg-orange-strong"
                     : reel.badgeTone === "GOLD"
-                      ? "bg-gold"
+                      ? // White on gold is under 2:1; dark ink passes AA.
+                        "bg-gold text-ink"
                       : "bg-teal",
                 )}
               >
