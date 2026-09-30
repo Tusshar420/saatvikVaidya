@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#075f67" />
+  <meta name="description" content="Saatvik Vaidya — a B2B Ayurveda platform for private-label products, trusted brands, clinical learning and professional growth." />
+  <title>Saatvik Vaidya — B2B Ayurveda Platform</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="utility-bar shell">
+      <a class="brand" href="#top" aria-label="Saatvik Vaidya home">
+        <span class="brand-mark" aria-hidden="true">SV</span>
+        <span class="brand-copy">
+          <strong><span>Saatvik</span> Vaidya</strong>
+          <small>हमारा आयुर्वेद, हमारा गर्व</small>
+        </span>
+      </a>
+
+      <label class="site-search" aria-label="Search the website">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+        <input id="siteSearch" type="search" placeholder="Search products, brands, courses…" autocomplete="off" />
+        <kbd>⌘ K</kbd>
+        <div class="search-popover" id="searchPopover" role="status">
+          <span>Popular searches</span>
+          <button data-search="Punarnava Mandoor">Punarnava Mandoor</button>
+          <button data-search="Kidney Care Course">Kidney Care Course</button>
+          <button data-search="Launch Your Brand">Launch Your Brand</button>
+        </div>
+      </label>
+
+      <div class="header-actions">
+        <button class="header-action" data-modal="trackModal" aria-label="Track order">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
+          <span>Track Order</span>
+        </button>
+        <a class="header-action coins-link" href="#coins" aria-label="Saatvik Coins balance">
+          <span class="coin-mini" aria-hidden="true">S</span>
+          <span><b>1,240</b><small>Coins</small></span>
+        </a>
+        <button class="order-bag" type="button" aria-label="Open order request">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8Zm4 0V6a3 3 0 0 1 6 0v2"/></svg>
+          <span class="bag-count">3</span>
+        </button>
+        <button class="profile-trigger" data-modal="profileModal" type="button" aria-label="Open My Profile">
+          <span class="avatar">AG</span>
+          <span class="profile-label"><b>My Profile</b><small>Sign in / Register</small></span>
+          <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav-rail" aria-label="Primary navigation">
+      <div class="shell nav-inner">
+        <a class="nav-home active" href="#top" aria-label="Home" title="Home">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3z"/></svg>
+        </a>
+        <a href="#launch">Launch Your Brand</a>
+        <a href="#brands">Top Brands</a>
+        <a href="#courses">Courses</a>
+        <a href="#coins">Saatvik Coins</a>
+        <a href="#quiz">Quiz &amp; Win</a>
+        <a href="#feedback">Verified Feedback</a>
+        <a href="#partner">Partner &amp; Grow</a>
+        <a href="#why">Why Saatvik</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-label="Featured updates">
+      <div class="hero-orbit orbit-one"></div>
+      <div class="hero-orbit orbit-two"></div>
+      <div class="shell hero-shell">
+        <article class="hero-slide active" data-slide="0">
+          <div class="hero-copy">
+            <span class="eyebrow"><i></i> BUILT FOR AYURVEDA PROFESSIONALS</span>
+            <h1>Build your Ayurveda brand.<br><em>We’ll build the rest.</em></h1>
+            <p>Choose from 150+ classical formulations with low MOQ, transparent net rates and end-to-end label support.</p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary" href="#launch">Launch Your Brand <span>→</span></a>
+              <a class="btn btn-ghost" href="#reels">Watch how it works</a>
+            </div>
+            <div class="hero-proof">
+              <span class="proof-faces"><b>DR</b><b>AV</b><b>+</b></span>
+              <span><strong>Built around real practice needs</strong><small>From formulation selection to order tracking</small></span>
+            </div>
+          </div>
+          <div class="hero-console" aria-label="Launch Your Brand product selector preview">
+            <div class="console-top">
+              <span><i></i> Launch Studio</span>
+              <small>Step 1 of 4</small>
+            </div>
+            <h2>What would you like to build?</h2>
+            <div class="form-search"><svg viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg><span>Search formulation</span></div>
+            <div class="category-pills">
+              <button class="selected">Vati</button><button>Churna</button><button>Guggulu</button><button>Asava</button>
+            </div>
+            <div class="product-choice">
+              <span class="product-symbol">PV</span>
+              <span><b>Punarnava Mandoor</b><small>Classical Ayurveda • Tablet</small></span>
+              <span class="selected-check">✓</span>
+            </div>
+            <div class="console-meta">
+              <span><small>Suggested MRP</small><b>Choose your MRP</b></span>
+              <span><small>For you</small><b>View net rate</b></span>
+            </div>
+            <button class="console-next">Continue to label options <span>→</span></button>
+            <p class="console-note"><span>✓</span> No payment at this stage</p>
+          </div>
+        </article>
+
+        <article class="hero-slide" data-slide="1">
+          <div class="hero-copy">
+            <span class="eyebrow"><i></i> B2B PRODUCT DISCOVERY, SIMPLIFIED</span>
+            <h1>Top Ayurveda brands.<br><em>One trusted platform.</em></h1>
+            <p>Build a flexible order from selected brands, view clear product information and reorder from your profile.</p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary" href="#brands">Explore Top Brands <span>→</span></a>
+              <button class="btn btn-ghost" data-modal="trackModal">Track an order</button>
+            </div>
+          </div>
+          <div class="brand-showcase">
+            <span class="float-label">Available for B2B ordering</span>
+            <div class="brand-card brand-card-main"><small>FEATURED RANGE</small><b>Sabka Vaidya</b><span>Classical &amp; wellness portfolio</span><button>View range →</button></div>
+            <div class="brand-card brand-card-a"><b>Pranacharya</b><small>Professional range</small></div>
+            <div class="brand-card brand-card-b"><b>Flowgra</b><small>Focused formulations</small></div>
+          </div>
+        </article>
+
+        <article class="hero-slide" data-slide="2">
+          <div class="hero-copy">
+            <span class="eyebrow"><i></i> LEARN • APPLY • GROW</span>
+            <h1>Clinical learning that<br><em>moves practice forward.</em></h1>
+            <p>Expert-led courses, Saatvik Live sessions and quick Ayurveda challenges—created for practitioners.</p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary" href="#courses">Explore Courses <span>→</span></a>
+              <a class="btn btn-ghost" href="#quiz">Play this week’s quiz</a>
+            </div>
+          </div>
+          <div class="learning-board">
+            <div class="live-pill"><i></i> SAATVIK LIVE</div>
+            <h2>Clinical Diet Planning</h2>
+            <p>प्रकृति, अग्नि एवं रोगावस्था के अनुसार आहार चयन</p>
+            <div class="learning-meta"><span><small>Upcoming</small><b>Monday • 8:00 PM</b></span><span><small>Format</small><b>Live session</b></span></div>
+            <div class="speaker-row"><span class="speaker-avatar">DA</span><span><b>Ayurvedacharya Dr. Abhishek</b><small>Founder, Saatvik Vaidya</small></span></div>
+            <button>Reserve your seat →</button>
+          </div>
+        </article>
+
+        <div class="hero-controls" aria-label="Banner controls">
+          <button class="hero-arrow" id="prevSlide" aria-label="Previous banner">←</button>
+          <div class="hero-dots">
+            <button class="active" data-go="0" aria-label="Show banner 1"></button>
+            <button data-go="1" aria-label="Show banner 2"></button>
+            <button data-go="2" aria-label="Show banner 3"></button>
+          </div>
+          <button class="hero-arrow" id="nextSlide" aria-label="Next banner">→</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip" aria-label="Saatvik Vaidya highlights">
+      <div class="shell trust-grid">
+        <span><b>150+</b><small>Classical formulations</small></span>
+        <span><b>Low MOQ</b><small>Built for growing practices</small></span>
+        <span><b>Clear Rates</b><small>Transparent B2B pricing</small></span>
+        <span><b>Complete Support</b><small>Product to label assistance</small></span>
+      </div>
+    </section>
+
+    <section class="section reels-section" id="reels">
+      <div class="shell">
+        <div class="section-heading">
+          <div><span class="section-kicker">WATCH &amp; EXPLORE</span><h2>Saatvik Reels</h2><p>Products, practitioner experiences, courses and opportunities—in under 60 seconds.</p></div>
+          <a class="text-link" href="#reels">View all reels <span>→</span></a>
+        </div>
+        <div class="filter-row" aria-label="Reel filters">
+          <button class="active" data-filter="all">All</button>
+          <button data-filter="product">Products</button>
+          <button data-filter="feedback">Doctor Feedback</button>
+          <button data-filter="learning">Courses</button>
+          <button data-filter="offer">Offers</button>
+        </div>
+
+        <div class="reels-grid">
+          <article class="reel-card" data-type="product">
+            <div class="reel-media video-media">
+              <video preload="metadata" muted playsinline src="assets/brand-launch.mp4"></video>
+              <button class="play-button" aria-label="Play Launch Your Brand reel">▶</button>
+              <span class="reel-badge">LAUNCH YOUR BRAND</span>
+              <span class="reel-time">00:36</span>
+            </div>
+            <div class="reel-copy"><h3>Your product. Your label. Your identity.</h3><a href="#launch">Start your brand →</a></div>
+          </article>
+
+          <article class="reel-card" data-type="product">
+            <div class="reel-media video-media">
+              <video preload="metadata" muted playsinline src="assets/product-range.mp4"></video>
+              <button class="play-button" aria-label="Play product range reel">▶</button>
+              <span class="reel-badge blue">PRODUCT RANGE</span>
+              <span class="reel-time">00:42</span>
+            </div>
+            <div class="reel-copy"><h3>Explore low-MOQ Ayurveda formulations.</h3><a href="#launch">Explore range →</a></div>
+          </article>
+
+          <article class="reel-card" data-type="feedback">
+            <div class="reel-media image-media">
+              <img src="assets/doctor-feedback-english.jpg" alt="Original letterhead feedback shared by an Ayurveda doctor" />
+              <span class="verified-pill">✓ VERIFIED DOCTOR</span>
+              <span class="reel-time">Original letterhead</span>
+            </div>
+            <div class="reel-copy"><h3>“Product quality, packaging and support are outstanding.”</h3><a href="#feedback">Read verified feedback →</a></div>
+          </article>
+
+          <article class="reel-card" data-type="offer">
+            <div class="reel-media image-media reward-image">
+              <img src="assets/saatvik-rewards.jpg" alt="Saatvik Rewards — earn 1,000 Saatvik Coins on an eligible 10,000 rupee order" />
+              <span class="reel-badge gold">SAATVIK REWARDS</span>
+              <span class="coin-value">1,000 Coins = ₹100</span>
+            </div>
+            <div class="reel-copy"><h3>Every eligible order should reward your growth.</h3><a href="#coins">View rewards →</a></div>
+          </article>
+
+          <article class="reel-card" data-type="learning">
+            <div class="reel-media learning-poster">
+              <span class="live-mark"><i></i> LIVE</span>
+              <small>NATIONAL NUTRITION WEEK</small>
+              <h3>सही आहार केवल पोषण नहीं,<br>उपचार का आधार है।</h3>
+              <span class="doctor-chip">with Dr. Abhishek</span>
+              <span class="reel-time">Monday • 8 PM</span>
+            </div>
+            <div class="reel-copy"><h3>Practical diet planning for OPD &amp; IPD.</h3><a href="#courses">View sessions →</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section offers-section" aria-labelledby="offers-title">
+      <div class="shell">
+        <div class="section-heading compact">
+          <div><span class="section-kicker">CURRENT OPPORTUNITIES</span><h2 id="offers-title">Offers worth acting on</h2></div>
+          <a class="text-link" href="#coins">View all offers <span>→</span></a>
+        </div>
+        <div class="offer-grid">
+          <article class="offer-card orange">
+            <span class="offer-icon">SV</span>
+            <div><small>SAATVIK REWARDS</small><h3>₹10,000 order → 1,000 Coins</h3><p>Reward value ₹100 • Valid for 60 months</p></div>
+            <a href="#coins" aria-label="View Saatvik Rewards">→</a>
+          </article>
+          <article class="offer-card teal">
+            <span class="offer-icon">BYB</span>
+            <div><small>PRIVATE LABEL</small><h3>Launch without a large inventory burden</h3><p>Low MOQ across selected classical products</p></div>
+            <a href="#launch" aria-label="Launch your brand">→</a>
+          </article>
+          <article class="offer-card navy">
+            <span class="offer-icon">QW</span>
+            <div><small>QUIZ &amp; WIN</small><h3>Learn Ayurveda. Earn rewards.</h3><p>10 questions • 5 minutes • Weekly leaderboard</p></div>
+            <a href="#quiz" aria-label="Play Quiz and Win">→</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section quick-actions-section" aria-labelledby="quick-title">
+      <div class="shell">
+        <div class="section-heading compact"><div><span class="section-kicker">START HERE</span><h2 id="quick-title">What would you like to do?</h2></div></div>
+        <div class="quick-grid">
+          <a href="#launch"><span class="quick-icon orange-icon">＋</span><b>Launch Your Brand</b><small>Start a private-label request</small><i>→</i></a>
+          <a href="#brands"><span class="quick-icon teal-icon">TB</span><b>Explore Top Brands</b><small>Build your B2B order</small><i>→</i></a>
+          <button data-modal="trackModal"><span class="quick-icon blue-icon">⌁</span><b>Track Your Order</b><small>View progress and reorder</small><i>→</i></button>
+          <a href="#courses"><span class="quick-icon gold-icon">▶</span><b>Explore Courses</b><small>Learn with expert practitioners</small><i>→</i></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section launch-section" id="launch">
+      <div class="shell split-layout">
+        <div class="launch-copy">
+          <span class="section-kicker">LAUNCH YOUR BRAND</span>
+          <h2>From clinical insight<br>to a market-ready identity.</h2>
+          <p>Select a formulation, explore label directions and submit one complete request. Our team reviews the technical details before confirmation.</p>
+          <ul class="feature-list">
+            <li><span>01</span><div><b>Choose your formulation</b><small>Browse by category or practice area</small></div></li>
+            <li><span>02</span><div><b>Choose your identity</b><small>Add brand logo, MRP and Marketed By details</small></div></li>
+            <li><span>03</span><div><b>Review before production</b><small>Approve quotation and final label proof</small></div></li>
+          </ul>
+          <a class="btn btn-primary" href="#launchProducts">Explore 150+ formulations <span>→</span></a>
+        </div>
+        <div class="catalogue-card" id="launchProducts">
+          <div class="catalogue-head"><div><small>PRODUCT CATALOGUE</small><h3>Find the right starting point</h3></div><button aria-label="Open all filters">Filters</button></div>
+          <label class="catalogue-search"><svg viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg><input placeholder="Search 150+ formulations" /></label>
+          <div class="catalogue-tabs"><button class="active">By Form</button><button>By Practice Area</button></div>
+          <div class="form-grid">
+            <button><span>व</span><b>Vati &amp; Gutika</b><small>Explore products →</small></button>
+            <button><span>चू</span><b>Churna</b><small>Explore products →</small></button>
+            <button><span>गु</span><b>Guggulu</b><small>Explore products →</small></button>
+            <button><span>आ</span><b>Asava–Arishta</b><small>Explore products →</small></button>
+            <button><span>अ</span><b>Avaleha</b><small>Explore products →</small></button>
+            <button><span>तै</span><b>Taila &amp; Ghrita</b><small>Explore products →</small></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section brands-section" id="brands">
+      <div class="shell">
+        <div class="section-heading">
+          <div><span class="section-kicker">TOP BRANDS</span><h2>Selected ranges for professional buying</h2><p>Browse by brand, product form or practice need—and build one flexible order request.</p></div>
+          <a class="text-link" href="#brands">Explore all brands <span>→</span></a>
+        </div>
+        <div class="top-brand-grid">
+          <article class="top-brand featured"><span class="brand-number">01</span><div class="brand-monogram">SV</div><div><small>FEATURED PORTFOLIO</small><h3>Sabka Vaidya</h3><p>Classical Ayurveda and focused wellness products for professional procurement.</p></div><button>Explore range →</button></article>
+          <article class="top-brand"><span class="brand-number">02</span><div class="brand-monogram orange-mono">PA</div><div><small>PROFESSIONAL RANGE</small><h3>Pranacharya</h3><p>Explore products across selected Ayurveda categories.</p></div><button>View products →</button></article>
+          <article class="top-brand"><span class="brand-number">03</span><div class="brand-monogram blue-mono">FG</div><div><small>FOCUSED RANGE</small><h3>Flowgra</h3><p>Simple B2B ordering with flexible quantities.</p></div><button>View products →</button></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section learning-section" id="courses">
+      <div class="shell learning-layout">
+        <div class="learning-copy">
+          <span class="section-kicker light">COURSES &amp; SAATVIK LIVE</span>
+          <h2>Clinical learning,<br>designed for application.</h2>
+          <p>Focused programs, live discussions and practical resources created exclusively for Ayurveda professionals.</p>
+          <a class="btn btn-light" href="#courses">Explore all courses <span>→</span></a>
+        </div>
+        <div class="course-cards">
+          <article><span class="course-tag">FOUNDATION COURSE</span><h3>Kidney Care for Ayurveda Doctors</h3><p>Clinical assessment, diet planning and structured practice protocols.</p><div><span><small>Format</small><b>3-Day Online CME</b></span><button>View course →</button></div></article>
+          <article class="live-course"><span class="course-tag"><i></i> UPCOMING LIVE</span><h3>Clinical Diet Planning</h3><p>प्रकृति, अग्नि एवं रोगावस्था के अनुसार आहार चयन</p><div><span><small>Next session</small><b>Monday • 8 PM</b></span><button>Reserve seat →</button></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section rewards-section" id="coins">
+      <div class="shell reward-layout">
+        <div class="coin-panel">
+          <div class="coin-emblem"><span>S</span></div>
+          <div><span class="section-kicker">SAATVIK COINS</span><h2>Growth should feel rewarding.</h2><p>Earn 1,000 Saatvik Coins on an eligible ₹10,000 order. Redeem them on upcoming orders within 60 months.</p><div class="coin-equation"><b>10 Coins</b><span>=</span><b>₹1</b><small>1,000 Coins are worth ₹100</small></div><a class="btn btn-primary" href="#coins">View my rewards <span>→</span></a></div>
+        </div>
+        <article class="quiz-panel" id="quiz">
+          <div class="quiz-top"><span>QUIZ &amp; WIN</span><small>Weekly Challenge</small></div>
+          <h3>How strong is your Ayurveda knowledge?</h3>
+          <p>10 questions • 5 minutes • Coins for qualifying scores</p>
+          <div class="quiz-preview"><span><small>Question 1</small><b>Which concept primarily guides individualised Ahara selection?</b></span><span class="timer">05:00</span></div>
+          <button>Start this week’s quiz →</button>
+          <small class="leaderboard-note">🏆 Weekly &amp; monthly leaderboards</small>
+        </article>
+      </div>
+    </section>
+
+    <section class="section feedback-section" id="feedback">
+      <div class="shell">
+        <div class="section-heading">
+          <div><span class="section-kicker">VERIFIED FEEDBACK</span><h2>Real experiences. Original words.</h2><p>Feedback shared by Ayurveda professionals through videos, photographs and original letterheads.</p></div>
+          <a class="text-link" href="#feedback">View all feedback <span>→</span></a>
+        </div>
+        <div class="feedback-grid">
+          <article class="feedback-feature"><div class="feedback-image"><img src="assets/doctor-feedback-hindi.jpg" alt="Original handwritten feedback on Prayag Ayurveda letterhead" /></div><div class="feedback-quote"><span class="verified-pill dark">✓ VERIFIED LETTERHEAD</span><blockquote>“औषधियों की उत्कृष्टता और ग्राहकों के प्रति समर्पण वास्तव में प्रशंसनीय है।”</blockquote><p>Original handwritten feedback • Shared with consent</p><button>Read the original feedback →</button></div></article>
+          <aside class="community-preview"><span class="soon">COMING IN PHASE 2</span><h3>Vaidya Community</h3><p>A verified space for clinical discussions, classical references and professional growth.</p><ul><li>De-identified case discussions</li><li>Ask experts and peers</li><li>Quality-led contributor recognition</li></ul><button data-modal="profileModal">Join early access →</button></aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section profile-banner" id="partner">
+      <div class="shell profile-card">
+        <div><span class="section-kicker light">PERSONALISED FOR YOUR PRACTICE</span><h2>Complete your professional profile.<br>Earn 1,000 Saatvik Coins.</h2><p>Select your practice interests to discover more relevant products, courses and offers.</p><button class="btn btn-light" data-modal="profileModal">Create My Profile <span>→</span></button></div>
+        <div class="completion-card"><div class="completion-head"><span><small>PROFILE COMPLETION</small><b>40%</b></span><span>+1,000 Coins</span></div><div class="progress"><i></i></div><ul><li class="done">Mobile verified <b>✓</b></li><li>User type selected <b>✓</b></li><li>Add practice interests <b>+250</b></li><li>Add professional details <b>+750</b></li></ul><small>Coins activate after professional verification or your first valid order.</small></div>
+      </div>
+    </section>
+
+    <section class="section why-section" id="why">
+      <div class="shell why-layout">
+        <div><span class="section-kicker">WHY SAATVIK</span><h2>One platform for your<br>Ayurveda practice journey.</h2></div>
+        <div class="why-grid"><article><span>01</span><h3>Discover</h3><p>Find formulations, brands and learning relevant to your work.</p></article><article><span>02</span><h3>Build</h3><p>Create your product identity through a guided request.</p></article><article><span>03</span><h3>Grow</h3><p>Reorder, learn, participate and earn rewards from one profile.</p></article></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid"><div class="footer-brand"><a class="brand light-brand" href="#top"><span class="brand-mark">SV</span><span class="brand-copy"><strong><span>Saatvik</span> Vaidya</strong><small>हमारा आयुर्वेद, हमारा गर्व</small></span></a><p>A B2B Ayurveda platform for products, professional learning and practice growth.</p></div><div><b>Platform</b><a href="#launch">Launch Your Brand</a><a href="#brands">Top Brands</a><a href="#courses">Courses</a><a href="#coins">Saatvik Coins</a></div><div><b>Support</b><button data-modal="trackModal">Track Order</button><a href="#feedback">Verified Feedback</a><a href="#partner">Partner &amp; Grow</a><a href="#why">Why Saatvik</a></div><div><b>Need assistance?</b><p>Our support team will call you within 24–48 working hours after an order request.</p><a class="footer-cta" href="tel:9220358400">Call 92203 58400</a></div></div>
+    <div class="shell footer-bottom"><span>© 2026 Saatvik Vaidya</span><span>Privacy • Terms • Shipping • Rewards Policy</span></div>
+  </footer>
+
+  <div class="modal-backdrop" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle" hidden>
+    <div class="modal-card profile-modal-card">
+      <button class="modal-close" data-close aria-label="Close profile dialog">×</button>
+      <span class="modal-icon">SV</span>
+      <span class="section-kicker">MY PROFILE</span>
+      <h2 id="profileTitle">One profile. Your complete Saatvik journey.</h2>
+      <p>Sign in with your mobile number to save products, track orders, access courses and earn Saatvik Coins.</p>
+      <label>Mobile number<div class="phone-input"><span>+91</span><input inputmode="numeric" maxlength="10" placeholder="Enter 10-digit number" /></div></label>
+      <button class="btn btn-primary full-btn" id="otpButton">Continue with OTP <span>→</span></button>
+      <div class="role-select"><span>I am a</span><div><button>Ayurveda Doctor</button><button>Clinic / Hospital</button><button>Pharmacy / Store</button><button>Stockist / Distributor</button></div></div>
+      <small class="privacy-note">By continuing, you agree to the Terms and Privacy Policy. Marketing preferences remain optional.</small>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="trackModal" role="dialog" aria-modal="true" aria-labelledby="trackTitle" hidden>
+    <div class="modal-card track-modal-card">
+      <button class="modal-close" data-close aria-label="Close order tracking dialog">×</button>
+      <span class="section-kicker">TRACK ORDER</span>
+      <h2 id="trackTitle">Know exactly what happens next.</h2>
+      <p>Enter your registered mobile number and order request ID.</p>
+      <label>Order request ID<input class="standalone-input" placeholder="Example: SV-2026-0184" /></label>
+      <label>Registered mobile number<div class="phone-input"><span>+91</span><input inputmode="numeric" maxlength="10" placeholder="Enter mobile number" /></div></label>
+      <button class="btn btn-primary full-btn">View order status <span>→</span></button>
+      <div class="track-example"><span class="track-step done"><i>✓</i><small>Confirmed</small></span><span class="track-line done"></span><span class="track-step active"><i>3</i><small>Production</small></span><span class="track-line"></span><span class="track-step"><i>4</i><small>Quality Check</small></span><span class="track-line"></span><span class="track-step"><i>5</i><small>Dispatch</small></span></div>
+    </div>
+  </div>
+
+  <nav class="mobile-dock" aria-label="Mobile quick navigation">
+    <a class="active" href="#top"><span>⌂</span><small>Home</small></a>
+    <a href="#launch"><span>＋</span><small>My Brand</small></a>
+    <button data-modal="trackModal"><span>⌁</span><small>Orders</small></button>
+    <a href="#coins"><span>◉</span><small>Coins</small></a>
+    <button data-modal="profileModal"><span>◎</span><small>Profile</small></button>
+  </nav>
+
+  <script src="app.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a42fda1d6ec2df2a',t:'MTc5MDczNTkxMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
