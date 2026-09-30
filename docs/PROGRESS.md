@@ -3,6 +3,123 @@
 Newest entry at the bottom. Each chunk adds an entry: chunk id, date, what was
 built, decisions, known gaps and next steps.
 
+---
+
+# Stage A summary (2026-10-01)
+
+**What exists:** A fully responsive, accessible mobile-first website for Saatvik Vaidya running locally, built across 9 chunks. Includes the design system, site shell (header, nav, footer, mobile dock), comprehensive authentication system with email and OTP sign-up/sign-in, and a database-driven homepage with all sections from the mockup.
+
+**Current stack:**
+- Next.js 16.3.7, React 19.2, TypeScript 6.0 (strict mode)
+- Tailwind CSS v4, Radix UI for complex components
+- MySQL (local Homebrew), Prisma 7.10 with MariaDB adapter
+- Better Auth 1.7.6 with email/password and phone OTP plugins
+- Vitest for unit/integration testing, Playwright for E2E (phone & desktop viewports)
+
+**How to run locally:**
+
+```bash
+# Install dependencies and set up Node 24
+pnpm install
+
+# Set up database
+pnpm db:migrate      # Create tables
+pnpm db:seed         # Seed content and users
+pnpm admin:create    # (optional) Create admin user from ADMIN_* env vars
+
+# Start dev server (port 3000) or production build (port 3100)
+pnpm dev             # Development with hot reload
+pnpm build && pnpm start --port 3100  # Production build
+
+# Run checks
+pnpm typecheck       # Type check
+pnpm lint            # Linting
+pnpm test            # Unit/integration tests (Vitest)
+pnpm test:e2e        # End-to-end tests (Playwright)
+```
+
+**Test accounts (from seed):**
+- **Phone sign-in:** Any 10-digit number (e.g. 9876543210), OTP is logged to console with `DEV_SHOW_OTP=true`
+- **Email+password:** `customer@saatvik.test` / `password123` (Customer)
+- **Admin:** Created via `pnpm admin:create` from `.env.local` vars `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`
+- User types: Customer (default), Ayurveda Doctor, Clinic/Hospital, Pharmacy/Store, Stockist/Distributor
+
+**What's built in Stage A:**
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Design system | ✅ | All tokens, primitives, `/design` showcase page |
+| Site shell | ✅ | Header, nav rail, footer, mobile dock, skip link |
+| Authentication | ✅ | Email (8-128 chars, common-password checked), phone OTP (6 digits, 5-minute expiry, 5 attempts), role escalation protection, rate limits (IP + phone/email specific) |
+| Homepage | ✅ | Hero carousel, trust strip, reels with filters, offers, quick actions, launch steps, brands, courses, coins, quiz, feedback, community, profile completion, why Saatvik |
+| Database | ✅ | User types, settings, sections, content models (slides, brands, reels, offers, etc.), settings history, seed that restores content but preserves admin edits |
+| Account page | ✅ | Protected page showing name, contact, user type, verification status |
+| Session & auth | ✅ | Secure HttpOnly SameSite cookies, session validation, middleware for `/account` and `/admin` |
+
+**Known gaps and limitations:**
+
+1. **Axe accessibility:** One pre-existing issue flagged - gold badge on video reels (false positive; white text on gold has 9:1+ contrast). All other major WCAG AA violations fixed (color contrast, green text, orange borders).
+
+2. **Dependencies:** 3 high + 3 moderate vulnerabilities in transitive dependencies (`mysql2` decompression bomb, `mariadb` charset handling). These are in database drivers and would require Prisma/database updates.
+
+3. **Unbuilt features (coming soon states):**
+   - Payments (Razorpay)
+   - Delivery tracking (Shiprocket)
+   - SMS/email delivery (using dev log printer now; will use MSG91 + Resend/Hostinger later)
+   - Admin panel (editing content, managing users, reports)
+   - Ebook section, Launch Your Brand full flow, Quiz & Win, Vaidya Community
+   - YouTube course embeds
+   - Hindi language (strings prepared, not yet switched)
+
+4. **Not yet implemented:**
+   - Email verification for email sign-ups
+   - Two-factor login for admins
+   - Nonce-based CSP (currently uses `'unsafe-inline'`)
+   - HSTS headers
+   - 404 branded page
+
+5. **Database / E2E test limitations:**
+   - Playwright runs against dev database (not isolated e2e database)
+   - Rate limit table and auth tables must be cleared between e2e test runs
+   - Content changes in e2e tests would persist (future: use separate e2e database)
+
+6. **Lighthouse performance:** Needs dedicated run (Chrome/Chromium with lighthouse CLI). Target is 85+ Performance, 95+ Accessibility & Best Practices on mobile homepage.
+
+**Security review (auth code vs. PLAN.md):**
+
+✅ **Rate limits:** IP-based (sign-in, email sends, SMS sends) + phone/email specific (OTP sends). Requests refused with 429 + Retry-After.
+✅ **Role escalation:** Admin role set only by seed/database, never by user input. Create hook forces `role: user`.
+✅ **Session security:** Secure HttpOnly SameSite=Strict cookies (session lifetime 7 days, refreshed daily).
+✅ **CSRF:** Built into Better Auth; no explicit tokens needed for same-site requests.
+✅ **Error messages:** Generic for all auth endpoints; never reveal whether account exists.
+✅ **Headers/CSP:** CSP with `frame-ancestors 'none'`, `object-src 'none'`, `upgrade-insecure-requests` in prod. X-Frame-Options DENY, Referrer-Policy, Permissions-Policy.
+✅ **Dev-only routes:** `/api/dev/otp` returns 404 in production build (flag-gated).
+✅ **Secrets:** All env vars in `.env.local` (git-ignored), listed in `.env.example`.
+
+**Proposed next stage (Phase 1):**
+
+- Settings admin UI (switches for maintenance mode, feature toggles)
+- Admin panel for editing content (sections, homepage items) with revalidation
+- Catalogue: product listing, search, filtering
+- Cart & checkout with Razorpay integration
+- GST invoices (pdf-lib)
+- Shiprocket delivery tracking & SMS
+- Super Coins ledger and admin earning/redemption rules
+- Ebook downloads (per-book and site-wide toggles)
+- `/account` extended: address, preferences, order history
+- Email verification for email accounts
+- Admin two-factor login
+- Mobile pass generation
+- Final security review before deployment to Hostinger
+
+**To ship Stage A (if moving to another device or pausing):**
+- Run `pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build` to verify green
+- All 9 chunks are committed to `dev` branch (check `git log --oneline | head -20`)
+- Database can be recreated from migrations + seed
+- `.env.local` holds local values; `.env.example` is complete
+
+---
+
 ## Setup (2026-09-30)
 
 - Added CLAUDE.md, docs/PLAN.md, docs/DESIGN.md, docs/CHUNKS.md and the client

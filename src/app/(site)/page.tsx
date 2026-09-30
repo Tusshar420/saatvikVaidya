@@ -151,7 +151,7 @@ export default async function HomePage() {
                 profileData={
                   session
                     ? {
-                        mobileVerified: session.user.phoneNumberVerified,
+                        mobileVerified: session.user.phoneNumberVerified ?? false,
                         userTypeSelected: !!session.user.userTypeId,
                         completionPercent: 40,
                       }

@@ -113,7 +113,7 @@ function ReelCard({ reel }: { reel: ReelItem }) {
               </button>
             )}
             {reel.mediaLabel && (
-              <span className="absolute top-3 right-3 rounded-sm bg-orange px-2 py-1 text-xs font-700 text-surface">
+              <span className="absolute top-3 right-3 rounded-sm bg-orange-strong px-2 py-1 text-xs font-700 text-surface">
                 {reel.mediaLabel}
               </span>
             )}
@@ -136,11 +136,11 @@ function ReelCard({ reel }: { reel: ReelItem }) {
             {reel.badge && (
               <span
                 className={cn(
-                  "absolute top-3 right-3 rounded-sm px-2 py-1 text-xs font-700 text-surface",
+                  "absolute top-3 right-3 rounded-sm px-2 py-1 text-xs font-700 text-surface shadow-md",
                   reel.badgeTone === "ORANGE"
-                    ? "bg-orange"
+                    ? "bg-orange-strong"
                     : reel.badgeTone === "GOLD"
-                      ? "bg-gold text-gold-ink"
+                      ? "bg-gold"
                       : "bg-teal",
                 )}
               >

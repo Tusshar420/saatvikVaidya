@@ -126,7 +126,7 @@ function LaunchStudioPanel({
     <div className="rounded-2xl border border-line bg-surface-alt p-6 shadow-card md:p-8">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded text-xs font-700 text-orange">
+          <span className="flex h-6 w-6 items-center justify-center rounded text-xs font-700 text-orange-strong">
             ●
           </span>
           <span className="text-small font-700 text-ink">{panel.label}</span>
@@ -157,7 +157,7 @@ function LaunchStudioPanel({
             className={cn(
               "rounded-sm border px-3 py-1.5 text-small font-500 transition-colors",
               pill === panel.selectedPill
-                ? "border-orange bg-surface text-orange"
+                ? "border-orange-dark bg-surface text-orange-strong"
                 : "border-line bg-surface text-muted hover:text-ink",
             )}
           >

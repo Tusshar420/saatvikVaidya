@@ -47,7 +47,7 @@ export function PartnerSection({
                     style={{ width: `${displayPercent}%` }}
                   />
                 </div>
-                <span className="text-h3 font-600 text-orange">
+                <span className="text-h3 font-600 text-orange-ink">
                   {displayPercent}%
                 </span>
               </div>
@@ -93,7 +93,7 @@ export function PartnerSection({
 
             {!isSignedIn && (
               <SiteModalButton
-                modal="sign-in"
+                modal="signIn"
                 className="mt-8 w-full sm:w-auto"
               >
                 {completion.rewardLabel}

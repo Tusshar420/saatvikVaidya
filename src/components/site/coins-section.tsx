@@ -55,7 +55,7 @@ export function CoinsSection({
                     <p className="text-body mt-2">{equation.value}</p>
                     <p className="text-small text-muted mt-2">{equation.note}</p>
                     <SiteModalButton
-                      modal="sign-in"
+                      modal="signIn"
                       className="mt-4"
                     >
                       View my rewards

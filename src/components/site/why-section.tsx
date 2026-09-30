@@ -23,7 +23,7 @@ export function WhySection({ heading, steps }: WhySectionProps) {
           {steps.map((step, index) => (
             <div key={step.key}>
               <div className="flex items-baseline gap-3 mb-4">
-                <div className="text-display font-800 text-orange leading-none">
+                <div className="text-display font-800 text-orange-strong leading-none">
                   {index + 1}
                 </div>
                 <h3 className="text-h3">{step.title}</h3>

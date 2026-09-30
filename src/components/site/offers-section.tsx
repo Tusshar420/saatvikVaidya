@@ -25,7 +25,7 @@ export function OffersSection({ heading, offers }: OffersSectionProps) {
 
 function OfferCard({ offer }: { offer: OfferItem }) {
   const bgColorMap: Record<string, string> = {
-    orange: "bg-orange-soft border-orange",
+    orange: "bg-orange-soft border-orange-dark",
     teal: "bg-teal-soft border-teal",
     navy: "bg-blue-soft border-blue",
   };
