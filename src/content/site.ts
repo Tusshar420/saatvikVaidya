@@ -12,4 +12,6 @@ export const placeholderHome = {
   titleLead: "Authentic Ayurveda,",
   titleEmphasis: "made simple.",
   body: "Our new store and platform for customers and Ayurveda professionals is being built. Please check back soon.",
+  /** Shown in each section placeholder until A7/A8 build the real ones. */
+  sectionNote: "This section arrives with the new homepage.",
 } as const;

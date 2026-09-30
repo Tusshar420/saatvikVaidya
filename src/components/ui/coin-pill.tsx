@@ -22,24 +22,38 @@ export type CoinPillProps = {
   balance: number;
   /** Renders a link (header use); otherwise a plain label. */
   href?: string;
+  /** Below this breakpoint only the icon shows (`lg` in the header). */
+  compactBelow?: "sm" | "lg";
   className?: string;
 };
 
 /**
- * Coin balance: icon, number and "Coins". Under 560 px only the icon shows;
- * the balance stays available to screen readers.
+ * Coin balance: icon, number and "Coins". Under 560 px (or 1100 px with
+ * `compactBelow="lg"`) only the icon shows; the balance stays available to
+ * screen readers.
  */
-export function CoinPill({ balance, href, className }: CoinPillProps) {
+export function CoinPill({
+  balance,
+  href,
+  compactBelow = "sm",
+  className,
+}: CoinPillProps) {
   const amount = formatNumber(balance);
   const classes = cn(
     "inline-flex min-h-11 items-center gap-2 rounded-md bg-gold-soft px-2.5 text-gold-ink",
+    compactBelow === "sm" ? "max-sm:px-2.25" : "max-lg:px-2.25",
     href && "transition hover:bg-gold/25",
     className,
   );
   const content = (
     <>
       <CoinIcon />
-      <span className="flex flex-col leading-none max-sm:sr-only">
+      <span
+        className={cn(
+          "flex flex-col leading-none",
+          compactBelow === "sm" ? "max-sm:sr-only" : "max-lg:sr-only",
+        )}
+      >
         <span className="text-sm font-extrabold">
           <span className="sr-only">{ui.coins.accessibleLabel(amount)}</span>
           <span aria-hidden>{amount}</span>

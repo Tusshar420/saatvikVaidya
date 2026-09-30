@@ -13,6 +13,7 @@ import {
   Video,
   X,
 } from "lucide-react";
+import { Logo } from "@/components/site/logo";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button, ButtonGroup } from "@/components/ui/button";
@@ -495,6 +496,7 @@ export default async function DesignPage() {
             <Avatar name={copy.people.names[2]} size="lg" />
             <CoinPill balance={copy.people.coinBalance} />
             <CoinPill balance={copy.people.coinBalanceLarge} href="/design" />
+            <CoinPill balance={copy.people.coinBalance} compactBelow="lg" />
           </div>
         </Demo>
       </Group>
@@ -506,6 +508,7 @@ export default async function DesignPage() {
               <Button variant="secondary">{copy.modal.open}</Button>
             </ModalTrigger>
             <ModalContent
+              eyebrow={copy.modal.eyebrow}
               title={copy.modal.title}
               description={copy.modal.description}
               icon={<Smartphone />}
@@ -576,6 +579,14 @@ export default async function DesignPage() {
               </div>
             ))}
           </HScroller>
+        </Demo>
+        <Demo title={s.logo}>
+          <div className="flex flex-wrap items-center gap-6">
+            <Logo />
+            <div className="rounded-xl bg-night p-5">
+              <Logo tone="light" />
+            </div>
+          </div>
         </Demo>
       </Group>
 

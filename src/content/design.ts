@@ -41,6 +41,7 @@ export const designPage = {
     stepper: "Stepper",
     carousel: "Carousel",
     hscroller: "HScroller",
+    logo: "Logo (site)",
     skeleton: "Skeleton",
     emptyState: "EmptyState and ComingSoon",
   },
@@ -154,6 +155,7 @@ export const designPage = {
   },
   modal: {
     open: "Open modal",
+    eyebrow: "My profile",
     title: "Sign in to Saatvik Vaidya",
     description: "Use your mobile number. We'll send a one-time code.",
     submit: "Send code",

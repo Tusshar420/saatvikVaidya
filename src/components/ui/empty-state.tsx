@@ -13,7 +13,8 @@ export type EmptyStateProps = {
   /** Optional button or link. Never a button that does nothing. */
   action?: ReactNode;
   badge?: ReactNode;
-  as?: "h2" | "h3" | "h4";
+  /** Heading level; `h1` when the state is the whole page. */
+  as?: "h1" | "h2" | "h3" | "h4";
   className?: string;
 };
 

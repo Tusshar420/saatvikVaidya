@@ -43,6 +43,12 @@
   --color-track: #e2e9e7;
   --color-live-dot: #ec4e2b;
 
+  /* Footer band: deep teal-black, with lighter text and brand tints on it. */
+  --color-night: #102c32;
+  --color-night-ink: #9cb6b3;
+  --color-green-light: #7ed5a8;
+  --color-orange-light: #ff9b56;
+
   /* Breakpoints: the mockup's three steps plus desktop. */
   --breakpoint-sm: 560px;
   --breakpoint-md: 820px;
@@ -192,6 +198,11 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Section links land below the sticky header (bar + nav rail). */
+    scroll-padding-top: 150px;
+    @media (width < 820px) {
+      scroll-padding-top: 125px;
+    }
   }
   body {
     background: var(--color-surface);

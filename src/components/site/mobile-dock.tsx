@@ -1,0 +1,62 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Coins, House, Package, ShoppingBag, UserRound } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { shell } from "@/content/shell";
+import { SiteModalButton } from "./site-modals";
+
+const itemClasses =
+  "flex min-h-13.5 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-md text-muted transition focus-visible:outline-offset-[-2px] [&_svg]:size-5.5";
+
+const labelClasses = "text-[11px] leading-tight font-bold";
+
+const links = [
+  { href: "/", label: shell.dock.home, Icon: House },
+  { href: "/cart", label: shell.dock.cart, Icon: ShoppingBag },
+  { href: "/orders", label: shell.dock.orders, Icon: Package },
+  { href: "/coins", label: shell.dock.coins, Icon: Coins },
+] as const;
+
+/**
+ * Fixed bottom bar on phones (under 560 px): Home, Cart, Orders, Coins and
+ * Profile. It clears the home indicator with safe-area-inset-bottom; the
+ * footer carries matching bottom padding so nothing hides behind it.
+ */
+export function MobileDock({ className }: { className?: string }) {
+  const pathname = usePathname();
+  return (
+    <nav
+      aria-label={shell.dock.label}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-150 border-t border-line bg-surface/96 px-1.25 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] backdrop-blur-[15px] sm:hidden",
+        className,
+      )}
+    >
+      <ul className="grid grid-cols-5">
+        {links.map(({ href, label, Icon }) => {
+          const active = pathname === href;
+          return (
+            <li key={href}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(itemClasses, active && "text-teal")}
+              >
+                <Icon aria-hidden />
+                <span className={labelClasses}>{label}</span>
+              </Link>
+            </li>
+          );
+        })}
+        <li>
+          <SiteModalButton modal="signIn" className={cn(itemClasses, "w-full")}>
+            <UserRound aria-hidden />
+            <span className={labelClasses}>{shell.dock.profile}</span>
+          </SiteModalButton>
+        </li>
+      </ul>
+    </nav>
+  );
+}

@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/content/ui";
+import { Eyebrow } from "./badge";
 import { IconButton } from "./icon-button";
 
 /** Dialog root (Radix): controls open state. */
@@ -22,6 +23,8 @@ export type ModalContentProps = Omit<
   description?: ReactNode;
   /** Teal tile above the title, as on the mockup's sign-in modal. */
   icon?: ReactNode;
+  /** Small uppercase label above the title ("MY PROFILE"). */
+  eyebrow?: ReactNode;
 };
 
 /**
@@ -32,6 +35,7 @@ export function ModalContent({
   title,
   description,
   icon,
+  eyebrow,
   className,
   children,
   ...props
@@ -74,6 +78,7 @@ export function ModalContent({
             {icon}
           </span>
         )}
+        {eyebrow && <Eyebrow className="mb-2 pr-12">{eyebrow}</Eyebrow>}
         <Dialog.Title className="pr-12 text-2xl leading-[1.15] font-extrabold tracking-[-0.03em] text-ink sm:text-3xl">
           {title}
         </Dialog.Title>
