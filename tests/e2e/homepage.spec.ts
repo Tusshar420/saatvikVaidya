@@ -31,13 +31,10 @@ test.describe("Homepage sections (A7)", () => {
   });
 
   test("hero carousel has navigation buttons", async ({ page }) => {
-    // Look for carousel navigation
+    // Look for carousel navigation - buttons should be present
     const buttons = page.locator("button");
-
-    // Should have prev/next buttons (arrow buttons in carousel)
-    const arrowButtons = buttons.filter({ hasText: /arrow|❮|❯/i });
-
-    // At minimum should have some buttons visible
+    
+    // At minimum should have some buttons visible (prev, next, dots)
     expect(await buttons.count()).toBeGreaterThan(0);
   });
 
@@ -108,17 +105,10 @@ test.describe("Homepage sections (A7)", () => {
 
   test("no console errors or CSP violations", async ({ page }) => {
     const errors: string[] = [];
-    const violations: string[] = [];
 
     page.on("console", (msg) => {
       if (msg.type() === "error") {
         errors.push(msg.text());
-      }
-    });
-
-    page.on("response", (response) => {
-      if (response.status() === 200) {
-        // Just verify response ok, don't check violations (would need inspection)
       }
     });
 
