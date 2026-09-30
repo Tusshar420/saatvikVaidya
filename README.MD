@@ -64,6 +64,20 @@ database shows up within 5 minutes, even on `pnpm dev`. To see it at once,
 restart the server after deleting `.next/dev/cache/fetch-cache` (or
 `.next/cache/fetch-cache` for `pnpm start`).
 
+## Admin Panel
+
+The admin panel (`/admin`) lets admins view and browse all database tables. It's
+protected: only users with `role: "admin"` can access it. Non-admins get a 404.
+
+- **View tables:** `/admin` lists all tables with row counts.
+- **Browse data:** `/admin/tables/{tableName}` shows the table's columns and up
+  to 50 rows at a time, with pagination.
+- **API:** `GET /api/admin/tables/{table}?page=0&limit=50` returns paginated
+  data (requires admin auth).
+
+Create an admin with `pnpm admin:create` (from `ADMIN_EMAIL` and `ADMIN_PASSWORD`
+in `.env.local`).
+
 ## Sign-in (auth)
 
 Better Auth, in `src/server/auth/`, with email + password and phone OTP
