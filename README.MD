@@ -52,6 +52,14 @@ pnpm dev                      # http://localhost:3000
 - Tests: `saatvik_vaidya_test`, from `TEST_DATABASE_URL`. Vitest always points
   server code at it and refuses any database name that doesn't end in `_test`.
 
+`pnpm db:seed` adds the user types, default settings and all homepage content
+(from `src/server/seed/`). Re-running it restores seeded text but never
+overwrites a setting that already exists. Settings and homepage content are
+read through a cache (`src/server/content/`), so a change made straight in the
+database shows up within 5 minutes, even on `pnpm dev`. To see it at once,
+restart the server after deleting `.next/dev/cache/fetch-cache` (or
+`.next/cache/fetch-cache` for `pnpm start`).
+
 ## Environment
 
 All variables are listed in `.env.example`. Local values go in `.env.local`,

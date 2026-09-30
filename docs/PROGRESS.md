@@ -442,6 +442,183 @@ widths.
 and switch `getSetting()` to read the Setting table through
 `resolveSetting()`.
 
+## A4. Database schema and seed (2026-09-30)
+
+A1–A3 were confirmed done (commits on `dev`; typecheck, lint and 54 unit tests
+were green at the start). Nothing needed fixing first.
+
+**Built**
+- **Prisma schema** (`prisma/schema.prisma`) and the first migration,
+  `20260930074430_a4_content_schema`. It's in three commented parts:
+  - **Users and access:** `UserType` (key, label, `isProfessional`,
+    `requiresVerification`, `sortOrder`, `active`). A comment marks where A5
+    adds User and Better Auth's tables.
+  - **Site settings:** `Setting` (key, JSON value, `updatedAt`, `updatedBy`)
+    and `SettingHistory` (every value a setting has had, cascade-deleted).
+  - **Homepage content:**
+    - `HomeSection` (key, `enabled`, `sortOrder`, heading columns: eyebrow,
+      title, `titleEmphasis`, description, link label/href) plus a `content`
+      JSON column for section-specific copy.
+    - HeroSlide, StatItem, Reel, Offer, QuickAction, Category, Brand,
+      CourseTeaser, LiveSession, Feedback and WhyStep. Every content row has
+      a unique `key`, plus `sortOrder` and `active`.
+    - Enums: `Tone`, `HeroPanelKind`, `ReelType`, `ReelMediaKind` and
+      `CategoryKind`.
+- **Content conventions** (documented at the top of the homepage part of the
+  schema):
+  - A link target is a site path (`/coins`, `/#launch`) or
+    `modal:sign-in` / `modal:track-order`.
+  - A null href means "not built yet", so the UI shows a coming-soon state.
+  - Decorative → arrows, ✓ ticks and ▶ glyphs aren't stored; components draw
+    them.
+- **`src/server/content/home-schema.ts`** (no `server-only`, so the seed can
+  use it):
+  - Section keys in default order.
+  - `sitePathSchema` and `linkTargetSchema`, which reject other origins,
+    `//`, backslashes and `javascript:`.
+  - Zod schemas for the three hero panel kinds and the hero proof row.
+  - Per-section `content` schemas for reels (filter labels), launch (steps and
+    catalogue labels), coins (equation), quiz, community (points) and partner
+    (profile-completion card).
+- **Seed** (`src/server/seed/`, run by `pnpm db:seed` through
+  `prisma/seed.ts`). `seedDatabase(db)` validates all seed data against the
+  schemas first, then writes everything in one transaction:
+  - The 5 user types (Customer first).
+  - The 4 settings from `src/content/settings.ts`, each with a history row.
+  - 14 homepage sections and 34 content rows. All copy comes from
+    `docs/mockup/index.html`, including the Hindi lines and the curly quotes.
+- **Media:** `docs/mockup/assets/*` copied to `public/media/` and referenced
+  as `/media/...`.
+- **Data-access layer** (`src/server/content/`):
+  - `cache.ts`: `cachedRead()` wraps `unstable_cache` with a tag and a
+    5-minute revalidate. `contentTags` (`content:settings`, `content:home`)
+    are for the admin panel's future `revalidateTag` calls.
+  - `settings.ts`: `getSetting(key)` now reads all settings in one cached
+    query and passes each value through `resolveSetting()`. Callers are
+    unchanged.
+  - `home.ts`: `getHomeContent()` (cached) and `readHomeContent()` (direct).
+    They return `{ sections }`, where `HomeSection` is a union typed per key:
+    - Only enabled sections, in `sortOrder` then key order. Unknown keys are
+      ignored.
+    - Each section's active items, in `sortOrder` then id order. Feedback
+      puts featured items first.
+    - Items are plain JSON-safe DTOs (no Dates), as the cache requires.
+  - Everything from JSON columns and every link or media path is re-validated
+    on read. A section with invalid content, or a hero slide with an invalid
+    panel, is left out and logged. An unsafe link or media path becomes null.
+- **Tests:**
+  - `src/server/seed/seed.test.ts` (5):
+    - Seeds the user types (keys, labels, flags), settings (with history)
+      and sections (in order).
+    - **Idempotent:** a second run leaves every table identical.
+    - Edited settings and placement are kept, and copy is restored.
+    - **Every text node in the mockup's `<main>` is found in the seeded
+      data** (checked by parsing the mockup HTML, apart from a short,
+      commented list of values that are computed rather than stored).
+    - All media paths exist in `public/`.
+  - `src/server/content/home.test.ts` (7):
+    - Cache options.
+    - Default order, and reordering by `sortOrder`.
+    - Disabled sections left out, and unknown section rows ignored.
+    - Inactive items left out, and items reordered.
+    - Seeded content shape, including the Hindi text.
+    - Invalid content, an invalid panel, `javascript:` and `//` links and an
+      off-site media URL are all dropped without throwing.
+  - `src/server/content/settings.test.ts` (9): cache options, defaults with
+    an empty table, stored values read, a per-key fallback for invalid or
+    missing values, the fallback when the database read fails, and the
+    existing `resolveSetting` cases.
+  - `tests/setup/content-db.ts`: `clearContentTables(db)`. It refuses to run
+    unless connected to the test database.
+  - The Vitest `server` project now runs files one at a time
+    (`fileParallelism: false`), because they share and clear the test
+    database.
+- README: a note on what the seed does and on the 5-minute content cache.
+
+**Decisions**
+- **`unstable_cache`, not `"use cache"`.** Next 16 recommends `"use cache"`,
+  but that requires turning on Cache Components, which changes how every
+  route renders. That's outside this chunk. The switch would be one function
+  body in `cache.ts`.
+- **5-minute revalidate plus tags.** The build table now shows the site pages
+  as static with `Revalidate 5m`, and `/search` and `/design` stay dynamic.
+  Edits made straight in the database show up within 5 minutes, also on
+  `pnpm dev`. I confirmed that the footer reads the database by changing
+  `footer.tagline`, clearing the dev fetch cache and loading `/cart`. The
+  value was then restored.
+- **`getSetting` never throws**: if the database is unreachable it logs and
+  uses the defaults, so the shell always renders (the build works without a
+  database). **`getHomeContent` does throw**, because there's no sensible
+  default homepage.
+- **Seed semantics:**
+  - User types and content are upserted by `key`. Re-running restores the
+    seeded copy, but `sortOrder`, `active`, `enabled` and `featured` are only
+    set when a row is created, so hiding or reordering survives a re-seed.
+  - Settings are create-only, so edited values are never overwritten.
+  - Nothing is ever deleted.
+
+  This lets later chunks change seed copy and just re-run `pnpm db:seed`
+  (Octopus runs can't use `db:reset`).
+- **Section-specific copy lives in `HomeSection.content` JSON** (validated per
+  key). This covers copy that appears once per section, such as the launch
+  steps, catalogue labels, coin equation, quiz card, community points and
+  profile-completion card. Repeating items the admin will manage get their
+  own tables, as listed in PLAN. The launch steps are JSON rather than a
+  table because PLAN has no model for them.
+- **Hero panels are JSON per panel kind, not references to Brand or
+  LiveSession rows.** The mockup's panel text differs from the section text
+  (for example "Monday • 8:00 PM" against "Monday • 8 PM", and different
+  brand blurbs), and the copy had to match exactly.
+- **Links:**
+  - Mockup anchors became `/#id`, so they work from any page.
+  - "View my rewards" goes to `/coins`.
+  - "View all reels / brands / courses / feedback" and all brand, course,
+    quiz, "Reserve" and panel buttons are null, because those pages don't
+    exist yet. A7/A8 show coming soon for them.
+  - "Read the original feedback" links to the letterhead photo.
+  - "Explore 150+ formulations" goes to `/#launch-catalogue`. **A8 must give
+    the catalogue card that id.**
+  - "Join early access" and "Create My Profile" open `modal:sign-in`.
+    "Track an order" and the Track quick action open `modal:track-order`.
+- **The profile-completion banner's section key is `partner`**, matching its
+  mockup anchor and the nav-rail item id. Nav-rail ids now equal section keys,
+  which is what A8 needs to hide a link along with its section.
+- The partner card stores the mockup's sample state (`examplePercent: 40`,
+  `exampleDone` per step) and each step's coins (250 and 750), so A8 can
+  replace the sample with real data.
+- **No practice areas are seeded.** The mockup's "By Practice Area" tab has no
+  entries, and inventing them would break "copied exactly".
+- Reel filter labels are stored in the reels section content, keyed by
+  `ReelType` (plus `all`).
+- `UserType.id` is an Int. `Setting.updatedBy` and
+  `SettingHistory.changedBy` are plain nullable strings (VARCHAR 191), so
+  A5 can turn them into relations to Better Auth's string user ids.
+
+**Checks.** `pnpm typecheck`, `lint`, `format:check`, `test` (70 tests),
+`test:e2e` (46 tests: 23 per viewport) and `build` pass. `pnpm db:migrate`
+and `pnpm db:seed` (run twice) work on the dev database; the Hindi text
+round-trips intact (utf8mb4). There are no visual changes in this chunk: the
+seeded settings equal the old defaults and the homepage is still the A3
+placeholder.
+
+**Known gaps**
+- **No video poster frames yet.** `Reel.posterSrc` is null for both videos. A7
+  needs poster images (for example a frame grab of each mp4 into
+  `public/media/`) and should add them to the seed.
+- **Hindi text needs `lang="hi"`** where it's rendered (WCAG 3.1.2) in the
+  hero learning board, the poster reel, the live session and the feedback
+  quote. A small helper that detects Devanagari would cover it (A7/A8).
+- The mockup's reel durations ("00:36", "00:42") were copied, not measured.
+- `clearContentTables` must grow with the schema. In A5, users must be
+  deleted before user types.
+- **Playwright runs against the dev database** (the production build reads
+  `.env.local`). A8's "disabled section disappears" e2e test will need a
+  plan: a separate e2e database, or restoring the row afterwards.
+- Nothing calls `revalidateTag` yet; that comes with the admin panel.
+
+**Next:** A5, auth backend. Add User and Better Auth's tables in the "Users and
+access" part of the schema, with `userTypeId` pointing at `UserType`.
+
 ## Later
 
 (Ideas and follow-ups outside the current chunk's scope go here.)
@@ -469,3 +646,12 @@ and switch `getSetting()` to read the Setting table through
   now.
 - A branded 404 page with the site shell (for example a `not-found.tsx`
   rendered inside the `(site)` layout).
+- **When the admin panel edits content (Phase 1), make content seeding
+  create-only** like settings. Until then, re-running the seed restores the
+  seeded copy (from A4).
+- Consider turning on Cache Components and moving `cachedRead()` to
+  `"use cache"` with `cacheTag`/`cacheLife` (from A4; Next 16 marks
+  `unstable_cache` as replaced).
+- Give Playwright its own database (for example `saatvik_vaidya_e2e`,
+  migrated and seeded before the build), so e2e tests can change content
+  safely (from A4).
