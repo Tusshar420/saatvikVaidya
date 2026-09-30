@@ -99,6 +99,162 @@ errors at 375 and 1280 px. `pnpm db:migrate` connected and created
 
 **Next:** A2, design tokens and UI primitives.
 
+## A2. Design tokens and UI primitives (2026-09-30)
+
+A1 was confirmed done (commits on `dev`; typecheck, lint and tests were green
+at the start). Nothing needed fixing first.
+
+**Built**
+- **Tokens** in `src/app/globals.css` `@theme`:
+  - Colours.
+  - Breakpoints (560/820/1100/1280).
+  - Type scale as `text-display`, `text-h2`, `text-h3`, `text-body-lg`,
+    `text-body`, `text-small` and `text-label`, with line height, tracking and
+    weight baked in.
+  - Radius `sm/md/button/lg/xl/modal/2xl` and shadows `card/raised/modal/cta`.
+  - Motion: 200 ms `ease` default transitions, plus `animate-rise-in`
+    (fade + 12 px rise) and `animate-fade-in`.
+
+  Also added:
+  - Named gradient utilities: `bg-hero`, `bg-learning`, `bg-learning-poster`,
+    `bg-offer-orange/teal/navy`, `bg-quiz`, `bg-profile`, `bg-brand-mark` and
+    `bg-coin`.
+  - Layout utilities: `shell` (page container), `section-y` (section padding)
+    and `scrollbar-none`.
+  - A global teal `:focus-visible` ring.
+  - A `prefers-reduced-motion` block that switches off transitions,
+    animations and smooth scroll. Spinners opt out with
+    `data-essential-motion`.
+- **Fonts** via `next/font/google` in the root layout: Inter (`font-sans`,
+  preloaded) and Noto Sans Devanagari as its fallback. Noto Serif Devanagari is
+  available as `font-serif-hindi`. The Devanagari faces aren't preloaded;
+  unicode-range means they only download when Hindi is on the page. Fonts are
+  self-hosted, so the CSP stays `font-src 'self'`.
+- **Primitives** in `src/components/ui/`. Each one is typed and takes
+  `className`:
+  - **Button**: variants primary, secondary, light and link; sizes md 48 and
+    sm 40. Options: `arrow`, `icon`, and `loading` (spinner + `aria-busy`).
+    `buttonClasses()` styles a `<Link>` as a button. `ButtonGroup` makes its
+    buttons full width under 560 px.
+  - **IconButton**: 44 px; the `label` prop is required and becomes the
+    `aria-label`. Variants ghost, outline and soft; shapes square and round.
+  - **Form fields.** `Field` + `useFieldIds` wire the label, help, error,
+    `aria-describedby` and `aria-invalid` for all of these:
+    - **Input**.
+    - **PhoneInput**: fixed +91 prefix, `tel-national`, numeric. Keeps only
+      10 digits and strips a pasted +91/91/0 prefix (`normalizeIndianPhone`
+      in `src/lib/phone.ts`).
+    - **OtpInput**: 6 boxes, `one-time-code`. Supports paste and SMS autofill
+      (a full code fills from box 1), auto-advance, backspace back, arrows,
+      Home/End, and a hidden input for forms. Changing the controlled `value`
+      resets the boxes.
+    - **PasswordInput**: show/hide toggle, optional strength hint
+      (`src/lib/password-strength.ts`) in a polite live region.
+    - **Checkbox**: native input, 44 px row.
+  - **ChoiceChips**: Radix RadioGroup; layouts `wrap` and `scroll`.
+  - **Tabs**: Radix; underline style.
+  - **Card**: `interactive` lifts 3 px on hover.
+  - **Badge**: teal, orange, blue, gold, live (dot) and soon.
+  - **Eyebrow**: optional orange bar; light tone for dark bands.
+  - **IconTile** and **SectionHeading**: eyebrow, two-part title with a teal
+    `<em>`, description and "View all" link; stacks under 820 px; dark tone.
+  - **Modal**: Radix Dialog. A bottom sheet with a grab bar under 560 px,
+    a centred 530 px card above. Traps focus; Esc and the backdrop close it.
+  - **Toast**: Radix Toast. `ToastProvider` is in the root layout and
+    `useToast()` shows one. Tones success, error and info; on phones it sits
+    above where the mobile dock will go.
+  - **Avatar** and **CoinPill**: icon only under 560 px; the balance stays in
+    the accessible name.
+  - **Stepper**: `<ol>` with `aria-current="step"`.
+  - **Carousel**: cross-fade with prev/next, dots and a pause/play button.
+    Auto-advances every 6.5 s. It pauses on hover, keyboard focus, a hidden
+    tab and reduced motion, and supports swipe on touch.
+  - **HScroller**: focusable snap region that fades whichever edge has more
+    content.
+  - **Skeleton**, SkeletonText, SkeletonCard, and SkeletonGroup (announces
+    "Loading").
+  - **EmptyState** and **ComingSoon**.
+- Helpers:
+  - `src/lib/cn.ts`: clsx + tailwind-merge, taught our custom token names.
+  - `src/lib/format.ts`: `formatNumber` and `formatINR` (en-IN grouping),
+    `initialsOf`.
+  - `src/lib/use-reduced-motion.ts`.
+- Strings are in `src/content/ui.ts` (primitive defaults) and
+  `src/content/design.ts` (showcase).
+- **`/design` page** (`src/app/design/`) shows every token and component
+  variant, grouped with headings, with a contents nav and `noindex`. It renders
+  per request (`connection()`) and returns 404 unless `NODE_ENV=development`
+  or `SHOW_DESIGN_PAGE=true` (`src/lib/flags.ts`). The flag is in
+  `.env.example`, and Playwright's server sets it.
+- Dependencies:
+  - `@radix-ui/react-dialog`, `-tabs`, `-radio-group` and `-toast`.
+  - `lucide-react`, `clsx` and `tailwind-merge`.
+  - Dev only: `@axe-core/playwright` and `@testing-library/user-event`.
+- Tests:
+  - `phone-input.test.tsx` (7): 10 digits only, junk stripped, +91/0 paste,
+    controlled mode, error wiring.
+  - `otp-input.test.tsx` (13): paste (full, partial, messy text, from any
+    box), auto-advance, backspace, arrows, overwrite, onComplete, form
+    value, controlled reset.
+  - `src/lib/ui-helpers.test.ts`: phone, format, password strength, the
+    design flag and `cn`.
+  - `tests/e2e/design.spec.ts` on phone and desktop:
+    - Page loads with all group and section headings, no console errors and
+      no horizontal scroll.
+    - axe (WCAG 2.0/2.1/2.2 A and AA) passes with zero violations.
+    - Modal: bottom sheet on phone and centred on desktop, focus stays
+      inside, axe is clean with it open, Esc closes it and focus returns to
+      the trigger.
+    - A toast appears.
+
+**Decisions**
+- **Deeper orange for text on or in orange.** White on `--color-orange`
+  `#ef6c1c` is 3.1:1, which fails WCAG AA for button text (4.5:1 needed). Orange
+  text on white or orange-soft fails too, and axe flags both. DESIGN.md asks for
+  both that orange and AA, so two tokens were added:
+  - `--color-orange-strong` `#c2540a` (4.6:1 with white): primary button
+    background and the active Stepper circle.
+  - `--color-orange-ink` `#a8470a` (5.3:1+): primary hover, and orange
+    text/icons on light backgrounds (orange Badge, soon Badge, orange
+    IconTile).
+
+  `--color-orange` stays for the brand mark, eyebrow bar, carousel dots and
+  halo. The primary button is visibly deeper than the mockup's. **Needs client
+  sign-off** (see Later). Reverting is a one-line change in `button.tsx`, but
+  it would fail AA.
+- Extra supporting tokens from the mockup: `line-strong` (ghost-button border),
+  `backdrop` (modal overlay), `track` (Stepper line) and `live-dot`. Also
+  `radius-button` (13) and `radius-modal` (24), which DESIGN.md names.
+- DESIGN.md's readability rules win over the mockup:
+  - Chips, tabs, checkbox rows, carousel controls and IconButtons are at
+    least 44 px high.
+  - Stepper and coin labels are 11–12 px (the mockup uses 7–10).
+  - Inputs use 16 px text so iOS doesn't zoom on focus.
+- The Carousel pauses only on *keyboard* focus (`:focus-visible`), because
+  tapping an arrow on a phone would otherwise stop it for good. Hover, the
+  pause button and reduced motion also stop it, which covers WCAG 2.2.2.
+- The Modal's phone bottom sheet uses the same fade + 12 px rise as the
+  desktop card, the only modal motion DESIGN.md allows.
+- Checkbox border is `muted`, not `line`, so the empty box meets 3:1 non-text
+  contrast.
+
+**Checks.** `pnpm typecheck`, `lint`, `format:check`, `test` (47 tests),
+`test:e2e` (10 tests: 5 per viewport) and `build` pass. `/design` was reviewed
+in screenshots at 375 px and 1280 px, including the modal as a bottom sheet
+and as a centred card.
+
+**Known gaps**
+- The Carousel and HScroller have only been checked in Chromium (Playwright
+  runs Chromium only). Swipe was not exercised in a test.
+- Radix components render their own inline styles. That's fine under the
+  current CSP (`style-src 'unsafe-inline'`), but it matters if A9 tightens
+  styles to nonces.
+- Toast position assumes the 67 px mobile dock from A3; adjust it if the dock
+  height changes.
+
+**Next:** A3, site shell (header, nav rail, footer, mobile dock) using these
+primitives.
+
 ## Later
 
 (Ideas and follow-ups outside the current chunk's scope go here.)
@@ -112,3 +268,8 @@ errors at 375 and 1280 px. `pnpm db:migrate` connected and created
   `payment` in Permissions-Policy, its domains in the CSP, and probably
   `Cross-Origin-Opener-Policy: same-origin-allow-popups`. YouTube embeds
   (courses) will need `frame-src` entries.
+- **Client sign-off on the primary button orange (from A2).** Buttons use
+  `--color-orange-strong` `#c2540a` so white text meets WCAG AA; the mockup's
+  `#ef6c1c` is 3.1:1. If the client prefers the brighter orange, the options
+  are dark text on it (5:1) or larger button text. Update DESIGN.md with
+  whichever is chosen.
