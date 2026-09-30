@@ -39,5 +39,7 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
+    // The /design showcase is off in production unless this is set.
+    env: { SHOW_DESIGN_PAGE: "true" },
   },
 });

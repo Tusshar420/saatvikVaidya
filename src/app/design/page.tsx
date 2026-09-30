@@ -1,0 +1,619 @@
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
+import {
+  ArrowRight,
+  Package,
+  Plus,
+  Search,
+  ShoppingBag,
+  Smartphone,
+  Truck,
+  Video,
+  X,
+} from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Button, ButtonGroup } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Carousel } from "@/components/ui/carousel";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChoiceChips } from "@/components/ui/choice-chips";
+import { CoinPill } from "@/components/ui/coin-pill";
+import { ComingSoon, EmptyState } from "@/components/ui/empty-state";
+import { HScroller } from "@/components/ui/hscroller";
+import { IconButton } from "@/components/ui/icon-button";
+import { IconTile } from "@/components/ui/icon-tile";
+import { Input } from "@/components/ui/input";
+import {
+  Modal,
+  ModalClose,
+  ModalContent,
+  ModalTrigger,
+} from "@/components/ui/modal";
+import { OtpInput } from "@/components/ui/otp-input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Skeleton,
+  SkeletonCard,
+  SkeletonGroup,
+  SkeletonText,
+} from "@/components/ui/skeleton";
+import { Stepper } from "@/components/ui/stepper";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { designPage as copy } from "@/content/design";
+import { isDesignPageEnabled } from "@/lib/flags";
+import { ToastDemo } from "./toast-demo";
+
+export const metadata: Metadata = {
+  title: copy.metaTitle,
+  robots: { index: false, follow: false },
+};
+
+// Swatches list Tailwind classes literally so the build picks them up.
+const colours = [
+  { name: "orange", className: "bg-orange" },
+  { name: "orange-dark", className: "bg-orange-dark" },
+  { name: "orange-strong", className: "bg-orange-strong" },
+  { name: "orange-ink", className: "bg-orange-ink" },
+  { name: "orange-soft", className: "bg-orange-soft" },
+  { name: "teal", className: "bg-teal" },
+  { name: "teal-dark", className: "bg-teal-dark" },
+  { name: "teal-soft", className: "bg-teal-soft" },
+  { name: "green", className: "bg-green" },
+  { name: "blue", className: "bg-blue" },
+  { name: "blue-soft", className: "bg-blue-soft" },
+  { name: "gold", className: "bg-gold" },
+  { name: "gold-soft", className: "bg-gold-soft" },
+  { name: "gold-ink", className: "bg-gold-ink" },
+  { name: "ink", className: "bg-ink" },
+  { name: "muted", className: "bg-muted" },
+  { name: "line", className: "bg-line" },
+  { name: "line-strong", className: "bg-line-strong" },
+  { name: "surface", className: "bg-surface" },
+  { name: "surface-alt", className: "bg-surface-alt" },
+  { name: "cream", className: "bg-cream" },
+  { name: "danger", className: "bg-danger" },
+  { name: "danger-soft", className: "bg-danger-soft" },
+] as const;
+
+const radii = [
+  { name: "sm · 8", className: "rounded-sm" },
+  { name: "md · 12", className: "rounded-md" },
+  { name: "button · 13", className: "rounded-button" },
+  { name: "lg · 18", className: "rounded-lg" },
+  { name: "xl · 22", className: "rounded-xl" },
+  { name: "modal · 24", className: "rounded-modal" },
+  { name: "2xl · 26", className: "rounded-2xl" },
+  { name: "full", className: "rounded-full" },
+] as const;
+
+const shadows = [
+  { name: "card", className: "shadow-card" },
+  { name: "raised", className: "shadow-raised" },
+  { name: "modal", className: "shadow-modal" },
+  { name: "cta", className: "shadow-cta" },
+] as const;
+
+const gradients = [
+  { name: "bg-hero", className: "bg-hero" },
+  { name: "bg-learning", className: "bg-learning" },
+  { name: "bg-learning-poster", className: "bg-learning-poster" },
+  { name: "bg-offer-orange", className: "bg-offer-orange" },
+  { name: "bg-offer-teal", className: "bg-offer-teal" },
+  { name: "bg-offer-navy", className: "bg-offer-navy" },
+  { name: "bg-quiz", className: "bg-quiz" },
+  { name: "bg-profile", className: "bg-profile" },
+  { name: "bg-brand-mark", className: "bg-brand-mark" },
+  { name: "bg-coin", className: "bg-coin" },
+] as const;
+
+const slideBackgrounds = [
+  "bg-hero text-ink",
+  "bg-learning text-white",
+  "bg-quiz text-white",
+] as const;
+
+const contents = Object.entries(copy.groups) as [
+  keyof typeof copy.groups,
+  string,
+][];
+
+function Group({
+  id,
+  title,
+  children,
+}: {
+  id: keyof typeof copy.groups;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="scroll-mt-6 border-t border-line pt-10"
+    >
+      <h2 id={`${id}-title`} className="text-h2">
+        {title}
+      </h2>
+      <div className="mt-8 flex flex-col gap-12">{children}</div>
+    </section>
+  );
+}
+
+function Demo({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div>
+      <h3 className="mb-4 text-h3">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function Swatch({ name, className }: { name: string; className: string }) {
+  return (
+    <div className="min-w-0">
+      <div className={`h-16 rounded-md border border-line ${className}`} />
+      <p className="mt-1.5 truncate text-small text-muted">{name}</p>
+    </div>
+  );
+}
+
+export default async function DesignPage() {
+  // Read the flag per request, not at build time.
+  await connection();
+  if (!isDesignPageEnabled()) notFound();
+
+  const s = copy.sections;
+
+  return (
+    <main id="main" className="shell flex flex-col gap-14 py-10 sm:py-14">
+      <header>
+        <Eyebrow bar>{copy.eyebrow}</Eyebrow>
+        <h1 className="mt-3 text-display">{copy.title}</h1>
+        <p className="mt-4 max-w-2xl text-body-lg text-muted">{copy.intro}</p>
+        <nav aria-label={copy.contentsLabel} className="mt-6">
+          <ul className="flex flex-wrap gap-2">
+            {contents.map(([id, label]) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  className="inline-flex min-h-11 items-center rounded-sm border border-line px-3.5 text-sm font-semibold text-teal hover:bg-teal-soft"
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </header>
+
+      <Group id="tokens" title={copy.groups.tokens}>
+        <Demo title={s.colour}>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+            {colours.map((c) => (
+              <Swatch key={c.name} {...c} />
+            ))}
+          </div>
+        </Demo>
+        <Demo title={s.typography}>
+          <div className="flex flex-col gap-5">
+            <p className="text-display">
+              {copy.type.display}{" "}
+              <em className="block text-teal not-italic">
+                {copy.type.displayEmphasis}
+              </em>
+            </p>
+            <p className="text-h2">
+              {copy.type.h2}{" "}
+              <em className="block text-teal not-italic">
+                {copy.type.h2Emphasis}
+              </em>
+            </p>
+            <p className="text-h3">{copy.type.h3}</p>
+            <p className="text-body-lg">{copy.type.bodyLg}</p>
+            <p className="text-body">{copy.type.body}</p>
+            <p className="text-small font-medium text-muted">
+              {copy.type.small}
+            </p>
+            <p className="text-label text-teal uppercase">{copy.type.label}</p>
+            <p lang="hi" className="text-body-lg">
+              {copy.type.hindiSans}
+            </p>
+            <p lang="hi" className="font-serif-hindi text-h3">
+              {copy.type.hindiSerif}
+            </p>
+          </div>
+        </Demo>
+        <Demo title={s.radius}>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {radii.map((r) => (
+              <div key={r.name}>
+                <div
+                  className={`h-16 border-2 border-teal bg-teal-soft ${r.className}`}
+                />
+                <p className="mt-1.5 text-small text-muted">{r.name}</p>
+              </div>
+            ))}
+          </div>
+        </Demo>
+        <Demo title={s.shadow}>
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {shadows.map((sh) => (
+              <div key={sh.name}>
+                <div
+                  className={`h-20 rounded-xl border border-line bg-surface ${sh.className}`}
+                />
+                <p className="mt-2 text-small text-muted">{sh.name}</p>
+              </div>
+            ))}
+          </div>
+        </Demo>
+        <Demo title={s.gradients}>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {gradients.map((g) => (
+              <Swatch key={g.name} name={g.name} className={g.className} />
+            ))}
+          </div>
+        </Demo>
+      </Group>
+
+      <Group id="actions" title={copy.groups.actions}>
+        <Demo title={s.button}>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button arrow>{copy.buttons.primary}</Button>
+              <Button variant="secondary">{copy.buttons.secondary}</Button>
+              <Button variant="link" arrow>
+                {copy.buttons.link}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button size="sm">{copy.buttons.small}</Button>
+              <Button size="sm" variant="secondary">
+                {copy.buttons.small}
+              </Button>
+              <Button loading>{copy.buttons.loading}</Button>
+              <Button disabled variant="secondary">
+                {copy.buttons.disabled}
+              </Button>
+            </div>
+            <div className="rounded-xl p-5 bg-learning">
+              <Button variant="light" arrow>
+                {copy.buttons.light}
+              </Button>
+            </div>
+            <div>
+              <p className="mb-3 text-small text-muted">
+                {copy.buttons.groupNote}
+              </p>
+              <ButtonGroup>
+                <Button arrow>{copy.buttons.primary}</Button>
+                <Button variant="secondary">{copy.buttons.secondary}</Button>
+              </ButtonGroup>
+            </div>
+          </div>
+        </Demo>
+        <Demo title={s.iconButton}>
+          <div className="flex flex-wrap items-center gap-3">
+            <IconButton label={copy.iconButtons.search}>
+              <Search aria-hidden />
+            </IconButton>
+            <IconButton label={copy.iconButtons.bag} variant="outline">
+              <ShoppingBag aria-hidden />
+            </IconButton>
+            <IconButton
+              label={copy.iconButtons.close}
+              variant="soft"
+              shape="round"
+            >
+              <X aria-hidden />
+            </IconButton>
+            <IconButton
+              label={copy.iconButtons.next}
+              variant="outline"
+              shape="round"
+            >
+              <ArrowRight aria-hidden />
+            </IconButton>
+          </div>
+        </Demo>
+      </Group>
+
+      <Group id="forms" title={copy.groups.forms}>
+        <Demo title={s.input}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <Input
+              label={copy.forms.nameLabel}
+              placeholder={copy.forms.namePlaceholder}
+              autoComplete="name"
+            />
+            <Input
+              label={copy.forms.emailLabel}
+              type="email"
+              help={copy.forms.emailHelp}
+              optional
+              autoComplete="email"
+            />
+            <Input
+              label={copy.forms.emailLabel}
+              type="email"
+              defaultValue={copy.forms.emailInvalidValue}
+              error={copy.forms.emailError}
+            />
+            <Input
+              label={copy.forms.disabledLabel}
+              defaultValue={copy.forms.disabledValue}
+              disabled
+            />
+          </div>
+        </Demo>
+        <Demo title={s.phoneInput}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <PhoneInput
+              label={copy.forms.phoneLabel}
+              help={copy.forms.phoneHelp}
+            />
+            <PhoneInput
+              label={copy.forms.phoneErrorLabel}
+              defaultValue="92203"
+              error={copy.forms.phoneError}
+            />
+          </div>
+        </Demo>
+        <Demo title={s.otpInput}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <OtpInput label={copy.forms.otpLabel} help={copy.forms.otpHelp} />
+            <OtpInput
+              label={copy.forms.otpErrorLabel}
+              defaultValue="1234"
+              error={copy.forms.otpError}
+            />
+          </div>
+        </Demo>
+        <Demo title={s.passwordInput}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <PasswordInput
+              label={copy.forms.passwordLabel}
+              autoComplete="current-password"
+            />
+            <PasswordInput
+              label={copy.forms.newPasswordLabel}
+              autoComplete="new-password"
+              showStrength
+            />
+          </div>
+        </Demo>
+        <Demo title={s.checkbox}>
+          <div className="flex flex-col gap-1">
+            <Checkbox>{copy.forms.checkboxTerms}</Checkbox>
+            <Checkbox defaultChecked>{copy.forms.checkboxMarketing}</Checkbox>
+            <Checkbox error={copy.forms.checkboxError}>
+              {copy.forms.checkboxTerms}
+            </Checkbox>
+          </div>
+        </Demo>
+        <Demo title={s.choiceChips}>
+          <div className="flex flex-col gap-6">
+            <ChoiceChips
+              label={copy.chips.userTypeLabel}
+              options={copy.chips.userTypes}
+              defaultValue="customer"
+              name="userType"
+            />
+            <ChoiceChips
+              label={copy.chips.filterLabel}
+              options={copy.chips.filters}
+              defaultValue="all"
+              layout="scroll"
+            />
+          </div>
+        </Demo>
+      </Group>
+
+      <Group id="display" title={copy.groups.display}>
+        <Demo title={s.card}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <h4 className="text-h3">{copy.cards.staticTitle}</h4>
+              <p className="mt-2 text-muted">{copy.cards.staticBody}</p>
+            </Card>
+            <Card interactive>
+              <h4 className="text-h3">{copy.cards.interactiveTitle}</h4>
+              <p className="mt-2 text-muted">{copy.cards.interactiveBody}</p>
+            </Card>
+          </div>
+        </Demo>
+        <Demo title={s.badge}>
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="teal">{copy.badges.teal}</Badge>
+              <Badge variant="orange">{copy.badges.orange}</Badge>
+              <Badge variant="blue">{copy.badges.blue}</Badge>
+              <Badge variant="gold">{copy.badges.gold}</Badge>
+              <Badge variant="live">{copy.badges.live}</Badge>
+              <Badge variant="soon">{copy.badges.soon}</Badge>
+            </div>
+            <Eyebrow>{copy.badges.eyebrow}</Eyebrow>
+            <Eyebrow bar>{copy.badges.eyebrowBar}</Eyebrow>
+            <div className="rounded-xl p-5 bg-learning">
+              <Eyebrow tone="light">{copy.badges.eyebrow}</Eyebrow>
+            </div>
+          </div>
+        </Demo>
+        <Demo title={s.iconTile}>
+          <div className="flex flex-wrap gap-5">
+            <IconTile tone="orange" label={copy.iconTiles.orange}>
+              <Plus />
+            </IconTile>
+            <IconTile tone="teal" label={copy.iconTiles.teal}>
+              <Package />
+            </IconTile>
+            <IconTile tone="blue" label={copy.iconTiles.blue}>
+              <Truck />
+            </IconTile>
+            <IconTile tone="gold" label={copy.iconTiles.gold}>
+              <Video />
+            </IconTile>
+            <IconTile tone="teal" size="lg" label={copy.iconTiles.teal}>
+              <Package />
+            </IconTile>
+          </div>
+        </Demo>
+        <Demo title={s.sectionHeading}>
+          <div className="flex flex-col gap-6">
+            <SectionHeading
+              as="h4"
+              eyebrow={copy.sectionHeading.eyebrow}
+              title={copy.sectionHeading.title}
+              emphasis={copy.sectionHeading.emphasis}
+              description={copy.sectionHeading.description}
+              action={{ href: "/design#display" }}
+            />
+            <div className="rounded-2xl p-6 bg-learning">
+              <SectionHeading
+                as="h4"
+                tone="dark"
+                eyebrow={copy.sectionHeading.darkEyebrow}
+                title={copy.sectionHeading.darkTitle}
+                emphasis={copy.sectionHeading.darkEmphasis}
+                action={{ href: "/design#display" }}
+                className="mb-0"
+              />
+            </div>
+          </div>
+        </Demo>
+        <Demo title={s.avatar}>
+          <div className="flex flex-wrap items-center gap-4">
+            <Avatar name={copy.people.names[0]} size="sm" />
+            <Avatar name={copy.people.names[0]} />
+            <Avatar name={copy.people.names[1]} size="lg" />
+            <Avatar name={copy.people.names[2]} size="lg" />
+            <CoinPill balance={copy.people.coinBalance} />
+            <CoinPill balance={copy.people.coinBalanceLarge} href="/design" />
+          </div>
+        </Demo>
+      </Group>
+
+      <Group id="overlays" title={copy.groups.overlays}>
+        <Demo title={s.modal}>
+          <Modal>
+            <ModalTrigger asChild>
+              <Button variant="secondary">{copy.modal.open}</Button>
+            </ModalTrigger>
+            <ModalContent
+              title={copy.modal.title}
+              description={copy.modal.description}
+              icon={<Smartphone />}
+            >
+              <PhoneInput label={copy.forms.phoneLabel} />
+              <ButtonGroup className="mt-6">
+                <Button arrow>{copy.modal.submit}</Button>
+                <ModalClose asChild>
+                  <Button variant="secondary">{copy.modal.cancel}</Button>
+                </ModalClose>
+              </ButtonGroup>
+            </ModalContent>
+          </Modal>
+        </Demo>
+        <Demo title={s.toast}>
+          <ToastDemo />
+        </Demo>
+      </Group>
+
+      <Group id="navigation" title={copy.groups.navigation}>
+        <Demo title={s.tabs}>
+          <Tabs defaultValue={copy.tabs.items[0].value}>
+            <TabsList aria-label={copy.tabs.label}>
+              {copy.tabs.items.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {copy.tabs.items.map((tab) => (
+              <TabsContent key={tab.value} value={tab.value}>
+                <p className="text-muted">{tab.body}</p>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </Demo>
+        <Demo title={s.stepper}>
+          <Stepper
+            label={copy.stepper.label}
+            steps={copy.stepper.steps}
+            current={3}
+            className="max-w-xl"
+          />
+        </Demo>
+        <Demo title={s.carousel}>
+          <Carousel
+            label={copy.carousel.label}
+            slides={copy.carousel.slides.map((slide, i) => (
+              <div
+                key={slide.title}
+                className={`flex min-h-56 flex-col justify-end rounded-2xl p-6 sm:p-8 ${slideBackgrounds[i]}`}
+              >
+                <p className="text-label uppercase">{slide.eyebrow}</p>
+                <p className="mt-2 max-w-md text-h3">{slide.title}</p>
+              </div>
+            ))}
+          />
+        </Demo>
+        <Demo title={s.hscroller}>
+          <HScroller
+            label={copy.hscroller.label}
+            itemClassName="w-[64vw] sm:w-55"
+          >
+            {copy.hscroller.items.map((item) => (
+              <div key={item}>
+                <div className="aspect-[9/13.5] rounded-lg bg-teal-soft" />
+                <p className="mt-3 text-sm font-bold">{item}</p>
+              </div>
+            ))}
+          </HScroller>
+        </Demo>
+      </Group>
+
+      <Group id="states" title={copy.groups.states}>
+        <Demo title={s.skeleton}>
+          <SkeletonGroup className="grid gap-4 md:grid-cols-3">
+            <SkeletonCard />
+            <div className="flex flex-col gap-4 rounded-xl border border-line p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-10 rounded-full" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+              <SkeletonText lines={4} />
+            </div>
+            <SkeletonText lines={5} />
+          </SkeletonGroup>
+        </Demo>
+        <Demo title={s.emptyState}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <EmptyState
+              as="h4"
+              icon={<Package aria-hidden />}
+              title={copy.empty.title}
+              description={copy.empty.description}
+              action={
+                <Button variant="secondary" size="sm">
+                  {copy.empty.action}
+                </Button>
+              }
+            />
+            <ComingSoon
+              as="h4"
+              title={copy.empty.soonTitle}
+              description={copy.empty.soonDescription}
+            />
+          </div>
+        </Demo>
+      </Group>
+    </main>
+  );
+}
