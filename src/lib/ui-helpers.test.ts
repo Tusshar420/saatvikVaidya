@@ -7,6 +7,7 @@ import {
   formatIndianPhone,
   isValidIndianMobile,
   normalizeIndianPhone,
+  telHref,
 } from "./phone";
 
 describe("normalizeIndianPhone", () => {
@@ -27,6 +28,10 @@ describe("normalizeIndianPhone", () => {
     expect(isValidIndianMobile("1220358400")).toBe(false);
     expect(isValidIndianMobile("922035840")).toBe(false);
     expect(formatIndianPhone("9220358400")).toBe("+91 92203 58400");
+  });
+
+  it("builds a tel: link from a displayed number", () => {
+    expect(telHref("+91 92203 58400")).toBe("tel:+919220358400");
   });
 });
 

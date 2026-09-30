@@ -16,6 +16,11 @@ export function isValidIndianMobile(digits: string): boolean {
   return /^[6-9]\d{9}$/.test(digits);
 }
 
+/** A tel: link for a displayed number: "+91 92203 58400" -> "tel:+919220358400". */
+export function telHref(display: string): string {
+  return `tel:+${display.replace(/\D/g, "")}`;
+}
+
 /** Display format: "+91 92203 58400". */
 export function formatIndianPhone(digits: string): string {
   const national = normalizeIndianPhone(digits);
