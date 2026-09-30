@@ -1,1 +1,58 @@
-TEST
+# Saatvik Vaidya
+
+A mobile-first Ayurveda store and professional platform for the Saatvik Vaidya
+firm. Built with Next.js (App Router), TypeScript, Tailwind CSS v4, Prisma and
+MySQL.
+
+Project docs live in `docs/`: the plan (`PLAN.md`), the design system
+(`DESIGN.md`), the chunk list (`CHUNKS.md`) and the progress log
+(`PROGRESS.md`). The client mockup is in `docs/mockup/`.
+
+## Requirements
+
+- **pnpm 9** (`npm i -g pnpm@9`).
+- **Node 24 LTS.** You don't need to install it yourself: `.npmrc` sets
+  `use-node-version`, so pnpm downloads Node 24 and runs every `pnpm` command
+  with it, whatever your system Node is. Run tools through `pnpm` (for example
+  `pnpm exec prisma ...`), not with a bare `node` or `npx`.
+- **MySQL** running locally. On macOS: `brew install mysql` then
+  `brew services start mysql`. The default setup expects user `root` with no
+  password.
+
+## First run
+
+```bash
+pnpm install                  # also generates the Prisma client
+cp .env.example .env.local    # then adjust values if your MySQL differs
+pnpm exec playwright install chromium
+pnpm db:migrate               # creates the saatvik_vaidya database
+pnpm db:seed
+pnpm dev                      # http://localhost:3000
+```
+
+## Scripts
+
+| Script | What it does |
+|---|---|
+| `pnpm dev` | Dev server on http://localhost:3000 |
+| `pnpm build` / `pnpm start` | Production build / serve it |
+| `pnpm typecheck` | Generate route types and run `tsc` |
+| `pnpm lint` | ESLint (Next config), no warnings allowed |
+| `pnpm format` | Prettier (with Tailwind class sorting) |
+| `pnpm test` | Vitest unit tests; prepares the test database first |
+| `pnpm test:e2e` | Playwright on `phone` (375×812) and `desktop` (1280×800); builds and starts the app on port 3100 itself |
+| `pnpm db:migrate` | Create/apply migrations to the dev database |
+| `pnpm db:seed` | Seed the dev database (idempotent) |
+| `pnpm db:reset` | Drop and recreate the dev database, then seed |
+| `pnpm db:test:prepare` | Create and migrate the test database by hand |
+
+## Databases
+
+- Dev: `saatvik_vaidya`, from `DATABASE_URL`.
+- Tests: `saatvik_vaidya_test`, from `TEST_DATABASE_URL`. Vitest always points
+  server code at it and refuses any database name that doesn't end in `_test`.
+
+## Environment
+
+All variables are listed in `.env.example`. Local values go in `.env.local`,
+which is git-ignored. Never commit secrets.
