@@ -17,8 +17,15 @@ export default defineConfig({
     },
   },
   test: {
-    // Server code under test always talks to the test database, never dev data.
-    env: { DATABASE_URL: testDatabaseUrl() },
+    env: {
+      // Server code under test always talks to the test database, never dev data.
+      DATABASE_URL: testDatabaseUrl(),
+      // Fixed auth settings so tests don't depend on .env.local. The secret
+      // is only for tests; it signs nothing real.
+      BETTER_AUTH_SECRET: "vitest-only-secret-0123456789abcdefghijkl",
+      BETTER_AUTH_URL: "http://localhost:3000",
+      DEV_SHOW_OTP: "false",
+    },
     globalSetup: ["./tests/setup/global-setup.ts"],
     projects: [
       {
