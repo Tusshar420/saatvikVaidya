@@ -523,3 +523,15 @@ function parsePanel(kind: HeroPanelKind, value: unknown): HeroPanel | null {
   // Safe: the schema is picked by `kind`, so data + kind is that union member.
   return parsed.success ? ({ kind, ...parsed.data } as HeroPanel) : null;
 }
+
+/** Section keys of enabled sections, in order. Used by A8 to filter nav items. */
+export async function getEnabledSectionKeys(): Promise<HomeSectionKey[]> {
+  const rows = await db.homeSection.findMany({
+    where: { enabled: true },
+    orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+    select: { key: true },
+  });
+  return rows
+    .map((row) => row.key)
+    .filter(isHomeSectionKey);
+}

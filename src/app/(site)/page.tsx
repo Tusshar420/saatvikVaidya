@@ -3,15 +3,27 @@ import { TrustSection } from "@/components/site/trust-section";
 import { ReelsSection } from "@/components/site/reels-section";
 import { OffersSection } from "@/components/site/offers-section";
 import { QuickActionsSection } from "@/components/site/quick-actions-section";
-import { ComingSoon } from "@/components/ui/empty-state";
+import { LaunchSection } from "@/components/site/launch-section";
+import { BrandsSection } from "@/components/site/brands-section";
+import { CoursesSection } from "@/components/site/courses-section";
+import { CoinsSection } from "@/components/site/coins-section";
+import { QuizSection } from "@/components/site/quiz-section";
+import { FeedbackSection } from "@/components/site/feedback-section";
+import { CommunitySection } from "@/components/site/community-section";
+import { PartnerSection } from "@/components/site/partner-section";
+import { WhySection } from "@/components/site/why-section";
 import { getHomeContent } from "@/server/content/home";
+import { getSession } from "@/server/auth/session";
 
 export const metadata = {
   title: "Saatvik Vaidya",
 };
 
 export default async function HomePage() {
-  const homeContent = await getHomeContent();
+  const [homeContent, session] = await Promise.all([
+    getHomeContent(),
+    getSession(),
+  ]);
 
   return (
     <>
@@ -60,32 +72,101 @@ export default async function HomePage() {
               </section>
             );
 
-          // Placeholder sections for A8 and later
           case "launch":
+            return (
+              <LaunchSection
+                key="launch"
+                heading={section.heading}
+                steps={section.steps}
+                categories={section.categories}
+                catalogueMeta={section.catalogue}
+              />
+            );
+
           case "brands":
+            return (
+              <BrandsSection
+                key="brands"
+                heading={section.heading}
+                brands={section.brands}
+              />
+            );
+
           case "courses":
+            return (
+              <CoursesSection
+                key="courses"
+                heading={section.heading}
+                courses={section.courses}
+                liveSessions={section.liveSessions}
+              />
+            );
+
           case "coins":
+            return (
+              <CoinsSection
+                key="coins"
+                heading={section.heading}
+                equation={section.equation}
+                isSignedIn={!!session}
+              />
+            );
+
           case "quiz":
+            return (
+              <QuizSection
+                key="quiz"
+                heading={section.heading}
+                question={section.question}
+                badge={section.badge}
+                note={section.note}
+              />
+            );
+
           case "feedback":
+            return (
+              <FeedbackSection
+                key="feedback"
+                heading={section.heading}
+                feedback={section.feedback}
+              />
+            );
+
           case "community":
+            return (
+              <CommunitySection
+                key="community"
+                heading={section.heading}
+                points={section.points}
+              />
+            );
+
           case "partner":
+            return (
+              <PartnerSection
+                key="partner"
+                heading={section.heading}
+                completion={section.completion}
+                isSignedIn={!!session}
+                profileData={
+                  session
+                    ? {
+                        mobileVerified: session.user.phoneNumberVerified,
+                        userTypeSelected: !!session.user.userTypeId,
+                        completionPercent: 40,
+                      }
+                    : undefined
+                }
+              />
+            );
+
           case "why":
             return (
-              <section
-                key={section.key}
-                id={section.key}
-                className="section-y"
-                aria-labelledby={`${section.key}-title`}
-              >
-                <div className="shell">
-                  <div id={`${section.key}-title`} className="mb-8">
-                    <ComingSoon
-                      as="h2"
-                      title={section.heading.title || "Coming soon"}
-                    />
-                  </div>
-                </div>
-              </section>
+              <WhySection
+                key="why"
+                heading={section.heading}
+                steps={section.steps}
+              />
             );
 
           default:

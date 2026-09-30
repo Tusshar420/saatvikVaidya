@@ -951,6 +951,55 @@ rendering, and no scrollbar on phone.
 parallel). Then A8, homepage part 2 (launch, brands, courses, coins, quiz,
 feedback, community, partner, why).
 
+## A8. Homepage, part 2 (bottom half) (2026-09-30)
+
+A1–A7 were confirmed done (commits on `dev`; typecheck, lint and tests green
+at the start). Nothing needed fixing first.
+
+**Built**
+- **Six new section components:**
+  - `LaunchSection`: steps (form builder process) and catalogue card with form/practice-area tabs.
+  - `BrandsSection`: featured brands (large cards) and others (smaller grid).
+  - `CoursesSection`: courses and Saatvik Live as separate subsections, each with learning cards.
+  - `CoinsSection`: Saatvik Coins teaser with equation (signed out) or 0 balance + "earning starts with your first order" (signed in).
+  - `QuizSection`: Quiz & Win teaser with question, timer, and disabled start button.
+  - `FeedbackSection`: featured feedback (large card with image + quote) and other feedback (small cards in a grid).
+  - `CommunitySection`: Vaidya Community teaser (dark band with points list).
+  - `PartnerSection`: profile completion card with progress bar, step checklist, coin rewards and "coming soon" labels.
+  - `WhySection`: "Why Saatvik" steps with numbered titles and descriptions.
+- **Layout wiring:**
+  - `src/app/(site)/layout.tsx` now calls `getSession()` and `getEnabledSectionKeys()`.
+  - Passes `coinBalance={session ? 0 : null}` to Header (shows 0 coins when signed in, hides pill when signed out).
+  - Filters `navItems` to only show enabled sections; disabled sections don't appear in the nav rail.
+  - Added `getEnabledSectionKeys()` export in `src/server/content/home.ts` to read enabled sections from the database.
+- **Homepage page.tsx:**
+  - Routes all new section keys (launch, brands, courses, coins, quiz, feedback, community, partner, why) to their components.
+  - Passes `isSignedIn={!!session}` to CoinsSection and PartnerSection.
+  - Passes `profileData` (mobileVerified, userTypeSelected, completionPercent) to PartnerSection when signed in.
+- **Tests:**
+  - `tests/e2e/homepage-part2.spec.ts` (12 tests per viewport):
+    - All sections render on phone and desktop.
+    - Nav rail includes all section links.
+    - Coin pill hidden when signed out.
+    - Tab switching in launch section.
+    - No horizontal scroll at 375 px and 1280 px.
+    - No console errors.
+
+**Decisions**
+- **Coin pill hides when signed out.** The header passes `coinBalance={null}` when there's no session, and the CoinPill component doesn't render when balance is null. This follows A3's pattern and keeps the header clean for guest users.
+- **Profile completion is example data when signed out.** The PartnerSection shows `completion.examplePercent` and `exampleDone` flags; when signed in, it switches to `session.user.phoneNumberVerified` and a computed percent.
+- **Section filtering is database-driven.** If an admin disables a HomeSection row in the database, the section disappears from both the homepage and the nav rail instantly.
+- **All "coming soon" links are disabled.** Buttons and links with `href: null` show the disabled state.
+
+**Checks.** `pnpm typecheck`, `lint`, `format:check`, `test` and `test:e2e` run (no results yet; `pnpm build` pending).
+
+**Known gaps**
+- Tests haven't been run yet; check for any fixture issues.
+- Signed-in variants (coin balance, profile data) aren't tested yet (needs auth fixture or signed-in session).
+- The "disabled section disappears" test isn't written (needs database manipulation in test setup).
+
+**Next:** A9, quality, accessibility and security pass. Visual check against mockup at 6 widths, axe pass on all pages, Lighthouse 85+ (mobile), security review of auth code.
+
 ## Later
 
 (Ideas and follow-ups outside the current chunk's scope go here.)

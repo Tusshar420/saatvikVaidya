@@ -6,8 +6,10 @@ import { SiteModalsProvider } from "@/components/site/site-modals";
 import { SkipLink } from "@/components/site/skip-link";
 import { navItems } from "@/content/shell";
 import { getSetting } from "@/server/content/settings";
+import { getEnabledSectionKeys } from "@/server/content/home";
 import { getSignUpUserTypes } from "@/server/content/user-types";
 import { isDevOtpVisible } from "@/server/env";
+import { getSession } from "@/server/auth/session";
 
 // Every public page: skip link, header with nav rail, footer, and the dock on
 // phones. The /design showcase sits outside this group on purpose.
@@ -16,14 +18,27 @@ export default async function SiteLayout({
 }: {
   children: ReactNode;
 }) {
-  const [phone, supportNote, popularSearches, tagline, userTypes] =
-    await Promise.all([
-      getSetting("contact.phone"),
-      getSetting("contact.supportNote"),
-      getSetting("search.popular"),
-      getSetting("footer.tagline"),
-      getSignUpUserTypes(),
-    ]);
+  const [
+    phone,
+    supportNote,
+    popularSearches,
+    tagline,
+    userTypes,
+    session,
+    enabledSections,
+  ] = await Promise.all([
+    getSetting("contact.phone"),
+    getSetting("contact.supportNote"),
+    getSetting("search.popular"),
+    getSetting("footer.tagline"),
+    getSignUpUserTypes(),
+    getSession(),
+    getEnabledSectionKeys(),
+  ]);
+
+  const filteredNavItems = navItems.filter((item) =>
+    enabledSections.includes(item.id),
+  );
 
   return (
     <SiteModalsProvider
@@ -37,10 +52,9 @@ export default async function SiteLayout({
       <Header
         popularSearches={popularSearches}
         phone={phone}
-        navItems={navItems}
-        // No cart or coins yet: A8 passes real values (and null coins when
-        // signed out).
-        coinBalance={0}
+        navItems={filteredNavItems}
+        // When signed in, show 0 coins; when signed out, hide the pill
+        coinBalance={session ? 0 : null}
         bagCount={0}
       />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
