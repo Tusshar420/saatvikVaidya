@@ -27,6 +27,9 @@ export default defineConfig({
           name: "server",
           environment: "node",
           include: ["src/**/*.test.ts"],
+          // These files share the test database and clear its tables, so
+          // they run one at a time.
+          fileParallelism: false,
         },
       },
       {
