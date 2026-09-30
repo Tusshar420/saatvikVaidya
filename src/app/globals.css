@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 /*
- * Design tokens from docs/DESIGN.md. Components use these, never raw hex.
- * A1 adds the colours only; chunk A2 adds type, radius, shadow, gradients
- * and motion.
+ * Design tokens from docs/DESIGN.md. This file is the only place raw colour
+ * values live; components use the tokens (bg-teal, text-h2, shadow-card, ...).
  */
 @theme {
+  /* Colour */
   --color-orange: #ef6c1c;
   --color-orange-dark: #d9560d;
   --color-orange-soft: #fff0e7;
@@ -26,9 +26,205 @@
   --color-cream: #fff9f1;
   --color-danger: #c6411b;
   --color-danger-soft: #fff0ea;
+
+  /*
+   * White text on --color-orange is only 3.1:1, below WCAG AA for button-sized
+   * text. Text on or in orange uses these deeper steps instead:
+   * orange-strong (primary button, 4.6:1 with white) and orange-ink (primary
+   * hover, orange text on white/orange-soft/cream, 5.3:1 or better).
+   * --color-orange stays for the brand mark, accents and indicators.
+   */
+  --color-orange-strong: #c2540a;
+  --color-orange-ink: #a8470a;
+
+  /* Supporting tints taken from the mockup, for borders and quiet fills. */
+  --color-line-strong: #cddbd7;
+  --color-backdrop: rgb(8 31 35 / 0.7);
+  --color-track: #e2e9e7;
+  --color-live-dot: #ec4e2b;
+
+  /* Breakpoints: the mockup's three steps plus desktop. */
+  --breakpoint-sm: 560px;
+  --breakpoint-md: 820px;
+  --breakpoint-lg: 1100px;
+  --breakpoint-xl: 1280px;
+
+  /* Type scale (phone -> desktop). */
+  --text-display: clamp(36px, 4.2vw, 62px);
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.045em;
+  --text-display--font-weight: 800;
+  --text-h2: clamp(30px, 3.2vw, 44px);
+  --text-h2--line-height: 1.1;
+  --text-h2--letter-spacing: -0.04em;
+  --text-h2--font-weight: 800;
+  --text-h3: clamp(18px, 1.2vw + 12px, 24px);
+  --text-h3--line-height: 1.25;
+  --text-h3--letter-spacing: -0.01em;
+  --text-h3--font-weight: 700;
+  --text-body-lg: clamp(16px, 0.25vw + 15px, 18px);
+  --text-body-lg--line-height: 1.55;
+  --text-body: 15px;
+  --text-body--line-height: 1.55;
+  --text-small: 13px;
+  --text-small--line-height: 1.45;
+  --text-label: clamp(11px, 0.2vw + 10.3px, 12px);
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.14em;
+  --text-label--font-weight: 800;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-button: 13px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-modal: 24px;
+  --radius-2xl: 26px;
+
+  /* Shadow */
+  --shadow-card: 0 8px 25px rgb(11 64 67 / 0.04);
+  --shadow-raised: 0 20px 50px rgb(11 64 67 / 0.11);
+  --shadow-modal: 0 30px 100px rgb(0 0 0 / 0.3);
+  --shadow-cta: 0 12px 25px rgb(239 108 28 / 0.22);
+
+  /* Motion: 150-250 ms, ease. */
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: ease;
+  --animate-rise-in: rise-in 250ms ease both;
+  --animate-fade-in: fade-in 200ms ease both;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
-body {
-  background: var(--color-surface);
-  color: var(--color-ink);
+/* Fonts come from next/font (root layout), so reference their variables. */
+@theme inline {
+  --font-sans:
+    var(--font-inter), var(--font-noto-sans-devanagari), "Segoe UI", Arial,
+    sans-serif;
+  --font-serif-hindi: var(--font-noto-serif-devanagari), serif;
+}
+
+/*
+ * Section gradients from the mockup, as named utilities
+ * (bg-hero, bg-learning, bg-offer-orange, ...).
+ */
+@utility bg-hero {
+  background:
+    radial-gradient(circle at 10% 20%, rgb(244 180 41 / 0.17), transparent 27%),
+    linear-gradient(110deg, #fffaf3 0%, #f3fbf8 58%, #eaf7f5 100%);
+}
+@utility bg-learning {
+  background: linear-gradient(120deg, #064f56, #076b70);
+}
+@utility bg-learning-poster {
+  background: linear-gradient(160deg, #075f67, #118e83 65%, #ef6c1c);
+}
+@utility bg-offer-orange {
+  background: linear-gradient(145deg, #d9560d, #f3872f);
+}
+@utility bg-offer-teal {
+  background: linear-gradient(145deg, #075f67, #0b8582);
+}
+@utility bg-offer-navy {
+  background: linear-gradient(145deg, #163b55, #0f668b);
+}
+@utility bg-quiz {
+  background: linear-gradient(155deg, #123e5a, #0f6b87);
+}
+@utility bg-profile {
+  background: linear-gradient(125deg, #0a6e72, #064c54);
+}
+@utility bg-brand-mark {
+  background: linear-gradient(145deg, #ef6c1c, #ff943a);
+}
+@utility bg-coin {
+  background: linear-gradient(145deg, #ffd35a, #e9a409);
+}
+
+/* Page container: min(1200px, 100% - 40px), narrower gutters on phones. */
+@utility shell {
+  width: min(1200px, calc(100% - 40px));
+  margin-inline: auto;
+  @media (width < 820px) {
+    width: calc(100% - 28px);
+  }
+  @media (width < 560px) {
+    width: calc(100% - 24px);
+  }
+}
+
+/* Section vertical padding: 84 px, 64 under 820 px, 52 under 560 px. */
+@utility section-y {
+  padding-block: 84px;
+  @media (width < 820px) {
+    padding-block: 64px;
+  }
+  @media (width < 560px) {
+    padding-block: 52px;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Reduced motion: switch off transitions, animations and smooth scrolling.
+ * Loading spinners opt out with data-essential-motion, since a frozen spinner
+ * reads as a hang.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *:not([data-essential-motion]),
+  *:not([data-essential-motion])::before,
+  *:not([data-essential-motion])::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
