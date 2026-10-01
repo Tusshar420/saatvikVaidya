@@ -2086,3 +2086,51 @@ for an unattended run to make.
 
 Nothing was changed apart from this entry. No P2.3 code was written and no
 checks were run. The tree still holds P1.3's uncommitted work.
+
+## P2.4. Phase 2 quality and security pass (BLOCKED, 2026-10-01)
+
+Not started. P2.4 reviews what P2.1, P2.2 and P2.3 built, and none of the
+three is built (each entry above is BLOCKED). There is nothing to screenshot,
+run axe on or security-review, and the Phase 2 summary would have nothing to
+summarise. So this chunk stops here instead of building those chunks itself.
+
+**What's blocking (checked in code, schema and git on 2026-10-01)**
+- **Nothing from Phase 2 exists:**
+  - `prisma/schema.prisma` has no `BrandRequest`, `BrandRequestEvent`,
+    `Product.privateLabel`, quote, proof, `QuizAttempt` or `CoinLedger`.
+  - There are no `/launch`, `/my-brand`, `/quiz` or `/admin/brand-requests`
+    routes.
+- **Each review item in the chunk needs a missing chunk:**
+  - Request/quote ownership and status-transition tampering: P2.1 and P2.2.
+  - Proof and logo uploads: P2.1 (logo) and P2.2 (proofs).
+  - Quiz answer leakage and timer bypass: P2.3.
+  - Coin double-credit: P2.3, on top of P1.7's `CoinLedger`.
+- **The root cause is still P1.3:** its work is uncommitted on `dev` (latest
+  commit `2a312bc`, no `P1.3` commit; still 38 changed or new paths). No file
+  under `src/`, `prisma/` or `tests/` has changed since the P2.3 entry (the
+  newest edit is from 09:26), so the four failing `catalogue.spec.ts` tests
+  (see the P1.4 and P1.9 entries) still fail. The checks weren't re-run
+  because the tree is the same.
+- P1.12 (the Phase 1 pass this chunk is modelled on) is also BLOCKED, so
+  there's no Phase 1 summary to build the Phase 2 one on.
+
+**For the run that does P2.4**
+- Use the "For the run that builds ..." notes in the P2.1, P2.2 and P2.3
+  entries as the review checklist. They set out what each chunk should do for
+  this pass to check: one transitions table, quote expiry checked at accept
+  and at payment, a unique key per quote payment, proof versions served
+  through an owner-or-admin check, questions selected without `isCorrect`,
+  a unique (`userId`, `quizId`) attempt with a server-side timer, and coins
+  credited once through a unique ledger reference.
+- Run it after P1.12 (CHUNKS.md says Phase 2 runs after P1.12), so the Phase 2
+  summary can sit next to the Phase 1 one at the top of this file.
+
+**Next steps (in order)**
+1. Finish and commit P1.3 (steps in the P1.4 entry).
+2. Build P1.4 to P1.11, then run P1.12.
+3. Build P2.1, P2.2 and P2.3.
+4. Re-queue P2.4 once P2.1 to P2.3 are committed and green.
+
+Nothing was changed apart from this entry. No code was written, no checks were
+run and no screenshots were taken. The tree still holds P1.3's uncommitted
+work.
