@@ -1185,6 +1185,25 @@ at the start). Nothing needed fixing first.
   moving to R2, and re-encoding images to strip metadata such as location
   (from P1.2).
 
+- **Catalogue follow-ups (from P1.3):**
+  - The sample products, the seven practice areas and the 5% GST /
+    HSN 30049011 on them are placeholders. Replace them in
+    /admin/catalogue once the client sends the real catalogue (the seed
+    never overwrites an existing slug), and confirm the practice areas.
+  - The "product range" reel still links to `/#launch`. Reels are
+    create-only in the seed, so change it in /admin/content/reels if it
+    should open `/products`.
+  - Product photos are served as uploaded. Resizing them into a few widths
+    (and a `next/image` loader for /api/product-images) would cut phone
+    data use; worth doing with the R2 move.
+  - Search matches words with `LIKE` (every word must match the name,
+    brand, form, practice area or ingredients). A MySQL FULLTEXT index
+    with relevance ranking could replace it once the catalogue is large.
+  - The footer and nav rail don't link to /products yet (the nav rail is
+    homepage sections only). Decide where a "Products" entry should go.
+  - A `next dev` server started before a migration keeps the old Prisma
+    client and fails on new tables; restart it after `pnpm db:migrate`.
+
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
 Started in an earlier run, paused, and finished at the start of the P1.2 run
@@ -1403,3 +1422,171 @@ rejected) and the review page were checked in screenshots at 375 and 1280 px.
 **Next steps:** P1.3 (catalogue) can reuse `getStorage()` and
 `src/server/storage/files.ts` for product images.
 
+## P1.3. Catalogue and product pages (2026-10-01)
+
+P1.1 (admin) and P1.2 (Storage) were done and committed, so nothing blocked
+this chunk. The app built and all checks passed before starting.
+
+**Built**
+- **Database** (migration `p1_3_catalogue`):
+  - `Product`: slug, name, brand (nullable, `SetNull` if a brand is
+    deleted), form (a FORM `Category`), practice areas (many PRACTICE_AREA
+    categories), description, ingredients, dosage, pack size, MRP and
+    professional price in paise, GST rate (%), HSN code, stock, MOQ,
+    active, featured, sortOrder and `isSample`.
+  - `ProductImage` (Storage key, type from the file's bytes, size, alt,
+    order) and `BulkPriceTier` (min quantity, unit price in paise).
+  - `UserType.bulkPricing`: true for Pharmacy / Store and Stockist /
+    Distributor, so "who gets bulk tiers" is data like the rest of the
+    user types.
+- **Pricing** (`src/server/pricing/`): `pricingViewerFor()` turns a user
+  into guest / customer / unverified professional / professional (with or
+  without bulk), and `priceFor(product, viewer, quantity)` returns the unit
+  price, total, tier and saving. It never charges more than MRP and ignores
+  tiers that aren't cheaper. `getPricingViewer()` reads the session's user
+  type per request. Nothing else reads professional or bulk prices: the
+  catalogue's page objects only hold the viewer's own price, and bulk tiers
+  only for viewers who get them (a test checks the guest's product object
+  has no professional price in it).
+- **Pages:**
+  - `/products`: form chips (one scrolling line on phones), a filter and
+    sort form (form, practice area, brand; featured, price both ways, name,
+    newest) in a sidebar from 1100 px and behind a "Filters & sort" button
+    below, removable chips for each active filter, 12 per page, empty
+    state. Filters are a plain GET form, so the URL holds them; unknown
+    keys are dropped.
+  - `/products/[slug]`: breadcrumb, gallery (thumbnails switch the main
+    photo; without photos, the form's Devanagari mark and "Image coming
+    soon"), brand, pack size, the viewer's price with GST and saving, a
+    line for guests (sign in, coming back to the product), customers and
+    unapproved professionals (check verification), the bulk tier table for
+    approved pharmacies and stockists, stock and MOQ, and a disabled "Add
+    to cart" with a "Coming soon" badge and a call button until P1.4. Long
+    text is shown as plain text with line breaks kept. Hidden or unknown
+    products are a 404.
+  - `/search`: real results across name, brand, form, practice area and
+    ingredients (every word must match), with its own search field (phones
+    have no header field), popular searches when empty, "Filter these
+    results" into `/products?q=`, and an empty state.
+  - Sample products carry a "Sample" badge on cards and the product page,
+    plus a note above the results.
+  - Homepage: category tiles in the Launch catalogue card link to
+    `/products?form=` / `?area=`, its button to `/products`; brand cards
+    with no link set go to `/products?brand=<key>` (smaller brand cards
+    got a link too); the brands section's "Explore all brands" and the
+    hero's "View range" go to the catalogue.
+- **Admin `/admin/catalogue`** (new "Catalogue" nav item): list with search,
+  status filter and pagination; add and edit forms (amounts typed in
+  rupees, up to 5 bulk tiers, practice-area ticks, GST and HSN, stock,
+  MOQ, active/featured/sample); products are hidden, not deleted, so
+  orders can point at them later. Images on the edit page: upload (JPG,
+  PNG or WebP, 5 MB, up to 8), reorder, edit the description, delete.
+  Every change writes an `AdminLog` row; the edit page lists recent ones.
+- **Routes:**
+  - `POST /api/admin/products/[id]/images`: admins only (others get 404),
+    same origin, body capped before parsing, type from the file's bytes.
+    A route handler because server actions cap bodies at 1 MB.
+  - `GET /api/product-images/[id]`: photos of active products are public
+    (cached for a day); photos of hidden products are for admins only
+    (`private, no-store`); anything else is the same 404. `nosniff`.
+- **Seed:** 12 sample products (all six forms, three brands, two to three
+  with bulk tiers, one out of stock, one low on stock, one with MOQ 2),
+  created only when their slug is missing, and seven sample practice areas
+  (the mockup's "By Practice Area" tab had none).
+- **Shared code:** the same-origin check moved to
+  `src/server/request-origin.ts` (used by both upload routes);
+  `detectFileType` recognises WebP; `formatPaise`, `rupeesToPaise` and
+  `paiseToRupeeInput` in `src/lib/format.ts`. Copy lives in
+  `src/content/catalogue.ts` and `src/content/admin.ts` (`catalogue`).
+
+**Decisions**
+- Professional prices need `isProfessional` and, if the type requires
+  verification, `approved`. Pending, rejected and "documents needed"
+  professionals pay MRP and are told why.
+- A product's base price for sorting is MRP, or the professional price for
+  professionals; the admin form keeps the professional price at or below
+  MRP and each bulk tier below the one before, so sorting matches
+  `priceFor()`.
+- Out of stock means stock below the MOQ. "Only n left" from 10 down.
+- Catalogue pages read the database on every request (they're dynamic
+  anyway, because the price depends on the viewer), so admin edits show
+  at once without cache tags.
+- "Explore all brands" keeps the mockup's wording (the seed test checks
+  every mockup string) but now opens `/products`.
+- `/search` searches the whole catalogue; filtering happens on
+  `/products`, which also accepts `q`.
+
+**Tests**
+- Vitest (295 in total, 45 new):
+  - Pricing rules for every seeded user type and status, tier choice by
+    quantity, never above MRP, bad quantities, the sort column.
+  - Catalogue reads: filters, unknown keys, search, price sorting per
+    viewer, hidden products, stock, no professional prices in a guest's
+    product object, bulk tiers only for bulk viewers, image access.
+  - Admin: the product form's rules (rupees, slugs, tiers, GST, HSN),
+    create/update with audit and slug clashes, images (store, order,
+    describe, delete, wrong type, too many).
+  - Routes: upload by admins only, same origin, 400/404/413/415, the public
+    and admin-only image responses.
+  - Money helpers, slugs, WebP detection; the homepage test now expects
+    the practice areas and the brand links.
+- Playwright (`tests/e2e/catalogue.spec.ts`, phone and desktop): listing
+  filters (chips, panel, removable chips), sorting and the empty state,
+  search, the product page for a guest, a pending doctor, an approved
+  doctor and an approved pharmacy, a 404, homepage links, an admin adding a
+  product with a photo and hiding it, customers getting 404 on the admin
+  page, and axe / sideways-scroll / console checks on every new page.
+  `shell.spec.ts` now expects real search results instead of the old
+  "coming soon" page (intended change).
+
+**Checks:** see the end of this entry.
+
+**Known gaps**
+- Add to cart is a coming-soon state until P1.4; MOQ and stock are shown
+  but not enforced yet.
+- Product photos aren't resized; no image metadata stripping (see P1.2's
+  note in "Later").
+- Search has no relevance ranking (featured order).
+- See "Later" for the sample data, the reel link and the nav entry.
+
+**Next steps:** P1.4 (cart, checkout and test payment) should price every
+line with `priceFor()` and enforce MOQ and stock.
+
+## P1.4. Cart, checkout and test payment (BLOCKED, 2026-10-01)
+
+Not started. P1.4 needs the catalogue from P1.3 (products, `priceFor()`, MOQ and
+stock), and P1.3 is not finished. Per the task rules this chunk stops here
+instead of finishing or rebuilding P1.3.
+
+**State of P1.3 found on 2026-10-01**
+- It is **not committed**: the work is still uncommitted in the working tree on
+  `dev` (latest commit is `1696a6b`, with no `P1.3` commit), and its entry above
+  ends with "Checks: see the end of this entry", which never got written.
+- `pnpm typecheck`, `pnpm lint` (no warnings), `pnpm test` (295 passed) and
+  `pnpm build` pass.
+- `pnpm test:e2e` **fails: 9 failed, 159 passed, 4 skipped**:
+  - `catalogue.spec.ts` "filters by form chip, panel filters and removable
+    chips" (phone and desktop): clicking the form chip lands on
+    `/products?form=&area=&brand=pranacharya&sort=featured`, not `form=churna`.
+    This looks like a real bug in how the chip or filter form builds its URL.
+  - `catalogue.spec.ts` "catalogue pages: no axe issues..." (phone and desktop):
+    axe reports violations on `/products`.
+  - `catalogue.spec.ts` "a guest sees MRP, a sign-in hint..." (both): the
+    locator `getByText('Sample product')` matches two elements (badge and note).
+    Probably a test fix.
+  - `catalogue.spec.ts` "an admin adds a product with a photo..." (both): the
+    locator for the "Punarnava Mandoor" cell matches two cells. Probably a test
+    fix.
+  - `sign-in.spec.ts` "register by email as a customer..." (desktop only): an
+    axe violation on the sign-in page at line 255. It may be flaky or caused by
+    the P1.3 changes to shared files (`tests/e2e/auth-helpers.ts`,
+    `src/content/pages.ts`); not investigated.
+
+**Next steps**
+1. Finish P1.3: fix the form-chip URL bug and the `/products` axe violations,
+   make the two ambiguous locators specific, and check the sign-in axe failure.
+   Then get all five checks green, fill in the "Checks" line of the P1.3 entry
+   and commit on `dev`.
+2. Re-queue P1.4.
+
+Nothing was changed apart from this entry. No P1.4 code was written.
