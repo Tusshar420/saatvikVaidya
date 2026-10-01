@@ -20,6 +20,7 @@ import { IconTile, type IconTileTone } from "@/components/ui/icon-tile";
 import { admin as copy } from "@/content/admin";
 import { formatNumber } from "@/lib/format";
 import { readDashboard } from "@/server/admin/dashboard";
+import { countOrdersToShip } from "@/server/admin/orders";
 import { requireAdmin } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: copy.dashboard.metaTitle };
@@ -28,7 +29,7 @@ const text = copy.dashboard;
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const summary = await readDashboard();
+  const [summary, orders] = await Promise.all([readDashboard(), countOrdersToShip()]);
 
   return (
     <>
@@ -65,8 +66,9 @@ export default async function AdminDashboardPage() {
             icon={<Package />}
             tone="gold"
             label={text.stats.orders}
-            value="—"
-            note={text.stats.ordersSoon}
+            value={formatNumber(orders.total)}
+            note={text.stats.ordersToShip(orders.toShip)}
+            highlight={orders.toShip > 0}
             href="/admin/orders"
           />
         </ul>

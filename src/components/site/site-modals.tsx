@@ -12,11 +12,11 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalClose, ModalContent } from "@/components/ui/modal";
-import { Stepper } from "@/components/ui/stepper";
 import { useToast } from "@/components/ui/toast";
 import { shell } from "@/content/shell";
 import { signIn as signInCopy } from "@/content/sign-in";
@@ -26,6 +26,7 @@ import { telHref } from "@/lib/phone";
 import type { SignUpUserType } from "@/server/content/user-types";
 import type { SignedIn } from "./auth/phone-flow";
 import { SignInModal } from "./auth/sign-in-modal";
+import { TrackOrderForm } from "./orders/track-order-form";
 
 export type SiteModal = "signIn" | "trackOrder";
 
@@ -237,7 +238,7 @@ export function SiteModalButton({ modal, ...props }: SiteModalButtonProps) {
 
 type ModalBodyProps = { onCloseAutoFocus: (event: Event) => void };
 
-/** Shows how order steps will look, with an honest "coming soon" note. */
+/** Order number plus phone or email, then the order's live timeline. */
 function TrackOrderModal({
   phone,
   onCloseAutoFocus,
@@ -250,25 +251,19 @@ function TrackOrderModal({
       description={copy.description}
       onCloseAutoFocus={onCloseAutoFocus}
     >
-      <div className="rounded-lg border border-line bg-surface-alt px-3 pt-3.5 pb-4">
-        <p aria-hidden className="text-label text-muted uppercase">
-          {copy.exampleTitle}
-        </p>
-        <Stepper
-          steps={copy.steps}
-          current={copy.exampleCurrent}
-          label={copy.exampleLabel}
-          className="mt-3"
-        />
-      </div>
-      <p
-        role="note"
-        className="mt-4 flex gap-3 rounded-lg bg-orange-soft p-4 text-sm text-ink"
-      >
-        <Clock aria-hidden className="mt-0.5 size-5 shrink-0 text-orange-ink" />
-        {copy.soonNote}
+      <TrackOrderForm headingLevel="h3" />
+      <p className="mt-5 text-sm text-muted">
+        {copy.myOrdersLead}{" "}
+        <ModalClose asChild>
+          <Link
+            href="/orders"
+            className="font-bold text-teal underline-offset-4 hover:underline"
+          >
+            {copy.myOrders}
+          </Link>
+        </ModalClose>
       </p>
-      <p className="mt-4 text-sm text-muted">
+      <p className="mt-1 text-sm text-muted">
         {copy.helpLead}{" "}
         <a
           href={telHref(phone)}

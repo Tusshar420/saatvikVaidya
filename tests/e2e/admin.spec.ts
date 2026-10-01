@@ -482,24 +482,23 @@ test.describe("as an admin", () => {
     await expect(main(page).getByRole("row").filter({ hasText: title })).toHaveCount(0);
   });
 
-  test("orders: filters work and the list says checkout is coming", async ({
+  test("orders: filters keep their values and a bad date range is flagged", async ({
     page,
   }) => {
     await page.goto("/admin/orders");
-    await expect(
-      main(page).getByRole("heading", { name: copy.orders.soonTitle }),
-    ).toBeVisible();
+    await expect(main(page).getByRole("table", { name: copy.orders.title })).toBeVisible();
     await main(page)
       .getByLabel(copy.orders.statusFilter)
-      .selectOption({ label: copy.orders.statuses.dispatched });
+      .selectOption({ label: copy.orders.statuses.shipped });
     await main(page).getByLabel(copy.orders.from).fill("2026-10-05");
     await main(page).getByLabel(copy.orders.to).fill("2026-10-01");
     await main(page).getByRole("button", { name: copy.common.filter }).click();
-    await expect(page).toHaveURL(/status=dispatched/);
+    await expect(page).toHaveURL(/status=shipped/);
     await expect(main(page).getByRole("alert")).toHaveText(copy.orders.invalidDates);
     await expect(main(page).getByLabel(copy.orders.statusFilter)).toHaveValue(
-      "dispatched",
+      "shipped",
     );
+    await expect(main(page).getByText(copy.common.noResults)).toBeVisible();
   });
 
   test("database browser hides passwords and tokens", async ({ page }) => {

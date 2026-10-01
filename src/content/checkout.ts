@@ -113,9 +113,9 @@ export const checkout = {
     paid: "Amount paid",
     deliverTo: "Delivering to",
     items: "Items",
-    trackingSoon: "Order history and delivery tracking are coming soon.",
+    trackingLine: "Follow its delivery step by step on your order page.",
+    viewOrder: "View order and tracking",
     continueShopping: "Continue shopping",
-    backHome: "Back to home",
   },
 
   failed: {
@@ -139,6 +139,7 @@ export const checkout = {
     processing: "Processing",
     shipped: "Shipped",
     delivered: "Delivered",
+    returned: "Returned",
   },
 
   /** Messages sent through the dev notifier (printed to the server log). */

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authCookiePrefix, signInPath } from "@/lib/auth-routes";
 
 /**
- * Sends signed-out visitors of /account, /checkout and /admin to sign-in. This only
+ * Sends signed-out visitors of /account, /checkout, /orders and /admin to sign-in. This only
  * checks that a session cookie is present (fast, no database); pages must
  * still call requireUser() or requireAdmin() from src/server/auth/session.ts,
  * which check the session and role properly.
@@ -25,6 +25,8 @@ export const config = {
     "/account/:path*",
     "/checkout",
     "/checkout/:path*",
+    "/orders",
+    "/orders/:path*",
     "/admin",
     "/admin/:path*",
   ],

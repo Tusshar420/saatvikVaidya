@@ -82,3 +82,14 @@ export function formatDate(date: Date): string {
 export function formatDateTime(date: Date): string {
   return dateTimeFormat.format(date);
 }
+
+const dayMonthFormat = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  timeZone: "Asia/Kolkata",
+});
+
+/** India day and month, for tight spaces: "1 Oct". */
+export function formatDayMonth(date: Date): string {
+  return dayMonthFormat.format(date);
+}

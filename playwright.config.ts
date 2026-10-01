@@ -56,6 +56,9 @@ export default defineConfig({
       // build (on localhost) may use it so checkout can be tested end to end.
       PAYMENT_PROVIDER: "test",
       TEST_PAYMENTS_IN_LOCAL_BUILD: "true",
+      // The same for the test shipping provider (simulated delivery steps).
+      SHIPPING_PROVIDER: "test",
+      TEST_SHIPPING_IN_LOCAL_BUILD: "true",
     },
   },
 });

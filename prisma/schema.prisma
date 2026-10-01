@@ -729,6 +729,8 @@ enum OrderStatus {
   processing
   shipped
   delivered
+  /// Came back to us undelivered (P1.5).
+  returned
 }
 
 /// An order. Prices, tax and the delivery address are copied in when it is
@@ -759,10 +761,13 @@ model Order {
   totalPaise    Int
   /// When payment succeeded and stock was taken.
   paidAt        DateTime?
+  /// When an admin cancelled it (stock taken by payment is put back).
+  cancelledAt   DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
   payments      Payment[]
+  shipment      Shipment?
 
   @@unique([userId, checkoutKey])
   @@index([userId, createdAt])
@@ -825,4 +830,57 @@ model Payment {
   updatedAt     DateTime      @updatedAt
 
   @@unique([orderId, attempt])
+}
+
+// ─── Shipping ───────────────────────────────────────────────────────────────
+// Delivery of a paid order (P1.5). Code is in src/server/shipping. Only the
+// "test" provider exists (SHIPPING_PROVIDER=test): a fake courier and AWB,
+// moved on step by step from the admin panel. Shiprocket later implements
+// the same provider interface and sends the same events.
+
+enum ShipmentStatus {
+  created
+  packed
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  /// A delivery attempt failed; it can go out again or be returned.
+  undelivered
+  /// Back with us (return to origin).
+  returned
+  /// The order was cancelled before the parcel left.
+  cancelled
+}
+
+/// One parcel per order.
+model Shipment {
+  id          Int              @id @default(autoincrement())
+  orderId     String           @unique @db.VarChar(32)
+  order       Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// SHIPPING_PROVIDER that created it, e.g. "test" (Shiprocket later).
+  provider    String           @db.VarChar(20)
+  courierName String           @db.VarChar(80)
+  /// The courier's airway bill (tracking) number.
+  awb         String           @unique @db.VarChar(40)
+  status      ShipmentStatus   @default(created)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  events      ShipmentEvent[]
+}
+
+/// Every step a shipment took, oldest first. Never edited.
+model ShipmentEvent {
+  id         Int            @id @default(autoincrement())
+  shipmentId Int
+  shipment   Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  status     ShipmentStatus
+  /// Where it happened, e.g. "Pune hub". Optional.
+  location   String?        @db.VarChar(100)
+  note       String?        @db.VarChar(200)
+  /// The admin who moved it on, if any (null for provider events).
+  actorId    String?        @db.VarChar(64)
+  createdAt  DateTime       @default(now())
+
+  @@index([shipmentId, createdAt])
 }

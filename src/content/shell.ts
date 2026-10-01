@@ -87,18 +87,9 @@ export const shell = {
     eyebrow: "Track order",
     title: "Know exactly what happens next.",
     description:
-      "Every order moves through these steps, from confirmation to dispatch.",
-    exampleTitle: "Example",
-    exampleLabel: "Example order status",
-    steps: [
-      { label: "Confirmed" },
-      { label: "Production" },
-      { label: "Quality check" },
-      { label: "Dispatch" },
-    ],
-    exampleCurrent: 1,
-    soonNote:
-      "Live order tracking is coming soon. Once online ordering opens, you'll follow each step here.",
+      "Enter your order number and the mobile number or email used for the order.",
+    myOrdersLead: "Signed in? See every order in",
+    myOrders: "My orders",
     helpLead: "Need an update now?",
     call: (phone: string) => `Call ${phone}`,
     close: "Close",

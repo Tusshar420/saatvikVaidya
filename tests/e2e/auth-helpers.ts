@@ -248,13 +248,17 @@ export async function cleanUpE2eData() {
     where: { product: { slug: { startsWith: E2E_CONTENT_PREFIX } } },
     select: { fileKey: true },
   });
+  // Track Order counts lookups per order number (P1.5).
+  const orderNumbers = (
+    await db.order.findMany({ where: { userId: { in: ids } }, select: { number: true } })
+  ).map((order) => `track-order:number:${order.number.toLowerCase()}`);
   const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
   for (const { fileKey } of [...documents, ...productImages]) {
     const path = resolve(storageDir, fileKey);
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
   }
   await db.$transaction([
-    // Orders of e2e users (their items and payments go with them). Orders
+    // Orders of e2e users (their items, payments and shipments go with them). Orders
     // outlive a deleted account, so they're removed before the users.
     db.order.deleteMany({ where: { userId: { in: ids } } }),
     // Audit rows written by e2e admins, or about e2e users.
@@ -288,6 +292,7 @@ export async function cleanUpE2eData() {
         OR: [
           // Per-account limits of e2e users (keys are lowercased).
           { key: { in: ids.map((id) => `order-place:user:${id.toLowerCase()}`) } },
+          { key: { in: orderNumbers } },
           { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
           { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },
           { key: { contains: `:${E2E_IP_PREFIX}` } },

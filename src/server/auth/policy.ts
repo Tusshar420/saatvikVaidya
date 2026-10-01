@@ -51,4 +51,11 @@ export const rateLimitRules = {
   guestCartPerIp: { name: "guest-cart:ip", windowSeconds: 60 * 60, max: 30 },
   /** Orders placed by one account: 20 per hour. */
   orderPlacePerUser: { name: "order-place:user", windowSeconds: 60 * 60, max: 20 },
+  /** Track Order lookups from one IP: 10 per 15 minutes. */
+  trackOrderPerIp: { name: "track-order:ip", windowSeconds: 15 * 60, max: 10 },
+  /**
+   * Lookups of one order number, from anywhere: 10 per hour, so nobody can
+   * guess the phone or email for a known number.
+   */
+  trackOrderPerNumber: { name: "track-order:number", windowSeconds: 60 * 60, max: 10 },
 } as const satisfies Record<string, RateLimitRule>;

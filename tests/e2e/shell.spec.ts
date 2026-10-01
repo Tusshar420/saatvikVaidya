@@ -8,6 +8,7 @@ import {
 import { cart } from "../../src/content/cart";
 import { catalogue } from "../../src/content/catalogue";
 import { settingDefaults } from "../../src/content/settings";
+import { orders } from "../../src/content/orders";
 import { navItems, policyLinks, shell } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
 import { ui } from "../../src/content/ui";
@@ -17,7 +18,6 @@ const phone = settingDefaults["contact.phone"];
 const tel = "tel:+919220358400";
 
 const comingSoonRoutes: [string, ComingSoonPageCopy][] = [
-  ["/orders", comingSoonPages.orders],
   ["/coins", comingSoonPages.coins],
 ];
 
@@ -247,7 +247,7 @@ test.describe("nav rail", () => {
   test("links back to the homepage sections from other pages", async ({
     page,
   }) => {
-    await page.goto("/orders");
+    await page.goto("/coins");
     const nav = rail(page);
     await expect(nav.locator("[aria-current]")).toHaveCount(0);
     await nav.getByRole("link", { name: "Courses" }).click();
@@ -306,14 +306,18 @@ test.describe("mobile dock", () => {
       })
       .toBeLessThanOrEqual(dockBox.y);
 
-    // Dock links go to their pages and mark themselves current.
-    await bar.getByRole("link", { name: shell.dock.orders }).click();
-    await expect(page).toHaveURL("/orders");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      comingSoonPages.orders.title,
-    );
+    // Dock links go to their pages and mark themselves current. Orders
+    // needs sign-in (P1.5), so it's checked by its link only.
     await expect(
       bar.getByRole("link", { name: shell.dock.orders }),
+    ).toHaveAttribute("href", "/orders");
+    await bar.getByRole("link", { name: shell.dock.coins }).click();
+    await expect(page).toHaveURL("/coins");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      comingSoonPages.coins.title,
+    );
+    await expect(
+      bar.getByRole("link", { name: shell.dock.coins }),
     ).toHaveAttribute("aria-current", "page");
   });
 });
@@ -384,15 +388,16 @@ test.describe("modals", () => {
     await footerTrigger.click();
     const dialog = page.getByRole("dialog", { name: shell.trackOrder.title });
     await expect(dialog).toBeVisible();
-    const steps = dialog.getByRole("list", {
-      name: shell.trackOrder.exampleLabel,
-    });
-    await expect(steps.getByRole("listitem")).toHaveCount(
-      shell.trackOrder.steps.length,
-    );
-    await expect(dialog.getByRole("note")).toHaveText(
-      shell.trackOrder.soonNote,
-    );
+    // The real lookup form (P1.5); tests/e2e/orders.spec.ts tracks an order.
+    await expect(
+      dialog.getByRole("textbox", { name: orders.track.number }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("textbox", { name: orders.track.contact }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: orders.track.submit }),
+    ).toBeVisible();
     await expect(
       dialog.getByRole("link", { name: shell.trackOrder.call(phone) }),
     ).toHaveAttribute("href", tel);

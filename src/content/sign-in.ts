@@ -96,6 +96,7 @@ export const signIn = {
     trigger: (name: string) => `Account menu, ${name}`,
     subtitle: "My account",
     account: "My account",
+    orders: "My orders",
     signOut: "Sign out",
     signingOut: "Signing out…",
     signedOut: "You're signed out.",

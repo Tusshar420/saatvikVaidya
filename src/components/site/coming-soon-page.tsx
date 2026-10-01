@@ -19,8 +19,7 @@ export type ComingSoonPageProps = {
 };
 
 /**
- * Whole-page ComingSoon for routes whose feature isn't built yet (/orders,
- * /coins): a helpful line, a link home and a way to call.
+ * Whole-page ComingSoon for routes whose feature isn't built yet (/coins): a helpful line, a link home and a way to call.
  */
 export function ComingSoonPage({
   copy,

@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, Package, UserRound } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { shell } from "@/content/shell";
 import { signIn as copy } from "@/content/sign-in";
@@ -122,6 +122,12 @@ export function ProfileMenu({ className }: { className?: string }) {
             <Link href="/account">
               <UserRound aria-hidden />
               {copy.menu.account}
+            </Link>
+          </Menu.Item>
+          <Menu.Item asChild className={itemClasses}>
+            <Link href="/orders">
+              <Package aria-hidden />
+              {copy.menu.orders}
             </Link>
           </Menu.Item>
           <Menu.Item

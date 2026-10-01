@@ -1220,6 +1220,20 @@ at the start). Nothing needed fixing first.
   - A full PIN-code-to-district lookup (India Post data) would catch a
     right-zone, wrong-state PIN and could fill in the city.
 
+- **Orders and shipping follow-ups (from P1.5):**
+  - **Flaky e2e:** `checkout.spec.ts` "a guest's cart moves into their
+    account..." fails on the phone project in the full suite (axe colour
+    contrast on the primary button on `/checkout`) but passes alone. Find
+    the cause (check whether the fixed mobile dock overlaps the button when
+    axe runs) and fix it.
+  - Shiprocket: implement `ShippingProvider` (book in `createShipment`,
+    a webhook route that calls `verifyEvent` then `recordShipmentEvent`),
+    and map its status codes to our steps. Before deploying, never set
+    `TEST_SHIPPING_IN_LOCAL_BUILD` on the server.
+  - Razorpay: refund in `cancelOrder()` for paid orders.
+  - Returned parcels don't restock automatically; decide with the client.
+  - Expire unpaid orders after, say, 24 hours (still open from P1.4).
+
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
 Started in an earlier run, paused, and finished at the start of the P1.2 run
@@ -1765,33 +1779,139 @@ use the address snapshot for shipments. P1.6 can build invoices from
 `OrderItem` (HSN, GST rate, tax) and the state's `gstCode` in
 `src/lib/india.ts`.
 
-## P1.5. Orders and test delivery tracking (BLOCKED, 2026-10-01)
+## P1.5. Orders and test delivery tracking (2026-10-01)
 
-Not started. P1.5 builds on the orders and payments from P1.4, and P1.4 is
-unfinished. Per the task rules this chunk stops here instead of finishing or
-committing P1.4 itself.
+An earlier attempt left a BLOCKED entry here (P1.4 wasn't committed then).
+P1.4 is now committed (`7397096`), so this entry replaces it. Nothing needed
+fixing before starting.
 
-**What it waits on: P1.4 (Cart, checkout and test payment)**
-- P1.4 has a full progress entry, but its work was never committed: the latest
-  commit on `dev` is `5b6745e` (P1.3), and about 40 P1.4 files are still
-  modified or untracked (the `p1_4_cart_checkout` migration, `src/server/cart/`,
-  `src/server/checkout/`, `src/server/payments/`, the checkout pages and
-  `tests/e2e/checkout.spec.ts`).
-- Its entry's **Checks** line still reads the placeholder `CHECKS_LINE`, so
-  there is no record that typecheck, lint, test, test:e2e and build passed.
-  Nobody has verified this tree since the P1.4 run ended.
-- No P1.4 run is active (only this one was running when I checked).
+**Built**
+- **Database** (migration `p1_5_orders_shipping`): `Shipment` (one per
+  order: provider, courier name, unique AWB, status) and `ShipmentEvent`
+  (every step, with location and the admin who made it). Shipment steps:
+  created, packed, shipped, in transit, out for delivery, delivered,
+  undelivered, returned, cancelled. `OrderStatus` gains `returned`;
+  `Order.cancelledAt`.
+- **Rules** (`src/lib/shipping.ts`, shared with the pages): allowed moves
+  (undelivered only from out for delivery; returned from shipped, in transit,
+  out for delivery or undelivered; "next" after a failed attempt sends it
+  out again), the order status for each step (created/packed = processing,
+  on the road or undelivered = shipped, then delivered / returned), and where
+  an order sits on the customer's six-step timeline.
+- **Shipping provider** (`src/server/shipping/`): a `ShippingProvider`
+  interface (`isAvailable`, `createShipment`, `cancelShipment`,
+  `verifyEvent`) and the `test` provider, chosen by `SHIPPING_PROVIDER`
+  (default `test`). It returns a made-up courier ("Test Express
+  (simulated)") and AWB, and refuses `NODE_ENV=production` with the same
+  localhost-only exception as test payments (`TEST_SHIPPING_IN_LOCAL_BUILD`).
+  `shipments.ts`: `createShipment()` (paid orders only; one per order, even
+  on a double click; a spare booking is cancelled with the provider),
+  `recordShipmentEvent()` (applies a checked provider update once, with a
+  conditional update from the current step; replays and skipped steps change
+  nothing) and `simulateShipmentStep()` (the admin buttons send the step they
+  were shown for, so a double click moves one step). Each step writes an
+  event, moves the order status, logs the admin action and sends the buyer a
+  dev-log email (SMS for phone-only accounts) with the courier and AWB.
+- **Admin** (`src/server/admin/orders.ts`, `src/app/admin/orders/`):
+  - `/admin/orders`: real list (search by number, name, phone or email;
+    status; date range in India time; pagination), replacing the P1.1
+    placeholder. The dashboard's Orders tile shows the count and how many
+    wait to ship.
+  - `/admin/orders/[id]`: status, shipment panel (Create shipment, Simulate
+    next step, Mark undelivered, Mark returned, shipment history), items with
+    tier and GST, totals, every payment attempt, customer, address, cancel,
+    and the order's admin activity.
+  - **Cancel** (dialog with an optional reason): allowed until the parcel
+    leaves (pending, failed, paid, processing with a created/packed
+    shipment). Paid orders get their stock back; open payment attempts are
+    closed ("cancelled"), so a late payment can't revive the order; a
+    shipment not yet handed over is cancelled. Applied once under a double
+    submit. The buyer gets a dev-log message.
+- **Customer:**
+  - `/orders` (sign-in required, added to the proxy): order cards, newest
+    first, with status, items, total, "Complete payment" for unpaid ones,
+    pagination. Replaces the ComingSoon page. "My orders" is in the profile
+    menu too.
+  - `/orders/[id]`: delivery card (courier and AWB with a "simulated" note,
+    the timeline, a status note for unpaid / cancelled / undelivered /
+    returned / delivered, tracking history), address, payment, help line and
+    the items summary. 404 for anyone else's order.
+  - The confirmation page now links to the order page instead of "tracking
+    coming soon".
+- **Track Order** (`/track` and the header/footer modal, same
+  `TrackOrderForm`): order number (tidied: `sv-7k2q 9f4m` works) plus the
+  mobile number or email on the order (delivery phone, account phone or
+  account email; never a phone-only account's placeholder email). Limited to
+  10 lookups per 15 minutes per IP and 10 an hour per order number. A wrong
+  number and wrong contact give the same message. The result shows the same
+  timeline; focus moves to it.
+- The six-step timeline uses the `Stepper` from 560 px up; under 560 px the
+  steps stack vertically (six labels don't fit side by side at 375 px).
+- Copy: `src/content/orders.ts` (customer, tracking, messages) and the
+  admin `orders` / `orderDetail` sections in `src/content/admin.ts`.
 
-**Why not just go on:** building P1.5 on unverified, uncommitted work would mix
-two chunks in one commit history and hide any P1.4 failure inside P1.5.
+**Decisions**
+- Stock goes back on cancel only if the payment took it (paid or
+  processing). A **returned** parcel does not restock automatically (the
+  goods may be damaged); the admin adjusts stock in the catalogue.
+- Cancelling a paid order sends no refund: test payments move no money.
+  The Razorpay ticket must refund in `cancelOrder()`.
+- Track Order counts every lookup against both the IP and the order number,
+  so nobody can guess the phone for a known number from many IPs. The cost
+  is that 10 bad lookups lock tracking for that number for up to an hour;
+  the buyer can still sign in and use `/orders`.
+- One shipment per order; split shipments can come with Shiprocket if needed.
 
-**Next steps**
-1. Re-run (or finish) P1.4: run all five checks, fill in its Checks line, and
-   commit it on `dev`.
-2. Re-queue P1.5. It can then replace this entry.
+**Tests**
+- Vitest (369 in total, 27 new): `src/lib/shipping.test.ts` (moves, order
+  status mapping, timeline position); `src/server/shipping/shipments.test.ts`
+  (provider refuses production, create once under a double click, every
+  step with its order status and message, double click and replay applied
+  once, undelivered then out again then returned, cancelled orders untouched);
+  `src/server/admin/orders.test.ts` (cancel restocks once under a race,
+  unpaid cancel blocks a late payment, shipment called off, refused once
+  shipped, list filters); `src/server/orders/tracking.test.ts` (input
+  tidying, phone/email matching, same answer for wrong details, placeholder
+  email never matches, both rate limits, timeline dates, history and
+  ownership); `proxy.test.ts` covers `/orders`.
+- Playwright `tests/e2e/orders.spec.ts` (phone and desktop): order history
+  and the order page (someone else's order is 404); the admin creating a
+  shipment and moving it through every step while the buyer, in another
+  browser, sees each step on `/track`, then in the Track Order modal; wrong
+  details give the same message; cancelling a paid order puts stock back.
+  Orders are written straight to the dev database
+  (`tests/e2e/order-helpers.ts`); cleanup also removes the per-number
+  rate-limit rows.
+- Intended changes: `shell.spec.ts` (`/orders` is no longer a ComingSoon
+  page; the dock test checks the Orders link and follows Coins; the track
+  modal test checks the lookup form) and `admin.spec.ts` (the orders list is
+  real).
 
-Nothing was changed apart from this entry. No P1.5 code was written and checks
-were not run; the tree still holds P1.4's uncommitted work.
+**Checks:** `pnpm typecheck`, `pnpm lint` and `pnpm test` (40 files, 369
+tests) pass. `pnpm build` passes (run by Playwright's web server on each
+e2e run). `pnpm test:e2e` was run per project to stay inside the run's time
+limit: **desktop 91 passed; phone 86 passed, 4 skipped (A9 screenshots,
+desktop only by design), 1 failed**. The failure is the existing
+`checkout.spec.ts` success test on the phone: axe reports colour contrast on
+a primary button (`.hover:bg-orange-ink`) on `/checkout` after the address
+saves. It failed in both full phone runs but passed 9 out of 9 when the
+checkout spec ran alone (`--repeat-each=3`), and P1.5 didn't change the
+checkout page or the button. The likely cause is timing or scroll position
+under load (for example the fixed mobile dock overlapping the button when
+axe runs); it was not fixed in this run (see "Later"). Orders, order page,
+`/track`, the modal and both admin order screens were checked by eye at 375
+and 1280 px; that check found and fixed the timeline labels running into
+each other at 375 px and a payment date breaking mid-word in admin.
+
+**Known gaps**
+- No invoices yet (P1.6). No refunds (test payments). Unpaid orders still
+  never expire (an admin can cancel them).
+- Buyers can't cancel or return orders themselves.
+- The admin order activity lists the order id, not its number.
+
+**Next steps:** P1.6 can hang invoice downloads off `/orders/[id]` and the
+admin order page, and create the credit note in `cancelOrder()` (it already
+knows whether the order was paid).
 
 ## P1.6. GST invoices (BLOCKED, 2026-10-01)
 

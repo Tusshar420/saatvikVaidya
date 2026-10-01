@@ -24,7 +24,8 @@ type StatusForPath =
   | "cancelled"
   | "processing"
   | "shipped"
-  | "delivered";
+  | "delivered"
+  | "returned";
 
 /** Where an order's buyer goes after checkout: pay, confirmation or failure. */
 export function checkoutPathFor(orderId: string, status: StatusForPath): string {
@@ -33,6 +34,7 @@ export function checkoutPathFor(orderId: string, status: StatusForPath): string 
     case "processing":
     case "shipped":
     case "delivered":
+    case "returned":
       return `/checkout/confirmation/${orderId}`;
     case "payment_failed":
       return `/checkout/failed/${orderId}`;

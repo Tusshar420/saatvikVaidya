@@ -83,14 +83,14 @@ export default async function ConfirmationPage({
               </dd>
             </div>
           </dl>
-          <p className="mt-5 border-t border-line pt-4 text-small text-muted">{text.trackingSoon}</p>
+          <p className="mt-5 border-t border-line pt-4 text-small text-muted">{text.trackingLine}</p>
           <ButtonGroup className="mt-5">
-            <Link href="/products" className={buttonClasses()}>
-              {text.continueShopping}
+            <Link href={`/orders/${order.id}`} className={buttonClasses()}>
+              {text.viewOrder}
               <ButtonArrow />
             </Link>
-            <Link href="/" className={buttonClasses({ variant: "secondary" })}>
-              {text.backHome}
+            <Link href="/products" className={buttonClasses({ variant: "secondary" })}>
+              {text.continueShopping}
             </Link>
           </ButtonGroup>
         </section>
