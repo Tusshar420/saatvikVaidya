@@ -1698,3 +1698,44 @@ and P1.5 are done.
 
 Nothing was changed apart from this entry. No P1.7 code was written and checks
 were not run; the tree still holds P1.3's uncommitted work.
+
+## P1.8. Ebooks (BLOCKED, 2026-10-01)
+
+Not started. P1.8 says paid books are "bought through the normal cart and test
+payment" and can then be downloaded "only by buyers". The cart, orders and test
+payment come from P1.4, which has not been built (see its entry above). Per the
+task rules this chunk stops here instead of building P1.4 (or finishing P1.3)
+itself.
+
+**What's missing (checked in code, schema and git on 2026-10-01)**
+- **P1.4 is not built:** `prisma/schema.prisma` has no `Cart`, `Order`,
+  `OrderItem` or `Payment` models, and there is no `src/server/payments/` or
+  cart code. Without it, a paid ebook can't be added to the cart or paid for,
+  and there is no paid order to show who is a "buyer". So the main access rule
+  (paid non-buyer refused, buyer allowed) can't be built or tested.
+- **P1.3 is still unfinished:** its work is still uncommitted on `dev` (latest
+  commit `219e66c`, no `P1.3` commit), and `pnpm test:e2e` was failing when
+  P1.4 checked. An `Ebook` migration now would stack on top of P1.3's
+  uncommitted schema changes and its migration
+  (`prisma/migrations/20260930234005_p1_3_catalogue/`).
+- What already exists and P1.8 will reuse: the P1.2 `Storage` interface in
+  `src/server/storage/` (which already streams files) and the auth rate
+  limiting.
+
+**Why it can't go ahead partially:** some parts don't need orders: the `Ebook`
+model, `/admin/ebooks`, the `/ebooks` pages, free downloads for signed-in
+users, and the site-wide and per-book download switches. But how an ebook goes
+into the cart and an order (as a cart line, or as a product with no stock or
+shipping) is a P1.4 design choice. Guessing it now would very likely clash with
+P1.4, and the chunk's "done" needs the paid-book buyer tests. So all of it is
+left until P1.4 is done.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
+2. Run P1.4. It helps if P1.4 leaves room for non-physical lines (no stock, no
+   shipping) so ebooks can go through the same cart and payment.
+3. Re-queue P1.8. It doesn't depend on P1.5, P1.6 or P1.7, but an ebook order
+   should skip shipment creation in P1.5 if that is built first.
+
+Nothing was changed apart from this entry. No P1.8 code was written and checks
+were not run; the tree still holds P1.3's uncommitted work.
