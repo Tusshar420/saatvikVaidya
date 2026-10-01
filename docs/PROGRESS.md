@@ -1985,69 +1985,57 @@ checks were run. The tree still holds P1.3's uncommitted work.
 
 ## P1.10. My account and admin reports (BLOCKED, 2026-10-01)
 
-Not started. Most of P1.10 reads data that earlier chunks create, and those
-chunks aren't built: the reports cover sales, orders, top products and coins,
-the CSV export is of orders, the account page manages saved addresses, and its
-done-check is "reports match seeded orders". P1.4, P1.5, P1.7 and P1.8 are all
-blocked (see their entries above), and P1.3 is still unfinished. Per the task
-rules this chunk stops here instead of building them itself.
+Not started. This replaces the earlier P1.10 blocker entry, which is out of
+date: P1.3 is now committed (`5b6745e`), and P1.4's `Address`, `Order`,
+`OrderItem` and `Payment` models are in the tree. But P1.10 still waits on
+earlier chunks, so per the task rules it stops here.
 
-**What's missing (checked in code, schema and git on 2026-10-01)**
-- **P1.4 is not built:** `prisma/schema.prisma` has no `Order`, `OrderItem`,
-  `Payment`, `Cart` or `Address` models, and there is no
-  `src/server/payments/`. Without it there's nothing for sales by
-  day/week/month, orders by status, top products or the orders CSV to
-  read, and no saved addresses for `/account` to manage. (`Address` is
-  P1.4's model, with the PIN code and state checks that checkout uses.)
-- **P1.5 is not built:** `/orders` and `/admin/orders` are still
-  placeholders, so the account page's "orders" link has no real page to
-  open, and the order statuses past `paid` don't exist yet.
-- **P1.7 is not built:** there is no `CoinLedger`, so "coins issued/redeemed"
-  can't be reported. `/coins` is still a coming-soon page.
-- **P1.8 is not built:** there is no `Ebook` model or `/ebooks` page for the
-  account page to link to.
-- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
-  commit `35b204f`, no `P1.3` commit; still 38 changed or new paths). Its four
-  `catalogue.spec.ts` tests were failing at the last run (see the P1.9
-  entry), so `pnpm test:e2e` can't be green. P1.10 would also touch
-  `prisma/schema.prisma` (notification preferences need a migration on top of
-  P1.3's uncommitted `20260930234005_p1_3_catalogue`), `src/content/admin.ts`
-  and `src/components/admin/admin-nav.tsx`, all of which already hold
-  P1.3's uncommitted edits.
+**What it waits on (checked in git, schema and docs on 2026-10-01, latest
+commit `4a62a9b`)**
+- **P1.4 (Cart, checkout and test payment) is unfinished.** Its work is still
+  uncommitted on `dev` (no P1.4 commit; 39 paths modified or untracked,
+  including the `p1_4_cart_checkout` migration, `src/server/cart/`,
+  `src/server/checkout/` and `src/server/payments/`), and its entry's
+  **Checks** line is still the placeholder `CHECKS_LINE`, so nothing shows the
+  five checks passed. P1.10's sales, orders, top products and orders CSV all
+  read P1.4's orders, and `/account` manages its saved addresses.
+- **P1.5 (Orders and test delivery tracking) is BLOCKED**, so `/orders` is
+  still a placeholder and order statuses past `paid` aren't used. "Orders by
+  status" and the account page's orders link need it.
+- **P1.7 (Super Coins) is BLOCKED**: there is no `CoinLedger` model, so "coins
+  issued/redeemed" can't be reported.
+- **P1.8 (Ebooks) is BLOCKED**: there is no `Ebook` model or `/ebooks` page for
+  the account page to link to.
+- No P1.4 run is active right now.
 
-**Why it can't go ahead partially:** a few parts don't need orders: editing
-the name, changing the password, the email verification link, notification
-preferences, and the "new users by type" and "pending approvals" reports with
-a users CSV. But the chunk's tests ("reports match seeded orders") and the
-orders CSV need P1.4's orders, and a schema change now would stack on P1.3's
-uncommitted migration and be mixed up with its files. Building stand-in order,
-address or coin models would clash with P1.4 and P1.7. So all of it is left
-for later.
+**Why not build part of it:** the chunk's tests ("reports match seeded
+orders") need committed, verified orders. The notification preferences need a
+schema change, which would stack on P1.4's uncommitted migration, and P1.10's
+commits couldn't be kept apart from P1.4's uncommitted edits (for example
+`prisma/schema.prisma`).
 
-**Notes for the run that builds P1.10**
-- What exists now: `/account` (`src/app/(site)/account/page.tsx`) is the
-  A5/P1.2 account page with the verification status and documents.
-  `src/server/auth/account.ts` already reads `emailVerified`. The dev notifier
-  in `src/server/notify/` (with `dev-outbox.ts` for tests) can send the
-  verification link. `AdminLog` (`src/server/admin/audit.ts`) can log CSV
+**Notes for the run that builds P1.10** (still valid from the earlier entry)
+- `/account` today is `src/app/(site)/account/page.tsx` (A5/P1.2: verification
+  status and documents). `src/server/auth/account.ts` reads `emailVerified`.
+  The dev notifier (`src/server/notify/`, `dev-outbox.ts` for tests) can send
+  the verification link. `AdminLog` (`src/server/admin/audit.ts`) can log CSV
   exports.
 - If P1.11 is built first, `/admin/reports` and the CSV routes must use its
   per-area permission check rather than plain `requireAdmin()`.
-- Reports should sum money in paise from the order items' snapshots, and
-  coins from `CoinLedger`, so they match invoices and balances exactly.
-- CSV cells that start with `=`, `+`, `-` or `@` need escaping (formula
-  injection), since names and addresses are user-typed.
+- Sum money in paise from `OrderItem` snapshots and coins from `CoinLedger`,
+  so reports match invoices and balances exactly.
+- Escape CSV cells starting with `=`, `+`, `-` or `@` (formula injection),
+  since names and addresses are user-typed.
 
 **Next steps**
-1. Finish P1.3 (steps in the P1.4 entry; only the four catalogue tests are
-   still failing), get all five checks green and commit.
-2. Re-queue P1.9 (it can go before P1.4), then P1.4, P1.5, P1.7 and P1.8
-   (P1.6 and P1.11 when convenient).
+1. Finish P1.4: run the five checks, fill in its **Checks** line, commit.
+2. Build P1.5, P1.7 and P1.8 (and P1.6 and P1.9 in order), replacing their
+   BLOCKED entries.
 3. Re-queue P1.10.
 
 Nothing was changed apart from this entry. No P1.10 code was written and no
 checks were run, since no file under `src/`, `prisma/` or `tests/` was
-touched. The tree still holds P1.3's uncommitted work.
+touched. The tree still holds P1.4's uncommitted work.
 
 ## P2.1. Launch Your Brand: request and admin review (BLOCKED, 2026-10-01)
 
