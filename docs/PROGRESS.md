@@ -1855,3 +1855,69 @@ rules this chunk stops here instead of finishing P1.3 itself.
 
 Nothing was changed apart from this entry. No P1.11 code was written and no
 checks were run. The tree still holds P1.3's uncommitted work.
+
+## P1.10. My account and admin reports (BLOCKED, 2026-10-01)
+
+Not started. Most of P1.10 reads data that earlier chunks create, and those
+chunks aren't built: the reports cover sales, orders, top products and coins,
+the CSV export is of orders, the account page manages saved addresses, and its
+done-check is "reports match seeded orders". P1.4, P1.5, P1.7 and P1.8 are all
+blocked (see their entries above), and P1.3 is still unfinished. Per the task
+rules this chunk stops here instead of building them itself.
+
+**What's missing (checked in code, schema and git on 2026-10-01)**
+- **P1.4 is not built:** `prisma/schema.prisma` has no `Order`, `OrderItem`,
+  `Payment`, `Cart` or `Address` models, and there is no
+  `src/server/payments/`. Without it there's nothing for sales by
+  day/week/month, orders by status, top products or the orders CSV to
+  read, and no saved addresses for `/account` to manage. (`Address` is
+  P1.4's model, with the PIN code and state checks that checkout uses.)
+- **P1.5 is not built:** `/orders` and `/admin/orders` are still
+  placeholders, so the account page's "orders" link has no real page to
+  open, and the order statuses past `paid` don't exist yet.
+- **P1.7 is not built:** there is no `CoinLedger`, so "coins issued/redeemed"
+  can't be reported. `/coins` is still a coming-soon page.
+- **P1.8 is not built:** there is no `Ebook` model or `/ebooks` page for the
+  account page to link to.
+- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
+  commit `35b204f`, no `P1.3` commit; still 38 changed or new paths). Its four
+  `catalogue.spec.ts` tests were failing at the last run (see the P1.9
+  entry), so `pnpm test:e2e` can't be green. P1.10 would also touch
+  `prisma/schema.prisma` (notification preferences need a migration on top of
+  P1.3's uncommitted `20260930234005_p1_3_catalogue`), `src/content/admin.ts`
+  and `src/components/admin/admin-nav.tsx`, all of which already hold
+  P1.3's uncommitted edits.
+
+**Why it can't go ahead partially:** a few parts don't need orders: editing
+the name, changing the password, the email verification link, notification
+preferences, and the "new users by type" and "pending approvals" reports with
+a users CSV. But the chunk's tests ("reports match seeded orders") and the
+orders CSV need P1.4's orders, and a schema change now would stack on P1.3's
+uncommitted migration and be mixed up with its files. Building stand-in order,
+address or coin models would clash with P1.4 and P1.7. So all of it is left
+for later.
+
+**Notes for the run that builds P1.10**
+- What exists now: `/account` (`src/app/(site)/account/page.tsx`) is the
+  A5/P1.2 account page with the verification status and documents.
+  `src/server/auth/account.ts` already reads `emailVerified`. The dev notifier
+  in `src/server/notify/` (with `dev-outbox.ts` for tests) can send the
+  verification link. `AdminLog` (`src/server/admin/audit.ts`) can log CSV
+  exports.
+- If P1.11 is built first, `/admin/reports` and the CSV routes must use its
+  per-area permission check rather than plain `requireAdmin()`.
+- Reports should sum money in paise from the order items' snapshots, and
+  coins from `CoinLedger`, so they match invoices and balances exactly.
+- CSV cells that start with `=`, `+`, `-` or `@` need escaping (formula
+  injection), since names and addresses are user-typed.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry; only the four catalogue tests are
+   still failing), get all five checks green and commit.
+2. Re-queue P1.9 (it can go before P1.4), then P1.4, P1.5, P1.7 and P1.8
+   (P1.6 and P1.11 when convenient).
+3. Re-queue P1.10.
+
+Nothing was changed apart from this entry. No P1.10 code was written and no
+checks were run, since no file under `src/`, `prisma/` or `tests/` was
+touched. The tree still holds P1.3's uncommitted work.
