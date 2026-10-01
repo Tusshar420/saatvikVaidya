@@ -1,6 +1,7 @@
 import "server-only";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
+import { earnForOrder, ledgerTransaction, releaseCoins } from "@/server/coins/ledger";
 import { issueInvoice, issueQuietly } from "@/server/invoices/invoices";
 import { sendOrderConfirmation } from "@/server/notify/orders";
 import type { VerifiedPayment } from "@/server/payments";
@@ -40,10 +41,15 @@ async function fail(
     data: { status: "failed", failureReason: reason.slice(0, 40), completedAt: new Date() },
   });
   if (claimed.count === 0) return false;
-  await tx.order.updateMany({
+  const failed = await tx.order.updateMany({
     where: { id: orderId, status: "pending_payment" },
     data: { status: "payment_failed" },
   });
+  // The coins held for this attempt go back; "Try again" takes them again.
+  if (failed.count > 0) {
+    const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, select: { userId: true } });
+    if (order.userId) await releaseCoins(tx, order.userId, orderId);
+  }
   return true;
 }
 
@@ -71,7 +77,7 @@ export async function completePayment(
   };
 
   if (verified.outcome === "failed") {
-    const changed = await db.$transaction((tx) =>
+    const changed = await ledgerTransaction((tx) =>
       fail(tx, paymentId, orderId, verified.failureReason ?? "failed"),
     );
     return current(changed);
@@ -122,7 +128,7 @@ export async function completePayment(
     });
   } catch (error) {
     if (error instanceof OutOfStock) {
-      const failed = await db.$transaction((tx) => fail(tx, paymentId, orderId, "out_of_stock"));
+      const failed = await ledgerTransaction((tx) => fail(tx, paymentId, orderId, "out_of_stock"));
       return current(failed);
     }
     // The order stopped waiting for payment (e.g. cancelled): nothing applied.
@@ -132,6 +138,9 @@ export async function completePayment(
 
   if (changed) {
     await issueQuietly(issueInvoice, orderId);
+    await earnForOrder(orderId, "paid").catch((error: unknown) => {
+      console.error("completePayment: coins not credited.", error);
+    });
     try {
       await sendOrderConfirmation(orderId);
     } catch (error) {

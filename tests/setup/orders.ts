@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { addToCart, readCart, type CartOwner } from "@/server/cart/cart";
+import { maxRedemption } from "@/lib/coins";
+import { coinSummary } from "@/server/coins/ledger";
+import { computeTotals } from "@/server/checkout/totals";
+import { getSetting } from "@/server/content/settings";
 import { createAddress, parseAddress } from "@/server/checkout/addresses";
 import { placeOrder, startPaymentAttempt } from "@/server/checkout/orders";
 import { completePayment } from "@/server/checkout/payments";
@@ -34,10 +38,14 @@ export async function makeOrder(
     email?: string;
     phoneNumber?: string;
     address?: Partial<typeof validAddress>;
+    /** Use the buyer's coins on the order (the most the rules allow). */
+    redeemCoins?: boolean;
+    /** Unit price of the product's MRP in paise (default 32,000). */
+    mrpPaise?: number;
   } = {},
 ): Promise<TestOrder> {
   const quantity = options.quantity ?? 2;
-  const product = await makeProduct(db, { stock: 50 });
+  const product = await makeProduct(db, { stock: 50, mrpPaise: options.mrpPaise });
   const userId =
     options.userId ??
     (await makeUser(db, { email: options.email, phoneNumber: options.phoneNumber }));
@@ -49,13 +57,22 @@ export async function makeOrder(
   const added = await addToCart(owner, product.id, quantity);
   if (!added.ok) throw new Error("not added to cart");
   const cart = await readCart(owner, customer, shipping);
+  const coinRules = await getSetting("coins.rules");
+  let expectedTotalPaise = cart.totals.totalPaise;
+  if (options.redeemCoins) {
+    const { balance } = await coinSummary(db, userId);
+    const redemption = maxRedemption(balance, cart.totals.subtotalPaise, coinRules);
+    expectedTotalPaise = computeTotals(cart.lines, shipping, redemption.discountPaise).totalPaise;
+  }
   const placed = await placeOrder({
     userId,
     viewer: customer,
     addressId: address.id,
     checkoutKey: randomUUID(),
-    expectedTotalPaise: cart.totals.totalPaise,
+    expectedTotalPaise,
     shipping,
+    coinRules,
+    redeemCoins: options.redeemCoins ?? false,
   });
   if (!placed.ok) throw new Error(`order not placed: ${placed.error}`);
   if (options.pay !== false) {

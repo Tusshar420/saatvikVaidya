@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { isOrderId } from "@/lib/orders";
+import { ledgerTransaction, releaseCoins, reverseOrderEarnings } from "@/server/coins/ledger";
 import { db } from "@/server/db";
 import { issueCreditNote, issueQuietly } from "@/server/invoices/invoices";
 import { sendOrderCancelled } from "@/server/notify/orders";
@@ -188,6 +189,7 @@ export async function cancelOrder(
     where: { id: orderId },
     select: {
       status: true,
+      userId: true,
       shipment: { select: { id: true, status: true, awb: true, provider: true } },
     },
   });
@@ -196,7 +198,7 @@ export async function cancelOrder(
   if (!canCancelOrder(order)) return { ok: false, error: "not_allowed" };
 
   const now = new Date();
-  const outcome = await db.$transaction(async (tx) => {
+  const outcome = await ledgerTransaction(async (tx) => {
     // Claim the cancel from the status we saw, so it happens once.
     const claimed = await tx.order.updateMany({
       where: { id: orderId, status: order.status },
@@ -217,6 +219,11 @@ export async function cancelOrder(
           UPDATE Product SET stock = stock + ${item.quantity}, updatedAt = NOW(3)
           WHERE id = ${item.productId}`;
       }
+    }
+    // Coins held for the order go back; coins it earned are taken back.
+    if (order.userId) {
+      await releaseCoins(tx, order.userId, orderId);
+      await reverseOrderEarnings(tx, order.userId, orderId);
     }
     // An unpaid order's open attempt can't be paid any more.
     await tx.payment.updateMany({

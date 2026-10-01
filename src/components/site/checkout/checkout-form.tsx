@@ -11,8 +11,11 @@ import { SelectField, TextField, useFormValues } from "@/components/admin/form-f
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { OrderSummary, type OrderSummaryProps } from "@/components/site/cart/order-summary";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { checkout as copy } from "@/content/checkout";
+import { coins as coinCopy } from "@/content/coins";
+import { formatPaise } from "@/lib/format";
 import { addressLines, addressPhone } from "@/lib/address";
 import { cn } from "@/lib/cn";
 import { indianStates } from "@/lib/india";
@@ -26,6 +29,13 @@ export type CheckoutFormProps = {
   checkoutKey: string;
   totals: OrderSummaryProps["totals"];
   items: NonNullable<OrderSummaryProps["items"]>;
+  /** Coins the buyer could use on this order; null when none or the programme is off. */
+  coinOffer: {
+    balance: number;
+    coins: number;
+    discountPaise: number;
+    totals: OrderSummaryProps["totals"];
+  } | null;
   /** Shown instead of "Place order" when online payment can't be taken. */
   paymentsOff: ReactNode | null;
 };
@@ -38,10 +48,14 @@ export type CheckoutFormProps = {
 export function CheckoutForm({
   addresses,
   checkoutKey,
-  totals,
+  totals: plainTotals,
   items,
+  coinOffer,
   paymentsOff,
 }: CheckoutFormProps) {
+  const [useCoins, setUseCoins] = useState(false);
+  const canUseCoins = coinOffer !== null && coinOffer.coins > 0;
+  const totals = useCoins && canUseCoins ? coinOffer.totals : plainTotals;
   const [selected, setSelected] = useState<number | null>(addresses[0]?.id ?? null);
   const [editing, setEditing] = useState<"new" | number | null>(
     addresses.length === 0 ? "new" : null,
@@ -175,6 +189,22 @@ export function CheckoutForm({
             <input type="hidden" name="addressId" value={chosen ?? ""} />
             <input type="hidden" name="checkoutKey" value={checkoutKey} />
             <input type="hidden" name="expectedTotalPaise" value={totals.totalPaise} />
+            {coinOffer && (
+              <div className="rounded-lg border border-line bg-surface-alt px-3 py-1">
+                {canUseCoins ? (
+                  <Checkbox
+                    name="redeemCoins"
+                    checked={useCoins}
+                    onChange={(event) => setUseCoins(event.target.checked)}
+                    help={coinCopy.checkout.help(coinOffer.balance)}
+                  >
+                    {coinCopy.checkout.label(coinOffer.coins, formatPaise(coinOffer.discountPaise))}
+                  </Checkbox>
+                ) : (
+                  <p className="py-2.5 text-small text-muted">{coinCopy.checkout.none(coinOffer.balance)}</p>
+                )}
+              </div>
+            )}
             {placeState.status === "error" && <FormAlert>{placeState.message}</FormAlert>}
             {chosen === null && (
               <p id="place-needs-address" className="text-small font-bold text-orange-ink">

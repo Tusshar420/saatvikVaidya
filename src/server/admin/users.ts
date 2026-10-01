@@ -12,6 +12,7 @@ import {
   placeholderEmailFor,
 } from "@/server/auth/placeholder-email";
 import { passwordPolicy } from "@/server/auth/policy";
+import { awardProfileReward } from "@/server/coins/ledger";
 import { db } from "@/server/db";
 import { deleteFilesQuietly } from "@/server/storage";
 import {
@@ -610,6 +611,14 @@ export async function decideVerification(
     }
     return changed;
   });
+  if (decision === "approved") {
+    // "Add professional details": rewarded once a professional is approved.
+    for (const user of decided) {
+      await awardProfileReward(user.id, "details").catch((error: unknown) => {
+        console.error("decideVerification: coins not credited.", error);
+      });
+    }
+  }
   await sendDecisions(decided, decision, note);
   return { changed: decided.length, skipped: unique.length - decided.length };
 }

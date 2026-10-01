@@ -1,12 +1,11 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
-  comingSoonPages,
   policyPages,
-  type ComingSoonPageCopy,
   type PolicyPageCopy,
 } from "../../src/content/pages";
 import { cart } from "../../src/content/cart";
 import { catalogue } from "../../src/content/catalogue";
+import { coins as coinsCopy } from "../../src/content/coins";
 import { settingDefaults } from "../../src/content/settings";
 import { orders } from "../../src/content/orders";
 import { navItems, policyLinks, shell } from "../../src/content/shell";
@@ -16,10 +15,6 @@ import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 const phone = settingDefaults["contact.phone"];
 const tel = "tel:+919220358400";
-
-const comingSoonRoutes: [string, ComingSoonPageCopy][] = [
-  ["/coins", comingSoonPages.coins],
-];
 
 const policyCopy: Record<string, PolicyPageCopy> = {
   "/privacy": policyPages.privacy,
@@ -186,7 +181,7 @@ test.describe("header", () => {
       await dock(page).getByRole("link", { name: shell.dock.coins }).click();
       await expect(page).toHaveURL("/coins");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        comingSoonPages.coins.title,
+        coinsCopy.title,
       );
     } else {
       await header(page)
@@ -314,7 +309,7 @@ test.describe("mobile dock", () => {
     await bar.getByRole("link", { name: shell.dock.coins }).click();
     await expect(page).toHaveURL("/coins");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      comingSoonPages.coins.title,
+      coinsCopy.title,
     );
     await expect(
       bar.getByRole("link", { name: shell.dock.coins }),
@@ -440,28 +435,17 @@ test.describe("pages", () => {
     await expect(page.locator("#main")).toBeFocused();
   });
 
-  for (const [route, copy] of comingSoonRoutes) {
-    test(`${route} is a ComingSoon page with a way home`, async ({ page }) => {
-      const errors = collectErrors(page);
-      await page.goto(route);
-      await expect(page).toHaveTitle(new RegExp(`^${copy.metaTitle} · `));
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        copy.title,
-      );
-      await expect(page.getByText(copy.line)).toBeVisible();
-      await expect(
-        page.getByRole("main").getByRole("link", { name: phone }),
-      ).toHaveAttribute("href", tel);
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
-      expect(errors).toEqual([]);
-
-      await page
-        .getByRole("main")
-        .getByRole("link", { name: comingSoonPages.backHome })
-        .click();
-      await expect(page).toHaveURL("/");
-    });
-  }
+  test("/coins explains the rules to a signed-out visitor", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/coins");
+    await expect(page).toHaveTitle(new RegExp(`^${coinsCopy.metaTitle} · `));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(coinsCopy.title);
+    await expect(page.getByText(coinsCopy.signedOutLine)).toBeVisible();
+    await expect(page.getByRole("heading", { name: coinsCopy.earn.title })).toBeVisible();
+    await expect(page.getByRole("heading", { name: coinsCopy.use.title })).toBeVisible();
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    expect(errors).toEqual([]);
+  });
 
   test("footer policy links open their placeholder pages", async ({ page }) => {
     for (const link of policyLinks) {

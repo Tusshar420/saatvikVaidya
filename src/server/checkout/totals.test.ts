@@ -69,6 +69,8 @@ describe("computeTotals", () => {
       taxPaise: 0,
       gst: [],
       shippingPaise: 0,
+      coinDiscountPaise: 0,
+      lineDiscountsPaise: [],
       totalPaise: 0,
       freeFromPaise: 99_900,
       toFreeShippingPaise: null,

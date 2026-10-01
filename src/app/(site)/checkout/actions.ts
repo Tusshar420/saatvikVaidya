@@ -69,6 +69,11 @@ const placeSchema = z.object({
   addressId: idSchema,
   checkoutKey: z.uuid(),
   expectedTotalPaise: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  /** The "Use my coins" checkbox: "on" when ticked, missing otherwise. */
+  redeemCoins: z
+    .literal("on")
+    .optional()
+    .transform((value) => value === "on"),
 });
 
 const placeErrors: Record<PlaceOrderError, string> = {
@@ -76,6 +81,7 @@ const placeErrors: Record<PlaceOrderError, string> = {
   empty: copy.place.errors.empty,
   cart_changed: copy.place.errors.cartChanged,
   payments_off: copy.place.errors.paymentsOff,
+  coins: copy.place.errors.coins,
   rate_limited: copy.place.errors.generic,
 };
 
@@ -89,14 +95,15 @@ export async function placeOrderAction(_: FormState, formData: FormData): Promis
       message: missingAddress ? copy.place.errors.address : copy.place.errors.generic,
     };
   }
-  const [viewer, shipping] = await Promise.all([
+  const [viewer, shipping, coinRules] = await Promise.all([
     getPricingViewer(),
     getSetting("checkout.shipping"),
+    getSetting("coins.rules"),
   ]);
-  const result = await placeOrder({ userId: user.id, viewer, shipping, ...parsed.data });
+  const result = await placeOrder({ userId: user.id, viewer, shipping, coinRules, ...parsed.data });
   if (!result.ok) {
     // Show the cart as it is now, so the summary matches what changed.
-    if (result.error === "cart_changed" || result.error === "empty") revalidatePath("/checkout");
+    if (["cart_changed", "empty", "coins"].includes(result.error)) revalidatePath("/checkout");
     return { status: "error", message: placeErrors[result.error] };
   }
   redirect(`/checkout/pay/${result.orderId}`);

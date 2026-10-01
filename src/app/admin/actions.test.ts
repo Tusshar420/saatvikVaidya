@@ -20,6 +20,8 @@ vi.mock("@/server/auth/session", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   updateTag: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (read: () => Promise<unknown>) => read,
 }));
 const navigation = vi.hoisted(() => ({
   redirect: vi.fn((url: string) => {

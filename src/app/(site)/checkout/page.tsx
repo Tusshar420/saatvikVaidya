@@ -14,6 +14,8 @@ import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
 import { requireUser } from "@/server/auth/session";
 import { readCart } from "@/server/cart/cart";
+import { checkoutOffer } from "@/server/coins/ledger";
+import { computeTotals } from "@/server/checkout/totals";
 import { listAddresses } from "@/server/checkout/addresses";
 import { getSetting } from "@/server/content/settings";
 import { paymentsAvailable } from "@/server/payments";
@@ -31,14 +33,33 @@ export const metadata: Metadata = {
  */
 export default async function CheckoutPage() {
   const { user } = await requireUser("/checkout");
-  const [viewer, shipping, addresses, phone] = await Promise.all([
+  const [viewer, shipping, addresses, phone, coinRules] = await Promise.all([
     getPricingViewer(),
     getSetting("checkout.shipping"),
     listAddresses(user.id),
     getSetting("contact.phone"),
+    getSetting("coins.rules"),
   ]);
   const cart = await readCart({ kind: "user", userId: user.id }, viewer, shipping);
   if (cart.lines.length === 0) redirect("/cart");
+  // What the buyer's coins could take off this order, if they choose to use
+  // them. The server works it out again when the order is placed.
+  const offer = coinRules.enabled
+    ? await checkoutOffer(user.id, cart.totals.subtotalPaise, coinRules)
+    : null;
+  const coinOffer =
+    offer && offer.balance > 0
+      ? {
+          balance: offer.balance,
+          coins: offer.coins,
+          discountPaise: offer.discountPaise,
+          totals: computeTotals(
+            cart.lines,
+            shipping,
+            offer.discountPaise,
+          ),
+        }
+      : null;
 
   return (
     <div className="shell py-8 sm:py-12">
@@ -60,6 +81,7 @@ export default async function CheckoutPage() {
           addresses={addresses}
           checkoutKey={randomUUID()}
           totals={cart.totals}
+          coinOffer={coinOffer}
           items={cart.lines.map((line) => ({
             key: line.productId,
             name: line.name,

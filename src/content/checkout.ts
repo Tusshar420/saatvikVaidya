@@ -73,6 +73,7 @@ export const checkout = {
       cartChanged:
         "Something in your cart changed (price, stock or availability). Check your cart and try again.",
       paymentsOff: "Online payment is not available right now.",
+      coins: "Your coins changed, so they couldn't be used. Check the summary and try again.",
       generic: "We couldn't place your order. Please try again.",
     },
   },

@@ -11,6 +11,8 @@ import { getSignUpUserTypes } from "@/server/content/user-types";
 import { isDevOtpVisible } from "@/server/env";
 import { getSession } from "@/server/auth/session";
 import { cartCount } from "@/server/cart/cart";
+import { coinSummary } from "@/server/coins/ledger";
+import { db } from "@/server/db";
 import { currentCartOwner } from "@/server/cart/request";
 
 // Every public page: skip link, header with nav rail, footer, and the dock on
@@ -29,6 +31,7 @@ export default async function SiteLayout({
     session,
     enabledSections,
     bagCount,
+    coinRules,
   ] = await Promise.all([
     getSetting("contact.phone"),
     getSetting("contact.supportNote"),
@@ -38,7 +41,10 @@ export default async function SiteLayout({
     getSession(),
     getEnabledSectionKeys(),
     currentCartOwner().then(cartCount),
+    getSetting("coins.rules"),
   ]);
+  const coinBalance =
+    session && coinRules.enabled ? (await coinSummary(db, session.user.id)).balance : null;
 
   const filteredNavItems = navItems.filter((item) =>
     enabledSections.includes(item.id),
@@ -57,8 +63,8 @@ export default async function SiteLayout({
         popularSearches={popularSearches}
         phone={phone}
         navItems={filteredNavItems}
-        // When signed in, show 0 coins; when signed out, hide the pill
-        coinBalance={session ? 0 : null}
+        // The ledger balance when signed in; no pill when signed out or the programme is off
+        coinBalance={coinBalance}
         bagCount={bagCount}
       />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">

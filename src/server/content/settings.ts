@@ -35,6 +35,17 @@ export const settingSchemas = {
     .refine((seller) => seller.gstin.startsWith(indianState(seller.stateCode)?.gstCode ?? "--"), {
       path: ["gstin"],
     }),
+  "coins.rules": z.object({
+    enabled: z.boolean(),
+    earnPerThousandRupees: z.number().int().min(0).max(10_000),
+    earnAfterDelivery: z.boolean(),
+    interestsReward: z.number().int().min(0).max(1_000_000),
+    detailsReward: z.number().int().min(0).max(1_000_000),
+    coinsPerRupee: z.number().int().min(1).max(1_000),
+    maxRedeemPercent: z.number().int().min(0).max(100),
+    maxRedeemCoins: z.number().int().min(0).max(100_000_000),
+    expiryMonths: z.number().int().min(0).max(240),
+  }),
 } satisfies { [K in SettingKey]: z.ZodType<SettingValues[K]> };
 
 const settingKeys = Object.keys(settingDefaults) as SettingKey[];

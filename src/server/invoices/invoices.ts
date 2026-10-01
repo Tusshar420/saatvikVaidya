@@ -243,6 +243,7 @@ export async function issueInvoice(orderId: string): Promise<IssuedDocument | nu
           unitPaise: true,
           gstRate: true,
           lineTotalPaise: true,
+          discountPaise: true,
         },
       },
       payments: { where: { status: "succeeded" }, select: { provider: true } },
@@ -260,7 +261,7 @@ export async function issueInvoice(orderId: string): Promise<IssuedDocument | nu
     quantity: item.quantity,
     unitPaise: item.unitPaise,
     gstRate: item.gstRate,
-    totalPaise: item.lineTotalPaise,
+    totalPaise: item.lineTotalPaise - item.discountPaise,
   }));
   const delivery = deliveryLine(order.shippingPaise, goods, copy.pdf.deliveryCharge);
   const lines = [...goods, ...(delivery ? [delivery] : [])].map((line) => taxLine(line, interState));

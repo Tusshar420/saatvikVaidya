@@ -1,4 +1,4 @@
-// Strings for the ComingSoon routes (/coins) and the policy placeholder pages. Keep
+// Strings for the ComingSoon pages and the policy placeholder pages. Keep
 // user-facing text here so Hindi can be added later.
 
 export type ComingSoonPageCopy = {
@@ -8,11 +8,6 @@ export type ComingSoonPageCopy = {
 };
 
 export const comingSoonPages = {
-  coins: {
-    metaTitle: "Saatvik Coins",
-    title: "Saatvik Coins are coming soon",
-    line: "Soon you'll earn coins on every order and redeem them on the next one. Your balance will show here.",
-  },
   backHome: "Back to home",
   call: (phone: string) => `Call ${phone}`,
 } as const;

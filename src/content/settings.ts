@@ -30,6 +30,28 @@ export type SettingValues = {
     pincode: string;
     gstin: string;
   };
+  /**
+   * Super Coins rules (P1.7). Editable in /admin/coins.
+   * - `earnPerThousandRupees`: coins earned per ₹1,000 of items (after
+   *   coins used, without delivery).
+   * - `earnAfterDelivery`: earn when delivered; otherwise when paid.
+   * - `interestsReward` / `detailsReward`: profile-completion rewards.
+   * - `coinsPerRupee`: how many coins are worth ₹1.
+   * - `maxRedeemPercent` / `maxRedeemCoins`: most of an order's items total
+   *   (and most coins) that can be paid with coins.
+   * - `expiryMonths`: how long earned coins last; 0 never expires.
+   */
+  "coins.rules": {
+    enabled: boolean;
+    earnPerThousandRupees: number;
+    earnAfterDelivery: boolean;
+    interestsReward: number;
+    detailsReward: number;
+    coinsPerRupee: number;
+    maxRedeemPercent: number;
+    maxRedeemCoins: number;
+    expiryMonths: number;
+  };
 };
 
 export type SettingKey = keyof SettingValues;
@@ -56,5 +78,19 @@ export const settingDefaults: SettingValues = {
     stateCode: "MH",
     pincode: "400001",
     gstin: "27AAAAA0000A1Z5",
+  },
+  // From the mockup: 1,000 coins on a ₹10,000 order, 10 coins = ₹1, valid 60
+  // months, 250 + 750 for completing the profile. The redeem caps are
+  // placeholders until the client confirms them.
+  "coins.rules": {
+    enabled: true,
+    earnPerThousandRupees: 100,
+    earnAfterDelivery: true,
+    interestsReward: 250,
+    detailsReward: 750,
+    coinsPerRupee: 10,
+    maxRedeemPercent: 20,
+    maxRedeemCoins: 5_000,
+    expiryMonths: 60,
   },
 };

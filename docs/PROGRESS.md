@@ -2140,37 +2140,87 @@ replaces it. Nothing needed fixing before starting.
 - P2.2's advance invoice can reuse `writeDocument()` and the PDF, with lines
   for the advance.
 
-## P1.7. Super Coins (BLOCKED, 2026-10-01)
+## P1.7. Super Coins (2026-10-02)
 
-Not started. This replaces the earlier P1.7 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`) and P1.4's code is in the tree. But
-P1.7 still waits on two earlier chunks, so per the task rules it stops here.
+Replaces the earlier BLOCKED entry: P1.4 to P1.6 are committed and their
+checks passed. Nothing needed fixing before starting.
 
-**What it waits on (checked 2026-10-01, latest commit `77914a2`)**
-- **P1.4 (Cart, checkout and test payment) is unfinished:** its `Cart`,
-  `Order` and `Payment` models and checkout code exist, but none of it is
-  committed (40 files modified or untracked), and its entry's **Checks** line
-  is still the placeholder `CHECKS_LINE`, so nothing shows the five checks
-  passed. P1.7 redeems coins at this checkout, caps redemption against its
-  order total and returns coins on its failed payments.
-- **P1.5 (Orders and test delivery tracking) is BLOCKED** on P1.4. P1.7 earns
-  coins "after delivery" and returns them on "a cancellation"; both events come
-  from P1.5's order status flow and cancel, which don't exist yet (`/orders` is
-  still ComingSoon).
-- No other chunk run was active when checked (only this one).
+**Built**
+- **Database** (migration `p1_7_super_coins`): `CoinLedger` (signed amount,
+  reason, reference, note, expiry, acting admin; unique per user + reason +
+  reference so an event counts once). `Order.coinsRedeemed` and
+  `Order.coinDiscountPaise`; `OrderItem.discountPaise` (the line's share of the
+  discount; its GST is worked out on what is left).
+- **Rules** (`coins.rules` setting, seeded, validated in
+  `src/server/content/settings.ts`): on/off, coins per ₹1,000, earn after
+  delivery or on payment, the two profile rewards (250 / 750), coins per ₹1
+  (10), max % of the items total (20) and max coins (5,000) per order, expiry
+  months (60; 0 never). Caps and expiry are placeholders until the client
+  confirms them.
+- **Ledger** (`src/server/coins/ledger.ts`, pure maths in `src/lib/coins.ts`):
+  the balance is always computed from the rows (FIFO lots: a debit uses coins
+  that expire soonest, expired coins drop out). Earn on an order (once),
+  hold/release for redemption, reversal on cancel, profile rewards, admin
+  adjustments (reason required, `AdminLog` row `coins.adjust`).
+- **Checkout:** "Use N coins (save ₹X)" checkbox (the most the rules allow).
+  The server works it out again under a lock on the user, takes the coins when
+  the order is placed, and a changed amount gives the usual "something
+  changed" error. A failed payment returns the coins; "Try again" takes them
+  again (refused if they were spent meanwhile). Cancelling returns them and
+  takes back coins the order earned. Invoices use the net line values, so they
+  still add up to the amount paid.
+- **Earning:** after delivery (default) or on payment, on items minus coins
+  used, once per order. "Professional details" reward is given when a
+  professional is approved.
+- **Customer:** header pill shows the real balance (hidden when the programme
+  is off); `/coins` (public explainer; balance, next expiry and paged history
+  when signed in) replaces the ComingSoon page; coin row on order summaries.
+- **Admin:** `/admin/coins` (rules form, example, recent activity), a Super
+  Coins card on `/admin/users/[id]` (balance, history, adjust form), coin row
+  on the order page, nav link.
 
-**Why it can't go ahead partially:** the `CoinLedger` reference and the
-earn/redeem/reverse rules point at P1.4's orders and payments, a `CoinLedger`
-migration would stack on P1.4's uncommitted `p1_4_cart_checkout` migration,
-and the chunk's Playwright test is "redeeming at checkout".
+**Decisions**
+- Coin transactions run at READ COMMITTED after locking the user's row
+  (`ledgerTransaction`). Under the default isolation a read after the lock
+  showed a stale ledger and two checkouts could spend the same coins (caught
+  by a Vitest race test). Needs ROW binlog format if binary logging is on
+  (MySQL 8 default).
+- Coins are held at order placement, so an unpaid order keeps its coins until
+  it fails, is paid or an admin cancels it (orders never expire).
+- Returned coins get a fresh expiry; a reversal larger than the balance is
+  clamped at 0 rather than going negative.
+- Delivery fee is decided on the items total before coins.
 
-**Next steps**
-1. Finish P1.4: run all five checks, fill in its Checks line, commit on `dev`.
-2. Run P1.5 (P1.6 doesn't block P1.7).
-3. Re-queue P1.7; it can then replace this entry.
+**Tests**
+- Vitest (439 total): `src/lib/coins.test.ts` (balance, FIFO expiry, caps,
+  earn, discount split and GST), `src/server/coins/ledger.test.ts` (earning
+  paid/delivered, once only, off, redeeming and every cap, concurrent
+  checkouts, expired coins, invoice total, return on failure / retry / cancel,
+  reversal, adjustments, history, rules). New `tests/setup/next-cache.ts`
+  stubs `next/cache` for server tests.
+- Playwright `tests/e2e/coins.spec.ts` (phone and desktop): redeeming at
+  checkout, return after failed payment and re-take on retry, history; no
+  option without a balance; admin adjustment and rules edit. `shell.spec.ts`
+  updated: `/coins` is no longer ComingSoon.
 
-Nothing was changed apart from this entry. No P1.7 code was written and checks
-were not run; P1.4's uncommitted work was left as is.
+**Checks:** `pnpm typecheck`, `pnpm lint`, `pnpm test` (44 files, 439 tests),
+`pnpm test:e2e` (188 passed, 4 skipped: A9 screenshots, desktop only) and
+`pnpm build` pass. `/coins`, checkout with coins, `/admin/coins` and the user
+page were checked by eye at 375 and 1280 px. One full e2e run had a one-off
+failure in `orders.spec.ts` ("admin cancels a paid order", desktop) that
+passed alone and on the rerun; one unit run had a one-off failure in
+`admin/orders.test.ts` (list filters) that also passed on rerun. Both look
+like timing flakes, not caused by coins.
+
+**Known gaps / Later**
+- No UI for "practice interests" yet, so that reward (rule and
+  `awardProfileReward(userId, "interests")`) has no trigger; P1.10 or the
+  profile step can call it.
+- "Coins activate after verification or first order" (mockup note) is not
+  enforced.
+- Quiz (P2.3) and community (P3.2) should credit through `CoinLedger` with
+  their own reason; add enum values then.
+- Customers pick all-or-nothing coins, not a custom amount.
 
 ## P1.8. Ebooks (BLOCKED, 2026-10-01)
 

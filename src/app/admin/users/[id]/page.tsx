@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, FileText, Pencil } from "lucide-react";
+import { AdjustCoinsForm } from "@/components/admin/adjust-coins-form";
+import { CoinActivity } from "@/components/admin/coin-activity";
 import { ActivityList } from "@/components/admin/activity-list";
 import { VerificationBadge } from "@/components/admin/badges";
 import { ConfirmDelete } from "@/components/admin/confirm-delete";
@@ -13,9 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { admin as copy } from "@/content/admin";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { formatIndianPhone } from "@/lib/phone";
 import { getUserDetail } from "@/server/admin/users";
+import { coinSummary, readRecentCoinActivity } from "@/server/coins/ledger";
+import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/session";
 import { readProfessionalVerification } from "@/server/verification/documents";
 import { deleteUserAction } from "../actions";
@@ -30,9 +34,11 @@ export default async function UserDetailPage({
 }: PageProps<"/admin/users/[id]">) {
   const session = await requireAdmin();
   const { id } = await params;
-  const [user, verification] = await Promise.all([
+  const [user, verification, coins, coinRows] = await Promise.all([
     getUserDetail(id),
     readProfessionalVerification(id),
+    coinSummary(db, id),
+    readRecentCoinActivity(10, id),
   ]);
   if (!user) notFound();
   const isSelf = user.id === session.user.id;
@@ -164,6 +170,22 @@ export default async function UserDetailPage({
           )}
         </Card>
       </div>
+
+      <Card as="section" aria-labelledby="user-coins" className="mt-5">
+        <h2 id="user-coins" className="text-h3 text-ink">
+          {text.coins.title}
+        </h2>
+        <p className="mt-2 text-2xl font-extrabold text-ink">
+          {text.coins.balance(formatNumber(coins.balance))}
+        </p>
+        <h3 className="mt-5 text-base font-extrabold text-ink">{text.coins.viewLedger}</h3>
+        {coinRows.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">{text.coins.empty}</p>
+        ) : (
+          <CoinActivity entries={coinRows} caption={text.coins.viewLedger} showUser={false} />
+        )}
+        <AdjustCoinsForm userId={user.id} />
+      </Card>
 
       <Card as="section" aria-labelledby="user-history" className="mt-5">
         <h2 id="user-history" className="text-h3 text-ink">

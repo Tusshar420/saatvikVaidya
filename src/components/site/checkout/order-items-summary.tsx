@@ -12,6 +12,7 @@ export function OrderItemsSummary({ order, className }: { order: OrderView; clas
         subtotalPaise: order.subtotalPaise,
         gst: order.gst,
         shippingPaise: order.shippingPaise,
+        coinDiscountPaise: order.coinDiscountPaise,
         totalPaise: order.totalPaise,
       }}
       items={order.items.map((item) => ({

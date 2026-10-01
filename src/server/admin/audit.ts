@@ -31,7 +31,9 @@ export type AdminAction =
   | "product.image.delete"
   | "order.cancel"
   | "shipment.create"
-  | "shipment.update";
+  | "shipment.update"
+  | "coins.adjust"
+  | "coins.rules.update";
 
 export type AdminResource =
   | "User"
@@ -40,7 +42,8 @@ export type AdminResource =
   | "CourseTeaser"
   | "Quiz"
   | "Product"
-  | "Order";
+  | "Order"
+  | "Setting";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

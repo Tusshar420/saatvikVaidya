@@ -8,6 +8,8 @@ import { cartProductSelect, priceLine } from "@/server/cart/cart";
 import { db } from "@/server/db";
 import { getPaymentProvider } from "@/server/payments";
 import type { PricingViewer } from "@/server/pricing/rules";
+import { holdCoins, ledgerTransaction, lockedSummary, lockUser } from "@/server/coins/ledger";
+import { maxRedemption, type CoinRules } from "@/lib/coins";
 import { findAddress } from "./addresses";
 import { computeTotals, gstIncluded, type ShippingRule } from "./totals";
 
@@ -48,6 +50,9 @@ export type PlaceOrderInput = {
   /** The total the checkout page showed; a different total means something changed. */
   expectedTotalPaise: number;
   shipping: ShippingRule;
+  /** The Super Coins rules, and whether the buyer chose to use their coins. */
+  coinRules?: CoinRules;
+  redeemCoins?: boolean;
 };
 
 export type PlaceOrderError =
@@ -55,7 +60,8 @@ export type PlaceOrderError =
   | "empty"
   | "cart_changed"
   | "payments_off"
-  | "rate_limited";
+  | "rate_limited"
+  | "coins";
 
 export type PlaceOrderResult =
   | { ok: true; orderId: string }
@@ -93,7 +99,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   let orderId: string | null = null;
   for (let tries = 0; tries < 3 && !orderId; tries += 1) {
     try {
-      orderId = await db.$transaction(async (tx) => {
+      orderId = await ledgerTransaction(async (tx) => {
         const cart = await tx.cart.findUnique({
           where: { userId },
           select: {
@@ -112,10 +118,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         if (lines.some(({ line }) => line.issue !== null)) {
           throw new CheckoutRefused("cart_changed");
         }
-        const totals = computeTotals(
-          lines.map(({ line }) => line),
-          input.shipping,
-        );
+        const priced = lines.map(({ line }) => line);
+        // Coins are worked out from the ledger under a lock on the user, so
+        // two checkouts at once can't use the same coins.
+        let coinsUsed = 0;
+        let totals = computeTotals(priced, input.shipping);
+        if (input.redeemCoins && input.coinRules?.enabled) {
+          await lockUser(tx, userId);
+          const { balance } = await lockedSummary(tx, userId);
+          const redemption = maxRedemption(balance, totals.subtotalPaise, input.coinRules);
+          coinsUsed = redemption.coins;
+          totals = computeTotals(priced, input.shipping, redemption.discountPaise);
+        }
         if (totals.totalPaise !== input.expectedTotalPaise) {
           throw new CheckoutRefused("cart_changed");
         }
@@ -138,9 +152,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             subtotalPaise: totals.subtotalPaise,
             taxPaise: totals.taxPaise,
             shippingPaise: totals.shippingPaise,
+            coinDiscountPaise: totals.coinDiscountPaise,
+            coinsRedeemed: coinsUsed,
             totalPaise: totals.totalPaise,
             items: {
-              create: lines.map(({ line, product }) => ({
+              create: lines.map(({ line, product }, index) => ({
                 productId: product.id,
                 productSlug: product.slug,
                 productName: product.name,
@@ -152,11 +168,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
                 priceTier: line.tier,
                 quantity: line.quantity,
                 lineTotalPaise: line.lineTotalPaise,
-                taxPaise: gstIncluded(line.lineTotalPaise, product.gstRate),
+                discountPaise: totals.lineDiscountsPaise[index]!,
+                taxPaise: gstIncluded(
+                  line.lineTotalPaise - totals.lineDiscountsPaise[index]!,
+                  product.gstRate,
+                ),
               })),
             },
           },
         });
+        if (coinsUsed > 0 && !(await holdCoins(tx, userId, id, coinsUsed))) {
+          throw new CheckoutRefused("coins");
+        }
         await tx.address.update({
           where: { id: address.id },
           data: { lastUsedAt: new Date() },
@@ -241,14 +264,29 @@ export async function retryPayment(userId: string, orderId: string): Promise<Liv
   if (!getPaymentProvider().isAvailable()) return null;
   const order = await db.order.findFirst({
     where: { id: orderId, userId },
-    select: { status: true },
+    select: { status: true, coinsRedeemed: true },
   });
   if (!order) return null;
   if (order.status === "payment_failed") {
-    await db.order.updateMany({
-      where: { id: orderId, userId, status: "payment_failed" },
-      data: { status: "pending_payment" },
-    });
+    // A failed payment gave the coins back: take them again for this
+    // attempt, or leave the order as it is if they have been spent since.
+    // The order is claimed first, then the coins (the order every other
+    // path locks in); if the coins are gone the claim is rolled back.
+    class CoinsGone extends Error {}
+    try {
+      await ledgerTransaction(async (tx) => {
+        await tx.order.updateMany({
+          where: { id: orderId, userId, status: "payment_failed" },
+          data: { status: "pending_payment" },
+        });
+        if (order.coinsRedeemed > 0 && !(await holdCoins(tx, userId, orderId, order.coinsRedeemed))) {
+          throw new CoinsGone();
+        }
+      });
+    } catch (error) {
+      if (error instanceof CoinsGone) return null;
+      throw error;
+    }
   }
   return startPaymentAttempt(orderId);
 }
@@ -264,6 +302,8 @@ export type OrderView = {
   subtotalPaise: number;
   taxPaise: number;
   shippingPaise: number;
+  coinDiscountPaise: number;
+  coinsRedeemed: number;
   totalPaise: number;
   gst: { rate: number; taxablePaise: number; taxPaise: number }[];
   address: {
@@ -310,7 +350,7 @@ export async function readOrderForUser(userId: string, orderId: string): Promise
   const gst = new Map<number, { rate: number; taxablePaise: number; taxPaise: number }>();
   for (const item of order.items) {
     const group = gst.get(item.gstRate) ?? { rate: item.gstRate, taxablePaise: 0, taxPaise: 0 };
-    group.taxablePaise += item.lineTotalPaise - item.taxPaise;
+    group.taxablePaise += item.lineTotalPaise - item.discountPaise - item.taxPaise;
     group.taxPaise += item.taxPaise;
     gst.set(item.gstRate, group);
   }
@@ -324,6 +364,8 @@ export async function readOrderForUser(userId: string, orderId: string): Promise
     subtotalPaise: order.subtotalPaise,
     taxPaise: order.taxPaise,
     shippingPaise: order.shippingPaise,
+    coinDiscountPaise: order.coinDiscountPaise,
+    coinsRedeemed: order.coinsRedeemed,
     totalPaise: order.totalPaise,
     gst: [...gst.values()].sort((a, b) => a.rate - b.rate),
     address: {

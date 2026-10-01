@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cart as copy } from "@/content/cart";
+import { coins as coinCopy } from "@/content/coins";
 import { cn } from "@/lib/cn";
 import { formatPaise } from "@/lib/format";
 import type { OrderTotals } from "@/server/checkout/totals";
@@ -13,6 +14,7 @@ export type OrderSummaryProps = {
     OrderTotals,
     "subtotalPaise" | "gst" | "shippingPaise" | "totalPaise"
   > &
+    Partial<Pick<OrderTotals, "coinDiscountPaise">> &
     Partial<Pick<OrderTotals, "freeFromPaise" | "toFreeShippingPaise">>;
   /** Lines to list above the totals (checkout and confirmation). */
   items?: SummaryItem[];
@@ -72,6 +74,12 @@ export function OrderSummary({
             <dd>{formatPaise(group.taxPaise)}</dd>
           </div>
         ))}
+        {totals.coinDiscountPaise ? (
+          <div className="flex justify-between gap-4 text-green">
+            <dt>{coinCopy.order.row}</dt>
+            <dd className="font-semibold">−{formatPaise(totals.coinDiscountPaise)}</dd>
+          </div>
+        ) : null}
         <div className="flex justify-between gap-4">
           <dt className="text-muted">{text.shipping}</dt>
           <dd className={cn("font-semibold", totals.shippingPaise === 0 ? "text-green" : "text-ink")}>

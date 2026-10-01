@@ -177,6 +177,12 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                 <dt className="text-muted">{text.totals.subtotal}</dt>
                 <dd className="text-ink">{formatPaise(order.subtotalPaise)}</dd>
               </div>
+              {order.coinDiscountPaise > 0 && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted">{text.totals.coins(order.coinsRedeemed)}</dt>
+                  <dd className="text-green">−{formatPaise(order.coinDiscountPaise)}</dd>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">{text.totals.tax}</dt>
                 <dd className="text-ink">{formatPaise(order.taxPaise)}</dd>

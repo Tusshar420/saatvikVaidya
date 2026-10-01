@@ -8,6 +8,7 @@ import {
   type ShipmentStatusKey,
 } from "@/lib/shipping";
 import { logAdminAction } from "@/server/admin/audit";
+import { earnForOrder } from "@/server/coins/ledger";
 import { db } from "@/server/db";
 import { sendShipmentUpdate } from "@/server/notify/orders";
 import { getShippingProvider, simulatedEvent, type ShipmentUpdate } from "./index";
@@ -194,6 +195,11 @@ export async function recordShipmentEvent(
     return { ok: true, changed: false, status: now.status };
   }
   await notify(shipment.orderId, update.status);
+  if (update.status === "delivered") {
+    await earnForOrder(shipment.orderId, "delivered").catch((error: unknown) => {
+      console.error("recordShipmentEvent: coins not credited.", error);
+    });
+  }
   return { ok: true, changed: true, status: update.status };
 }
 

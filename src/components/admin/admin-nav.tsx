@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BadgeCheck,
   Building2,
+  Coins,
   Clapperboard,
   Database,
   GraduationCap,
@@ -41,6 +42,7 @@ const content: NavLink[] = [
 
 const rest: NavLink[] = [
   { href: "/admin/orders", label: copy.nav.orders, icon: Package },
+  { href: "/admin/coins", label: copy.nav.coins, icon: Coins },
   { href: "/admin/settings", label: copy.nav.settings, icon: Settings },
   { href: "/admin/database", label: copy.nav.database, icon: Database },
 ];

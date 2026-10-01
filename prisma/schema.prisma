@@ -91,6 +91,7 @@ model User {
   cart                    Cart?
   addresses               Address[]
   orders                  Order[]
+  coinEntries             CoinLedger[]
 
   @@index([userTypeId])
 }
@@ -758,6 +759,13 @@ model Order {
   /// GST included in the subtotal, in paise.
   taxPaise      Int
   shippingPaise Int
+  /// Value of the Super Coins used, taken off the items (P1.7). Spread over
+  /// the lines in OrderItem.discountPaise; the total below is already net.
+  coinDiscountPaise Int     @default(0)
+  /// Coins the buyer chose to use; held from their balance while the order
+  /// waits for payment and returned if payment fails or it is cancelled.
+  coinsRedeemed Int         @default(0)
+  /// Items total minus coin discount plus delivery: what the buyer pays.
   totalPaise    Int
   /// When payment succeeded and stock was taken.
   paidAt        DateTime?
@@ -798,7 +806,9 @@ model OrderItem {
   quantity       Int
   /// unitPaise × quantity.
   lineTotalPaise Int
-  /// GST included in the line total.
+  /// This line's share of the order's coin discount (P1.7).
+  discountPaise  Int      @default(0)
+  /// GST included in the line total after the discount.
   taxPaise       Int
 
   @@index([orderId])
@@ -975,4 +985,46 @@ model InvoiceLine {
   totalPaise   Int
 
   @@unique([invoiceId, position])
+}
+
+// ─── Super Coins ────────────────────────────────────────────────────────────
+// Every credit and debit is a row here (P1.7); a balance is always worked out
+// from the rows (src/server/coins), never stored. Rules are the "coins.rules"
+// setting.
+
+enum CoinReason {
+  /// Earned on an order (after delivery, or on payment, per the rules).
+  earn_order
+  /// Taken back when an order that earned coins is cancelled.
+  earn_reversal
+  /// A profile-completion reward ("interests" or "details").
+  earn_profile
+  /// Used at checkout.
+  redeem
+  /// Redeemed coins given back (failed payment or cancelled order).
+  redeem_return
+  /// An admin's manual credit or debit; always has a note.
+  admin_adjust
+}
+
+model CoinLedger {
+  id        Int        @id @default(autoincrement())
+  userId    String     @db.VarChar(64)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Positive: credit. Negative: debit.
+  amount    Int
+  reason    CoinReason
+  /// What it is for: an order id, a profile reward name... With the reason
+  /// and user it is unique, so the same event can't be counted twice.
+  reference String?    @db.VarChar(64)
+  /// Free text: the admin's reason for an adjustment.
+  note      String?    @db.VarChar(300)
+  /// Credits stop counting after this moment; null never expires.
+  expiresAt DateTime?
+  /// The admin who made an adjustment.
+  actorId   String?    @db.VarChar(64)
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, reason, reference])
+  @@index([userId, createdAt])
 }
