@@ -1280,38 +1280,30 @@ desktop project only) and `build` all pass. Admin screens checked at 375 and
 
 ## P1.12. Phase 1 quality and security pass (BLOCKED, 2026-10-01)
 
-Not started. P1.12 reviews everything Phase 1 built, and most of Phase 1 is
-still missing. Per the task rules this chunk stops here instead of building or
-finishing the missing chunks itself. This replaces the earlier blocked entry,
-which was written before P1.1 to P1.3 existed.
+Not started. This replaces the earlier blocked entry. P1.12 reviews everything
+Phase 1 built, and the chunks it depends on are not done, so per the task rules
+nothing was built around them.
 
-**State found on 2026-10-01 (checked in code, schema and git)**
-- **Done and committed:** P1.1 (admin dashboard) and P1.2 (Storage and
-  document uploads).
-- **P1.3 (catalogue) is built but unfinished:** the work is uncommitted on
-  `dev`, and its entry ends with "Checks: see the end of this entry", which was
-  never filled in. The last recorded run had 9 failing e2e tests (form-chip URL
-  bug, `/products` axe violations, two ambiguous locators, a sign-in axe
-  failure); see the P1.4 blocker entry for the details.
-- **P1.4 to P1.11 are not built.** `src/server` has `admin`, `catalogue`,
-  `pricing`, `storage` and `verification`, but no `payments`, `shipping`,
-  `orders`, `coins` or `invoices`. The schema has no `Cart`, `Address`,
-  `Order`, `OrderItem`, `Payment`, `ShipmentEvent`, `Invoice`, `CoinLedger` or
-  `Ebook`. The P1.4 to P1.11 commits on `dev` are all "Record blocker" commits.
+**State found (checked in `docs/PROGRESS.md` and git)**
+- **Done and committed:** P1.1, P1.2, P1.3.
+- **P1.4 is built but unfinished:** its work is still uncommitted on `dev`
+  (39 changed or untracked paths: cart, checkout, payments, schema and
+  migration). Its entry exists, but it has no commit and no confirmed
+  green run of the five checks.
+- **P1.5 to P1.11 are all marked BLOCKED** (orders and tracking, GST invoices,
+  Super Coins, ebooks, settings and maintenance mode, account and reports,
+  admin security). None are built.
 
-**Why it can't go ahead partially:** the security review items (payment and
-shipping state changes, price tampering at checkout, download access for
-invoices and ebooks, admin permissions) and the Lighthouse runs on checkout
-need those features. A pass over only P1.1 to P1.3 would not match the chunk.
+**Why it can't go ahead:** the security review (payment and shipping state
+changes, download access for invoices and ebooks, admin permissions) and the
+Lighthouse run on checkout need those features.
 
 **Next steps**
-1. Finish P1.3: fix the failures above, get all five checks green, fill in its
-   "Checks" line and commit on `dev`.
-2. Run P1.4 to P1.11 in order.
+1. Verify and commit P1.4 (all five checks green).
+2. Run P1.5 to P1.11 in order, replacing their BLOCKED entries.
 3. Re-queue P1.12 once P1.11 has a done entry here.
 
-Nothing was changed apart from this entry. Checks were not run for this chunk;
-the working tree holds P1.3's unfinished work.
+Nothing was changed apart from this entry. Checks were not run.
 
 ---
 
