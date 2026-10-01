@@ -2222,44 +2222,158 @@ like timing flakes, not caused by coins.
   their own reason; add enum values then.
 - Customers pick all-or-nothing coins, not a custom amount.
 
-## P1.8. Ebooks (BLOCKED, 2026-10-01)
+## P1.8. Ebooks (2026-10-02)
 
-Not started. This replaces the earlier P1.8 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`) and P1.4's code is in the tree. But
-P1.4 is still unfinished, so per the task rules this chunk stops here.
+Replaces the earlier BLOCKED entry: P1.4 to P1.7 are now committed and their
+checks passed. Nothing needed fixing before starting.
 
-**What it waits on (checked 2026-10-01, latest commit `0c6a0e4`)**
-- **P1.4 (Cart, checkout and test payment) is unfinished:** its `Cart`,
-  `Order` and `Payment` models, checkout pages and test payment provider
-  exist, but none of it is committed (40 files modified or untracked,
-  including the `p1_4_cart_checkout` migration), and its entry's **Checks**
-  line is still the placeholder `CHECKS_LINE`, so nothing shows the five
-  checks passed. P1.8 sells paid books "through the normal cart and test
-  payment" and decides who is a "buyer" from paid orders, both of which are
-  P1.4's.
-- **P1.5, P1.6 and P1.7 are marked BLOCKED** (all on P1.4). P1.8 doesn't
-  need their features, but the task rules say not to build around an earlier
-  chunk that is blocked.
-- No other chunk run was active when checked (only this one).
+**Built**
+- **Database** (migration `p1_8_ebooks`):
+  - `Ebook`: slug, title, author, description, free or paid, price and GST
+    rate (default 18%), cover and PDF keys in Storage, download name and
+    size, a per-book `downloadsEnabled` switch, `active`, sort order.
+  - `CartItem.productId` is now optional, and there is a new `ebookId`
+    (unique per cart). `OrderItem` gains `ebookId` (set to null if the
+    ebook is deleted) and `kind` (`product` / `ebook`).
+  - The migration was made with `prisma migrate diff` and applied with
+    `migrate deploy`, because `migrate dev` refuses to run without a
+    terminal.
+- **Setting** `ebooks.downloads` `{ enabled }`: the site-wide switch,
+  seeded on (the seed adds missing settings).
+- **Access rules** (`src/server/ebooks/ebooks.ts`, pure `ebookAccess()`):
+  - Free books: any signed-in user. Paid books: buyers only.
+  - A buyer is someone with a paid order line for the book whose order
+    wasn't cancelled. Buyers keep access if the book is hidden later.
+  - Either switch off, or no file uploaded yet, means "paused".
+  - Admins can always download a book that has a file.
+- **Downloads:** `GET /api/ebooks/[id]/download` streams the PDF as an
+  attachment (`private, no-store`, `nosniff`).
+  - Every refusal is the same 404.
+  - Limited to 20 an hour per account (`ebookDownloadPerUser`); over the
+    limit gets a 429 with `Retry-After`.
+  - The file is never at a public URL. Covers are public, served by
+    `/api/ebook-covers/[id]` with a version in the link.
+- **Buying:**
+  - "Add to cart" adds one copy. Free, hidden and already-owned books are
+    refused; adding a book twice changes nothing. Guest carts merge on
+    sign-in.
+  - The cart shows ebook lines (remove only). A line whose book was hidden
+    or bought meanwhile holds up checkout.
+  - `placeOrder()` checks the ebook lines again under the transaction.
+    `completePayment()` takes no stock for them and removes them from the
+    cart.
+  - Delivery is charged on goods only: an ebook-only order pays no
+    delivery. The "add ₹X for free delivery" line counts goods only too.
+  - Invoices print ebook lines with SAC 998431. The delivery line's rate
+    comes from the goods only.
+  - `createShipment()` refuses an ebook-only order (`nothing_to_ship`); the
+    admin order page says so instead of showing the shipment panel.
+- **Pages:**
+  - `/ebooks`: a grid of cards (cover, title, author, Free or price,
+    "Yours"), each with one action: Download PDF, Sign in to download, Add
+    to cart, or a paused note. There is a site-wide paused note and an
+    empty state.
+  - `/ebooks/[slug]`: the same, with the description. Hidden books show
+    only to buyers and admins.
+  - "My ebooks" on `/account`, and a "Your ebooks" card on `/orders/[id]`.
+    An ebook-only order has no delivery timeline; its "Pay now" button
+    moves into that card.
+  - An "Ebooks" link in the footer's Platform column.
+- **Admin `/admin/ebooks`:** list (cover, price, file, downloads, status),
+  a site-wide "Pause all downloads" / "Turn downloads back on" button,
+  create and edit forms (hide with "Shown on the site", per-book downloads
+  switch), and cover and PDF uploads through
+  `POST /api/admin/ebooks/[id]/files`.
+  - Uploads are admin only, same-origin only, and size-capped while
+    reading.
+  - The type is checked from the file's first bytes (PDF only for books;
+    JPEG, PNG or WebP for covers). The old file is deleted after a
+    replacement.
+  - Every change writes `AdminLog` (`ebook.*`, `ebooks.downloads.update`).
+    The site switch also writes `SettingHistory` and refreshes the cached
+    settings. Nav link added.
+- Copy: `src/content/ebooks.ts`, plus the `ebooks` section in
+  `src/content/admin.ts` and ebook lines in `cart.ts` / `checkout.ts`.
 
-**Why it can't go ahead partially:** an `Ebook` migration would stack on
-P1.4's uncommitted migration, and the paid-book work changes P1.4's
-uncommitted cart, order and payment code. Committing it would mix both
-chunks in one history and hide any P1.4 failure inside P1.8.
+**Decisions**
+- Ebooks sit in the cart beside products (`CartView.ebooks`) rather than
+  as a kind of `CartLine`, so product code (MOQ, stock, tiers) is
+  unchanged. Totals use products, then ebooks (`totalsLinesOf()`), in the
+  same order as the order lines.
+- Ebooks have one price for everyone (no professional or bulk price).
+- Checkout still asks for an address for ebook-only orders. It is the
+  billing address on the GST invoice (place of supply).
+- Ebook-only orders stay `paid` (no delivery step). So an admin can still
+  cancel one, which ends the buyer's access and issues the credit note.
+- Pausing downloads doesn't stop sales: a paid book can still be bought
+  while paused, and its page says so.
+- A cancelled order ends access; a returned parcel (P1.5) doesn't, because
+  the ebook was not in the parcel.
 
-**Note for when it runs:** P1.4's `CartItem` and `OrderItem` hold products
-only (`productId`, pack size, HSN, stock taken on payment). P1.8 will need
-to add a non-physical line (an ebook: no stock, no MOQ, no delivery fee)
-to both, or model each paid ebook as its own line type. The P1.2 `Storage`
-in `src/server/storage/` already streams files for the download route.
+**Tests**
+- Vitest: 463 in total, 24 new, in `src/server/ebooks/ebooks.test.ts`.
+  - The access table: guest, free, paid non-buyer, buyer, hidden, each
+    switch, no file, admin.
+  - Downloads: guest refused; free book served with its bytes and name;
+    paid book refused until bought; unpaid and cancelled orders don't count.
+  - The site switch (with history and log rows) and the per-book switch.
+  - The rate limit, per account. Hidden books stay with their buyers.
+  - Cart: add once, refusals, owned. Delivery on goods only.
+  - Payment: stock only for products, cart emptied, invoice SAC and
+    delivery rate. A book bought meanwhile blocks checkout.
+  - Nothing to ship. Guest merge.
+  - Admin: form rules, create, edit and hide with logs, upload type checks
+    and replacing the old file.
+  - `tests/setup/content-db.ts` clears ebooks.
+- Playwright `tests/e2e/ebooks.spec.ts` (phone and desktop):
+  - A guest sees sign-in and add-to-cart, and gets 404 from both download
+    URLs. A signed-in reader downloads the free book, but not the paid one
+    (404).
+  - A buyer adds the paid book, sees no delivery charge, checks out, and
+    pays with the test payment. They then download from `/ebooks`,
+    `/account` and the order page (no timeline), and can't add it again.
+  - An admin creates a book and uploads its cover and PDF (a fake PDF is
+    refused), then pauses the book. A reader sees the paused note and gets
+    404.
+  - On desktop only, the site-wide switch is turned off, checked, and
+    turned on again. Both projects share one database, so only one of them
+    flips it; the reader tests reload until downloads are on.
+  - axe, sideways-scroll and console checks run on every page.
+  - The e2e cleanup removes `e2e-` ebooks, their files and log rows, and
+    the download rate-limit rows.
 
-**Next steps**
-1. Finish P1.4: run all five checks, fill in its Checks line, commit on `dev`.
-2. Run P1.5, P1.6 and P1.7 (or clear their blockers).
-3. Re-queue P1.8; it can then replace this entry.
+**Checks:**
+- `pnpm typecheck`, `pnpm lint`, `pnpm test` (45 files, 463 tests) and
+  `pnpm build` pass.
+- `pnpm test:e2e`, full suite: **194 passed, 4 skipped** (the A9
+  screenshots run on desktop only by design), 0 failed.
+- One `[WebServer] Error: The destination stream closed early` line was
+  logged during the run. It is most likely a streamed response that the
+  browser stopped reading (for example a file request that was cut off),
+  and no test failed.
+- Screens checked by eye at 375 and 1280 px: `/ebooks` (guest and signed
+  in), the ebook page, the cart, checkout, `/account`, the ebook-only
+  order page, the admin list, the admin edit page and the admin order.
+  That check found "Book (PDF)" shown twice on the admin edit page; it was
+  fixed and the ebook spec run again (6 passed).
 
-Nothing was changed apart from this entry. No P1.8 code was written and checks
-were not run; P1.4's uncommitted work was left as is.
+**Known gaps**
+- No sample ebooks are seeded: `/ebooks` shows its empty state until the
+  admin adds books.
+- The cart's count still says "products" when it holds ebooks, and the
+  ebook-only order page and checkout still say "Delivery address".
+- Ebook-only orders don't earn Super Coins when the rule is "after
+  delivery" (they are never delivered). The admin dashboard's "waiting to
+  ship" count includes them.
+- Downloads aren't logged per user (only rate-limited). PDFs aren't
+  watermarked.
+
+**Later**
+- Decide with the client whether ebook-only orders should earn coins on
+  payment, or move to a "delivered" status when paid.
+- P1.9 can add the `ebooks.downloads` switch to `/admin/settings` (its
+  schema is in `src/server/content/settings.ts`).
+- P1.10 can reuse `listOwnedEbooks()` for the account pages.
 
 ## P1.9. Site settings, maintenance mode and homepage editing (BLOCKED, 2026-10-01)
 

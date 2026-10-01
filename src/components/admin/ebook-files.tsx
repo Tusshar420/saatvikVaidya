@@ -53,7 +53,7 @@ export function EbookFiles({ ebookId, cover, file }: EbookFilesProps) {
           />
         </div>
         <div className="flex flex-col gap-3">
-          <p className="text-xs font-extrabold text-ink">{text.fileLabel}</p>
+          <p className="text-xs font-extrabold text-ink">{text.currentBook}</p>
           {file ? (
             <div className="flex flex-col items-start gap-2">
               <p className="text-sm break-all text-ink">

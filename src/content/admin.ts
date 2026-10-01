@@ -974,6 +974,7 @@ export const admin = {
       fileHelp: (size: string) =>
         `PDF up to ${size}. Private: only people allowed to download it can get it.`,
       currentCover: "Current cover",
+      currentBook: "Current book",
       noCover: "No cover yet; a plain book tile is shown.",
       currentFile: (name: string, size: string) => `Current file: ${name} (${size})`,
       noFile: "No file yet. Downloads stay paused until one is uploaded.",
