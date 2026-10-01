@@ -1817,44 +1817,35 @@ not added, and checks were not run; P1.4's uncommitted work was left as is.
 
 ## P1.7. Super Coins (BLOCKED, 2026-10-01)
 
-Not started. A large part of P1.7 hangs off orders and payments: coins are
-earned "per ₹ spent" and "after delivery", redeemed "at checkout", and returned
-when "a failed payment or a cancellation" happens. Its Playwright test is
-"redeeming at checkout". None of that exists yet, because P1.4 and P1.5 are both
-blocked (see their entries above). Per the task rules this chunk stops here
-instead of building P1.4 or P1.5 (or finishing P1.3) itself.
+Not started. This replaces the earlier P1.7 blocker entry, which is out of
+date: P1.3 is now committed (`5b6745e`) and P1.4's code is in the tree. But
+P1.7 still waits on two earlier chunks, so per the task rules it stops here.
 
-**What's missing (checked in code, schema and git on 2026-10-01)**
-- **P1.4 is not built:** `prisma/schema.prisma` has no `Order`, `OrderItem`,
-  `Payment` or `Cart` models and there is no `src/server/payments/`. Without it
-  there is no checkout to redeem at, no order total to cap redemption against,
-  no amount spent to earn on, and no failed payment to reverse.
-- **P1.5 is not built:** there is no order status flow (so no "Delivered" event
-  to trigger earning) and no order cancel (so nothing to trigger a refund of
-  redeemed coins). `/orders` and `/admin/orders` are still placeholders.
-- **P1.3 is still unfinished:** its work is still uncommitted on `dev` (latest
-  commit `079dcfa`, no `P1.3` commit), and `pnpm test:e2e` was failing when
-  P1.4 checked.
-- Current coin state: `/coins` is a coming-soon page, and the header pill in
-  `src/app/(site)/layout.tsx` shows a hard-coded `0` when signed in. There is no
-  `CoinLedger` model and no `/admin/coins`.
+**What it waits on (checked 2026-10-01, latest commit `77914a2`)**
+- **P1.4 (Cart, checkout and test payment) is unfinished:** its `Cart`,
+  `Order` and `Payment` models and checkout code exist, but none of it is
+  committed (40 files modified or untracked), and its entry's **Checks** line
+  is still the placeholder `CHECKS_LINE`, so nothing shows the five checks
+  passed. P1.7 redeems coins at this checkout, caps redemption against its
+  order total and returns coins on its failed payments.
+- **P1.5 (Orders and test delivery tracking) is BLOCKED** on P1.4. P1.7 earns
+  coins "after delivery" and returns them on "a cancellation"; both events come
+  from P1.5's order status flow and cancel, which don't exist yet (`/orders` is
+  still ComingSoon).
+- No other chunk run was active when checked (only this one).
 
-**Why it can't go ahead partially:** some pieces don't need orders (the rules
-in `/admin/coins`, the `CoinLedger` model, the real balance in the header pill,
-the `/coins` history, admin manual adjustments and profile-completion rewards).
-But the ledger's reference field and the earn/redeem/reverse rules need to point
-at P1.4's order and payment records, and the chunk's "done" needs the checkout
-Playwright test. Adding a `CoinLedger` migration now would also stack on top of
-P1.3's uncommitted schema changes and migration. So all of it is left until P1.4
-and P1.5 are done.
+**Why it can't go ahead partially:** the `CoinLedger` reference and the
+earn/redeem/reverse rules point at P1.4's orders and payments, a `CoinLedger`
+migration would stack on P1.4's uncommitted `p1_4_cart_checkout` migration,
+and the chunk's Playwright test is "redeeming at checkout".
 
 **Next steps**
-1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
-2. Run P1.4, then P1.5 (and P1.6, which doesn't block P1.7).
-3. Re-queue P1.7.
+1. Finish P1.4: run all five checks, fill in its Checks line, commit on `dev`.
+2. Run P1.5 (P1.6 doesn't block P1.7).
+3. Re-queue P1.7; it can then replace this entry.
 
 Nothing was changed apart from this entry. No P1.7 code was written and checks
-were not run; the tree still holds P1.3's uncommitted work.
+were not run; P1.4's uncommitted work was left as is.
 
 ## P1.8. Ebooks (BLOCKED, 2026-10-01)
 
