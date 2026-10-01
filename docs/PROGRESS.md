@@ -1984,3 +1984,49 @@ the task rules this chunk stops here instead of finishing P1.3 itself.
 Nothing was changed apart from this entry. No P2.1 code was written and no
 checks were run, since no file under `src/`, `prisma/` or `tests/` was
 touched. The tree still holds P1.3's uncommitted work.
+
+## P2.2. Launch Your Brand: quote, label proof and production (BLOCKED, 2026-10-01)
+
+Not started. All four chunks P2.2 builds on are missing, so this chunk stops
+here instead of rebuilding them.
+
+**What's blocking (checked in code, schema and git on 2026-10-01)**
+- **P2.1 (request and admin review) is not built** (its entry above is
+  BLOCKED). P2.2 adds quotes, proofs and production steps to P2.1's
+  `BrandRequest`, its status flow and `/my-brand/[id]`. None of these exist:
+  there is no `BrandRequest` in `prisma/schema.prisma` and no `my-brand`
+  route.
+- **P1.4 (test payment) is not built.** The advance payment must go through
+  P1.4's `PaymentProvider` and its test provider. No `PaymentProvider`
+  exists in `src/`.
+- **P1.5 (test delivery tracking) is not built.** The Dispatched step needs
+  P1.5's test `ShippingProvider`, which doesn't exist.
+- **P1.6 (GST invoices) is not built.** The advance invoice uses it.
+- **The root cause is still P1.3:** its work is uncommitted on `dev` (latest
+  commit `df917b1`, no `P1.3` commit; still 38 changed or new paths). No file
+  under `src/`, `prisma/` or `tests/` has changed since the P2.1 entry, so
+  the four failing `catalogue.spec.ts` tests (phone and desktop, see the P1.4
+  and P1.9 entries) still fail. The checks weren't re-run because the tree is
+  the same.
+
+**For the run that builds P2.2**
+- Already available: `Storage` for proof uploads (P1.2, with type checks
+  based on the file's bytes), the dev notifier, the A2 Stepper for the
+  Confirmed / Production / Quality check / Dispatch stepper, and `AdminLog`.
+- Keep each quote's payment idempotent by putting a unique key on the payment
+  record (one paid advance per quote). Check expiry on the server when the
+  quote is accepted *and* again when payment is confirmed, so a quote that
+  expires during checkout can't be paid.
+- Proof versions: add a new row per upload (never overwrite), and serve the
+  approved proof through an owner-or-admin check, the same way P1.2 serves
+  documents.
+- Add the quote and proof statuses to P2.1's single transitions table
+  (suggested in the P2.1 entry) rather than spreading the rules across routes.
+
+**Next steps (in order)**
+1. Finish and commit P1.3 (steps in the P1.4 entry).
+2. Build P1.4, P1.5 and P1.6. P2.1 can run any time after P1.3.
+3. Re-queue P2.2 once P2.1, P1.4, P1.5 and P1.6 are committed and green.
+
+Nothing was changed apart from this entry. No P2.2 code was written and no
+checks were run. The tree still holds P1.3's uncommitted work.
