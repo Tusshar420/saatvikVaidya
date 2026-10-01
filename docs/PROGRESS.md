@@ -2030,3 +2030,59 @@ here instead of rebuilding them.
 
 Nothing was changed apart from this entry. No P2.2 code was written and no
 checks were run. The tree still holds P1.3's uncommitted work.
+
+## P2.3. Quiz & Win (BLOCKED, 2026-10-01)
+
+Not started. P2.3 credits quiz coins "through the P1.7 `CoinLedger`" using "a
+new coin rule", and P1.7 is not built. So this chunk stops here instead of
+building P1.7 (or finishing P1.3) itself.
+
+**What's blocking (checked in code, schema and git on 2026-10-01)**
+- **P1.7 (Super Coins) is not built** (its entry above is BLOCKED). There is
+  no `CoinLedger` model and no coin rules in `prisma/schema.prisma`, and no
+  `/admin/coins`. `/coins` is still a coming-soon page and the header pill
+  still shows a hard-coded `0`. P2.3's coin credit, its admin-set amount and
+  its "once per attempt" test all need P1.7's ledger and rules.
+- **P1.1's part is there:** `Quiz`, `QuizQuestion` and `QuizOption` exist, and
+  quizzes can be authored at `/admin/content/quiz`. P2.3 would add the
+  weekly schedule (start/end), the pass threshold and attempts on top of these.
+- **The root cause is still P1.3:** its work is uncommitted on `dev` (latest
+  commit `dfe0c5e`, no `P1.3` commit; still 38 changed or new paths). A P2.3
+  migration (`QuizAttempt`, schedule fields) would stack on P1.3's uncommitted
+  migration `20260930234005_p1_3_catalogue`, as noted for P1.7. Nothing under
+  `src/`, `prisma/` or `tests/` has changed since the P2.2 entry, so the
+  checks weren't re-run.
+
+**Why it can't go ahead partially:** the quiz itself (schedule, play, server
+timer, leaderboards) doesn't strictly need coins. But the chunk's coin credit,
+its tests and its done all depend on the ledger. Building the quiz now would
+also mean adding a migration on top of P1.3's uncommitted one. Shipping a quiz
+called "Quiz & Win" with no prize would need a product decision. That isn't
+for an unattended run to make.
+
+**For the run that builds P2.3**
+- Serve questions through a separate select that never includes
+  `QuizOption.isCorrect`. Return answers and explanations only after the
+  attempt is submitted or expired. `QuizQuestion` has no explanation field
+  yet; add one.
+- Put a unique key on (`userId`, `quizId`) on the attempt for the
+  one-attempt rule. Keep `startedAt` on the attempt and check each answer
+  against `startedAt + 5 min` on the server. Store answers as they come in so
+  a refresh resumes the attempt.
+- Credit coins in the same transaction that finalises the attempt. Use a
+  unique ledger reference (e.g. `quiz-attempt:<id>`) so a retry or a double
+  submit can't credit twice.
+- Leaderboard names: first name + last initial, worked out on the server.
+  Never send full names or ids to the client.
+- Homepage: the Quiz & Win section (A8) and the "Play this week's quiz" links
+  show seeded homepage content
+  (`quiz-section.tsx`), not a real quiz. Switch them to the live quiz or "next
+  quiz starts ...".
+
+**Next steps (in order)**
+1. Finish and commit P1.3 (steps in the P1.4 entry).
+2. Build P1.4 and P1.5, then P1.7.
+3. Re-queue P2.3 once P1.7 is committed and green.
+
+Nothing was changed apart from this entry. No P2.3 code was written and no
+checks were run. The tree still holds P1.3's uncommitted work.
