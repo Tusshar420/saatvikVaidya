@@ -1621,3 +1621,39 @@ order models here would duplicate P1.4 and very likely clash with it.
 
 Nothing was changed apart from this entry. No P1.5 code was written and checks
 were not run; the tree still holds P1.3's uncommitted work.
+
+## P1.6. GST invoices (BLOCKED, 2026-10-01)
+
+Not started. P1.6 makes invoices and credit notes for orders, and the orders
+don't exist yet: P1.4 and P1.5 are both blocked (see their entries above). Per
+the task rules this chunk stops here instead of building P1.4 or P1.5 (or
+finishing P1.3) itself.
+
+**What's missing (checked in code, schema and git on 2026-10-01)**
+- **P1.4 is not built:** `prisma/schema.prisma` has no `Order`, `OrderItem` or
+  `Payment` models and there is no `src/server/payments/`. P1.6 needs these:
+  the invoice is made "on payment success", its lines come from the order
+  items' snapshotted name, price and GST rate, and the place of supply (CGST +
+  SGST or IGST) comes from the order's delivery address.
+- **P1.5 is not built:** there is no customer `/orders/[id]` page, no real
+  `/admin/orders` and no order cancel, so there is nowhere to put the download
+  links and nothing to trigger a credit note.
+- **P1.3 is still unfinished:** its work is still uncommitted on `dev` (latest
+  commit `be5c7f2`, no `P1.3` commit), and `pnpm test:e2e` was failing when
+  P1.4 checked.
+
+**Why it can't go ahead partially:** invoice numbering, the tax split and the
+credit note all hang off an order and its payment. Building stand-in order or
+payment models here would duplicate P1.4 and very likely clash with it. The
+pure parts (tax split, rounding, amount in words) could be written alone, but
+their shape depends on how P1.4 stores order lines and GST, so they're left
+for when P1.4 is done.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
+2. Run P1.4, then P1.5.
+3. Re-queue P1.6.
+
+Nothing was changed apart from this entry. No P1.6 code was written, pdf-lib was
+not added, and checks were not run; the tree still holds P1.3's uncommitted
+work.
