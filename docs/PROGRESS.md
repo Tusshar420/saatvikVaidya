@@ -1792,39 +1792,28 @@ were not run; the tree still holds P1.4's uncommitted work.
 
 ## P1.6. GST invoices (BLOCKED, 2026-10-01)
 
-Not started. P1.6 makes invoices and credit notes for orders, and the orders
-don't exist yet: P1.4 and P1.5 are both blocked (see their entries above). Per
-the task rules this chunk stops here instead of building P1.4 or P1.5 (or
-finishing P1.3) itself.
+Not started. This replaces the earlier P1.6 blocker entry, which is out of
+date: P1.3 is now committed (`5b6745e`) and P1.4's code is in the tree. But
+P1.6 still waits on two earlier chunks, so per the task rules it stops here.
 
-**What's missing (checked in code, schema and git on 2026-10-01)**
-- **P1.4 is not built:** `prisma/schema.prisma` has no `Order`, `OrderItem` or
-  `Payment` models and there is no `src/server/payments/`. P1.6 needs these:
-  the invoice is made "on payment success", its lines come from the order
-  items' snapshotted name, price and GST rate, and the place of supply (CGST +
-  SGST or IGST) comes from the order's delivery address.
-- **P1.5 is not built:** there is no customer `/orders/[id]` page, no real
-  `/admin/orders` and no order cancel, so there is nowhere to put the download
-  links and nothing to trigger a credit note.
-- **P1.3 is still unfinished:** its work is still uncommitted on `dev` (latest
-  commit `be5c7f2`, no `P1.3` commit), and `pnpm test:e2e` was failing when
-  P1.4 checked.
-
-**Why it can't go ahead partially:** invoice numbering, the tax split and the
-credit note all hang off an order and its payment. Building stand-in order or
-payment models here would duplicate P1.4 and very likely clash with it. The
-pure parts (tax split, rounding, amount in words) could be written alone, but
-their shape depends on how P1.4 stores order lines and GST, so they're left
-for when P1.4 is done.
+**What it waits on (checked 2026-10-01, latest commit `06c1440`)**
+- **P1.4 (Cart, checkout and test payment) is unfinished:** its `Order`,
+  `OrderItem` and `Payment` models and checkout code exist, but none of it is
+  committed (about 40 files modified or untracked), and its entry's
+  **Checks** line is still the placeholder `CHECKS_LINE`, so nothing shows
+  the five checks passed.
+- **P1.5 (Orders and test delivery tracking) is BLOCKED** on P1.4. P1.6 needs
+  its customer `/orders/[id]` page and admin orders view (for the download
+  links) and its order cancel (to trigger the credit note).
+- No other chunk run was active when checked.
 
 **Next steps**
-1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
-2. Run P1.4, then P1.5.
-3. Re-queue P1.6.
+1. Finish P1.4: run all five checks, fill in its Checks line, commit on `dev`.
+2. Run P1.5.
+3. Re-queue P1.6; it can then replace this entry.
 
 Nothing was changed apart from this entry. No P1.6 code was written, pdf-lib was
-not added, and checks were not run; the tree still holds P1.3's uncommitted
-work.
+not added, and checks were not run; P1.4's uncommitted work was left as is.
 
 ## P1.7. Super Coins (BLOCKED, 2026-10-01)
 
