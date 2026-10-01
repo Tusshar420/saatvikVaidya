@@ -1204,6 +1204,22 @@ at the start). Nothing needed fixing first.
   - A `next dev` server started before a migration keeps the old Prisma
     client and fails on new tables; restart it after `pnpm db:migrate`.
 
+- **Checkout follow-ups (from P1.4):**
+  - The delivery charge (₹80, free from ₹999) is a placeholder in the
+    `checkout.shipping` setting; confirm it with the client (P1.9 can make it
+    editable). Whether delivery itself carries GST is for the invoice work
+    (P1.6) to settle.
+  - Unpaid orders never expire. P1.5 (or a periodic job) could cancel
+    `pending_payment` orders after, say, 24 hours.
+  - With Razorpay, a payment that succeeds after an item sold out is captured
+    money: `completePayment()` records it as an `out_of_stock` failure today,
+    and the Razorpay ticket must start a refund there (or switch to manual
+    capture).
+  - Before deploying, never set `TEST_PAYMENTS_IN_LOCAL_BUILD` on the server
+    and set `PAYMENT_PROVIDER` to the real provider.
+  - A full PIN-code-to-district lookup (India Post data) would catch a
+    right-zone, wrong-state PIN and could fill in the city.
+
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
 Started in an earlier run, paused, and finished at the start of the P1.2 run
@@ -1578,75 +1594,201 @@ at 375 and 1280 px, and by axe and sideways-scroll tests in both projects.
 **Next steps:** P1.4 (cart, checkout and test payment) should price every
 line with `priceFor()` and enforce MOQ and stock.
 
-## P1.4. Cart, checkout and test payment (BLOCKED, 2026-10-01)
+## P1.4. Cart, checkout and test payment (2026-10-01)
 
-Not started. P1.4 needs the catalogue from P1.3 (products, `priceFor()`, MOQ and
-stock), and P1.3 is not finished. Per the task rules this chunk stops here
-instead of finishing or rebuilding P1.3.
+An earlier attempt left a BLOCKED entry here (P1.3 wasn't committed then).
+P1.3 is now committed (`5b6745e`) and its checks passed, so this entry
+replaces it. Nothing needed fixing before starting.
 
-**State of P1.3 found on 2026-10-01**
-- It is **not committed**: the work is still uncommitted in the working tree on
-  `dev` (latest commit is `1696a6b`, with no `P1.3` commit), and its entry above
-  ends with "Checks: see the end of this entry", which never got written.
-- `pnpm typecheck`, `pnpm lint` (no warnings), `pnpm test` (295 passed) and
-  `pnpm build` pass.
-- `pnpm test:e2e` **fails: 9 failed, 159 passed, 4 skipped**:
-  - `catalogue.spec.ts` "filters by form chip, panel filters and removable
-    chips" (phone and desktop): clicking the form chip lands on
-    `/products?form=&area=&brand=pranacharya&sort=featured`, not `form=churna`.
-    This looks like a real bug in how the chip or filter form builds its URL.
-  - `catalogue.spec.ts` "catalogue pages: no axe issues..." (phone and desktop):
-    axe reports violations on `/products`.
-  - `catalogue.spec.ts` "a guest sees MRP, a sign-in hint..." (both): the
-    locator `getByText('Sample product')` matches two elements (badge and note).
-    Probably a test fix.
-  - `catalogue.spec.ts` "an admin adds a product with a photo..." (both): the
-    locator for the "Punarnava Mandoor" cell matches two cells. Probably a test
-    fix.
-  - `sign-in.spec.ts` "register by email as a customer..." (desktop only): an
-    axe violation on the sign-in page at line 255. It may be flaky or caused by
-    the P1.3 changes to shared files (`tests/e2e/auth-helpers.ts`,
-    `src/content/pages.ts`); not investigated.
+**Built**
+- **Database** (migration `p1_4_cart_checkout`):
+  - `Cart` (one per user, or a guest cart found by the SHA-256 of its cookie
+    token) and `CartItem` (product and quantity only, never a price).
+  - `Address`: name, phone (E.164), two address lines, landmark, city, state
+    code, PIN code, `lastUsedAt`.
+  - `Order` (random 22-character id in URLs, a display number like
+    `SV-7K2Q9F4M`, a `checkoutKey` unique per user, the status enum from the
+    spec, a copy of the address, subtotal / GST / delivery / total in paise,
+    `paidAt`), `OrderItem` (a snapshot of slug, name, pack size, HSN, GST
+    rate, MRP, unit price, price tier, quantity, line total and its GST) and
+    `Payment` (provider, unique reference, amount, status, attempt number,
+    failure reason).
+  - Orders survive a deleted account (`userId` set to null); carts and
+    addresses go with it.
+- **Setting** `checkout.shipping`: `{ feePaise, freeFromPaise }`, seeded as
+  ₹80 with free delivery from ₹999 (placeholders, see "Later").
+- **Cart** (`src/server/cart/`):
+  - `cart.ts`: add, set quantity and remove, with the MOQ and stock checked on
+    every change; at most 50 products and 9,999 units a line. `readCart()`
+    prices every line with `priceFor()` at its quantity (so bulk tiers apply),
+    flags lines that are hidden, sold out, under the MOQ or over the stock, and
+    totals only what can be bought.
+  - `request.ts`: the owner is the signed-in user, or else the `sv.cart`
+    cookie (random 32-byte token, HttpOnly, SameSite=Lax, Secure on https,
+    renewed for 30 days on each change). New guest carts are limited to 30 an
+    hour per IP. Guest carts unused for 30 days are swept now and then.
+  - `merge.ts`: a Better Auth plugin that, after any sign-in (email, phone
+    OTP), moves the guest cart into the account (quantities added up), deletes
+    it and clears the cookie. Two sign-ins at once merge only once. A failed
+    merge never blocks sign-in.
+- **Totals** (`src/server/checkout/totals.ts`): prices include GST, so each
+  line's GST is worked out from its total (rounded per line) and grouped by
+  rate; delivery comes from the setting.
+- **Addresses** (`src/server/checkout/addresses.ts`, `src/lib/india.ts`):
+  Zod checks name, Indian mobile, lines, city, a state or union territory
+  from the list (ISO code, with its GST state code kept for P1.6) and a
+  6-digit PIN code whose first digit (its postal zone) must belong to that
+  state. Up to 20 per account; every read and write is scoped to the owner.
+- **Orders** (`src/server/checkout/orders.ts`):
+  - `placeOrder()` prices the cart again in a transaction, refuses an empty
+    cart, someone else's address, any line with a problem, or a total that
+    differs from the one the page showed ("something changed"). It copies the
+    lot into the order, marks the address used and opens payment attempt 1.
+    The same checkout key always gives the same order, even if submitted twice
+    at once. Limited to 20 orders an hour per account.
+  - `startPaymentAttempt()` / `retryPayment()`: the next attempt on the same
+    order; owner only.
+- **Payments** (`src/server/payments/`): a `PaymentProvider` interface
+  (`isAvailable`, `createPayment`, `verifyPayment`) and the `test` provider,
+  chosen by `PAYMENT_PROVIDER` (default `test`). The test provider refuses to
+  run when `NODE_ENV=production` (see Decisions for the one exception).
+  `completePayment()` (`src/server/checkout/payments.ts`) applies a result
+  once: the payment and order only move on from `created` / `pending_payment`
+  with conditional updates. On success it takes the stock (only if enough is
+  left), removes the ordered products from the cart and sends a confirmation
+  through the dev notifier (email, or SMS for phone-only accounts). If an item
+  has sold out by then, it records a failure (`out_of_stock`) and takes
+  nothing.
+- **Pages:**
+  - Product page: quantity (starting at the MOQ, capped at the stock when
+    it's low) and a working "Add to cart" with a "View cart" confirmation;
+    sold-out products show a disabled "Out of stock" button with the reason.
+  - Header: the bag count is the number of products in the cart.
+  - `/cart`: lines with photo, the viewer's unit price (professional and bulk
+    labels), quantity stepper, remove, line total and any problem in red; an
+    order summary (items total, the GST in it by rate, delivery, how much more
+    for free delivery, total); "Check out", or "Sign in to check out" for
+    guests (back to `/checkout`); an empty state.
+  - `/checkout` (sign-in required, added to the proxy): pick a saved address
+    (last used first), add or edit one inline, summary, "Place order and pay".
+    Online payment unavailable shows a ComingSoon box with the phone number
+    instead of the button.
+  - `/checkout/pay/[orderId]`: amount, then a dashed "Test mode" panel
+    headed "Test payment - no money is taken" with **Simulate success** and
+    **Simulate failure**. Paid and failed orders redirect to their pages.
+  - `/checkout/confirmation/[orderId]`: order number, amount, date, address,
+    items and totals, "this was a test payment" and "tracking coming soon".
+  - `/checkout/failed/[orderId]`: the order is kept; **Try again** (attempt
+    n+1 on the same order) and **Back to cart**; an out-of-stock failure says
+    so.
+  - Every order page is 404 for anyone but the owner.
+- Copy lives in `src/content/cart.ts` and `src/content/checkout.ts`; the
+  catalogue's "coming soon" cart copy and the `/cart` ComingSoon page are gone.
 
-**Next steps**
-1. Finish P1.3: fix the form-chip URL bug and the `/products` axe violations,
-   make the two ambiguous locators specific, and check the sign-in axe failure.
-   Then get all five checks green, fill in the "Checks" line of the P1.3 entry
-   and commit on `dev`.
-2. Re-queue P1.4.
+**Decisions**
+- **The test provider in the e2e build.** Playwright tests a production
+  build, where the test provider would refuse to run. It runs there only if
+  `TEST_PAYMENTS_IN_LOCAL_BUILD=true` *and* `BETTER_AUTH_URL` is localhost;
+  `playwright.config.ts` sets both. A live site never has a localhost origin,
+  so the rule "refuses in production" still holds for any real deployment.
+  Both variables are in `.env.example`.
+- Stock is taken when payment succeeds, not when the order is placed (as the
+  spec says), so an unpaid order holds nothing. The cost is the
+  "sold out before payment finished" case, handled as a failure.
+- Only the ordered products leave the cart on success; anything added after
+  placing the order stays.
+- The checkout form sends the total it showed; it is only compared, never
+  charged, so a price change between page and click asks the buyer to look
+  again instead of charging a different amount silently.
+- Order URLs use a random id rather than a counter, so they don't reveal how
+  many orders there are or let anyone guess another order.
+- The bag count is products, not units (a pharmacy ordering 50 of one
+  product sees 1).
+- "Save address" is a secondary button so "Place order and pay" stays the
+  one primary action on the page.
 
-Nothing was changed apart from this entry. No P1.4 code was written.
+**Tests**
+- Vitest (342 in total, 47 new):
+  - `totals.test.ts`: GST inside inclusive prices, rounding, grouping by
+    rate, delivery and the free threshold.
+  - `cart.test.ts`: MOQ, stock, hidden and sold-out products, bad
+    quantities, the 50-product limit, owners can't touch other carts, prices
+    per viewer and quantity (MRP, professional, bulk), flagged lines, no
+    professional price in a guest's cart, merging (and a racing double
+    merge), the stale-cart sweep.
+  - `addresses.test.ts`: PIN code zones per state, field errors, ownership,
+    ordering, the 20-address limit.
+  - `orders.test.ts`: the server-side price snapshot, a later product change
+    not touching the order, one order per checkout key (also concurrently),
+    each refusal, payments off in production, success (paid, stock, cart,
+    confirmation), success applied once under a concurrent double call and
+    replays, failure leaving stock and cart, failure then retry then success,
+    sold out before payment, owner checks.
+  - `test-provider.test.ts`: refusal in production, the localhost-only
+    exception, unknown providers.
+  - `proxy.test.ts` now covers `/checkout`.
+- Playwright (`tests/e2e/checkout.spec.ts`, phone and desktop):
+  - Success: a guest adds two, sees the bag count and totals, the cart
+    blocks checkout while stock is short, signs in (the cart follows), saves
+    an address after a wrong-state PIN error, places the order, double-clicks
+    "Simulate success", lands on the confirmation; stock fell by exactly 2,
+    one succeeded attempt, the cart is empty, and the payment page can't pay
+    again.
+  - Failure then retry: MOQ 2 starts at 2, no address opens the form,
+    "Simulate failure" keeps stock and cart, a stranger gets 404, "Try again"
+    shows attempt 2, success; attempts are failed then succeeded on one
+    order.
+  - `/checkout` signed out goes to sign-in; axe, sideways-scroll and console
+    checks on the cart, checkout, payment, confirmation and failure pages.
+  - Intended changes: `catalogue.spec.ts` expects a working "Add to cart",
+    and `shell.spec.ts` expects the real (empty) cart instead of the
+    ComingSoon page.
+- `tests/e2e/auth-helpers.ts` cleanup also removes e2e users' orders, empty
+  guest carts and their order rate-limit rows.
+
+**Checks:** CHECKS_LINE
+
+**Known gaps**
+- No order history or tracking yet (`/orders` is still ComingSoon; P1.5).
+  Unpaid orders stay `pending_payment` with no expiry.
+- No admin view of orders yet (P1.5); no invoices (P1.6).
+- Addresses can't be deleted, only edited (P1.10's account pages can add it).
+- The PIN code check is by postal zone (first digit), not a full PIN
+  database, so a PIN from the right zone but the wrong state passes.
+
+**Next steps:** P1.5 can list orders with `readOrderForUser()`-style reads,
+cancel by moving `paid` orders to `cancelled` and adding the stock back, and
+use the address snapshot for shipments. P1.6 can build invoices from
+`OrderItem` (HSN, GST rate, tax) and the state's `gstCode` in
+`src/lib/india.ts`.
 
 ## P1.5. Orders and test delivery tracking (BLOCKED, 2026-10-01)
 
-Not started. P1.5 adds order history, admin order management and test shipping
-on top of the orders that P1.4 creates, and P1.4 has not been built. Per the
-task rules this chunk stops here instead of building P1.4 (or finishing P1.3)
-itself.
+Not started. P1.5 builds on the orders and payments from P1.4, and P1.4 is
+unfinished. Per the task rules this chunk stops here instead of finishing or
+committing P1.4 itself.
 
-**What's missing (checked in code, schema and git on 2026-10-01)**
-- **P1.4 is not started:** its entry above is a blocker. `prisma/schema.prisma`
-  has no `Order`, `OrderItem`, `Payment`, `Cart` or `Address` models, and
-  there is no `src/server/payments/`. P1.5 needs all of these: the customer
-  order pages show items, totals, address and payment; "Create shipment"
-  works on a paid order; admin cancel restocks the stock a paid order took;
-  and Track Order checks the phone or email on the order.
-- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
-  commit `4c58efd`, no `P1.3` commit) and `pnpm test:e2e` was failing when
-  P1.4 checked (see that entry for the failures).
-- `/orders` and `/admin/orders` are still the earlier placeholder pages.
+**What it waits on: P1.4 (Cart, checkout and test payment)**
+- P1.4 has a full progress entry, but its work was never committed: the latest
+  commit on `dev` is `5b6745e` (P1.3), and about 40 P1.4 files are still
+  modified or untracked (the `p1_4_cart_checkout` migration, `src/server/cart/`,
+  `src/server/checkout/`, `src/server/payments/`, the checkout pages and
+  `tests/e2e/checkout.spec.ts`).
+- Its entry's **Checks** line still reads the placeholder `CHECKS_LINE`, so
+  there is no record that typecheck, lint, test, test:e2e and build passed.
+  Nobody has verified this tree since the P1.4 run ended.
+- No P1.4 run is active (only this one was running when I checked).
 
-**Why it can't go ahead partially:** without real orders and payments there
-is nothing for shipments, timelines or tracking to attach to. Building stand-in
-order models here would duplicate P1.4 and very likely clash with it.
+**Why not just go on:** building P1.5 on unverified, uncommitted work would mix
+two chunks in one commit history and hide any P1.4 failure inside P1.5.
 
 **Next steps**
-1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
-2. Run P1.4.
-3. Re-queue P1.5.
+1. Re-run (or finish) P1.4: run all five checks, fill in its Checks line, and
+   commit it on `dev`.
+2. Re-queue P1.5. It can then replace this entry.
 
 Nothing was changed apart from this entry. No P1.5 code was written and checks
-were not run; the tree still holds P1.3's uncommitted work.
+were not run; the tree still holds P1.4's uncommitted work.
 
 ## P1.6. GST invoices (BLOCKED, 2026-10-01)
 
