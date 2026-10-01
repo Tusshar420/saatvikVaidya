@@ -5,7 +5,7 @@ import { documentUpload, formatFileSize } from "@/lib/verification";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
 import { getSession } from "@/server/auth/session";
-import { authEnv } from "@/server/env";
+import { isSameOrigin } from "@/server/request-origin";
 import { readBodyWithLimit } from "@/server/storage/files";
 import {
   uploadDocument,
@@ -45,15 +45,6 @@ const formSchema = z.object({
   documentType: z.string().trim().min(1).max(40),
   file: z.instanceof(File),
 });
-
-/**
- * Cross-site requests are refused. The session cookie is SameSite=Strict
- * already; this is a second check, like Better Auth's origin check.
- */
-function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  return origin !== null && origin === new URL(authEnv().BETTER_AUTH_URL).origin;
-}
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) {

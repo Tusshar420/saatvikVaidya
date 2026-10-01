@@ -1,4 +1,4 @@
-// Strings for the ComingSoon routes and the policy placeholder pages. Keep
+// Strings for the ComingSoon routes (/cart, /orders, /coins) and the policy placeholder pages. Keep
 // user-facing text here so Hindi can be added later.
 
 export type ComingSoonPageCopy = {
@@ -8,12 +8,6 @@ export type ComingSoonPageCopy = {
 };
 
 export const comingSoonPages = {
-  search: {
-    metaTitle: "Search",
-    title: "Search is coming soon",
-    line: "We're adding our full range of medicines, brands and courses. Until then, call us and we'll help you find what you need.",
-    query: (q: string) => `We'll look for “${q}” as soon as search opens.`,
-  },
   cart: {
     metaTitle: "Cart",
     title: "Your cart is coming soon",

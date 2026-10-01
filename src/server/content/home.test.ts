@@ -134,7 +134,24 @@ describe("getHomeContent", () => {
       "अ",
       "तै",
     ]);
-    expect(launch.categories.practiceArea).toEqual([]);
+    // Sample practice areas from P1.3.
+    expect(launch.categories.practiceArea.map((c) => c.key)).toEqual([
+      "kidney-care",
+      "digestive-care",
+      "liver-care",
+      "joint-care",
+      "respiratory-care",
+      "womens-health",
+      "skin-care",
+    ]);
+
+    // A brand with no link set goes to its products in the catalogue.
+    const brands = section(sections, "brands");
+    expect(brands.brands[0]?.link).toEqual({
+      label: "Explore range",
+      href: "/products?brand=sabka-vaidya",
+    });
+    expect(brands.heading.link?.href).toBe("/products");
 
     const courses = section(sections, "courses");
     expect(courses.liveSessions[0]?.body).toBe(

@@ -2,7 +2,7 @@
 // The connection URL lives in prisma.config.ts, read from DATABASE_URL.
 //
 // Sections, in order: users and access, admin, site settings, homepage
-// content, learning. Later phases add their own section (catalogue, orders,
+// content, learning, catalogue. Later phases add their own section (orders,
 // coins, ebooks...).
 
 generator client {
@@ -30,6 +30,9 @@ model UserType {
   isProfessional       Boolean  @default(false)
   /// Needs documents approved by an admin before professional prices apply.
   requiresVerification Boolean  @default(false)
+  /// Also gets products' bulk price tiers once professional prices apply
+  /// (Pharmacy / Store and Stockist / Distributor). See src/server/pricing.
+  bulkPricing          Boolean  @default(false)
   sortOrder            Int      @default(0)
   active               Boolean  @default(true)
   createdAt            DateTime @default(now())
@@ -427,6 +430,10 @@ model Category {
   glyph     String?      @db.VarChar(8)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  /// Products of this form (kind FORM only).
+  formProducts Product[] @relation("ProductForm")
+  /// Products in this practice area (kind PRACTICE_AREA only).
+  areaProducts Product[] @relation("ProductPracticeAreas")
 }
 
 model Brand {
@@ -444,9 +451,11 @@ model Brand {
   eyebrow     String   @db.VarChar(80)
   description String   @db.VarChar(300)
   linkLabel   String   @db.VarChar(80)
+  /// Null links to this brand's products in the catalogue.
   linkHref    String?  @db.VarChar(200)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  products    Product[]
 }
 
 model CourseTeaser {
@@ -557,4 +566,87 @@ model QuizOption {
   isCorrect  Boolean      @default(false)
 
   @@index([questionId, sortOrder])
+}
+
+// ─── Catalogue ──────────────────────────────────────────────────────────────
+// Managed at /admin/catalogue; shown at /products, /products/[slug] and
+// /search. Money is in paise (integers). Which price a viewer gets is decided
+// only by src/server/pricing; pages never read professional or bulk prices
+// themselves.
+
+model Product {
+  id                     Int             @id @default(autoincrement())
+  /// URL segment: /products/<slug>. Lowercase words joined by dashes.
+  slug                   String          @unique @db.VarChar(120)
+  name                   String          @db.VarChar(160)
+  /// Null only if the brand was deleted; the admin form requires one.
+  brandId                Int?
+  brand                  Brand?          @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  /// The product's form (a Category of kind FORM), e.g. Churna.
+  formId                 Int
+  form                   Category        @relation("ProductForm", fields: [formId], references: [id], onDelete: Restrict)
+  /// Practice areas (Categories of kind PRACTICE_AREA).
+  practiceAreas          Category[]      @relation("ProductPracticeAreas")
+  /// Plain text; line breaks are kept when shown.
+  description            String          @db.Text
+  ingredients            String?         @db.Text
+  dosage                 String?         @db.Text
+  /// Display text, e.g. "60 tablets" or "200 ml".
+  packSize               String          @db.VarChar(60)
+  /// Retail price (MRP), including GST, in paise.
+  mrpPaise               Int
+  /// Price for approved professionals, including GST, in paise. At most MRP.
+  professionalPricePaise Int
+  /// GST percentage included in the prices, e.g. 5 or 12.
+  gstRate                Int
+  /// HSN code for GST invoices (4, 6 or 8 digits).
+  hsnCode                String          @db.VarChar(8)
+  /// Units in stock. Checkout (P1.4) reduces it.
+  stock                  Int             @default(0)
+  /// Minimum order quantity.
+  moq                    Int             @default(1)
+  active                 Boolean         @default(true)
+  featured               Boolean         @default(false)
+  sortOrder              Int             @default(0)
+  /// Seeded example, not a real product: the site labels it "Sample".
+  isSample               Boolean         @default(false)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  images                 ProductImage[]
+  bulkTiers              BulkPriceTier[]
+
+  @@index([active, sortOrder])
+  @@index([brandId])
+  @@index([formId])
+}
+
+/// A product photo, stored in Storage (src/server/storage) and served by
+/// /api/product-images/[id]. The first by sortOrder is the main image.
+model ProductImage {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The file's key in Storage, e.g. "products/12/<random>.jpg".
+  fileKey     String   @unique @db.VarChar(191)
+  /// Checked from the file's contents on upload.
+  contentType String   @db.VarChar(64)
+  sizeBytes   Int
+  alt         String   @db.VarChar(200)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([productId, sortOrder])
+}
+
+/// A lower unit price from a quantity upwards, for user types with
+/// bulkPricing once approved. Prices fall as quantities rise.
+model BulkPriceTier {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  /// Unit price, including GST, in paise.
+  pricePaise  Int
+
+  @@unique([productId, minQuantity])
 }

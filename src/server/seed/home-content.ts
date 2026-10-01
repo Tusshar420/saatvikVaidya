@@ -3,7 +3,8 @@ import type { HomeSectionKey } from "@/server/content/home-schema";
 
 // Homepage content, copied from docs/mockup/index.html. Arrows (→) and ticks
 // (✓) that the mockup uses as decoration are left out; components draw them.
-// A null href means the destination isn't built yet ("coming soon").
+// A null href means the destination isn't built yet ("coming soon"), except
+// for brands, where it links to the brand's products (P1.3).
 // Media files are copies of docs/mockup/assets in public/media/.
 
 type Seed<T> = Omit<T, "createdAt" | "updatedAt">;
@@ -96,7 +97,7 @@ export const homeSectionSeed: HomeSectionSeed[] = [
     description:
       "Browse by brand, product form or practice need—and build one flexible order request.",
     linkLabel: "Explore all brands",
-    linkHref: null,
+    linkHref: "/products",
   },
   {
     key: "courses",
@@ -283,7 +284,7 @@ export const heroSlideSeed: Seed<Prisma.HeroSlideCreateInput>[] = [
         name: "Sabka Vaidya",
         description: "Classical & wellness portfolio",
         linkLabel: "View range",
-        linkHref: null,
+        linkHref: "/products?brand=sabka-vaidya",
       },
       others: [
         { name: "Pranacharya", description: "Professional range" },
@@ -498,7 +499,9 @@ export const quickActionSeed: Seed<Prisma.QuickActionCreateInput>[] = [
   },
 ];
 
-// The mockup's "By Practice Area" tab has no entries yet, so none are seeded.
+// The mockup's "By Practice Area" tab has no entries, so the practice areas
+// below are SAMPLE entries (from P1.3) that give the catalogue's practice-area
+// filter something to show. Edit or replace them once the client confirms.
 export const categorySeed: Seed<Prisma.CategoryCreateInput>[] = [
   {
     key: "vati-gutika",
@@ -523,6 +526,55 @@ export const categorySeed: Seed<Prisma.CategoryCreateInput>[] = [
     sortOrder: 60,
     name: "Taila & Ghrita",
     glyph: "तै",
+  },
+  {
+    key: "kidney-care",
+    kind: "PRACTICE_AREA",
+    sortOrder: 110,
+    name: "Kidney care",
+    glyph: "वृ",
+  },
+  {
+    key: "digestive-care",
+    kind: "PRACTICE_AREA",
+    sortOrder: 120,
+    name: "Digestive care",
+    glyph: "पा",
+  },
+  {
+    key: "liver-care",
+    kind: "PRACTICE_AREA",
+    sortOrder: 130,
+    name: "Liver care",
+    glyph: "य",
+  },
+  {
+    key: "joint-care",
+    kind: "PRACTICE_AREA",
+    sortOrder: 140,
+    name: "Joint & muscle care",
+    glyph: "सं",
+  },
+  {
+    key: "respiratory-care",
+    kind: "PRACTICE_AREA",
+    sortOrder: 150,
+    name: "Respiratory care",
+    glyph: "श्व",
+  },
+  {
+    key: "womens-health",
+    kind: "PRACTICE_AREA",
+    sortOrder: 160,
+    name: "Women’s health",
+    glyph: "स्त्री",
+  },
+  {
+    key: "skin-care",
+    kind: "PRACTICE_AREA",
+    sortOrder: 170,
+    name: "Skin care",
+    glyph: "त्व",
   },
 ];
 

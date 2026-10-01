@@ -23,9 +23,20 @@ export type AdminAction =
   | "course.delete"
   | "quiz.create"
   | "quiz.update"
-  | "quiz.delete";
+  | "quiz.delete"
+  | "product.create"
+  | "product.update"
+  | "product.image.add"
+  | "product.image.update"
+  | "product.image.delete";
 
-export type AdminResource = "User" | "Reel" | "Brand" | "CourseTeaser" | "Quiz";
+export type AdminResource =
+  | "User"
+  | "Reel"
+  | "Brand"
+  | "CourseTeaser"
+  | "Quiz"
+  | "Product";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

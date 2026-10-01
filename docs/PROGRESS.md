@@ -1546,7 +1546,26 @@ this chunk. The app built and all checks passed before starting.
   `shell.spec.ts` now expects real search results instead of the old
   "coming soon" page (intended change).
 
-**Checks:** see the end of this entry.
+**Checks (2026-10-01, all on `dev`):** `pnpm typecheck`, `pnpm lint` (no
+warnings), `pnpm test` (31 files, 295 tests), `pnpm build` and `pnpm test:e2e`
+(168 passed, 4 skipped, phone and desktop) all pass. The new pages
+(`/products`, `/products/[slug]`, `/admin/catalogue`) were also checked by eye
+at 375 and 1280 px, and by axe and sideways-scroll tests in both projects.
+
+**Fixed while finishing the chunk** (the first full e2e run had failures):
+- The listing's filter panel kept stale select values after a form-chip click,
+  so Apply sent `form=` and dropped the chip. The form now remounts when the
+  URL's filters change.
+- The shared admin `SelectField` reset to its first option after a failed save
+  (React ignores a changed `defaultValue` on a mounted select). It is now keyed
+  by its value; this also helps the other admin forms.
+- The placeholder product tile failed colour contrast (`text-teal/70`); it now
+  uses `text-teal`.
+- Two e2e locators were ambiguous (the "Sample product" badge text and the
+  "Punarnava Mandoor" table cell); made exact. No assertions were removed.
+- The sign-in, verification and admin e2e failures seen earlier passed on
+  rerun and in the full run; the select bug above is the likely cause for the
+  admin ones. Not seen to fail again.
 
 **Known gaps**
 - Add to cart is a coming-soon state until P1.4; MOQ and stock are shown

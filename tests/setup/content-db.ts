@@ -31,13 +31,16 @@ export async function clearAuthTables(db: PrismaClient): Promise<void> {
 }
 
 /**
- * Empties the settings, user-type and homepage tables (and the auth tables,
+ * Empties the settings, user-type, homepage and catalogue tables (and the auth tables,
  * since users point at user types). Only ever runs against the test database
  * (checked, as well as vitest.config.ts forcing it).
  */
 export async function clearContentTables(db: PrismaClient): Promise<void> {
   await clearAuthTables(db);
   await db.$transaction([
+    // Products first: they point at brands and categories. Images, tiers and
+    // practice-area links go with them (onDelete: Cascade).
+    db.product.deleteMany(),
     db.settingHistory.deleteMany(),
     db.setting.deleteMany(),
     db.userType.deleteMany(),

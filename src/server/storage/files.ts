@@ -35,20 +35,33 @@ export function newFileKey(folder: string, owner: string, extension: string): st
   return key;
 }
 
-/** Magic numbers of the file types uploads may be. */
-const signatures: { type: string; bytes: number[] }[] = [
-  { type: "application/pdf", bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] }, // %PDF-
-  { type: "image/jpeg", bytes: [0xff, 0xd8, 0xff] },
+/**
+ * Magic numbers of the file types uploads may be: byte runs at an offset
+ * that must all match.
+ */
+const signatures: { type: string; parts: { at: number; bytes: number[] }[] }[] = [
+  { type: "application/pdf", parts: [{ at: 0, bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] }] }, // %PDF-
+  { type: "image/jpeg", parts: [{ at: 0, bytes: [0xff, 0xd8, 0xff] }] },
   {
     type: "image/png",
-    bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    parts: [{ at: 0, bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] }],
+  },
+  {
+    // "RIFF" <size> "WEBP"
+    type: "image/webp",
+    parts: [
+      { at: 0, bytes: [0x52, 0x49, 0x46, 0x46] },
+      { at: 8, bytes: [0x57, 0x45, 0x42, 0x50] },
+    ],
   },
 ];
 
 /** The file's real type from its first bytes, or null if it isn't one we know. */
 export function detectFileType(bytes: Uint8Array): string | null {
-  const match = signatures.find(({ bytes: magic }) =>
-    magic.every((byte, index) => bytes[index] === byte),
+  const match = signatures.find(({ parts }) =>
+    parts.every(({ at, bytes: magic }) =>
+      magic.every((byte, index) => bytes[at + index] === byte),
+    ),
   );
   return match?.type ?? null;
 }

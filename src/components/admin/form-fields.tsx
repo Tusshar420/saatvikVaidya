@@ -137,6 +137,9 @@ export function SelectField({
       className={className}
     >
       <select
+        // Keyed by value: React ignores a changed defaultValue on a mounted
+        // select, so after a failed save it would reset to the first option.
+        key={values.text(name)}
         id={ids.inputId}
         name={name}
         defaultValue={values.text(name)}

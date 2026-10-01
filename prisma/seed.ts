@@ -21,7 +21,8 @@ async function main(): Promise<void> {
       `Seeded ${database}:`,
       `${summary.userTypes} user types,`,
       `${summary.homeSections} homepage sections,`,
-      `${summary.contentRows} content rows;`,
+      `${summary.contentRows} content rows,`,
+      `${summary.productsCreated} sample products created;`,
       summary.settingsCreated.length > 0
         ? `created settings ${summary.settingsCreated.join(", ")}.`
         : "settings already present (left unchanged).",

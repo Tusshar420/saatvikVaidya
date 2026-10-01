@@ -6,6 +6,7 @@ import type {
   Tone,
 } from "@/generated/prisma/enums";
 import type { HomeSection as HomeSectionRow } from "@/generated/prisma/client";
+import { catalogueHref } from "@/lib/catalogue";
 import { db } from "@/server/db";
 import { cachedRead, contentTags } from "./cache";
 import {
@@ -383,7 +384,12 @@ export async function readHomeContent(): Promise<HomeContent> {
             tone: b.tone,
             eyebrow: b.eyebrow,
             description: b.description,
-            link: link(b.linkLabel, b.linkHref, `Brand ${b.key}`),
+            // No link set: the brand's products in the catalogue.
+            link: link(
+              b.linkLabel,
+              b.linkHref ?? catalogueHref({ brand: b.key }),
+              `Brand ${b.key}`,
+            ),
           })),
         });
         break;

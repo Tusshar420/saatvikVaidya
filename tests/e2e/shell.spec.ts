@@ -5,6 +5,7 @@ import {
   type ComingSoonPageCopy,
   type PolicyPageCopy,
 } from "../../src/content/pages";
+import { catalogue } from "../../src/content/catalogue";
 import { settingDefaults } from "../../src/content/settings";
 import { navItems, policyLinks, shell } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
@@ -15,7 +16,6 @@ const phone = settingDefaults["contact.phone"];
 const tel = "tel:+919220358400";
 
 const comingSoonRoutes: [string, ComingSoonPageCopy][] = [
-  ["/search", comingSoonPages.search],
   ["/cart", comingSoonPages.cart],
   ["/orders", comingSoonPages.orders],
   ["/coins", comingSoonPages.coins],
@@ -129,8 +129,12 @@ test.describe("header", () => {
         .click();
       await expect(page).toHaveURL("/search");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        comingSoonPages.search.title,
+        catalogue.search.title,
       );
+      // Phones have no header field, so the page has its own.
+      await expect(
+        page.getByRole("main").getByRole("searchbox", { name: catalogue.search.label }),
+      ).toBeVisible();
       return;
     }
 
@@ -155,10 +159,11 @@ test.describe("header", () => {
     await searchbox.press("Enter");
     await expect(page).toHaveURL("/search?q=Ashwagandha");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      comingSoonPages.search.title,
+      catalogue.search.title,
     );
+    // Real results (P1.3): the sample products with Ashwagandha in them.
     await expect(
-      page.getByText(comingSoonPages.search.query("Ashwagandha")),
+      page.getByRole("heading", { name: /products? for “Ashwagandha”/ }),
     ).toBeVisible();
 
     // A popular search is a link to its results.
@@ -167,7 +172,7 @@ test.describe("header", () => {
     await popular.getByRole("link", { name: terms[0] }).click();
     await expect(page).toHaveURL(/\/search\?q=/);
     await expect(
-      page.getByText(comingSoonPages.search.query(terms[0])),
+      page.getByRole("heading", { name: new RegExp(`for “${terms[0]}”`) }),
     ).toBeVisible();
   });
 

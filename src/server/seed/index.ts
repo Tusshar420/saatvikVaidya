@@ -21,6 +21,11 @@ import {
   statItemSeed,
   whyStepSeed,
 } from "./home-content";
+import {
+  SAMPLE_GST_RATE,
+  SAMPLE_HSN_CODE,
+  productSeed,
+} from "./catalogue";
 import { userTypeSeed } from "./user-types";
 
 /**
@@ -31,6 +36,8 @@ import { userTypeSeed } from "./user-types";
  *   `enabled`, `featured`), which only apply when a row is first created.
  * - Reels, brands and courses are edited in the admin panel, so they are only
  *   created when missing; their copy is never overwritten.
+ * - Sample products (./catalogue.ts) are only created when their slug is
+ *   missing, so catalogue edits are kept.
  * - Settings are only created when missing, so edited values are never
  *   overwritten. Each creation also writes a SettingHistory row.
  * - Rows the seed doesn't know about are left alone.
@@ -57,6 +64,7 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
       await syncByKey(liveSessionSeed, (args) => tx.liveSession.upsert(args));
       await syncByKey(feedbackSeed, (args) => tx.feedback.upsert(args));
       await syncByKey(whyStepSeed, (args) => tx.whyStep.upsert(args));
+      const productsCreated = await createMissingProducts(tx);
 
       return {
         userTypes: userTypeSeed.length,
@@ -75,6 +83,7 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
           feedbackSeed,
           whyStepSeed,
         ].reduce((sum, rows) => sum + rows.length, 0),
+        productsCreated,
       };
     },
     { timeout: 30_000 },
@@ -86,6 +95,8 @@ export type SeedSummary = {
   settingsCreated: SettingKey[];
   homeSections: number;
   contentRows: number;
+  /** Sample products created this run (existing slugs are left alone). */
+  productsCreated: number;
 };
 
 /** Written only when a row is created; see seedDatabase(). */
@@ -125,6 +136,62 @@ async function createMissing<T extends { key: string }>(
   for (const row of rows) {
     await upsert({ where: { key: row.key }, create: row, update: {} });
   }
+}
+
+/**
+ * Creates the sample products whose slug is missing. A product whose form
+ * no longer exists is skipped; a missing brand or practice area is left off.
+ */
+async function createMissingProducts(
+  tx: Prisma.TransactionClient,
+): Promise<number> {
+  const existing = new Set(
+    (
+      await tx.product.findMany({
+        where: { slug: { in: productSeed.map((p) => p.slug) } },
+        select: { slug: true },
+      })
+    ).map((p) => p.slug),
+  );
+  const [brands, categories] = await Promise.all([
+    tx.brand.findMany({ select: { id: true, key: true } }),
+    tx.category.findMany({ select: { id: true, key: true, kind: true } }),
+  ]);
+  const brandId = new Map(brands.map((b) => [b.key, b.id]));
+  const formId = new Map(
+    categories.filter((c) => c.kind === "FORM").map((c) => [c.key, c.id]),
+  );
+  const areaId = new Map(
+    categories
+      .filter((c) => c.kind === "PRACTICE_AREA")
+      .map((c) => [c.key, c.id]),
+  );
+
+  let created = 0;
+  for (const product of productSeed) {
+    const { brandKey, formKey, practiceAreaKeys, bulkTiers, ...fields } = product;
+    const form = formId.get(formKey);
+    if (existing.has(product.slug) || form === undefined) continue;
+    await tx.product.create({
+      data: {
+        ...fields,
+        isSample: true,
+        gstRate: SAMPLE_GST_RATE,
+        hsnCode: SAMPLE_HSN_CODE,
+        brandId: brandId.get(brandKey) ?? null,
+        formId: form,
+        practiceAreas: {
+          connect: practiceAreaKeys.flatMap((key) => {
+            const id = areaId.get(key);
+            return id === undefined ? [] : [{ id }];
+          }),
+        },
+        bulkTiers: { create: bulkTiers },
+      },
+    });
+    created += 1;
+  }
+  return created;
 }
 
 async function createMissingSettings(

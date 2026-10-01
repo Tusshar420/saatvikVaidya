@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { catalogue } from "@/content/catalogue";
+import { catalogueHref } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import type { CategoryItem } from "@/server/content/home";
 import type {
@@ -94,27 +97,41 @@ export function LaunchSection({
               </div>
 
               {/* Category cards grid */}
-              <div className="grid gap-4 sm:grid-cols-2">
+              <ul className="grid gap-4 sm:grid-cols-2">
                 {activeCategories.map((category) => (
-                  <div
-                    key={category.key}
-                    className="p-4 rounded-lg border border-line hover:bg-surface-alt transition text-center"
-                  >
-                    {category.glyph && (
-                      <div className="text-3xl mb-2">{category.glyph}</div>
-                    )}
-                    <h4 className="text-body font-600">{category.name}</h4>
-                  </div>
+                  <li key={category.key}>
+                    <Link
+                      href={catalogueHref(
+                        activeTab === "form"
+                          ? { form: category.key }
+                          : { area: category.key },
+                      )}
+                      className="block h-full p-4 rounded-lg border border-line hover:border-teal/60 hover:bg-surface-alt transition text-center"
+                    >
+                      {category.glyph && (
+                        <span aria-hidden className="block text-3xl mb-2">
+                          {category.glyph}
+                        </span>
+                      )}
+                      <span className="block text-body font-600 text-ink">
+                        {category.name}
+                      </span>
+                      <span className="mt-1 block text-small font-bold text-teal">
+                        {catalogueMeta.categoryLinkLabel}
+                        <span aria-hidden> →</span>
+                      </span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
 
-              <Button
-                className="w-full mt-8"
-                disabled
-                aria-label="Catalogue coming soon"
+              <Link
+                href={catalogueHref()}
+                className={buttonClasses({ className: "w-full mt-8" })}
               >
-                {catalogueMeta.categoryLinkLabel || "Explore"}
-              </Button>
+                {catalogue.viewAllProducts}
+                <ButtonArrow />
+              </Link>
             </div>
           </Card>
         </div>

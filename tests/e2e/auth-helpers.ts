@@ -17,7 +17,8 @@ import { rateLimitRules } from "../../src/server/auth/policy";
 // - emails end @e2e.saatvikvaidya.test,
 // - request IPs start 10.99. (sent as x-forwarded-for, so each test has its
 //   own per-IP rate limits and the real limits stay untouched),
-// - admin-panel content keys start "e2e-" and quiz titles "E2E ".
+// - admin-panel content keys and product slugs start "e2e-", quiz titles
+//   "E2E ".
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -234,8 +235,19 @@ export async function cleanUpE2eData() {
     where: { userId: { in: ids } },
     select: { fileKey: true },
   });
+  // Products the catalogue tests made (slug "e2e-..."), with their photos.
+  const productIds = (
+    await db.product.findMany({
+      where: { slug: { startsWith: E2E_CONTENT_PREFIX } },
+      select: { id: true },
+    })
+  ).map((product) => String(product.id));
+  const productImages = await db.productImage.findMany({
+    where: { product: { slug: { startsWith: E2E_CONTENT_PREFIX } } },
+    select: { fileKey: true },
+  });
   const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
-  for (const { fileKey } of documents) {
+  for (const { fileKey } of [...documents, ...productImages]) {
     const path = resolve(storageDir, fileKey);
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
   }
@@ -246,6 +258,14 @@ export async function cleanUpE2eData() {
     }),
     // Sessions and accounts go with their users (onDelete: Cascade).
     db.user.deleteMany({ where: { id: { in: ids } } }),
+    db.adminLog.deleteMany({
+      where: {
+        resource: "Product",
+        resourceId: { in: productIds },
+      },
+    }),
+    // Images, tiers and area links go with the product (onDelete: Cascade).
+    db.product.deleteMany({ where: { slug: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.reel.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.brand.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.courseTeaser.deleteMany({

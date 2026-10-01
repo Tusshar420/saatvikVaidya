@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Package,
+  Pill,
   Settings,
   Users,
   type LucideIcon,
@@ -24,6 +25,7 @@ const main: NavLink[] = [
   { href: "/admin", label: copy.nav.dashboard, icon: LayoutDashboard },
   { href: "/admin/users", label: copy.nav.users, icon: Users },
   { href: "/admin/approvals", label: copy.nav.approvals, icon: BadgeCheck },
+  { href: "/admin/catalogue", label: copy.nav.catalogue, icon: Pill },
 ];
 
 const content: NavLink[] = [
