@@ -257,8 +257,16 @@ export async function cleanUpE2eData() {
     where: { order: { userId: { in: ids } } },
     select: { fileKey: true },
   });
+  // Ebooks the ebook tests made (slug "e2e-..."), with their PDFs and covers (P1.8).
+  const ebooks = await db.ebook.findMany({
+    where: { slug: { startsWith: E2E_CONTENT_PREFIX } },
+    select: { id: true, fileKey: true, coverKey: true },
+  });
+  const ebookFiles = ebooks.flatMap((ebook) =>
+    [ebook.fileKey, ebook.coverKey].flatMap((fileKey) => (fileKey ? [{ fileKey }] : [])),
+  );
   const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
-  for (const { fileKey } of [...documents, ...productImages, ...invoiceFiles]) {
+  for (const { fileKey } of [...documents, ...productImages, ...invoiceFiles, ...ebookFiles]) {
     const path = resolve(storageDir, fileKey);
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
   }
@@ -284,6 +292,11 @@ export async function cleanUpE2eData() {
     }),
     // Images, tiers and area links go with the product (onDelete: Cascade).
     db.product.deleteMany({ where: { slug: { startsWith: E2E_CONTENT_PREFIX } } }),
+    db.adminLog.deleteMany({
+      where: { resource: "Ebook", resourceId: { in: ebooks.map((ebook) => String(ebook.id)) } },
+    }),
+    // Cart lines go with the ebook; order lines keep their snapshot.
+    db.ebook.deleteMany({ where: { slug: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.reel.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.brand.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.courseTeaser.deleteMany({
@@ -301,6 +314,7 @@ export async function cleanUpE2eData() {
         OR: [
           // Per-account limits of e2e users (keys are lowercased).
           { key: { in: ids.map((id) => `order-place:user:${id.toLowerCase()}`) } },
+          { key: { in: ids.map((id) => `ebook-download:user:${id.toLowerCase()}`) } },
           { key: { in: orderNumbers } },
           { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
           { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },
