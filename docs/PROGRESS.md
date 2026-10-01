@@ -1657,3 +1657,44 @@ for when P1.4 is done.
 Nothing was changed apart from this entry. No P1.6 code was written, pdf-lib was
 not added, and checks were not run; the tree still holds P1.3's uncommitted
 work.
+
+## P1.7. Super Coins (BLOCKED, 2026-10-01)
+
+Not started. A large part of P1.7 hangs off orders and payments: coins are
+earned "per ₹ spent" and "after delivery", redeemed "at checkout", and returned
+when "a failed payment or a cancellation" happens. Its Playwright test is
+"redeeming at checkout". None of that exists yet, because P1.4 and P1.5 are both
+blocked (see their entries above). Per the task rules this chunk stops here
+instead of building P1.4 or P1.5 (or finishing P1.3) itself.
+
+**What's missing (checked in code, schema and git on 2026-10-01)**
+- **P1.4 is not built:** `prisma/schema.prisma` has no `Order`, `OrderItem`,
+  `Payment` or `Cart` models and there is no `src/server/payments/`. Without it
+  there is no checkout to redeem at, no order total to cap redemption against,
+  no amount spent to earn on, and no failed payment to reverse.
+- **P1.5 is not built:** there is no order status flow (so no "Delivered" event
+  to trigger earning) and no order cancel (so nothing to trigger a refund of
+  redeemed coins). `/orders` and `/admin/orders` are still placeholders.
+- **P1.3 is still unfinished:** its work is still uncommitted on `dev` (latest
+  commit `079dcfa`, no `P1.3` commit), and `pnpm test:e2e` was failing when
+  P1.4 checked.
+- Current coin state: `/coins` is a coming-soon page, and the header pill in
+  `src/app/(site)/layout.tsx` shows a hard-coded `0` when signed in. There is no
+  `CoinLedger` model and no `/admin/coins`.
+
+**Why it can't go ahead partially:** some pieces don't need orders (the rules
+in `/admin/coins`, the `CoinLedger` model, the real balance in the header pill,
+the `/coins` history, admin manual adjustments and profile-completion rewards).
+But the ledger's reference field and the earn/redeem/reverse rules need to point
+at P1.4's order and payment records, and the chunk's "done" needs the checkout
+Playwright test. Adding a `CoinLedger` migration now would also stack on top of
+P1.3's uncommitted schema changes and migration. So all of it is left until P1.4
+and P1.5 are done.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
+2. Run P1.4, then P1.5 (and P1.6, which doesn't block P1.7).
+3. Re-queue P1.7.
+
+Nothing was changed apart from this entry. No P1.7 code was written and checks
+were not run; the tree still holds P1.3's uncommitted work.
