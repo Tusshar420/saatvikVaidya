@@ -1590,3 +1590,34 @@ instead of finishing or rebuilding P1.3.
 2. Re-queue P1.4.
 
 Nothing was changed apart from this entry. No P1.4 code was written.
+
+## P1.5. Orders and test delivery tracking (BLOCKED, 2026-10-01)
+
+Not started. P1.5 adds order history, admin order management and test shipping
+on top of the orders that P1.4 creates, and P1.4 has not been built. Per the
+task rules this chunk stops here instead of building P1.4 (or finishing P1.3)
+itself.
+
+**What's missing (checked in code, schema and git on 2026-10-01)**
+- **P1.4 is not started:** its entry above is a blocker. `prisma/schema.prisma`
+  has no `Order`, `OrderItem`, `Payment`, `Cart` or `Address` models, and
+  there is no `src/server/payments/`. P1.5 needs all of these: the customer
+  order pages show items, totals, address and payment; "Create shipment"
+  works on a paid order; admin cancel restocks the stock a paid order took;
+  and Track Order checks the phone or email on the order.
+- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
+  commit `4c58efd`, no `P1.3` commit) and `pnpm test:e2e` was failing when
+  P1.4 checked (see that entry for the failures).
+- `/orders` and `/admin/orders` are still the earlier placeholder pages.
+
+**Why it can't go ahead partially:** without real orders and payments there
+is nothing for shipments, timelines or tracking to attach to. Building stand-in
+order models here would duplicate P1.4 and very likely clash with it.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
+2. Run P1.4.
+3. Re-queue P1.5.
+
+Nothing was changed apart from this entry. No P1.5 code was written and checks
+were not run; the tree still holds P1.3's uncommitted work.
