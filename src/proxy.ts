@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authCookiePrefix, signInPath } from "@/lib/auth-routes";
 
 /**
- * Sends signed-out visitors of /account and /admin to sign-in. This only
+ * Sends signed-out visitors of /account, /checkout and /admin to sign-in. This only
  * checks that a session cookie is present (fast, no database); pages must
  * still call requireUser() or requireAdmin() from src/server/auth/session.ts,
  * which check the session and role properly.
@@ -20,5 +20,12 @@ export function proxy(request: NextRequest) {
 
 // Keep in sync with protectedPathPrefixes in src/lib/auth-routes.ts.
 export const config = {
-  matcher: ["/account", "/account/:path*", "/admin", "/admin/:path*"],
+  matcher: [
+    "/account",
+    "/account/:path*",
+    "/checkout",
+    "/checkout/:path*",
+    "/admin",
+    "/admin/:path*",
+  ],
 };

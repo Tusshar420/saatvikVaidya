@@ -11,6 +11,11 @@ export type SettingValues = {
   "search.popular": readonly string[];
   /** One line under the logo in the footer. */
   "footer.tagline": string;
+  /**
+   * Delivery charge added at checkout, in paise (prices include GST), and
+   * the order value from which delivery is free (null: never free).
+   */
+  "checkout.shipping": { feePaise: number; freeFromPaise: number | null };
 };
 
 export type SettingKey = keyof SettingValues;
@@ -26,4 +31,6 @@ export const settingDefaults: SettingValues = {
   ],
   "footer.tagline":
     "A B2B Ayurveda platform for products, professional learning and practice growth.",
+  // Placeholder amounts until the client confirms them (₹80, free from ₹999).
+  "checkout.shipping": { feePaise: 8_000, freeFromPaise: 99_900 },
 };

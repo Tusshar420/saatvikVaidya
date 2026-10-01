@@ -10,6 +10,8 @@ import { getEnabledSectionKeys } from "@/server/content/home";
 import { getSignUpUserTypes } from "@/server/content/user-types";
 import { isDevOtpVisible } from "@/server/env";
 import { getSession } from "@/server/auth/session";
+import { cartCount } from "@/server/cart/cart";
+import { currentCartOwner } from "@/server/cart/request";
 
 // Every public page: skip link, header with nav rail, footer, and the dock on
 // phones. The /design showcase sits outside this group on purpose.
@@ -26,6 +28,7 @@ export default async function SiteLayout({
     userTypes,
     session,
     enabledSections,
+    bagCount,
   ] = await Promise.all([
     getSetting("contact.phone"),
     getSetting("contact.supportNote"),
@@ -34,6 +37,7 @@ export default async function SiteLayout({
     getSignUpUserTypes(),
     getSession(),
     getEnabledSectionKeys(),
+    currentCartOwner().then(cartCount),
   ]);
 
   const filteredNavItems = navItems.filter((item) =>
@@ -55,7 +59,7 @@ export default async function SiteLayout({
         navItems={filteredNavItems}
         // When signed in, show 0 coins; when signed out, hide the pill
         coinBalance={session ? 0 : null}
-        bagCount={0}
+        bagCount={bagCount}
       />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
         {children}

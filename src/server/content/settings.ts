@@ -17,6 +17,10 @@ export const settingSchemas = {
   "contact.supportNote": z.string().trim().min(1).max(300),
   "search.popular": z.array(z.string().trim().min(1).max(60)).min(1).max(8),
   "footer.tagline": z.string().trim().min(1).max(200),
+  "checkout.shipping": z.object({
+    feePaise: z.number().int().min(0).max(10_000_000),
+    freeFromPaise: z.number().int().min(0).max(1_000_000_000).nullable(),
+  }),
 } satisfies { [K in SettingKey]: z.ZodType<SettingValues[K]> };
 
 const settingKeys = Object.keys(settingDefaults) as SettingKey[];

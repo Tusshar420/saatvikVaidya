@@ -12,6 +12,8 @@ describe("proxy", () => {
     for (const [path, next] of [
       ["/account", "%2Faccount"],
       ["/account/orders?page=2", "%2Faccount%2Forders%3Fpage%3D2"],
+      ["/checkout", "%2Fcheckout"],
+      ["/checkout/pay/abc", "%2Fcheckout%2Fpay%2Fabc"],
       ["/admin", "%2Fadmin"],
       ["/admin/users/42", "%2Fadmin%2Fusers%2F42"],
     ]) {
@@ -38,10 +40,12 @@ describe("proxy", () => {
     expect(response.status).toBe(307);
   });
 
-  it("only runs on /account and /admin", () => {
+  it("only runs on /account, /checkout and /admin", () => {
     expect(config.matcher).toEqual([
       "/account",
       "/account/:path*",
+      "/checkout",
+      "/checkout/:path*",
       "/admin",
       "/admin/:path*",
     ]);

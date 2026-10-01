@@ -47,4 +47,8 @@ export const rateLimitRules = {
     windowSeconds: 60 * 60,
     max: 20,
   },
+  /** New guest carts (each sets a cookie and a database row) from one IP: 30 per hour. */
+  guestCartPerIp: { name: "guest-cart:ip", windowSeconds: 60 * 60, max: 30 },
+  /** Orders placed by one account: 20 per hour. */
+  orderPlacePerUser: { name: "order-place:user", windowSeconds: 60 * 60, max: 20 },
 } as const satisfies Record<string, RateLimitRule>;

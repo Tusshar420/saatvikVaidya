@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { randomInt } from "node:crypto";
 import { test, expect, type Browser, type Page } from "@playwright/test";
 import { admin } from "../../src/content/admin";
+import { cart } from "../../src/content/cart";
 import { catalogue as copy } from "../../src/content/catalogue";
 import { E2E_CONTENT_PREFIX, signInAs } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
@@ -123,7 +124,7 @@ test.describe("product page", () => {
   const bulk = (page: Page) => page.getByRole("heading", { name: copy.product.price.bulkTitle });
   const priceBox = (page: Page) => page.getByRole("region", { name: copy.product.price.label });
 
-  test("a guest sees MRP, a sign-in hint and ordering coming soon", async ({ page }) => {
+  test("a guest sees MRP, a sign-in hint and can add to cart", async ({ page }) => {
     await page.goto(url);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Punarnava Mandoor");
     await expect(priceBox(page)).toContainText("MRP₹320");
@@ -131,8 +132,8 @@ test.describe("product page", () => {
     await expect(priceBox(page)).toContainText(copy.product.hint.guest);
     await expect(priceBox(page)).not.toContainText("₹240");
     await expect(bulk(page)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: copy.product.addToCart })).toBeDisabled();
-    await expect(page.getByText(copy.product.cartSoon, { exact: true })).toBeVisible();
+    // P1.4: ordering is open (the checkout spec adds to the cart).
+    await expect(page.getByRole("button", { name: cart.add.button })).toBeEnabled();
     await expect(page.getByText(copy.product.sampleBadge, { exact: true })).toBeVisible();
 
     // The sign-in link comes back to this product.

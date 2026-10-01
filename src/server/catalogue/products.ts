@@ -87,6 +87,8 @@ export type CatalogueListing = {
 export type StockStatus = { kind: "in" } | { kind: "low"; left: number } | { kind: "out" };
 
 export type ProductPage = {
+  /** For "Add to cart". */
+  id: number;
   slug: string;
   name: string;
   brand: FacetOption | null;
@@ -293,6 +295,7 @@ export async function readProductPage(
   if (!row) return null;
 
   return {
+    id: row.id,
     slug: row.slug,
     name: row.name,
     brand: row.brand,

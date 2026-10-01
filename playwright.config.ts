@@ -52,6 +52,10 @@ export default defineConfig({
       SHOW_DESIGN_PAGE: "true",
       // Auth must know its own origin for links and the CSRF origin check.
       BETTER_AUTH_URL: baseURL,
+      // The test payment provider refuses production builds; this local
+      // build (on localhost) may use it so checkout can be tested end to end.
+      PAYMENT_PROVIDER: "test",
+      TEST_PAYMENTS_IN_LOCAL_BUILD: "true",
     },
   },
 });

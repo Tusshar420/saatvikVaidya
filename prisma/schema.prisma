@@ -2,8 +2,8 @@
 // The connection URL lives in prisma.config.ts, read from DATABASE_URL.
 //
 // Sections, in order: users and access, admin, site settings, homepage
-// content, learning, catalogue. Later phases add their own section (orders,
-// coins, ebooks...).
+// content, learning, catalogue, cart and orders. Later phases add their own
+// section (coins, ebooks...).
 
 generator client {
   provider = "prisma-client"
@@ -88,6 +88,9 @@ model User {
   verificationComments    VerificationComment[]  @relation("VerificationSubject")
   /// Decisions this admin made about other users' verification.
   verificationDecisions   VerificationComment[]  @relation("VerificationAuthor")
+  cart                    Cart?
+  addresses               Address[]
+  orders                  Order[]
 
   @@index([userTypeId])
 }
@@ -614,6 +617,8 @@ model Product {
   updatedAt              DateTime        @updatedAt
   images                 ProductImage[]
   bulkTiers              BulkPriceTier[]
+  cartItems              CartItem[]
+  orderItems             OrderItem[]
 
   @@index([active, sortOrder])
   @@index([brandId])
@@ -649,4 +654,175 @@ model BulkPriceTier {
   pricePaise  Int
 
   @@unique([productId, minQuantity])
+}
+
+// ─── Cart and orders ────────────────────────────────────────────────────────
+// /cart, /checkout and the payment screens (P1.4). Code is in src/server/cart,
+// src/server/checkout and src/server/payments. Prices are never stored on a
+// cart: every view and every checkout step prices the lines again with
+// priceFor(). An order keeps a snapshot of what was charged.
+
+/// A shopping cart: a signed-in user's (one each), or a guest's, found by
+/// the hash of the random token in the guest's "sv.cart" cookie. A guest
+/// cart is merged into the user's cart when they sign in.
+model Cart {
+  id             Int        @id @default(autoincrement())
+  userId         String?    @unique @db.VarChar(64)
+  user           User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 (hex) of the guest cookie's token; null for a user's cart. The
+  /// token itself is never stored.
+  guestTokenHash String?    @unique @db.Char(64)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  items          CartItem[]
+
+  @@index([updatedAt])
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+/// A saved delivery address. Orders copy it, so editing an address never
+/// changes a placed order.
+model Address {
+  id         Int       @id @default(autoincrement())
+  userId     String    @db.VarChar(64)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Who receives the parcel.
+  name       String    @db.VarChar(100)
+  /// E.164, Indian mobiles only: "+91XXXXXXXXXX".
+  phone      String    @db.VarChar(20)
+  /// House or flat number, building.
+  line1      String    @db.VarChar(200)
+  /// Street, area or locality.
+  line2      String?   @db.VarChar(200)
+  landmark   String?   @db.VarChar(120)
+  city       String    @db.VarChar(100)
+  /// State or union territory code from src/lib/india.ts, e.g. "MH".
+  state      String    @db.VarChar(4)
+  /// Six-digit PIN code.
+  pincode    String    @db.Char(6)
+  /// Last used for an order; the most recent one is picked at checkout.
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, lastUsedAt])
+}
+
+enum OrderStatus {
+  pending_payment
+  paid
+  payment_failed
+  cancelled
+  processing
+  shipped
+  delivered
+}
+
+/// An order. Prices, tax and the delivery address are copied in when it is
+/// placed and never recomputed afterwards.
+model Order {
+  id            String      @id @db.VarChar(32)
+  /// Shown to the customer, e.g. "SV-7K2Q9F4M".
+  number        String      @unique @db.VarChar(20)
+  /// Null only if the account was deleted; the order is kept for records.
+  userId        String?     @db.VarChar(64)
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Random key from the checkout page, so a double submit places one order.
+  checkoutKey   String      @db.VarChar(36)
+  status        OrderStatus @default(pending_payment)
+  shipName      String      @db.VarChar(100)
+  shipPhone     String      @db.VarChar(20)
+  shipLine1     String      @db.VarChar(200)
+  shipLine2     String?     @db.VarChar(200)
+  shipLandmark  String?     @db.VarChar(120)
+  shipCity      String      @db.VarChar(100)
+  shipState     String      @db.VarChar(4)
+  shipPincode   String      @db.Char(6)
+  /// Sum of the line totals (prices include GST), in paise.
+  subtotalPaise Int
+  /// GST included in the subtotal, in paise.
+  taxPaise      Int
+  shippingPaise Int
+  totalPaise    Int
+  /// When payment succeeded and stock was taken.
+  paidAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+  payments      Payment[]
+
+  @@unique([userId, checkoutKey])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// One line of an order, with the product as it was when ordered.
+model OrderItem {
+  id             Int      @id @default(autoincrement())
+  orderId        String   @db.VarChar(32)
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Null if the product was deleted later; the snapshot below stays.
+  productId      Int?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productSlug    String   @db.VarChar(120)
+  productName    String   @db.VarChar(160)
+  packSize       String   @db.VarChar(60)
+  hsnCode        String   @db.VarChar(8)
+  /// GST percentage included in the price.
+  gstRate        Int
+  mrpPaise       Int
+  /// What one unit cost this buyer, including GST.
+  unitPaise      Int
+  /// "mrp", "professional" or "bulk" (src/server/pricing).
+  priceTier      String   @db.VarChar(16)
+  quantity       Int
+  /// unitPaise × quantity.
+  lineTotalPaise Int
+  /// GST included in the line total.
+  taxPaise       Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum PaymentStatus {
+  created
+  succeeded
+  failed
+}
+
+/// One attempt to pay for an order. A failed attempt stays; "Try again"
+/// starts the next attempt on the same order.
+model Payment {
+  id            Int           @id @default(autoincrement())
+  orderId       String        @db.VarChar(32)
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// PAYMENT_PROVIDER that handled it, e.g. "test" (Razorpay later).
+  provider      String        @db.VarChar(20)
+  /// The provider's id for this attempt.
+  reference     String        @unique @db.VarChar(64)
+  amountPaise   Int
+  status        PaymentStatus @default(created)
+  /// 1 for the first attempt on the order, then 2, 3...
+  attempt       Int
+  /// Why it failed, e.g. "declined" or "out_of_stock".
+  failureReason String?       @db.VarChar(40)
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([orderId, attempt])
 }

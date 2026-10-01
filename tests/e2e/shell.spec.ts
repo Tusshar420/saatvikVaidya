@@ -5,6 +5,7 @@ import {
   type ComingSoonPageCopy,
   type PolicyPageCopy,
 } from "../../src/content/pages";
+import { cart } from "../../src/content/cart";
 import { catalogue } from "../../src/content/catalogue";
 import { settingDefaults } from "../../src/content/settings";
 import { navItems, policyLinks, shell } from "../../src/content/shell";
@@ -16,7 +17,6 @@ const phone = settingDefaults["contact.phone"];
 const tel = "tel:+919220358400";
 
 const comingSoonRoutes: [string, ComingSoonPageCopy][] = [
-  ["/cart", comingSoonPages.cart],
   ["/orders", comingSoonPages.orders],
   ["/coins", comingSoonPages.coins],
 ];
@@ -192,9 +192,10 @@ test.describe("header", () => {
       await header(page)
         .getByRole("link", { name: shell.header.bag(0) })
         .click();
+      // P1.4: the real cart, empty in a fresh browser.
       await expect(page).toHaveURL("/cart");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        comingSoonPages.cart.title,
+        cart.empty.title,
       );
     }
   });

@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { phoneNumber } from "better-auth/plugins/phone-number";
 import { site } from "@/content/site";
+import { cartMergePlugin } from "@/server/cart/merge";
 import { authCookiePrefix } from "@/lib/auth-routes";
 import { isIndianE164 } from "@/lib/phone";
 import { db } from "@/server/db";
@@ -69,6 +70,8 @@ export const auth = betterAuth({
       },
     }),
     policyPlugin(),
+    // Moves a guest cart into the account at sign-in.
+    cartMergePlugin(),
     // Lets server actions set auth cookies. Must stay last.
     nextCookies(),
   ],

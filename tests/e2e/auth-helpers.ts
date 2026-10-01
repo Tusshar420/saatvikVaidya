@@ -18,7 +18,9 @@ import { rateLimitRules } from "../../src/server/auth/policy";
 // - request IPs start 10.99. (sent as x-forwarded-for, so each test has its
 //   own per-IP rate limits and the real limits stay untouched),
 // - admin-panel content keys and product slugs start "e2e-", quiz titles
-//   "E2E ".
+//   "E2E ",
+// - orders belong to e2e users; guest carts end up empty once the e2e
+//   products are gone.
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -252,6 +254,9 @@ export async function cleanUpE2eData() {
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
   }
   await db.$transaction([
+    // Orders of e2e users (their items and payments go with them). Orders
+    // outlive a deleted account, so they're removed before the users.
+    db.order.deleteMany({ where: { userId: { in: ids } } }),
     // Audit rows written by e2e admins, or about e2e users.
     db.adminLog.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { resourceId: { in: ids } }] },
@@ -275,9 +280,14 @@ export async function cleanUpE2eData() {
     db.verification.deleteMany({
       where: { OR: [{ identifier: phones }, { value: { in: ids } }] },
     }),
+    // Guest carts the e2e tests left (their e2e products, and with them the
+    // cart lines, are deleted above). Empty guest carts hold nothing.
+    db.cart.deleteMany({ where: { userId: null, items: { none: {} } } }),
     db.authRateLimit.deleteMany({
       where: {
         OR: [
+          // Per-account limits of e2e users (keys are lowercased).
+          { key: { in: ids.map((id) => `order-place:user:${id.toLowerCase()}`) } },
           { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
           { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },
           { key: { contains: `:${E2E_IP_PREFIX}` } },

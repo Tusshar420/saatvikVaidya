@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { AddToCartSoon } from "@/components/site/catalogue/add-to-cart-soon";
+import { AddToCart } from "@/components/site/catalogue/add-to-cart";
 import { PriceBox } from "@/components/site/catalogue/price-box";
 import { ProductGallery } from "@/components/site/catalogue/product-gallery";
 import { SampleNote } from "@/components/site/catalogue/sample-note";
@@ -121,7 +121,14 @@ export default async function ProductPage({
             {product.moq > 1 && <p className="text-muted">{text.moq(product.moq)}</p>}
           </div>
 
-          <AddToCartSoon phone={phone} />
+          <AddToCart
+            productId={product.id}
+            name={product.name}
+            moq={Math.max(1, product.moq)}
+            left={product.stock.kind === "low" ? product.stock.left : null}
+            outOfStock={product.stock.kind === "out"}
+            phone={phone}
+          />
 
           {product.isSample && <SampleNote>{text.sampleNote}</SampleNote>}
         </div>

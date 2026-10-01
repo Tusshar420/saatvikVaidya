@@ -114,11 +114,6 @@ export const catalogue = {
       out: "Out of stock",
     },
     moq: (n: number) => `Minimum order: ${count(n)} units`,
-    addToCart: "Add to cart",
-    cartSoon: "Coming soon",
-    cartSoonLine: (phone: string) =>
-      `Online ordering opens soon. To order today, call ${phone}.`,
-    call: (phone: string) => `Call ${phone}`,
     sections: {
       description: "About this product",
       ingredients: "Key ingredients",

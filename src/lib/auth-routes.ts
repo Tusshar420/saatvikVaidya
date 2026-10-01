@@ -7,7 +7,7 @@ import { sitePathSchema } from "@/server/content/home-schema";
 export const authCookiePrefix = "sv";
 
 /** Paths that need a signed-in user (checked in src/proxy.ts). */
-export const protectedPathPrefixes = ["/account", "/admin"] as const;
+export const protectedPathPrefixes = ["/account", "/checkout", "/admin"] as const;
 
 /**
  * Where to send a signed-out visitor: the homepage with the sign-in modal

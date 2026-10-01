@@ -1738,7 +1738,18 @@ replaces it. Nothing needed fixing before starting.
 - `tests/e2e/auth-helpers.ts` cleanup also removes e2e users' orders, empty
   guest carts and their order rate-limit rows.
 
-**Checks:** CHECKS_LINE
+**Checks:** `pnpm typecheck`, `pnpm lint`, `pnpm test` (36 files, 342 tests),
+`pnpm test:e2e` (172 passed, 4 skipped: the A9 screenshot tests run only in
+the desktop project as designed; 0 failed) and `pnpm build` all pass. An
+earlier run started the e2e suite in the background and ended before it
+finished, so this entry was completed in a later run that ran every check in
+the foreground. Cart, checkout, payment, confirmation and failure pages were
+checked by eye at 375 and 1280 px through both the success path and the
+failure-then-retry path. That check found one bug, now fixed: saving or
+cancelling the address form removed the focused button, so focus fell back
+to the top of the page (the "Skip to content" link). Focus now moves to the
+saved address's radio (or to "Add a new address" after cancel), and
+`checkout.spec.ts` asserts it.
 
 **Known gaps**
 - No order history or tracking yet (`/orders` is still ComingSoon; P1.5).
