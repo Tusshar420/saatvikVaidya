@@ -1795,3 +1795,63 @@ committed and green, it can run before P1.4. Notes for that run:
 
 Nothing was changed apart from this entry. No P1.9 code was written. The only
 check run was the e2e run above. The tree still holds P1.3's uncommitted work.
+
+## P1.11. Admin security and permissions (BLOCKED, 2026-10-01)
+
+Not started. P1.11 puts a permission check on every admin action and makes
+`AdminLog` cover every admin write. P1.3's admin catalogue is among those
+actions, and P1.3 is still uncommitted with failing e2e tests. Per the task
+rules this chunk stops here instead of finishing P1.3 itself.
+
+**What's blocking (checked in code and git on 2026-10-01)**
+- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
+  commit `a84808d`, no `P1.3` commit). No file under `src/`, `prisma/` or
+  `tests/` has changed since P1.9 re-ran the e2e tests (8 failed, the same
+  four `catalogue.spec.ts` tests on phone and desktop; see the P1.9 entry).
+  The e2e run wasn't repeated, since the tree is the same.
+- **P1.11's work lands in P1.3's uncommitted files:**
+  - `prisma/schema.prisma`: the two-factor plugin's tables, the admin
+    permission roles and admin invites all need a migration. It would stack
+    on P1.3's uncommitted `20260930234005_p1_3_catalogue`.
+  - P1.3's new admin code, which would need permission checks:
+    `src/app/admin/catalogue/` (pages and `actions.ts`),
+    `src/server/admin/catalogue.ts` and
+    `src/app/api/admin/products/[id]/images` (all untracked).
+  - Shared admin files already edited by P1.3: `src/server/admin/audit.ts`,
+    `src/components/admin/admin-nav.tsx` (the menu would hide items per
+    role) and `src/content/admin.ts`.
+
+  P1.11's commits couldn't be kept apart from P1.3's work, and the
+  definition of done (`pnpm test:e2e` green) can't be met while P1.3's tests
+  fail.
+- **P1.10 has not been run** (no entry here, no `/admin/reports`). That
+  doesn't block P1.11 on its own. But if P1.11 goes first, P1.10's reports
+  and CSV export must use P1.11's permission check.
+
+**Notes for the run that builds P1.11**
+- What exists now:
+  - `UserRole` is only `user | admin`, and `requireAdmin()` in
+    `src/server/auth/session.ts` is the single admin gate. It's used by
+    every admin page, the `users`, `content` and `catalogue` actions, and
+    `src/proxy.ts`.
+  - `AdminLog` has action, resource, resourceId and changes.
+  - `pnpm admin:create` is `scripts/admin-create.ts`.
+  - There is no two-factor code yet.
+- A per-area check (for example `requireAdminPermission("catalogue")`) can
+  replace `requireAdmin()` in each action and route. A Vitest test can then
+  list every admin server action and route handler and check that each
+  calls it, so new admin code can't skip the check.
+- `/admin/orders` and `/admin/settings` are still placeholders. Their
+  permissions (orders, content/settings) can be defined now and enforced
+  when P1.5 and P1.9 build them.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry; only the four catalogue tests are
+   still failing), get all five checks green and commit.
+2. Re-queue P1.9 (it can go before P1.4), then P1.4 to P1.10 in order.
+3. Re-queue P1.11. It mostly doesn't need orders, so it could go right after
+   P1.3 if admin security is wanted sooner. Each chunk built after it then
+   adds its own permission checks.
+
+Nothing was changed apart from this entry. No P1.11 code was written and no
+checks were run. The tree still holds P1.3's uncommitted work.
