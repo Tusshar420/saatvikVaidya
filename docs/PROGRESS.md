@@ -1849,44 +1849,42 @@ were not run; P1.4's uncommitted work was left as is.
 
 ## P1.8. Ebooks (BLOCKED, 2026-10-01)
 
-Not started. P1.8 says paid books are "bought through the normal cart and test
-payment" and can then be downloaded "only by buyers". The cart, orders and test
-payment come from P1.4, which has not been built (see its entry above). Per the
-task rules this chunk stops here instead of building P1.4 (or finishing P1.3)
-itself.
+Not started. This replaces the earlier P1.8 blocker entry, which is out of
+date: P1.3 is now committed (`5b6745e`) and P1.4's code is in the tree. But
+P1.4 is still unfinished, so per the task rules this chunk stops here.
 
-**What's missing (checked in code, schema and git on 2026-10-01)**
-- **P1.4 is not built:** `prisma/schema.prisma` has no `Cart`, `Order`,
-  `OrderItem` or `Payment` models, and there is no `src/server/payments/` or
-  cart code. Without it, a paid ebook can't be added to the cart or paid for,
-  and there is no paid order to show who is a "buyer". So the main access rule
-  (paid non-buyer refused, buyer allowed) can't be built or tested.
-- **P1.3 is still unfinished:** its work is still uncommitted on `dev` (latest
-  commit `219e66c`, no `P1.3` commit), and `pnpm test:e2e` was failing when
-  P1.4 checked. An `Ebook` migration now would stack on top of P1.3's
-  uncommitted schema changes and its migration
-  (`prisma/migrations/20260930234005_p1_3_catalogue/`).
-- What already exists and P1.8 will reuse: the P1.2 `Storage` interface in
-  `src/server/storage/` (which already streams files) and the auth rate
-  limiting.
+**What it waits on (checked 2026-10-01, latest commit `0c6a0e4`)**
+- **P1.4 (Cart, checkout and test payment) is unfinished:** its `Cart`,
+  `Order` and `Payment` models, checkout pages and test payment provider
+  exist, but none of it is committed (40 files modified or untracked,
+  including the `p1_4_cart_checkout` migration), and its entry's **Checks**
+  line is still the placeholder `CHECKS_LINE`, so nothing shows the five
+  checks passed. P1.8 sells paid books "through the normal cart and test
+  payment" and decides who is a "buyer" from paid orders, both of which are
+  P1.4's.
+- **P1.5, P1.6 and P1.7 are marked BLOCKED** (all on P1.4). P1.8 doesn't
+  need their features, but the task rules say not to build around an earlier
+  chunk that is blocked.
+- No other chunk run was active when checked (only this one).
 
-**Why it can't go ahead partially:** some parts don't need orders: the `Ebook`
-model, `/admin/ebooks`, the `/ebooks` pages, free downloads for signed-in
-users, and the site-wide and per-book download switches. But how an ebook goes
-into the cart and an order (as a cart line, or as a product with no stock or
-shipping) is a P1.4 design choice. Guessing it now would very likely clash with
-P1.4, and the chunk's "done" needs the paid-book buyer tests. So all of it is
-left until P1.4 is done.
+**Why it can't go ahead partially:** an `Ebook` migration would stack on
+P1.4's uncommitted migration, and the paid-book work changes P1.4's
+uncommitted cart, order and payment code. Committing it would mix both
+chunks in one history and hide any P1.4 failure inside P1.8.
+
+**Note for when it runs:** P1.4's `CartItem` and `OrderItem` hold products
+only (`productId`, pack size, HSN, stock taken on payment). P1.8 will need
+to add a non-physical line (an ebook: no stock, no MOQ, no delivery fee)
+to both, or model each paid ebook as its own line type. The P1.2 `Storage`
+in `src/server/storage/` already streams files for the download route.
 
 **Next steps**
-1. Finish P1.3 (steps in the P1.4 entry), get all five checks green and commit.
-2. Run P1.4. It helps if P1.4 leaves room for non-physical lines (no stock, no
-   shipping) so ebooks can go through the same cart and payment.
-3. Re-queue P1.8. It doesn't depend on P1.5, P1.6 or P1.7, but an ebook order
-   should skip shipment creation in P1.5 if that is built first.
+1. Finish P1.4: run all five checks, fill in its Checks line, commit on `dev`.
+2. Run P1.5, P1.6 and P1.7 (or clear their blockers).
+3. Re-queue P1.8; it can then replace this entry.
 
 Nothing was changed apart from this entry. No P1.8 code was written and checks
-were not run; the tree still holds P1.3's uncommitted work.
+were not run; P1.4's uncommitted work was left as is.
 
 ## P1.9. Site settings, maintenance mode and homepage editing (BLOCKED, 2026-10-01)
 
