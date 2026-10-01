@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { isOrderId } from "@/lib/orders";
 import { db } from "@/server/db";
+import { issueCreditNote, issueQuietly } from "@/server/invoices/invoices";
 import { sendOrderCancelled } from "@/server/notify/orders";
 import { getShippingProvider } from "@/server/shipping";
 import { logAdminAction } from "./audit";
@@ -171,7 +172,7 @@ export type CancelResult =
 /**
  * Cancels an order that hasn't shipped. Stock that its payment took goes
  * back, open payment attempts are closed, a shipment not yet handed over is
- * called off, and the buyer is told. Applied once: a second cancel finds the
+ * called off, a paid order gets a credit note (P1.6), and the buyer is told. Applied once: a second cancel finds the
  * order already cancelled and changes nothing.
  *
  * With test payments no money moved; a real provider's refund belongs here
@@ -255,6 +256,8 @@ export async function cancelOrder(
       .cancelShipment(order.shipment.awb)
       .catch((error: unknown) => console.error("cancelOrder: shipment not called off.", error));
   }
+  // Only a paid order (the payment took the stock) has an invoice to reverse.
+  if (outcome.restocked) await issueQuietly(issueCreditNote, orderId);
   try {
     await sendOrderCancelled(orderId);
   } catch (error) {

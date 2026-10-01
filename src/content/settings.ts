@@ -16,6 +16,20 @@ export type SettingValues = {
    * the order value from which delivery is free (null: never free).
    */
   "checkout.shipping": { feePaise: number; freeFromPaise: number | null };
+  /**
+   * The seller printed on GST invoices and credit notes (P1.6). `stateCode`
+   * is the ISO code from src/lib/india.ts; it decides CGST + SGST (same
+   * state as the delivery address) or IGST. The GSTIN's first two digits
+   * must be that state's GST code.
+   */
+  "invoice.seller": {
+    legalName: string;
+    addressLines: readonly string[];
+    city: string;
+    stateCode: string;
+    pincode: string;
+    gstin: string;
+  };
 };
 
 export type SettingKey = keyof SettingValues;
@@ -33,4 +47,14 @@ export const settingDefaults: SettingValues = {
     "A B2B Ayurveda platform for products, professional learning and practice growth.",
   // Placeholder amounts until the client confirms them (₹80, free from ₹999).
   "checkout.shipping": { feePaise: 8_000, freeFromPaise: 99_900 },
+  // Placeholders until the client sends the firm's registered details
+  // (P1.9 makes them editable in /admin/settings).
+  "invoice.seller": {
+    legalName: "Saatvik Vaidya (placeholder legal name)",
+    addressLines: ["Registered address to be confirmed"],
+    city: "Mumbai",
+    stateCode: "MH",
+    pincode: "400001",
+    gstin: "27AAAAA0000A1Z5",
+  },
 };

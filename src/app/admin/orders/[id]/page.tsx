@@ -14,6 +14,7 @@ import {
 } from "@/components/admin/data-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { ShipmentPanel } from "@/components/admin/shipment-panel";
+import { OrderDocuments } from "@/components/site/orders/order-documents";
 import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { readActivity } from "@/server/admin/audit";
 import { canCancelOrder, readAdminOrder } from "@/server/admin/orders";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { requireAdmin } from "@/server/auth/session";
+import { readOrderDocuments } from "@/server/invoices/invoices";
 import { shippingAvailable } from "@/server/shipping";
 
 const text = copy.orderDetail;
@@ -50,9 +52,10 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
   await requireAdmin(`/admin/orders/${id}`);
   const order = await readAdminOrder(id);
   if (!order) notFound();
-  const [activity, shippingOn] = await Promise.all([
+  const [activity, shippingOn, documents] = await Promise.all([
     readActivity({ resource: "Order", resourceId: order.id, take: 10 }),
     Promise.resolve(shippingAvailable()),
+    readOrderDocuments(order),
   ]);
   const address = {
     name: order.shipName,
@@ -266,6 +269,13 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
               <span className="block text-muted">{formatIndianPhone(address.phone)}</span>
             </p>
           </Card>
+
+          <OrderDocuments
+            orderId={order.id}
+            orderNumber={order.number}
+            documents={documents}
+            showUnpaidNote={order.status === "pending_payment" || order.status === "payment_failed"}
+          />
 
           <Card as="section" aria-labelledby="order-cancel">
             <h2 id="order-cancel" className="text-h3 text-ink">

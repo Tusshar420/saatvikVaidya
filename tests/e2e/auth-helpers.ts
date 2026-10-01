@@ -252,12 +252,21 @@ export async function cleanUpE2eData() {
   const orderNumbers = (
     await db.order.findMany({ where: { userId: { in: ids } }, select: { number: true } })
   ).map((order) => `track-order:number:${order.number.toLowerCase()}`);
+  // Invoices and credit notes of e2e users' orders (P1.6), with their PDFs.
+  const invoiceFiles = await db.invoice.findMany({
+    where: { order: { userId: { in: ids } } },
+    select: { fileKey: true },
+  });
   const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
-  for (const { fileKey } of [...documents, ...productImages]) {
+  for (const { fileKey } of [...documents, ...productImages, ...invoiceFiles]) {
     const path = resolve(storageDir, fileKey);
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
   }
   await db.$transaction([
+    // Invoices block deleting their order: credit notes first (they point
+    // at invoices), then invoices; their lines go with them.
+    db.invoice.deleteMany({ where: { kind: "credit_note", order: { userId: { in: ids } } } }),
+    db.invoice.deleteMany({ where: { order: { userId: { in: ids } } } }),
     // Orders of e2e users (their items, payments and shipments go with them). Orders
     // outlive a deleted account, so they're removed before the users.
     db.order.deleteMany({ where: { userId: { in: ids } } }),

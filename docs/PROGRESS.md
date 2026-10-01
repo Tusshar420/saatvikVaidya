@@ -1234,6 +1234,32 @@ at the start). Nothing needed fixing first.
   - Returned parcels don't restock automatically; decide with the client.
   - Expire unpaid orders after, say, 24 hours (still open from P1.4).
 
+- **Invoice follow-ups (from P1.6):**
+  - Replace the placeholder seller details in `invoice.seller` (legal name,
+    registered address, GSTIN) once the client sends them, and have their CA
+    confirm two choices: delivery taxed at the highest goods rate (SAC
+    996812), and B2C-style invoices.
+  - Collect an optional GSTIN (and business name) from professional buyers
+    at checkout and print it on their invoices, so they can claim input
+    tax credit.
+  - Embed a Unicode font (with `@pdf-lib/fontkit`) for "₹". Hindi product
+    names would also need text shaping, which pdf-lib doesn't do.
+  - Credit notes for returned parcels, and partial credit notes if partial
+    cancellations ever come.
+  - The checkout and order pages' "GST included" covers goods only, while
+    the invoice also counts the GST in the delivery charge. Consider
+    showing delivery GST at checkout too.
+  - Attach the invoice (or a link to it) to the order confirmation email
+    once real email exists.
+- **E2E flakes seen in P1.6's full runs:**
+  - These passed alone and failed only under the full parallel suite: admin
+    reels and brands (phone), `/design` axe `scrollable-region-focusable`
+    (phone), and a catalogue console 404 (phone).
+  - The catalogue 404 fits one test deleting a product another test is
+    showing; the separate e2e database (above) would fix that.
+  - Also check whether the P1.5 checkout flake is the same "axe runs while a
+    button is still busy or fading" race that was fixed in the tracking test.
+
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
 Started in an earlier run, paused, and finished at the start of the P1.2 run
@@ -1913,30 +1939,206 @@ each other at 375 px and a payment date breaking mid-word in admin.
 admin order page, and create the credit note in `cancelOrder()` (it already
 knows whether the order was paid).
 
-## P1.6. GST invoices (BLOCKED, 2026-10-01)
+## P1.6. GST invoices (2026-10-02)
 
-Not started. This replaces the earlier P1.6 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`) and P1.4's code is in the tree. But
-P1.6 still waits on two earlier chunks, so per the task rules it stops here.
+An earlier attempt left a BLOCKED entry here (P1.4 was uncommitted and P1.5
+blocked then). Both are now committed (`7397096`, `74c19e7`), so this entry
+replaces it. Nothing needed fixing before starting.
 
-**What it waits on (checked 2026-10-01, latest commit `06c1440`)**
-- **P1.4 (Cart, checkout and test payment) is unfinished:** its `Order`,
-  `OrderItem` and `Payment` models and checkout code exist, but none of it is
-  committed (about 40 files modified or untracked), and its entry's
-  **Checks** line is still the placeholder `CHECKS_LINE`, so nothing shows
-  the five checks passed.
-- **P1.5 (Orders and test delivery tracking) is BLOCKED** on P1.4. P1.6 needs
-  its customer `/orders/[id]` page and admin orders view (for the download
-  links) and its order cancel (to trigger the credit note).
-- No other chunk run was active when checked.
+**Built**
+- **Database** (migration `p1_6_invoices`):
+  - `Invoice`: tax invoices and credit notes (`kind`), one of each per order
+    at most. It holds the number, financial year and sequence, issue date,
+    and a full copy of everything printed: seller and buyer (JSON), place of
+    supply, intra/inter-state, taxable value, CGST/SGST/IGST, total, a
+    test-payment flag, and the PDF's Storage key. A credit note points at the
+    invoice it reverses. `onDelete: Restrict` on the order, so an order with
+    documents can't be deleted.
+  - `InvoiceLine`: description, HSN/SAC, quantity, unit price, rate, taxable
+    value and each tax.
+  - `InvoiceSequence`: the last number per kind and financial year.
+- **Setting** `invoice.seller`: legal name, address lines, city, state, PIN
+  and GSTIN. The values are placeholders (see "Later"). Zod checks the GSTIN
+  format and that its first two digits are the state's GST code; an invalid
+  value falls back to the default. The seed adds it (it creates missing
+  settings).
+- **GST maths** (`src/server/invoices/gst.ts`, pure):
+  - Prices include GST, so each line's GST is taken out of its total.
+  - Same state as the seller: equal CGST and SGST. Another state: IGST.
+  - Each line adds up exactly to what was paid for it, so the document total
+    is the order total to the paisa (checked when issuing).
+  - The delivery charge is its own line (SAC 996812) at the highest GST rate
+    on the order.
+  - Also here: the financial year (April–March, India time), numbers
+    `SV/26-27/00001` and `CN/26-27/00001` (no more than 16 characters, as GST
+    requires), and the amount in words in Indian numbering (lakh, crore).
+- **Issuing** (`src/server/invoices/invoices.ts`):
+  - `issueInvoice()` runs when payment succeeds (from `completePayment()`).
+    `issueCreditNote()` runs when an admin cancels a paid order (from
+    `cancelOrder()`); the credit note reverses the whole invoice, and the
+    invoice is made first if it is missing.
+  - Each is applied once. If either fails, the error is logged; payment and
+    cancel never fail because of it. The download route makes a missing
+    document on first request.
+  - The next number is taken inside the transaction that writes the
+    document, with the sequence row locked
+    (`INSERT … ON DUPLICATE KEY UPDATE` and then `SELECT … FOR UPDATE`). So
+    concurrent payments queue for numbers, and a document that is rolled back
+    (for example the loser of two requests for the same order) gives its
+    number back: no gaps and no repeats. Deadlocks are retried.
+  - The issue date is set after the lock is taken, so numbers and dates run
+    in the same order.
+  - The seller setting is read fresh, not from the cache.
+- **PDF** (`src/server/invoices/pdf.ts`, pdf-lib):
+  - A4. It shows the seller block with GSTIN and state, the title ("Tax
+    invoice" / "Credit note"), the buyer, and the document details: number,
+    date, order number and date, place of supply, reverse charge. A credit
+    note also shows "against invoice … dated …" and the reason.
+  - The line table has CGST and SGST columns, or one IGST column. It
+    continues onto more pages, repeating its header. After it come the
+    totals and the amount in words.
+  - Test-payment orders carry a red "Test order … not valid for tax
+    purposes" line. The footer has "Page n of m".
+  - The PDF is drawn only from the stored rows. It is saved through
+    `Storage` (`invoices/<order>/<random>.pdf`) and drawn again if the file
+    is missing.
+- **Downloads:** `GET /api/orders/[id]/invoice` and `/api/orders/[id]/credit-note`
+  (`src/server/invoices/download.ts`).
+  - The order's buyer or an admin gets the PDF as an attachment, with
+    `private, no-store` and `nosniff`.
+  - Everyone else gets the same 404: signed out, another user, an unknown id,
+    an unpaid order, or a credit note for an order that wasn't cancelled
+    after payment.
+- **Pages:** an "Invoices" card (`OrderDocuments`) on `/orders/[id]` and
+  `/admin/orders/[id]`.
+  - Each row shows the document and its number ("Number given on first
+    download" before one exists) and has a "Download PDF" link.
+  - A note explains the credit note. An unpaid order says the invoice is
+    ready once it's paid; a cancelled unpaid order shows no card.
+  - Rows stack or sit side by side by the card's own width (container
+    query), because the admin page shows the card in a narrow column.
+- Copy: `src/content/invoices.ts`.
+
+**Decisions**
+- **Delivery charge GST.** P1.4 left open whether delivery carries GST. It is
+  treated as part of a composite supply, at the highest goods rate, with SAC
+  996812. One effect: the invoice's GST total includes delivery GST, while
+  the cart, checkout and order pages' "GST included" covers goods only. The
+  amount paid is the same either way. Ask the client's CA to confirm.
+- **CGST and SGST are always equal.** When the line's GST is an odd number of
+  paise, the spare paisa goes into the taxable value, not into one half.
+- **Invoice date is the issue date** (normally the moment of payment), not
+  the payment date copied in later. This keeps numbers and dates in the same
+  order even when a document is made late on download.
+- **A late invoice still gets made.** A GET on the invoice route can create a
+  missing invoice for a paid order. This only happens when issuing failed at
+  payment time, and the order still ends up with exactly one invoice.
+- **"Rs." on the PDF.** pdf-lib's standard Helvetica has no "₹" and no
+  Devanagari. Characters it can't print become "?", and accents are dropped.
+  (See "Later" for embedding a font.)
+- No buyer GSTIN: checkout doesn't collect one, so every invoice is B2C-style
+  (see "Later").
+- Returned parcels (P1.5) get no credit note; only cancelling does, as the
+  chunk says.
+
+**Tests**
+- Vitest: 400 in total, 31 new.
+  - `src/server/invoices/gst.test.ts`:
+    - Intra- and inter-state splits and 0%.
+    - A sweep of totals and rates: every line adds up, CGST equals SGST, and
+      each tax is within a paisa of its rate.
+    - The odd-paisa case, the delivery line's rate, and totals.
+    - Financial-year edges at midnight IST on 31 March.
+    - Numbering and its limits, and amounts in words.
+  - `src/server/invoices/invoices.test.ts`:
+    - Payment issues one invoice that matches the order. Its PDF is in
+      Storage, and its text was checked: number, GSTIN, CGST, total, words,
+      test note.
+    - Inter-state orders use IGST. Unpaid and failed orders get nothing.
+      Asking twice returns the same invoice.
+    - Seller details changed later don't change an issued invoice, even when
+      its PDF is redrawn. An invalid seller setting falls back to the default.
+    - A storage failure doesn't fail the payment, and the file is made on
+      download.
+    - **Concurrency:** 8 payments at once get numbers 1–8, with dates in the
+      same order. 6 requests at once for one order give one invoice, and the
+      next order gets number 2 (no gap).
+    - The financial year rolls over at midnight IST.
+    - Credit notes:
+      - Cancelling a paid order (twice at once) makes one credit note that
+        mirrors the invoice, and its PDF text is checked.
+      - Cancelling an unpaid order makes none.
+      - A missing invoice is made first.
+    - Download access: buyer, admin, stranger, unknown id, credit note before
+      cancel. The order-page listing.
+    - The PDF runs onto more pages for 60 lines, and prints Hindi and
+      accented names without failing.
+- Playwright: `tests/e2e/invoices.spec.ts`, phone and desktop.
+  - The buyer downloads the invoice (the file name matches the number) and
+    the number then shows on the page. A second download gives the same
+    invoice.
+  - The unpaid order shows the note and no link. A credit note before cancel
+    is 404, and so are another user's order, a made-up id and a guest.
+    Looking doesn't create an invoice for the stranger's order.
+  - An admin downloads the invoice, cancels the paid order, and downloads
+    the new credit note. The buyer, signed in elsewhere, sees and downloads
+    both. axe, sideways-scroll and console checks on the order pages.
+- `tests/setup/content-db.ts` and the e2e cleanup remove invoices (credit
+  notes first) before orders. The e2e cleanup also deletes their PDFs from
+  the dev storage folder.
+- **Test fix outside P1.6:** `orders.spec.ts` "tracking never says whether
+  an order exists for wrong details" failed on phone and desktop in one full
+  run. Its two lookups show the same "not found" message, so the wait after
+  the second submit passed at once, while that lookup was still running. axe
+  then checked the submit button while it was dimmed (busy) or fading back,
+  and reported colour contrast. The test now waits for the button to be
+  enabled and fully opaque; 10 of 10 repeats passed. The P1.5 checkout flake
+  (colour contrast on a primary button after an action) is probably the same
+  race (see "Later").
+
+**Checks**
+- Pass: `pnpm typecheck`, `pnpm lint`, `pnpm test` (42 files, 400 tests)
+  and `pnpm build`.
+- `pnpm test:e2e` was run as a full suite three times:
+  - Run 1: 179 passed, 3 failed (phone: admin reels and brands, and
+    tracking).
+  - Run 2: 180 passed, 2 failed (tracking on both projects, the race fixed
+    above).
+  - Run 3, after the fix: **180 passed, 4 skipped (the A9 screenshots run on
+    desktop only by design), 2 failed**, both on phone: the `/design` axe
+    check (`scrollable-region-focusable`) and the catalogue pages' console
+    check (one resource 404).
+- Every test that failed in a full run passes when run alone: the tracking
+  test 10/10, and the reels, brands, `/design` and catalogue tests 3/3 and
+  4/4. The failing tests change from run to run, all are outside P1.6's
+  code, and the P1.6 spec passed in every run. The likely cause is load and
+  the shared dev database: the suite runs in parallel against one server and
+  one database, so one test can delete a product another is showing (see
+  "Later"). These were not fixed in this run.
+- Screens checked at 375 and 1280 px: the buyer's order page (paid, unpaid,
+  cancelled with a credit note) and the admin order page. That check found
+  and fixed an invoice number breaking mid-number in the admin's narrow
+  column. The invoice and credit-note PDFs (intra- and inter-state) were
+  checked by eye.
+
+**Known gaps**
+- The seller details are placeholders until the client sends them; P1.9
+  makes them editable in `/admin/settings`.
+- No buyer GSTIN or business name on invoices.
+- No "₹" or Hindi on the PDF.
+- No credit note for returned parcels, and no partial credit notes.
+- Invoices aren't sent with the order confirmation message; the buyer
+  downloads them from `/orders/[id]`.
+- The dev database's invoice numbers have gaps from e2e runs: the cleanup
+  deletes e2e invoices but not the numbers they used.
 
 **Next steps**
-1. Finish P1.4: run all five checks, fill in its Checks line, commit on `dev`.
-2. Run P1.5.
-3. Re-queue P1.6; it can then replace this entry.
-
-Nothing was changed apart from this entry. No P1.6 code was written, pdf-lib was
-not added, and checks were not run; P1.4's uncommitted work was left as is.
+- P1.9 can edit `invoice.seller` (its schema is in
+  `src/server/content/settings.ts`).
+- P1.10 can build GST reports from `Invoice`/`InvoiceLine`: credit notes
+  subtract, and the tax is split per line.
+- P2.2's advance invoice can reuse `writeDocument()` and the PDF, with lines
+  for the advance.
 
 ## P1.7. Super Coins (BLOCKED, 2026-10-01)
 

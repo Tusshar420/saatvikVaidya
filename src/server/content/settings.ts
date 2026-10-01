@@ -5,6 +5,7 @@ import {
   type SettingKey,
   type SettingValues,
 } from "@/content/settings";
+import { indianState } from "@/lib/india";
 import { db } from "@/server/db";
 import { cachedRead, contentTags } from "./cache";
 
@@ -21,6 +22,19 @@ export const settingSchemas = {
     feePaise: z.number().int().min(0).max(10_000_000),
     freeFromPaise: z.number().int().min(0).max(1_000_000_000).nullable(),
   }),
+  "invoice.seller": z
+    .object({
+      legalName: z.string().trim().min(1).max(120),
+      addressLines: z.array(z.string().trim().min(1).max(120)).min(1).max(3),
+      city: z.string().trim().min(1).max(100),
+      stateCode: z.string().refine((code) => indianState(code) !== undefined),
+      pincode: z.string().regex(/^[1-8]\d{5}$/),
+      // 15 characters: state code, PAN, entity number, "Z", check character.
+      gstin: z.string().regex(/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/),
+    })
+    .refine((seller) => seller.gstin.startsWith(indianState(seller.stateCode)?.gstCode ?? "--"), {
+      path: ["gstin"],
+    }),
 } satisfies { [K in SettingKey]: z.ZodType<SettingValues[K]> };
 
 const settingKeys = Object.keys(settingDefaults) as SettingKey[];

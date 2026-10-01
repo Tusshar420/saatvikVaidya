@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, FlaskConical, Phone } from "lucide-react";
 import { OrderItemsSummary } from "@/components/site/checkout/order-items-summary";
+import { OrderDocuments } from "@/components/site/orders/order-documents";
 import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
 import { TrackingTimeline } from "@/components/site/orders/tracking-timeline";
 import { Eyebrow } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { telHref } from "@/lib/phone";
 import { requireUser } from "@/server/auth/session";
 import { readOrderForUser } from "@/server/checkout/orders";
 import { getSetting } from "@/server/content/settings";
+import { readOrderDocuments } from "@/server/invoices/invoices";
 import { readTrackingForUser } from "@/server/orders/tracking";
 
 const text = copy.detail;
@@ -38,6 +40,7 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   ]);
   if (!order || !tracking) notFound();
   const unpaid = order.status === "pending_payment" || order.status === "payment_failed";
+  const documents = await readOrderDocuments(order);
 
   return (
     <div className="shell py-8 sm:py-12">
@@ -125,6 +128,13 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
               </a>
             </p>
           </Card>
+
+          <OrderDocuments
+            orderId={order.id}
+            orderNumber={order.number}
+            documents={documents}
+            showUnpaidNote={unpaid}
+          />
         </div>
 
         <OrderItemsSummary order={order} />

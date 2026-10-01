@@ -226,6 +226,11 @@ test("tracking never says whether an order exists for wrong details", async ({ p
   await contact.fill(ORDER_PHONE);
   await submit.click();
   await expect(main(page).getByRole("alert")).toHaveText(track.errors.notFound);
+  // That answer reads the same as the last one, so it can pass while this
+  // lookup is still running. Wait for it to finish: the button is dimmed
+  // while busy and fades back, and axe would check its contrast mid-fade.
+  await expect(submit).toBeEnabled();
+  await expect(submit).toHaveCSS("opacity", "1");
   await checkPage(page, errors);
 });
 

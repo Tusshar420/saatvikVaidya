@@ -1,6 +1,7 @@
 import "server-only";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
+import { issueInvoice, issueQuietly } from "@/server/invoices/invoices";
 import { sendOrderConfirmation } from "@/server/notify/orders";
 import type { VerifiedPayment } from "@/server/payments";
 
@@ -11,7 +12,8 @@ import type { VerifiedPayment } from "@/server/payments";
 // change and counts nothing twice.
 //
 // - Success: the order becomes paid, stock goes down, the ordered products
-//   leave the cart, and a confirmation is sent (dev log).
+//   leave the cart, the GST invoice is issued (P1.6) and a confirmation is
+//   sent (dev log).
 // - Failure: the order becomes payment_failed; stock and cart don't change.
 // - Success when an item no longer has the stock: recorded as a failure
 //   ("out_of_stock"), with nothing taken. With a real provider this is where
@@ -129,6 +131,7 @@ export async function completePayment(
   }
 
   if (changed) {
+    await issueQuietly(issueInvoice, orderId);
     try {
       await sendOrderConfirmation(orderId);
     } catch (error) {

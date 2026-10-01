@@ -13,13 +13,18 @@ export async function assertTestDatabase(db: PrismaClient): Promise<void> {
 }
 
 /**
- * Empties orders, carts and addresses, the admin log, professional documents
+ * Empties invoices and their numbering, orders, carts and addresses, the admin log, professional documents
  * and decisions, and the user, session, account, verification and rate-limit
  * tables.
  */
 export async function clearAuthTables(db: PrismaClient): Promise<void> {
   await assertTestDatabase(db);
   await db.$transaction([
+    // Invoices block deleting their order: credit notes first (they point
+    // at invoices), then invoices; their lines go with them.
+    db.invoice.deleteMany({ where: { kind: "credit_note" } }),
+    db.invoice.deleteMany(),
+    db.invoiceSequence.deleteMany(),
     // Order items and payments go with their order, cart items with their
     // cart (onDelete: Cascade).
     db.order.deleteMany(),

@@ -768,6 +768,8 @@ model Order {
   items         OrderItem[]
   payments      Payment[]
   shipment      Shipment?
+  /// The tax invoice once paid, and a credit note if cancelled after (P1.6).
+  invoices      Invoice[]
 
   @@unique([userId, checkoutKey])
   @@index([userId, createdAt])
@@ -883,4 +885,94 @@ model ShipmentEvent {
   createdAt  DateTime       @default(now())
 
   @@index([shipmentId, createdAt])
+}
+
+// ─── Invoices ───────────────────────────────────────────────────────────────
+// GST tax invoices and credit notes (P1.6). Code is in src/server/invoices.
+// Every value on a document is copied in when it is issued (seller, buyer,
+// lines, tax), so later edits to settings or products never change an
+// issued document, and its PDF can always be rebuilt from these rows.
+
+enum InvoiceKind {
+  invoice
+  credit_note
+}
+
+/// The last number issued for each kind in each financial year.
+model InvoiceSequence {
+  kind          InvoiceKind
+  /// "2026-27": April to March, India time.
+  financialYear String      @db.Char(7)
+  lastNumber    Int
+
+  @@id([kind, financialYear])
+}
+
+/// A tax invoice (one per paid order) or a credit note (one per paid order
+/// that was cancelled). Never edited or deleted.
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  kind          InvoiceKind
+  /// "SV/26-27/00001" (invoice) or "CN/26-27/00001" (credit note). GST
+  /// allows at most 16 characters.
+  number        String        @unique @db.VarChar(16)
+  financialYear String        @db.Char(7)
+  /// Position in the year's sequence for this kind (1, 2, 3...).
+  sequence      Int
+  orderId       String        @db.VarChar(32)
+  /// Restrict: an order with documents can't be deleted.
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  /// For a credit note: the invoice it reverses.
+  originalId    Int?
+  original      Invoice?      @relation("CreditNoteOf", fields: [originalId], references: [id], onDelete: Restrict)
+  creditNotes   Invoice[]     @relation("CreditNoteOf")
+  issuedAt      DateTime      @default(now())
+  /// Seller details as printed (name, address, state, GSTIN); see
+  /// src/server/invoices/gst.ts for the shape.
+  seller        Json
+  /// Buyer name, delivery address and phone as printed.
+  buyer         Json
+  /// ISO state code of the place of supply (the delivery address).
+  placeOfSupply String        @db.VarChar(4)
+  /// True when the seller's and buyer's states differ: IGST, not CGST + SGST.
+  interState    Boolean
+  taxablePaise  Int
+  cgstPaise     Int
+  sgstPaise     Int
+  igstPaise     Int
+  /// Taxable value plus all GST: what the buyer paid.
+  totalPaise    Int
+  /// Paid with the test provider (no money taken); printed on the document.
+  testPayment   Boolean       @default(false)
+  /// The PDF's key in Storage. Rebuilt from these rows if the file is missing.
+  fileKey       String        @unique @db.VarChar(191)
+  createdAt     DateTime      @default(now())
+  lines         InvoiceLine[]
+
+  @@unique([orderId, kind])
+  @@unique([kind, financialYear, sequence])
+  @@index([issuedAt])
+}
+
+/// One printed line: a product, or the delivery charge.
+model InvoiceLine {
+  id           Int     @id @default(autoincrement())
+  invoiceId    Int
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  /// 1, 2, 3... in printed order.
+  position     Int
+  description  String  @db.VarChar(200)
+  /// HSN for goods, SAC for the delivery charge.
+  hsnCode      String  @db.VarChar(8)
+  quantity     Int
+  /// Price of one unit including GST.
+  unitPaise    Int
+  gstRate      Int
+  taxablePaise Int
+  cgstPaise    Int
+  sgstPaise    Int
+  igstPaise    Int
+  totalPaise   Int
+
+  @@unique([invoiceId, position])
 }
