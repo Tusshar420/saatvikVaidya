@@ -2011,59 +2011,36 @@ touched. The tree still holds P1.4's uncommitted work.
 
 ## P2.1. Launch Your Brand: request and admin review (BLOCKED, 2026-10-01)
 
-Not started. P2.1 builds on P1.3's catalogue, and P1.3 is still unfinished. Per
-the task rules this chunk stops here instead of finishing P1.3 itself.
+Not started. This replaces the earlier P2.1 blocker entry, which is out of
+date: P1.3 is now committed (`5b6745e`). But Phase 1 is still unfinished, so
+per the task rules this chunk stops here instead of building around it.
 
-**What's blocking (checked in code, schema and git on 2026-10-01)**
-- **P2.1 extends P1.3 directly:**
-  - It adds `Product.privateLabel` and a private-label MOQ to P1.3's `Product`
-    model. That migration would stack on P1.3's uncommitted
-    `20260930234005_p1_3_catalogue`.
-  - The flags are edited in P1.3's `/admin/catalogue` form
-    (`src/components/admin/product-form.tsx`, `src/server/admin/catalogue.ts`,
-    `src/app/admin/catalogue/`). All of these are untracked.
-  - `BrandRequest` points at a `Product`. The Launch Studio's formulation
-    step searches the catalogue and filters it by form, which is P1.3's
-    `src/server/catalogue/` code.
-  - The homepage Launch catalogue card and the hero links that P2.1 rewires
-    live in `src/components/site/launch-section.tsx`, which already holds
-    P1.3's uncommitted edits.
-- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
-  commit `758fd70`, no `P1.3` commit; still 38 changed or new paths). No file
-  under `src/`, `prisma/` or `tests/` has changed since P1.9 re-ran the e2e
-  tests (the newest edit is from 09:26, before the P1.9 commit at 09:35), so
-  the four `catalogue.spec.ts` tests on phone and desktop are still failing
-  (see the P1.9 entry). The e2e run wasn't repeated, since the tree is the
-  same. The definition of done (`pnpm test:e2e` green) can't be met, and
-  P2.1's commits couldn't be kept apart from P1.3's work.
-- The schema has no `privateLabel`, `BrandRequest` or `BrandRequestEvent` yet.
+**What it waits on (checked in `docs/PROGRESS.md` and git)**
+- **P1.4 (Cart, checkout and test payment) is unfinished:** its work is still
+  uncommitted on `dev` (39 changed or untracked paths, including the
+  `p1_4_cart_checkout` migration and `prisma/schema.prisma`). Its entry's
+  Checks line is still the placeholder `CHECKS_LINE`. Nothing under `src/`,
+  `prisma/` or `tests/` has changed since the P1.12 blocker commit
+  (`bb51e2e`).
+- **P1.5 to P1.12 are all marked BLOCKED** and not built.
 
-**Not blocking, for the run that builds P2.1**
-- P2.1 doesn't need orders or payments (P1.4 to P1.8). Once P1.3 is
-  committed and green, it could run before them if Launch Your Brand is
-  wanted sooner.
-- Already available: `Storage` for the logo upload (P1.2, with byte-based
-  type checks and the same-origin helper P1.3 moved to
-  `src/server/request-origin.ts`), the dev notifier in `src/server/notify/`,
-  the Stepper primitive (A2), user types and verification status for the admin
-  detail view (A4/P1.2), and `AdminLog` (`src/server/admin/audit.ts`).
-- The mobile dock's Cart item becomes My Brand. Today the cart is still a
-  placeholder until P1.4, so the header cart link must stay.
-- If P1.11 is built first, `/admin/brand-requests` must use its per-area
-  permission check instead of plain `requireAdmin()`.
-- Status transitions are worth keeping in one table (from → allowed next
-  statuses) in `src/server/`, used by both customer and admin actions, so
-  P2.2 can add quote and proof steps without spreading the rules around.
+**Why not just go on:** P2.1 adds `Product.privateLabel`, `BrandRequest` and
+`BrandRequestEvent`. That migration would stack on P1.4's uncommitted
+migration, and P2.1's commits couldn't be kept apart from P1.4's work. The
+mobile dock change (Cart becomes My Brand) also touches P1.4's cart.
+
+**Still useful for the run that builds P2.1:** the notes in the earlier entry
+still apply. Use `Storage` (P1.2) for the logo, the dev notifier, the Stepper,
+`AdminLog`, and P1.11's per-area permission check if it exists by then. Keep
+status transitions in one table in `src/server/` so P2.2 can extend it.
 
 **Next steps**
-1. Finish P1.3 (steps in the P1.4 entry; only the four catalogue tests are
-   still failing), get all five checks green and commit.
-2. Re-queue P2.1. It can go right after P1.3. P2.2 and P2.4 still need it,
-   and P2.3 (Quiz & Win) doesn't, though P2.3 does need P1.7's `CoinLedger`.
+1. Verify and commit P1.4 (all five checks green), then run P1.5 to P1.12 in
+   order, replacing their BLOCKED entries.
+2. Re-queue P2.1. It can then replace this entry.
 
-Nothing was changed apart from this entry. No P2.1 code was written and no
-checks were run, since no file under `src/`, `prisma/` or `tests/` was
-touched. The tree still holds P1.3's uncommitted work.
+Nothing was changed apart from this entry. No P2.1 code was written and checks
+were not run. The tree still holds P1.4's uncommitted work.
 
 ## P2.2. Launch Your Brand: quote, label proof and production (BLOCKED, 2026-10-01)
 
