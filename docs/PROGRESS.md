@@ -1739,3 +1739,59 @@ left until P1.4 is done.
 
 Nothing was changed apart from this entry. No P1.8 code was written and checks
 were not run; the tree still holds P1.3's uncommitted work.
+
+## P1.9. Site settings, maintenance mode and homepage editing (BLOCKED, 2026-10-01)
+
+Not started. P1.9 changes the same files that P1.3's unfinished work changed,
+and P1.3 is still uncommitted with failing e2e tests. Per the task rules this
+chunk stops here instead of finishing P1.3 itself.
+
+**What's blocking (checked in code, git and tests on 2026-10-01)**
+- **P1.3 is still unfinished:** its work is uncommitted on `dev` (latest
+  commit `3ed087d`, no `P1.3` commit; 38 changed or new paths in the tree).
+- **P1.3's e2e tests still fail.** Re-run today (`catalogue.spec.ts` and
+  `sign-in.spec.ts`, after checking for a leftover server on :3100): **8
+  failed, 24 passed**. The failures are the same four tests found by P1.4, on
+  phone and desktop:
+  - "filters by form chip, panel filters and removable chips": the URL is
+    still `/products?form=&area=&brand=pranacharya&sort=featured`, not
+    `form=churna`.
+  - "a guest sees MRP, a sign-in hint and ordering coming soon".
+  - "catalogue pages: no axe issues, no sideways scroll, no console errors".
+  - "an admin adds a product with a photo, then hides it".
+
+  The desktop `sign-in.spec.ts` axe failure that P1.4 saw passed this time,
+  so it looks flaky rather than broken.
+- **P1.9's main files already hold P1.3's uncommitted edits:**
+  - `prisma/schema.prisma`: P1.9 makes `updatedBy` (on `Setting`) and
+    `changedBy` (on `SettingHistory`) real relations to `User`, which needs a
+    migration. That migration would stack on P1.3's uncommitted
+    `20260930234005_p1_3_catalogue`.
+  - `src/server/seed/home-content.ts`, `src/server/seed/index.ts` and
+    `prisma/seed.ts`: making content seeding create-only.
+  - `src/server/content/home.ts` and its test: `revalidateTag` after saves.
+  - `src/components/admin/admin-nav.tsx` and `src/content/admin.ts`: admin
+    nav and copy for `/admin/settings` and `/admin/content`.
+
+  P1.9's commits couldn't be kept apart from P1.3's work, and the definition
+  of done (`pnpm test:e2e` green) can't be met while P1.3's tests fail.
+
+**Unlike P1.4–P1.8, P1.9 mostly doesn't need orders.** Once P1.3 is
+committed and green, it can run before P1.4. Notes for that run:
+- What already exists: the `Setting` and `SettingHistory` models (A4), a
+  coming-soon `/admin/settings` page, and `/admin/content` with brands,
+  courses, quiz and reels editors (P1.1). Hero slides, offers, stats, quick
+  actions, categories, feedback, why-steps and section on/off and order are
+  still to do.
+- The checkout, coins and ebook-download switches, the shipping fee and the
+  invoice seller details can be stored and edited now. Nothing reads them
+  until P1.4, P1.6, P1.7 and P1.8 are built, so the admin page should say so
+  next to each one. Maintenance mode can be built and tested in full.
+
+**Next steps**
+1. Finish P1.3 (steps in the P1.4 entry; only the four catalogue tests above
+   are still failing), get all five checks green and commit.
+2. Re-queue P1.9 (it can go before P1.4), then P1.4 and the rest in order.
+
+Nothing was changed apart from this entry. No P1.9 code was written. The only
+check run was the e2e run above. The tree still holds P1.3's uncommitted work.
