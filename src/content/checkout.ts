@@ -56,6 +56,9 @@ export const checkout = {
     },
   },
 
+  /** Printed as the "pack" of an ebook line on orders and invoices (P1.8). */
+  ebookPackSize: "Ebook, PDF download",
+
   summary: {
     title: "Order summary",
     quantity: (n: number) => `Qty ${count(n)}`,

@@ -13,7 +13,7 @@ import { checkout as copy } from "@/content/checkout";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
 import { requireUser } from "@/server/auth/session";
-import { readCart } from "@/server/cart/cart";
+import { readCart, totalsLinesOf } from "@/server/cart/cart";
 import { checkoutOffer } from "@/server/coins/ledger";
 import { computeTotals } from "@/server/checkout/totals";
 import { listAddresses } from "@/server/checkout/addresses";
@@ -41,7 +41,7 @@ export default async function CheckoutPage() {
     getSetting("coins.rules"),
   ]);
   const cart = await readCart({ kind: "user", userId: user.id }, viewer, shipping);
-  if (cart.lines.length === 0) redirect("/cart");
+  if (cart.lines.length === 0 && cart.ebooks.length === 0) redirect("/cart");
   // What the buyer's coins could take off this order, if they choose to use
   // them. The server works it out again when the order is placed.
   const offer = coinRules.enabled
@@ -54,7 +54,7 @@ export default async function CheckoutPage() {
           coins: offer.coins,
           discountPaise: offer.discountPaise,
           totals: computeTotals(
-            cart.lines,
+            totalsLinesOf(cart.lines, cart.ebooks),
             shipping,
             offer.discountPaise,
           ),
@@ -82,12 +82,20 @@ export default async function CheckoutPage() {
           checkoutKey={randomUUID()}
           totals={cart.totals}
           coinOffer={coinOffer}
-          items={cart.lines.map((line) => ({
-            key: line.productId,
-            name: line.name,
-            detail: `${copy.summary.quantity(line.quantity)} · ${cartCopy.line.unitPrice(formatPaise(line.unitPaise))}`,
-            totalPaise: line.lineTotalPaise,
-          }))}
+          items={[
+            ...cart.lines.map((line) => ({
+              key: line.productId,
+              name: line.name,
+              detail: `${copy.summary.quantity(line.quantity)} · ${cartCopy.line.unitPrice(formatPaise(line.unitPaise))}`,
+              totalPaise: line.lineTotalPaise,
+            })),
+            ...cart.ebooks.map((line) => ({
+              key: `ebook-${line.ebookId}`,
+              name: line.title,
+              detail: cartCopy.ebook.kind,
+              totalPaise: line.lineTotalPaise,
+            })),
+          ]}
           paymentsOff={
             paymentsAvailable() ? null : (
               <ComingSoon

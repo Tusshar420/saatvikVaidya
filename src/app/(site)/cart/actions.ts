@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { cart as copy } from "@/content/cart";
 import {
+  addEbookToCart,
   addToCart,
   MAX_LINE_QUANTITY,
+  removeEbookFromCart,
   removeFromCart,
   setCartQuantity,
   type CartChange,
@@ -28,6 +30,7 @@ const lineSchema = z.object({
   quantity: z.number().int().min(1).max(MAX_LINE_QUANTITY),
 });
 const removeSchema = lineSchema.pick({ productId: true });
+const ebookSchema = z.object({ ebookId: z.number().int().positive().max(2_147_483_647) });
 
 function messageFor(error: CartError): string {
   switch (error.kind) {
@@ -44,6 +47,8 @@ function messageFor(error: CartError): string {
       return copy.errors.tooManyLines(error.max);
     case "invalid_quantity":
       return copy.errors.invalid;
+    case "owned":
+      return copy.errors.ebookOwned;
   }
 }
 
@@ -75,4 +80,17 @@ export async function removeFromCartAction(input: unknown): Promise<CartActionRe
   const parsed = removeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: copy.errors.generic };
   return run((owner) => removeFromCart(owner, parsed.data.productId));
+}
+
+/** Adds a paid ebook (one copy; P1.8). */
+export async function addEbookToCartAction(input: unknown): Promise<CartActionResult> {
+  const parsed = ebookSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: copy.errors.invalid };
+  return run((owner) => addEbookToCart(owner, parsed.data.ebookId));
+}
+
+export async function removeEbookFromCartAction(input: unknown): Promise<CartActionResult> {
+  const parsed = ebookSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: copy.errors.generic };
+  return run((owner) => removeEbookFromCart(owner, parsed.data.ebookId));
 }

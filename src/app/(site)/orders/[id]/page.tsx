@@ -20,6 +20,9 @@ import { readOrderForUser } from "@/server/checkout/orders";
 import { getSetting } from "@/server/content/settings";
 import { readOrderDocuments } from "@/server/invoices/invoices";
 import { readTrackingForUser } from "@/server/orders/tracking";
+import { EbookCard } from "@/components/site/ebooks/ebook-card";
+import { ebooks as ebookCopy } from "@/content/ebooks";
+import { readOrderEbooks } from "@/server/ebooks/ebooks";
 
 const text = copy.detail;
 
@@ -40,7 +43,17 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   ]);
   if (!order || !tracking) notFound();
   const unpaid = order.status === "pending_payment" || order.status === "payment_failed";
-  const documents = await readOrderDocuments(order);
+  const ebookIds = order.items.flatMap((item) =>
+    item.kind === "ebook" && item.ebookId !== null ? [item.ebookId] : [],
+  );
+  const ebookTitles = order.items.flatMap((item) => (item.kind === "ebook" ? [item.productName] : []));
+  // Ebooks only (P1.8): nothing to deliver, so no delivery timeline.
+  const digitalOnly = order.items.every((item) => item.kind === "ebook");
+  const delivered = order.paidAt !== null && order.status !== "cancelled";
+  const [documents, orderEbooks] = await Promise.all([
+    readOrderDocuments(order),
+    delivered ? readOrderEbooks({ id: user.id, role: user.role ?? "user" }, ebookIds) : [],
+  ]);
 
   return (
     <div className="shell py-8 sm:py-12">
@@ -61,17 +74,52 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-8">
         <div className="flex min-w-0 flex-col gap-6">
-          <Card as="section" aria-labelledby="order-tracking">
-            <h2 id="order-tracking" className="text-h3 text-ink">
-              {text.tracking}
-            </h2>
-            <TrackingTimeline tracking={tracking} headingLevel="h3" className="mt-4" />
-            {unpaid && (
-              <Link href={checkoutPathFor(order.id, order.status)} className={buttonClasses({ className: "mt-5 max-sm:w-full" })}>
-                {text.payNow}
-              </Link>
-            )}
-          </Card>
+          {!digitalOnly && (
+            <Card as="section" aria-labelledby="order-tracking">
+              <h2 id="order-tracking" className="text-h3 text-ink">
+                {text.tracking}
+              </h2>
+              <TrackingTimeline tracking={tracking} headingLevel="h3" className="mt-4" />
+              {unpaid && (
+                <Link href={checkoutPathFor(order.id, order.status)} className={buttonClasses({ className: "mt-5 max-sm:w-full" })}>
+                  {text.payNow}
+                </Link>
+              )}
+            </Card>
+          )}
+
+          {ebookTitles.length > 0 && (
+            <Card as="section" aria-labelledby="order-ebooks">
+              <h2 id="order-ebooks" className="text-h3 text-ink">
+                {ebookCopy.order.title}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                {delivered
+                  ? ebookCopy.order.ready
+                  : order.status === "cancelled"
+                    ? ebookCopy.order.cancelled
+                    : ebookCopy.order.unpaid}
+              </p>
+              {delivered ? (
+                <ul aria-label={ebookCopy.order.title} className="mt-4 flex flex-col gap-3">
+                  {orderEbooks.map((ebook) => (
+                    <EbookCard key={ebook.id} ebook={ebook} headingLevel="h3" layout="row" />
+                  ))}
+                </ul>
+              ) : (
+                <ul className="mt-3 list-disc pl-5 text-sm text-ink">
+                  {ebookTitles.map((title, index) => (
+                    <li key={`${title}-${index}`}>{title}</li>
+                  ))}
+                </ul>
+              )}
+              {digitalOnly && unpaid && (
+                <Link href={checkoutPathFor(order.id, order.status)} className={buttonClasses({ className: "mt-5 max-sm:w-full" })}>
+                  {text.payNow}
+                </Link>
+              )}
+            </Card>
+          )}
 
           <Card as="section" aria-label={text.deliverTo}>
             <dl className="grid gap-5 text-sm sm:grid-cols-2">

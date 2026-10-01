@@ -23,6 +23,8 @@ export type TotalsLine = {
   /** Unit price × quantity, including GST. */
   lineTotalPaise: number;
   gstRate: number;
+  /** An ebook (P1.8): nothing to deliver, so it doesn't count towards delivery. */
+  digital?: boolean;
 };
 
 export type GstGroup = {
@@ -118,10 +120,12 @@ export function computeTotals(
     group.taxPaise += tax;
     groups.set(line.gstRate, group);
   }
-  const shippingPaise = shippingFor(subtotalPaise, shipping);
+  // Delivery (and how far from free it is) counts goods only, before coins.
+  const goodsPaise = lines.reduce((sum, line) => sum + (line.digital ? 0 : line.lineTotalPaise), 0);
+  const shippingPaise = shippingFor(goodsPaise, shipping);
   const toFree =
     shipping.freeFromPaise !== null && shippingPaise > 0
-      ? shipping.freeFromPaise - subtotalPaise
+      ? shipping.freeFromPaise - goodsPaise
       : null;
   return {
     subtotalPaise,

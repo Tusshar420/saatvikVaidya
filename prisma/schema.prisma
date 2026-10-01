@@ -680,18 +680,24 @@ model Cart {
   @@index([updatedAt])
 }
 
+/// A cart line: a product, or a paid ebook (P1.8). Exactly one of
+/// productId and ebookId is set; an ebook line's quantity is always 1.
 model CartItem {
   id        Int      @id @default(autoincrement())
   cartId    Int
   cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ebookId   Int?
+  ebook     Ebook?   @relation(fields: [ebookId], references: [id], onDelete: Cascade)
   quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([cartId, productId])
+  @@unique([cartId, ebookId])
   @@index([productId])
+  @@index([ebookId])
 }
 
 /// A saved delivery address. Orders copy it, so editing an address never
@@ -792,6 +798,13 @@ model OrderItem {
   /// Null if the product was deleted later; the snapshot below stays.
   productId      Int?
   product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// Set for an ebook line (P1.8): no stock, no delivery. The snapshot
+  /// fields below then hold the ebook's slug, title and SAC code. Null if
+  /// the ebook was deleted later (and for every product line).
+  ebookId        Int?
+  ebook          Ebook?   @relation(fields: [ebookId], references: [id], onDelete: SetNull)
+  /// "product" or "ebook"; stays even if the product or ebook is deleted.
+  kind           OrderItemKind @default(product)
   productSlug    String   @db.VarChar(120)
   productName    String   @db.VarChar(160)
   packSize       String   @db.VarChar(60)
@@ -813,6 +826,12 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+  @@index([ebookId])
+}
+
+enum OrderItemKind {
+  product
+  ebook
 }
 
 enum PaymentStatus {
@@ -1027,4 +1046,49 @@ model CoinLedger {
 
   @@unique([userId, reason, reference])
   @@index([userId, createdAt])
+}
+
+// ─── Ebooks ─────────────────────────────────────────────────────────────────
+// Free and paid ebooks (P1.8), managed at /admin/ebooks and shown at /ebooks.
+// Code is in src/server/ebooks. The book file is private in Storage and only
+// ever streamed by /api/ebooks/[id]/download after checking who is asking:
+// free books for any signed-in user, paid books for buyers (a paid order
+// line that wasn't cancelled). Covers are public, through
+// /api/ebook-covers/[id].
+
+model Ebook {
+  id               Int         @id @default(autoincrement())
+  /// URL segment: /ebooks/<slug>. Lowercase words joined by dashes.
+  slug             String      @unique @db.VarChar(120)
+  title            String      @db.VarChar(160)
+  author           String?     @db.VarChar(120)
+  /// Plain text; line breaks are kept when shown.
+  description      String      @db.Text
+  /// Free books can be downloaded by any signed-in user; paid ones are
+  /// bought through the cart.
+  isFree           Boolean     @default(false)
+  /// Price including GST, in paise (0 for free books).
+  pricePaise       Int         @default(0)
+  /// GST percentage included in the price (e-books are usually 18%).
+  gstRate          Int         @default(18)
+  /// The cover image's key in Storage (JPEG, PNG or WebP); null: none yet.
+  coverKey         String?     @unique @db.VarChar(191)
+  coverContentType String?     @db.VarChar(64)
+  /// The book's PDF in Storage; null until uploaded (then not downloadable).
+  fileKey          String?     @unique @db.VarChar(191)
+  /// Download name, e.g. "Kidney care handbook.pdf".
+  fileName         String?     @db.VarChar(160)
+  fileSizeBytes    Int?
+  /// Per-book download switch; the site-wide one is the "ebooks.downloads"
+  /// setting. Either off: the page says downloads are paused.
+  downloadsEnabled Boolean     @default(true)
+  /// Hidden books aren't listed or sold; buyers keep their downloads.
+  active           Boolean     @default(true)
+  sortOrder        Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+
+  @@index([active, sortOrder])
 }

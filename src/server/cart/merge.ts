@@ -15,7 +15,7 @@ export async function mergeGuestCart(tokenHash: string, userId: string): Promise
   return db.$transaction(async (tx) => {
     const guest = await tx.cart.findUnique({
       where: { guestTokenHash: tokenHash },
-      select: { id: true, items: { select: { productId: true, quantity: true } } },
+      select: { id: true, items: { select: { productId: true, ebookId: true, quantity: true } } },
     });
     if (!guest) return 0;
     // Deleting first claims the merge: another sign-in racing this one
@@ -28,14 +28,27 @@ export async function mergeGuestCart(tokenHash: string, userId: string): Promise
       (await tx.cart.create({ data: { userId }, select: { id: true } }));
     const current = await tx.cartItem.findMany({
       where: { cartId: cart.id },
-      select: { productId: true, quantity: true },
+      select: { productId: true, ebookId: true, quantity: true },
     });
-    const quantities = new Map(current.map((item) => [item.productId, item.quantity]));
+    const quantities = new Map(
+      current.flatMap((item) => (item.productId === null ? [] : [[item.productId, item.quantity] as const])),
+    );
+    const ebooks = new Set(current.flatMap((item) => (item.ebookId === null ? [] : [item.ebookId])));
+    const lineCount = () => quantities.size + ebooks.size;
 
     let moved = 0;
     for (const item of guest.items) {
+      // Ebooks (P1.8): one copy each; already in the account's cart is fine.
+      if (item.ebookId !== null) {
+        if (ebooks.has(item.ebookId) || lineCount() >= MAX_CART_LINES) continue;
+        await tx.cartItem.create({ data: { cartId: cart.id, ebookId: item.ebookId, quantity: 1 } });
+        ebooks.add(item.ebookId);
+        moved += 1;
+        continue;
+      }
+      if (item.productId === null) continue;
       const existing = quantities.get(item.productId);
-      if (existing === undefined && quantities.size >= MAX_CART_LINES) continue;
+      if (existing === undefined && lineCount() >= MAX_CART_LINES) continue;
       const quantity = Math.min(MAX_LINE_QUANTITY, (existing ?? 0) + item.quantity);
       await tx.cartItem.upsert({
         where: { cartId_productId: { cartId: cart.id, productId: item.productId } },

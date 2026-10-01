@@ -100,9 +100,11 @@ export async function completePayment(
 
       const items = await tx.orderItem.findMany({
         where: { orderId },
-        select: { productId: true, quantity: true },
+        select: { productId: true, ebookId: true, kind: true, quantity: true },
       });
       for (const item of items) {
+        // Ebooks (P1.8) have no stock to take.
+        if (item.kind === "ebook") continue;
         if (item.productId === null) throw new OutOfStock();
         // Takes the stock only if there's enough; the row lock it holds
         // makes concurrent orders for the last units queue up.
@@ -121,6 +123,12 @@ export async function completePayment(
           where: {
             cart: { userId: owner.userId },
             productId: { in: items.flatMap((item) => (item.productId === null ? [] : [item.productId])) },
+          },
+        });
+        await tx.cartItem.deleteMany({
+          where: {
+            cart: { userId: owner.userId },
+            ebookId: { in: items.flatMap((item) => (item.ebookId === null ? [] : [item.ebookId])) },
           },
         });
       }

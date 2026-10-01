@@ -46,6 +46,7 @@ export const settingSchemas = {
     maxRedeemCoins: z.number().int().min(0).max(100_000_000),
     expiryMonths: z.number().int().min(0).max(240),
   }),
+  "ebooks.downloads": z.object({ enabled: z.boolean() }),
 } satisfies { [K in SettingKey]: z.ZodType<SettingValues[K]> };
 
 const settingKeys = Object.keys(settingDefaults) as SettingKey[];

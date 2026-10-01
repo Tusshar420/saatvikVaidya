@@ -52,6 +52,7 @@ export async function clearContentTables(db: PrismaClient): Promise<void> {
     // Products first: they point at brands and categories. Images, tiers and
     // practice-area links go with them (onDelete: Cascade).
     db.product.deleteMany(),
+    db.ebook.deleteMany(),
     db.settingHistory.deleteMany(),
     db.setting.deleteMany(),
     db.userType.deleteMany(),

@@ -58,4 +58,6 @@ export const rateLimitRules = {
    * guess the phone or email for a known number.
    */
   trackOrderPerNumber: { name: "track-order:number", windowSeconds: 60 * 60, max: 10 },
+  /** Ebook downloads by one account: 20 per hour. */
+  ebookDownloadPerUser: { name: "ebook-download:user", windowSeconds: 60 * 60, max: 20 },
 } as const satisfies Record<string, RateLimitRule>;

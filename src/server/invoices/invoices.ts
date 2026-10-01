@@ -244,6 +244,7 @@ export async function issueInvoice(orderId: string): Promise<IssuedDocument | nu
           gstRate: true,
           lineTotalPaise: true,
           discountPaise: true,
+          kind: true,
         },
       },
       payments: { where: { status: "succeeded" }, select: { provider: true } },
@@ -263,7 +264,9 @@ export async function issueInvoice(orderId: string): Promise<IssuedDocument | nu
     gstRate: item.gstRate,
     totalPaise: item.lineTotalPaise - item.discountPaise,
   }));
-  const delivery = deliveryLine(order.shippingPaise, goods, copy.pdf.deliveryCharge);
+  // Delivery is taxed with the goods it carries, so ebooks (P1.8) don't set its rate.
+  const delivered = goods.filter((_, index) => order.items[index]!.kind !== "ebook");
+  const delivery = deliveryLine(order.shippingPaise, delivered, copy.pdf.deliveryCharge);
   const lines = [...goods, ...(delivery ? [delivery] : [])].map((line) => taxLine(line, interState));
   const total = documentTotals(lines).totalPaise;
   if (total !== order.totalPaise) {

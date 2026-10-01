@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BadgeCheck, Phone } from "lucide-react";
 import { DocumentUpload } from "@/components/site/account/document-upload";
+import { MyEbooks } from "@/components/site/ebooks/my-ebooks";
+import { listOwnedEbooks } from "@/server/ebooks/ebooks";
 import { SignOutButton } from "@/components/site/auth/sign-out-button";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -45,6 +47,7 @@ export default async function AccountPage() {
     getSetting("contact.phone"),
     readProfessionalVerification(user.id),
   ]);
+  const ebooks = await listOwnedEbooks({ id: user.id, role: user.role ?? "user" });
   if (!profile) redirect(signInPath("/account"));
 
   const status = copy.status[profile.verificationStatus];
@@ -113,6 +116,8 @@ export default async function AccountPage() {
         </div>
 
         {professional && <Documents verification={professional} />}
+
+        <MyEbooks ebooks={ebooks} />
 
         <SignOutButton className="mt-8 max-sm:w-full" />
       </div>

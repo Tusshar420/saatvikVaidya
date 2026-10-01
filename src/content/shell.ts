@@ -67,6 +67,7 @@ export const shell = {
   footer: {
     platformTitle: "Platform",
     platformLinks: ["launch", "brands", "courses", "coins"],
+    ebooks: "Ebooks",
     supportTitle: "Support",
     trackOrder: "Track Order",
     supportLinks: ["feedback", "partner", "why"],

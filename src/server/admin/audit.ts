@@ -33,7 +33,11 @@ export type AdminAction =
   | "shipment.create"
   | "shipment.update"
   | "coins.adjust"
-  | "coins.rules.update";
+  | "coins.rules.update"
+  | "ebook.create"
+  | "ebook.update"
+  | "ebook.file.upload"
+  | "ebooks.downloads.update";
 
 export type AdminResource =
   | "User"
@@ -43,7 +47,8 @@ export type AdminResource =
   | "Quiz"
   | "Product"
   | "Order"
-  | "Setting";
+  | "Setting"
+  | "Ebook";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

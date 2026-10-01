@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
+import { CartEbookItem } from "@/components/site/cart/cart-ebook-item";
 import { CartLineItem } from "@/components/site/cart/cart-line-item";
 import { OrderSummary } from "@/components/site/cart/order-summary";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
@@ -34,7 +35,7 @@ export default async function CartPage() {
   ]);
   const cart = await readCart(owner, viewer, shipping);
 
-  if (cart.lines.length === 0) {
+  if (cart.lines.length === 0 && cart.ebooks.length === 0) {
     return (
       <div className="shell py-10 sm:py-16">
         <EmptyState
@@ -60,14 +61,27 @@ export default async function CartPage() {
       <h1 className="mt-2 text-h2 text-ink">
         {copy.title} <em className="block text-teal not-italic">{copy.titleEmphasis}</em>
       </h1>
-      <p className="mt-2 text-body text-muted">{copy.itemCount(cart.lines.length)}</p>
+      <p className="mt-2 text-body text-muted">
+        {copy.itemCount(cart.lines.length + cart.ebooks.length)}
+      </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
-        <ul aria-label={copy.listLabel} className="flex flex-col gap-4">
-          {cart.lines.map((line) => (
-            <CartLineItem key={line.productId} line={line} />
-          ))}
-        </ul>
+        <div className="flex flex-col gap-4">
+          {cart.lines.length > 0 && (
+            <ul aria-label={copy.listLabel} className="flex flex-col gap-4">
+              {cart.lines.map((line) => (
+                <CartLineItem key={line.productId} line={line} />
+              ))}
+            </ul>
+          )}
+          {cart.ebooks.length > 0 && (
+            <ul aria-label={copy.ebook.listLabel} className="flex flex-col gap-4">
+              {cart.ebooks.map((line) => (
+                <CartEbookItem key={line.ebookId} line={line} />
+              ))}
+            </ul>
+          )}
+        </div>
 
         <OrderSummary totals={cart.totals} className="lg:sticky lg:top-40">
           {cart.hasIssues ? (

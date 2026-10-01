@@ -52,6 +52,11 @@ export type SettingValues = {
     maxRedeemCoins: number;
     expiryMonths: number;
   };
+  /**
+   * The site-wide ebook download switch (P1.8). Each book has its own switch
+   * too; either off pauses that book's downloads.
+   */
+  "ebooks.downloads": { enabled: boolean };
 };
 
 export type SettingKey = keyof SettingValues;
@@ -93,4 +98,5 @@ export const settingDefaults: SettingValues = {
     maxRedeemCoins: 5_000,
     expiryMonths: 60,
   },
+  "ebooks.downloads": { enabled: true },
 };

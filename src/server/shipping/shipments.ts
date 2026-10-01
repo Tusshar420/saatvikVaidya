@@ -21,7 +21,14 @@ import { getShippingProvider, simulatedEvent, type ShipmentUpdate } from "./inde
 // Every step writes a ShipmentEvent, moves the order's status to match
 // (src/lib/shipping.ts) and sends the buyer a dev-log message.
 
-export type ShipmentError = "not_found" | "not_paid" | "exists" | "not_allowed" | "shipping_off";
+export type ShipmentError =
+  | "not_found"
+  | "not_paid"
+  | "exists"
+  | "not_allowed"
+  | "shipping_off"
+  /** Ebooks only (P1.8). */
+  | "nothing_to_ship";
 
 export type ShipmentResult =
   | { ok: true; changed: boolean; status: ShipmentStatusKey }
@@ -66,12 +73,14 @@ export async function createShipment(actorId: string, orderId: string): Promise<
       shipState: true,
       shipPincode: true,
       shipment: { select: { status: true } },
-      items: { select: { quantity: true } },
+      items: { where: { kind: "product" }, select: { quantity: true } },
     },
   });
   if (!order) return { ok: false, error: "not_found" };
   if (order.shipment) return { ok: false, error: "exists" };
   if (order.status !== "paid") return { ok: false, error: "not_paid" };
+  // Ebooks only (P1.8): nothing to deliver.
+  if (order.items.length === 0) return { ok: false, error: "nothing_to_ship" };
 
   const booked = await provider.createShipment({
     orderId: order.id,

@@ -4,7 +4,15 @@ import type { OrderStatus, PaymentStatus } from "@/generated/prisma/client";
 import { ORDER_NUMBER_ALPHABET, isOrderId } from "@/lib/orders";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
-import { cartProductSelect, priceLine } from "@/server/cart/cart";
+import {
+  cartEbookSelect,
+  cartProductSelect,
+  priceEbookLine,
+  priceLine,
+} from "@/server/cart/cart";
+import { checkout as checkoutCopy } from "@/content/checkout";
+import { EBOOK_SAC_CODE } from "@/lib/ebooks";
+import { ownedEbookIds } from "@/server/ebooks/ebooks";
 import { db } from "@/server/db";
 import { getPaymentProvider } from "@/server/payments";
 import type { PricingViewer } from "@/server/pricing/rules";
@@ -105,20 +113,32 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           select: {
             items: {
               orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-              select: { quantity: true, product: { select: cartProductSelect } },
+              select: {
+                quantity: true,
+                product: { select: cartProductSelect },
+                ebook: { select: cartEbookSelect },
+              },
             },
           },
         });
         const items = cart?.items ?? [];
         if (items.length === 0) throw new CheckoutRefused("empty");
-        const lines = items.map((item) => ({
-          line: priceLine(item.product, item.quantity, viewer),
-          product: item.product,
-        }));
-        if (lines.some(({ line }) => line.issue !== null)) {
+        const lines = items.flatMap((item) =>
+          item.product
+            ? [{ line: priceLine(item.product, item.quantity, viewer), product: item.product }]
+            : [],
+        );
+        // Paid ebooks (P1.8) come after the products, as on the cart page.
+        const ebookRows = items.flatMap((item) => (item.ebook ? [item.ebook] : []));
+        const owned = await ownedEbookIds(userId, ebookRows.map((ebook) => ebook.id), tx);
+        const ebookLines = ebookRows.map((ebook) => priceEbookLine(ebook, owned.has(ebook.id)));
+        if (
+          lines.some(({ line }) => line.issue !== null) ||
+          ebookLines.some((line) => line.issue !== null)
+        ) {
           throw new CheckoutRefused("cart_changed");
         }
-        const priced = lines.map(({ line }) => line);
+        const priced = [...lines.map(({ line }) => line), ...ebookLines];
         // Coins are worked out from the ledger under a lock on the user, so
         // two checkouts at once can't use the same coins.
         let coinsUsed = 0;
@@ -156,7 +176,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             coinsRedeemed: coinsUsed,
             totalPaise: totals.totalPaise,
             items: {
-              create: lines.map(({ line, product }, index) => ({
+              create: [
+                ...lines.map(({ line, product }, index) => ({
                 productId: product.id,
                 productSlug: product.slug,
                 productName: product.name,
@@ -174,6 +195,26 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
                   product.gstRate,
                 ),
               })),
+                ...ebookLines.map((line, offset) => {
+                  const discountPaise = totals.lineDiscountsPaise[lines.length + offset]!;
+                  return {
+                    kind: "ebook" as const,
+                    ebookId: line.ebookId,
+                    productSlug: line.slug,
+                    productName: line.title,
+                    packSize: checkoutCopy.ebookPackSize,
+                    hsnCode: EBOOK_SAC_CODE,
+                    gstRate: line.gstRate,
+                    mrpPaise: line.lineTotalPaise,
+                    unitPaise: line.lineTotalPaise,
+                    priceTier: "mrp",
+                    quantity: 1,
+                    lineTotalPaise: line.lineTotalPaise,
+                    discountPaise,
+                    taxPaise: gstIncluded(line.lineTotalPaise - discountPaise, line.gstRate),
+                  };
+                }),
+              ],
             },
           },
         });
@@ -317,6 +358,9 @@ export type OrderView = {
     pincode: string;
   };
   items: {
+    /** "ebook" lines (P1.8) link to /ebooks and have nothing to deliver. */
+    kind: "product" | "ebook";
+    ebookId: number | null;
     productSlug: string;
     productName: string;
     packSize: string;
@@ -379,6 +423,8 @@ export async function readOrderForUser(userId: string, orderId: string): Promise
       pincode: order.shipPincode,
     },
     items: order.items.map((item) => ({
+      kind: item.kind,
+      ebookId: item.ebookId,
       productSlug: item.productSlug,
       productName: item.productName,
       packSize: item.packSize,

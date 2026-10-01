@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BadgeCheck,
+  BookOpen,
   Building2,
   Coins,
   Clapperboard,
@@ -27,6 +28,7 @@ const main: NavLink[] = [
   { href: "/admin/users", label: copy.nav.users, icon: Users },
   { href: "/admin/approvals", label: copy.nav.approvals, icon: BadgeCheck },
   { href: "/admin/catalogue", label: copy.nav.catalogue, icon: Pill },
+  { href: "/admin/ebooks", label: copy.nav.ebooks, icon: BookOpen },
 ];
 
 const content: NavLink[] = [

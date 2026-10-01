@@ -57,6 +57,11 @@ export function Footer({
               </Link>
             </li>
           ))}
+          <li>
+            <Link href="/ebooks" className={linkClasses}>
+              {shell.footer.ebooks}
+            </Link>
+          </li>
         </Column>
         <Column title={shell.footer.supportTitle}>
           <li>

@@ -71,11 +71,22 @@ export const cart = {
       `This product is out of stock right now. Call ${phone} to ask when it's back.`,
   },
 
+  /** Paid ebooks in the cart (P1.8). */
+  ebook: {
+    listLabel: "Ebooks in your cart",
+    kind: "Ebook (PDF)",
+    by: (author: string) => `by ${author}`,
+    note: "Download from your account once paid. Nothing to deliver.",
+    unavailable: "This ebook is no longer for sale. Remove it to continue.",
+    owned: "You already have this ebook. Remove it to continue.",
+  },
+
   updated: "Cart updated",
   removed: "Removed from your cart",
 
   /** Messages for refused cart changes (shown in a toast or inline). */
   errors: {
+    ebookOwned: "You already have this ebook. Download it from your account.",
     unavailable: "This product is no longer available.",
     outOfStock: "This product is out of stock.",
     belowMoq: (n: number) => `The minimum order for this product is ${units(n)}.`,
