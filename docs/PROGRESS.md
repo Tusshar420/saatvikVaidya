@@ -3192,3 +3192,40 @@ G.2 and replace this entry with the real one. The provider plugs in behind
 `ShippingProvider` in `src/server/shipping/types.ts` next to the test
 provider; its webhook should move shipments the same way the admin's
 step-by-step test tracking does (see the P1.5 entry).
+
+## G.3. SMS and email (BLOCKED, 2026-10-02)
+
+Not started. Three things stop it (checked on 2026-10-02, latest commit
+`f64c080`):
+
+- **G.1 and G.2 are blocked.** Both have only BLOCKED entries and no code.
+  Go-live chunks run in order, so G.3 waits for them.
+- **CLAUDE.md still forbids it.** The "No real integrations yet" rule still
+  says "No ... MSG91, email provider", and SMS and email must go through the
+  dev notifier. The Go-live gate in `docs/CHUNKS.md` says these chunks may
+  only start once that rule is updated.
+- **No client accounts or keys.** `.env.local` and `.env.example` have no
+  MSG91 auth key, sender id or DLT template ids, and no Resend or Hostinger
+  mail (SMTP) settings. It also isn't decided yet which of Resend or Hostinger
+  mail to use.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+
+**To unblock (a person decides):** finish G.1 and G.2 first, or say that G.3
+may go ahead of them. Then:
+- add the MSG91 account details (auth key, sender id, DLT entity and template
+  ids for OTP and order SMS) to `.env.local`;
+- pick Resend or Hostinger mail and add its keys or SMTP settings;
+- list every name, with a placeholder, in `.env.example`;
+- update CLAUDE.md's "No real integrations yet" rule to allow MSG91 and the
+  chosen email provider.
+
+Then rerun G.3 and replace this entry with the real one.
+
+Notes for that run: the real senders plug in behind `Notifier` in
+`src/server/notify/index.ts`, where `getNotifier()` currently always returns
+`devLogNotifier`. Production must refuse to start without a real notifier, so
+the dev sender can never run there (the same pattern as
+`TEST_PAYMENTS_IN_LOCAL_BUILD`). OTPs are made by the Better Auth phone-number
+plugin in `src/server/auth/index.ts`. Hashing the stored codes is a setting
+on that plugin, and `src/server/auth/otp.test.ts` should cover it.
