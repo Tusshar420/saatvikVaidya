@@ -1,3 +1,53 @@
+# Phases at a glance
+
+The phases in run order, as they appear in The Den. Details for each chunk are
+further down this file. Progress lives in `docs/PROGRESS.md` and The Den, not
+here.
+
+1. **Stage A: Foundation** (done)
+   - A1 Scaffold and tooling
+   - A2 Design tokens and UI primitives
+   - A3 Site shell
+   - A4 Database schema and seed
+   - A5 Auth backend
+   - A6 Auth UI
+   - A7 Homepage, part 1
+   - A8 Homepage, part 2
+   - A9 Quality, accessibility and security pass
+2. **Phase 1: Store and admin**
+   - P1.1 Admin dashboard: users and approvals
+   - P1.2 Professional document uploads and verification
+   - P1.3 Catalogue and product pages
+   - P1.4 Cart, checkout and test payment
+   - P1.5 Orders and test delivery tracking
+   - P1.6 GST invoices
+   - P1.7 Super Coins
+   - P1.8 Ebooks
+   - P1.9 Site settings, maintenance mode and homepage editing
+   - P1.10 My account and admin reports
+   - P1.11 Admin security and permissions
+   - P1.12 Phase 1 quality and security pass
+3. **Phase 2: Launch Your Brand and Quiz & Win**
+   - P2.1 Launch Your Brand: branded ordering
+   - P2.2 Launch Your Brand: label proof and production
+   - P2.3 Quiz & Win
+   - P2.4 Phase 2 quality and security pass
+4. **Go-live** (only once client keys are ready; a person deploys)
+   - G.1 Razorpay payments
+   - G.2 Shiprocket delivery
+   - G.3 SMS and email
+   - G.4 File storage
+   - G.5 WhatsApp Business API
+   - G.6 Deploy to Hostinger
+5. **Phase 3: Learning and community**
+   - P3.1 Courses and Saatvik Live
+   - P3.2 Vaidya Community
+   - P3.3 WhatsApp chat button
+   - P3.4 Hindi
+   - P3.5 Phase 3 quality and security pass
+
+---
+
 # Stage A chunks
 
 Run in order, one per Octopus task, each on the `dev` branch. Each chunk ends
@@ -614,16 +664,9 @@ Like A9, over everything Phase 1 built:
 
 ---
 
-## Parked (not queued; to be done later)
+## Parked
 
-- **Razorpay payments:** a `razorpay` implementation of `PaymentProvider`
-  (orders API, checkout script, signature check, webhooks, refunds), plus the
-  CSP and Permissions-Policy changes it needs. Replaces the test payment in
-  production.
-- **Shiprocket delivery:** a `shiprocket` implementation of `ShippingProvider`
-  (create shipment, AWB, pickup, tracking webhooks). Replaces test shipping in
-  production.
-- Real SMS (MSG91), email (Resend/Hostinger mail) and file storage (R2).
+The real integrations are in the **Go-live** chunks at the end of this file.
 
 ---
 
@@ -632,71 +675,94 @@ Like A9, over everything Phase 1 built:
 Run after P1.12. Same rules as Phase 1: no real integrations (test payment,
 dev notifier, local storage), every chunk meets the definition of done.
 
-## P2.1. Launch Your Brand: request and admin review
+## P2.1. Launch Your Brand: branded ordering
 
-Private-label requests, from the mockup's "Launch Studio" and "Launch Your
-Brand" section ("Select a formulation, explore label directions and submit one
-complete request").
+Client requirement (2026-10-02): any customer or professional can order a
+product in their own brand packaging. They pick a product, upload their logo,
+fill in the packaging details, choose a quantity and place the order. This
+replaces the earlier quote-first design.
 
-- **Catalogue flags:** `Product.privateLabel` (on/off) and a private-label MOQ,
-  editable in `/admin/catalogue`. The Launch catalogue card and form tabs list
-  only these products.
-- **Launch Studio `/launch`** (sign-in required), 4 steps with the Stepper,
-  saved as a draft between steps:
-  1. Formulation: search, form tabs (Vati, Churna, Guggulu, Asava, ...),
-     suggested MRP.
-  2. Quantity and pack: at least the MOQ, pack size.
-  3. Brand and label: brand name, label direction choices, optional logo
-     upload (through `Storage`), notes.
-  4. Review and submit.
-- **Models:** `BrandRequest` (user, product, quantity, pack, brand name, label
-  choices, logo, notes, status, timestamps) and `BrandRequestEvent` (status
-  history with who and a note).
-  - Statuses: `draft`, `submitted`, `under_review`, `quoted`,
-    `quote_accepted`, `quote_declined`, `proof_sent`, `changes_requested`,
-    `proof_approved`, `in_production`, `quality_check`, `dispatched`,
-    `delivered`, `cancelled`.
-  - The server enforces which status can follow which.
-- **Customer "My Brand" `/my-brand`:** list and detail with the status
-  timeline. The mobile dock's Cart item becomes **My Brand** (DESIGN.md), and
-  the cart stays reachable from the header.
-- **Admin `/admin/brand-requests`:** list with filters, detail showing the
-  requester's user type and verification status, move to `under_review`,
-  cancel with a reason.
-- Hero Launch Studio buttons, "Start a private-label request" and "Launch
-  Your Brand" links now go to `/launch`.
-- **Notifications (dev log):** to the admin on submit, and to the user on
-  every status change.
+- **Who:** any signed-in user, of any user type and verification status.
+- **Eligible products:** `Product.brandEligible`, `Product.brandMinQty` (the
+  minimum, which is also the step), `Product.brandUnitPrice` (paise) and a
+  unit label (for example "bottles"). These are edited in `/admin/catalogue`.
+  - The client will send a sheet of eligible products and their minimums.
+  - Add an admin CSV import (product slug or name, minimum, price, unit) that
+    shows a preview with errors per row before applying.
+  - Until the sheet arrives, seed sample values on a few sample products.
+- **`/launch`** (sign-in required): steps with the Stepper, saved as a draft
+  between steps.
+  1. **Product:** search and form tabs, eligible products only, showing the
+     minimum and the brand price.
+  2. **Packaging:**
+     - Logo upload (PNG, JPG or PDF through `Storage`, type checked from the
+       bytes; no SVG).
+     - Brand name (required), tagline, "Marketed by" name and address,
+       contact number and a notes box.
+     - Zod limits on every field.
+  3. **Quantity:**
+     - Starts at the minimum.
+     - **+ adds the minimum and − takes it off** (minimum 4 gives 4, 8, 12 ...),
+       never below the minimum.
+     - The server rejects any quantity that isn't a positive multiple of the
+       minimum.
+     - The price, GST and total update as it changes.
+  4. **Review and pay:** a summary with the logo preview, then the P1.4 test
+     payment (simulate success or failure, retry on failure).
+- **Orders:**
+  - Reuse `Order` / `OrderItem` / `Payment` from P1.4 with an order type of
+    `store` or `brand`.
+  - One product per brand order.
+  - A `BrandOrderDetails` record holds the logo and packaging fields.
+  - Brand orders don't go through the normal cart, and the **normal store
+    cart keeps +1 / −1** with its existing minimum check.
+- **Customer "My Brand" `/my-brand`:** the list of brand orders, and a detail
+  page with the details and a status timeline. The mobile dock's Cart item
+  becomes **My Brand** (DESIGN.md), and the cart stays reachable from the
+  header.
+- **Admin `/admin/brand-orders`:** list with filters, and a detail page with
+  the logo download, packaging details and the customer's contact.
+- Hero Launch Studio buttons, "Start a private-label request", "Launch Your
+  Brand" and "Start your brand" links go to `/launch`.
+- **Notifications (dev log):** to the admin on a paid brand order, and to the
+  customer on payment.
 - **Tests:**
-  - Vitest for status transitions and MOQ rules.
-  - Playwright for the full 4-step request on phone and desktop, and the
-    admin review.
+  - Vitest for step and minimum rules, brand pricing and the CSV import.
+  - Playwright for the full flow on phone and desktop (including + / −
+    stepping by the minimum, payment success and failure), and the admin
+    view.
 
-## P2.2. Launch Your Brand: quote, label proof and production
+## P2.2. Launch Your Brand: label proof and production
 
-- **Quotes:**
-  - The admin writes a quote: unit price, quantity, label/setup charges, GST,
-    and a validity date.
-  - The user accepts or declines it on `/my-brand/[id]`.
-  - An expired quote can't be accepted.
-- **Advance payment:** accepting the quote goes through the P1.4
-  `PaymentProvider` (test provider: simulate success/failure). Only a paid
-  quote moves on.
-- **Label proofs:**
-  - The admin uploads a proof (PDF/image through `Storage`).
-  - The user approves it or requests changes with a comment.
-  - Every version is kept.
-- **Production tracking:**
-  - The admin moves the request through In production, Quality check,
+After a brand order is paid, the team sends a packaging proof before anything
+is printed.
+
+- **Statuses:** `awaiting_proof`, `proof_sent`, `changes_requested`,
+  `proof_approved`, `in_production`, `quality_check`, `dispatched`,
+  `delivered` and `cancelled`. The server enforces which status can follow
+  which, and every change is logged with who made it and a note.
+- **Proofs:**
+  - The admin uploads a proof (PDF or image through `Storage`).
+  - The customer approves it or requests changes with a comment on
+    `/my-brand/[id]`.
+  - Every version is kept and shown.
+  - Production can't start until a proof is approved.
+- **Production:**
+  - The admin moves the order through In production, Quality check,
     Dispatched (using the P1.5 test `ShippingProvider`) and Delivered.
-  - The user sees the mockup's stepper (Confirmed, Production, Quality check,
-    Dispatch).
-- **Documents:** an invoice for the advance (P1.6), and the approved proof
-  stays downloadable by the owner and admins only.
+  - The customer sees the mockup's stepper (Confirmed, Production, Quality
+    check, Dispatch).
+- **Cancel:** an admin can cancel before production, which records a test
+  refund through the `PaymentProvider`.
+- **Documents:**
+  - The GST invoice comes from P1.6.
+  - Logos and proofs can be downloaded by the owner and admins only.
+- **Notifications (dev log):** to the customer on each proof and status
+  change, and to the admin on approval or a change request.
 - **Tests:**
-  - Playwright for quote, then pay (success and failure), then proof, then
-    changes, then approval, then production, then delivered.
-  - Vitest for quote expiry and payment idempotency.
+  - Playwright for paid order, then proof, then changes requested, then a new
+    proof, then approval, then production, then delivered.
+  - Vitest for the status rules and access checks.
 
 ## P2.3. Quiz & Win
 
@@ -734,9 +800,156 @@ Like P1.12, over P2.1–P2.3:
 - Screenshots at 360–1280 px.
 - axe with no serious/critical issues.
 - **Security review:**
-  - Request/quote ownership checks.
-  - Status-transition tampering.
+  - Brand order ownership checks.
+  - Quantity-step and price tampering.
+  - Status-transition and proof-approval tampering.
   - Proof and logo upload handling.
   - Quiz answer leakage and timer bypass.
   - Coin double-credit.
 - Write a Phase 2 summary in `docs/PROGRESS.md`. **Do not deploy.**
+
+---
+
+# Phase 3 chunks
+
+Run after Phase 2. Same rules: no real integrations, and every chunk meets the
+definition of done.
+
+## P3.1. Courses and Saatvik Live
+
+YouTube-based courses (PLAN), building on the P1.1 course admin.
+
+- **Courses:**
+  - `/courses` lists the courses.
+  - `/courses/[slug]` shows the course details and its lessons as YouTube
+    embeds (`youtube-nocookie.com`, added to the CSP `frame-src`).
+  - Course access is set per course: free, signed-in, or approved
+    professionals only.
+  - Signed-in learners see lesson progress.
+- **Saatvik Live:**
+  - Admin-scheduled sessions (title, Hindi subtitle, speaker, date/time,
+    format).
+  - **Reserve seat** for signed-in users, with a dev-log reminder.
+  - The join link shows only to people who reserved, shortly before the
+    start.
+  - Past sessions can link a recording.
+- **Admin:** manage courses, lessons, sessions and the list of reservations.
+- Homepage "Explore all courses", "View course" and "Reserve seat" link to
+  these pages.
+- **Tests:**
+  - Access rules.
+  - Reservation and join-link timing.
+  - Progress.
+  - Playwright on phone and desktop.
+
+## P3.2. Vaidya Community
+
+From the mockup: "A verified space for clinical discussions, classical
+references and professional growth".
+
+- **Who:**
+  - Reading is open to signed-in users.
+  - Posting and answering is for approved professionals only.
+- **Discussions:**
+  - Two kinds: case discussions and questions.
+  - Plain-text bodies (sanitised) with optional images through `Storage`.
+  - Tags by practice area.
+  - Replies, and an "accepted answer" on questions.
+- **De-identified cases:**
+  - Posting a case needs a "no patient-identifying details" confirmation.
+  - The server blocks phone numbers, emails and Aadhaar-like numbers in
+    posts.
+- **Recognition:**
+  - Helpful votes and contributor badges.
+  - Optional coin rewards through the P1.7 rules.
+- **Moderation:**
+  - Users can report a post.
+  - The admin queue can hide, restore or delete.
+  - Rate limits on posting.
+- The homepage "Join early access" link goes to `/community`.
+- **Tests:**
+  - Posting rules by user type.
+  - Identifier blocking.
+  - Moderation.
+  - Playwright on phone and desktop.
+
+## P3.3. WhatsApp chat button
+
+- A "Chat on WhatsApp" button (a `wa.me` link to the site's WhatsApp number,
+  which is a new setting) in the footer, product pages, order pages and Launch
+  Your Brand, with a prefilled message (for example the order number).
+- A WhatsApp channel in `src/server/notify/` with a dev implementation that
+  logs messages.
+- The full WhatsApp Business API is a Go-live chunk.
+
+## P3.4. Hindi
+
+- An English/Hindi switch in the header (remembered per user and in a
+  cookie), with `lang="hi"` on Hindi pages.
+- Hindi versions of every `src/content/` string, drafted and marked **for
+  client review** in a list in `docs/PROGRESS.md`.
+- Admin-editable content gets optional Hindi fields that fall back to English
+  when empty.
+- Numbers, dates and prices are formatted per language.
+- **Tests:** switching, fallback, and no missing keys.
+
+## P3.5. Phase 3 quality and security pass
+
+Like P2.4, over P3.1–P3.4:
+- Screenshots in both languages.
+- axe.
+- **Security review:**
+  - Community content and uploads.
+  - Course access.
+  - The CSP for YouTube.
+- Write a Phase 3 summary. **Do not deploy.**
+
+---
+
+# Go-live chunks
+
+The real integrations, then hosting. **Don't start these until** the client's
+accounts and keys are ready and CLAUDE.md's "No real integrations yet" rule
+has been updated to allow them. Keys go in `.env.local` on the server only,
+never in git. Each one replaces a test or dev implementation behind its
+existing interface, and the test one stays for development.
+
+## G.1. Razorpay payments
+
+- A `razorpay` `PaymentProvider`: orders API, checkout script, signature
+  check, webhooks (verified, idempotent) and refunds.
+- The CSP and Permissions-Policy changes it needs.
+- Test-mode keys first.
+
+## G.2. Shiprocket delivery
+
+- A `shiprocket` `ShippingProvider`: create shipment, AWB, pickup and
+  tracking webhooks.
+- Shiprocket statuses mapped onto ours.
+
+## G.3. SMS and email
+
+- MSG91 for OTP and order SMS, with DLT templates.
+- Resend or Hostinger mail for email.
+- Hash stored OTPs.
+- Make sure the dev sender can never run in production.
+
+## G.4. File storage
+
+- An R2 implementation of `Storage`.
+- Migrate existing local files, with private and public buckets as needed.
+
+## G.5. WhatsApp Business API
+
+- A real WhatsApp channel in `src/server/notify/` for order and Launch Your
+  Brand updates, with approved templates and opt-in.
+
+## G.6. Deploy to Hostinger
+
+Done by a person, not Octopus; CLAUDE.md forbids agents deploying. Octopus
+may prepare it:
+- A deployment checklist in `docs/DEPLOY.md`: Node version, environment
+  variables, migrations, seed, admin creation, HSTS, trusted proxy for rate
+  limits, backups and monitoring.
+- A production smoke test.
+
