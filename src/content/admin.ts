@@ -585,6 +585,8 @@ export const admin = {
     upcoming: "Scheduled",
     ended: "Ended",
     notScheduled: "Not scheduled",
+    deletePlayed:
+      "This quiz has been played, so it can't be deleted (that would remove the players' results and leaderboard places). Untick Published to hide it instead.",
     form: {
       detailsTitle: "Quiz details",
       title: "Quiz title",

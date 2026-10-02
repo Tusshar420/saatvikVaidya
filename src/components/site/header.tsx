@@ -41,13 +41,13 @@ export function Header({
         className,
       )}
     >
-      <div className="shell flex min-h-16.75 items-center gap-2 sm:gap-3.75 md:min-h-20.5 lg:gap-7">
+      <div className="shell flex min-h-16.75 items-center gap-2 max-[374px]:gap-1.5 sm:gap-3.75 md:min-h-20.5 lg:gap-7">
         <Logo />
         <HeaderSearch
           popularSearches={popularSearches}
           className="ml-auto md:ml-0 md:min-w-60 md:flex-1 lg:max-w-97.5"
         />
-        <div className="flex items-center gap-0.5 sm:gap-1.75 md:ml-auto">
+        <div className="flex items-center gap-0.5 max-[374px]:gap-0 sm:gap-1.75 md:ml-auto">
           <SiteModalButton
             modal="trackOrder"
             className={cn(actionClasses, "px-2.5 max-md:hidden")}

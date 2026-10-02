@@ -25,7 +25,7 @@ export function Logo({
       // minimums; accessibility tests skip [data-logo] for that reason.
       data-logo=""
       className={cn(
-        "inline-flex shrink-0 items-center gap-2.5 rounded-md",
+        "inline-flex shrink-0 items-center gap-2.5 rounded-md max-[374px]:gap-2",
         className,
       )}
     >
@@ -40,7 +40,8 @@ export function Logo({
         {shell.brand.mark}
       </span>
       <span aria-hidden className="flex flex-col leading-[1.1]">
-        <strong className="text-[17px] font-extrabold tracking-[-0.8px] sm:text-[19px] md:text-2xl">
+        {/* 15 px below 375 px, so the signed-in header (coins, bag, profile) fits a 360 px phone. */}
+        <strong className="text-[17px] font-extrabold tracking-[-0.8px] max-[374px]:text-[15px] sm:text-[19px] md:text-2xl">
           <span className={light ? "text-green-light" : "text-green"}>
             {shell.brand.first}
           </span>{" "}

@@ -223,7 +223,8 @@ export async function deleteQuizAction(formData: FormData): Promise<void> {
   const { user } = await requireAdmin("content");
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
-  await deleteQuiz(id.data, user.id);
+  const deleted = await deleteQuiz(id.data, user.id);
+  if (deleted === "locked") redirect(`${listPath.quiz}?error=played`);
   afterChange("quiz");
   redirect(`${listPath.quiz}?notice=deleted`);
 }

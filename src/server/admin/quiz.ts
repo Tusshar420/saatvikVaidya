@@ -305,14 +305,21 @@ export async function updateQuiz(
   });
 }
 
-/** False when the quiz no longer exists. */
-export async function deleteQuiz(id: number, actorId: string): Promise<boolean> {
+/**
+ * False when the quiz no longer exists; "locked" when someone has played it
+ * (deleting would take their attempts and leaderboard places with it, so it
+ * can only be unpublished).
+ */
+export async function deleteQuiz(id: number, actorId: string): Promise<boolean | "locked"> {
   return db.$transaction(async (tx) => {
+    // The same row lock as updateQuiz, so a start can't slip in between.
+    await tx.$queryRaw`SELECT id FROM Quiz WHERE id = ${id} FOR UPDATE`;
     const quiz = await tx.quiz.findUnique({
       where: { id },
-      select: { title: true },
+      select: { title: true, _count: { select: { attempts: true } } },
     });
     if (!quiz) return false;
+    if (quiz._count.attempts > 0) return "locked" as const;
     // Questions and options go with it (onDelete: Cascade).
     await tx.quiz.delete({ where: { id } });
     await logAdminAction(tx, {

@@ -14,6 +14,7 @@ import {
 import { Notice, parseNotice } from "@/components/admin/notice";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { RowActions } from "@/components/admin/row-actions";
+import { FormAlert } from "@/components/site/auth/form-alert";
 import { buttonClasses } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { admin as copy } from "@/content/admin";
@@ -52,6 +53,9 @@ export default async function QuizListPage({
         }
       />
       <Notice notice={parseNotice(params.notice)} />
+      {params.error === "played" && (
+        <FormAlert className="mt-6">{text.deletePlayed}</FormAlert>
+      )}
       <DataTable caption={text.title} className="mt-6">
         <THead>
           <Th>{text.columns.title}</Th>

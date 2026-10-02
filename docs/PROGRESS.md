@@ -5,6 +5,39 @@ built, decisions, known gaps and next steps.
 
 ---
 
+# Phase 2 summary (2026-10-02)
+
+**What exists:** Launch Your Brand and Quiz & Win, built in P2.1 to P2.4, all
+on `dev`, none deployed.
+- **Launch Your Brand:** `/launch` is a four-step branded order (product,
+  packaging with logo upload, quantity in steps of the product's minimum,
+  review and test payment). `/my-brand` lists the orders. Each order has
+  label proof versions the customer approves or asks to change, then
+  production, quality check, test dispatch and delivery. The admin side has
+  brand orders with proof upload and production steps, brand terms on the
+  product form, and a CSV import for the client's sheet of minimums.
+- **Quiz & Win:** a weekly 10-question quiz with a server-owned 5-minute
+  timer, one attempt each, Super Coins for a pass (credited once), and
+  weekly and monthly leaderboards. The admin side schedules quizzes, sets
+  pass marks and writes explanations. Questions are locked once played.
+
+**Quality and security:** see the P2.4 entry. Every Phase 2 screen fits 360
+to 1280 px with no axe issues. The review found two things, both fixed: the
+signed-in header was too wide at 360 px, and a played quiz could be deleted.
+`pnpm audit` is clean. Lighthouse still needs a run.
+
+**Still test providers:** brand orders use the same test payment, test
+shipping, dev-log messages and local file storage as the store. The Phase 1
+launch checklist below covers all of them. For Phase 2, also:
+- load the client's eligible-products sheet through the CSV import and
+  switch off the sample brand terms;
+- confirm the open brand questions (see "Later": one product per order, one
+  price for every user type, no coins on brand orders, delivery charge);
+- write the first real quiz and its schedule;
+- decide whether the quiz review should wait until the week ends.
+
+---
+
 # Phase 1 summary (2026-10-02)
 
 **What exists:** the store and admin, built across P1.1 to P1.12, all on `dev`,
@@ -1307,6 +1340,18 @@ at the start). Nothing needed fixing first.
     charge on brand orders; logo always required.
   - Remove abandoned draft logos (drafts untouched for, say, 90 days).
   - Split brand orders from store orders in the admin reports.
+- **Phase 2 follow-ups from the P2.4 review (none is a hole today):**
+  - Quiz answers can be passed on: a finished player sees the right answers
+    and explanations while the quiz is still open, and one person could play
+    from several accounts. If that matters to the client, show the review only
+    once the quiz week ends.
+  - An attempt started just before the quiz closes still gets its full 5
+    minutes; fine as a rule, but say so in the quiz terms.
+  - `saveAnswerAction` has no rate limit of its own (each call is one small
+    locked write for a signed-in user). Add a per-user rule if it's ever
+    abused.
+  - The leaderboard page closes expired attempts when it's read (up to 200 at
+    a time). Move this to a scheduled job once there's a job runner.
 
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
@@ -2918,50 +2963,87 @@ eye at 375/1280 px; layout was checked with the overflow and axe assertions only
 - No admin view of a quiz's attempts or results yet.
 - Quiz window overlap isn't blocked: with two open, the latest start wins.
 
-## P2.4. Phase 2 quality and security pass (BLOCKED, 2026-10-01)
+## P2.4. Phase 2 quality and security pass (2026-10-02)
 
-Not started. P2.4 reviews what P2.1, P2.2 and P2.3 built, and none of the
-three is built (each entry above is BLOCKED). There is nothing to screenshot,
-run axe on or security-review, and the Phase 2 summary would have nothing to
-summarise. So this chunk stops here instead of building those chunks itself.
+Replaces the earlier BLOCKED entry: P2.1, P2.2 and P2.3 are committed and
+green.
 
-**What's blocking (checked in code, schema and git on 2026-10-01)**
-- **Nothing from Phase 2 exists:**
-  - `prisma/schema.prisma` has no `BrandRequest`, `BrandRequestEvent`,
-    `Product.privateLabel`, quote, proof, `QuizAttempt` or `CoinLedger`.
-  - There are no `/launch`, `/my-brand`, `/quiz` or `/admin/brand-requests`
-    routes.
-- **Each review item in the chunk needs a missing chunk:**
-  - Request/quote ownership and status-transition tampering: P2.1 and P2.2.
-  - Proof and logo uploads: P2.1 (logo) and P2.2 (proofs).
-  - Quiz answer leakage and timer bypass: P2.3.
-  - Coin double-credit: P2.3, on top of P1.7's `CoinLedger`.
-- **The root cause is still P1.3:** its work is uncommitted on `dev` (latest
-  commit `2a312bc`, no `P1.3` commit; still 38 changed or new paths). No file
-  under `src/`, `prisma/` or `tests/` has changed since the P2.3 entry (the
-  newest edit is from 09:26), so the four failing `catalogue.spec.ts` tests
-  (see the P1.4 and P1.9 entries) still fail. The checks weren't re-run
-  because the tree is the same.
-- P1.12 (the Phase 1 pass this chunk is modelled on) is also BLOCKED, so
-  there's no Phase 1 summary to build the Phase 2 one on.
+**Built and fixed**
+- `tests/e2e/p2-4-quality.spec.ts` (desktop project; sets its own viewports):
+  `/launch` steps 1 to 4 (from a finished draft), `/my-brand`, a brand order
+  with a proof waiting for a decision, and the admin screens (brand orders
+  list and detail, brand CSV import, quiz list and form) have no sideways
+  scroll at 360, 375, 414, 768, 1024 and 1280 px, and no axe issues at 360
+  and 1280 px.
+- `quiz.last.spec.ts` gains the same width and axe checks for every quiz
+  screen (signed out, ready, playing, finished, leaderboard). It lives there
+  because only one quiz may be open while other specs run.
+- **Fixed: the signed-in header was 12 px too wide at 360 px** (P2.1 put the
+  bag in the phone header next to the coin pill and avatar). Below 375 px the
+  wordmark is now 15 px and the header gaps are tighter. Every target stays
+  44 px, and 375 px and up look the same as before (DESIGN.md updated).
+  P1.12 only checked signed-out pages, so it didn't catch this.
+- **Fixed: a played quiz could be deleted**, which took its attempts with it
+  (results and leaderboard places gone, coins left pointing at a deleted
+  attempt) and got around the "questions locked once played" rule.
+  `deleteQuiz` now takes the quiz row lock and refuses when there are
+  attempts. The list shows "untick Published to hide it instead". Vitest and
+  Playwright tests added.
+- `tests/e2e/brand-helpers.ts`: the paid brand order fixture, moved out of
+  `brand-proof.spec.ts` so both specs share it.
+- `pnpm audit`: no known vulnerabilities.
 
-**For the run that does P2.4**
-- Use the "For the run that builds ..." notes in the P2.1, P2.2 and P2.3
-  entries as the review checklist. They set out what each chunk should do for
-  this pass to check: one transitions table, quote expiry checked at accept
-  and at payment, a unique key per quote payment, proof versions served
-  through an owner-or-admin check, questions selected without `isCorrect`,
-  a unique (`userId`, `quizId`) attempt with a server-side timer, and coins
-  credited once through a unique ledger reference.
-- Run it after P1.12 (CHUNKS.md says Phase 2 runs after P1.12), so the Phase 2
-  summary can sit next to the Phase 1 one at the top of this file.
+**Security review (code read; two fixes above, no other holes)**
+- **Brand order ownership:** the customer pages, logo, proof file and
+  proof-decision paths all filter by the session's user id (`userId` in the
+  query, checked again under the row lock in `decideProof`). Admins need the
+  "orders" area with two-factor (`getAdminSession` / `effectiveRole`).
+  Everyone else gets the same 404 with `no-store`. Stage events sent to
+  the customer page show the actor kind only, never admin ids.
+- **Quantity step and price:** the browser sends only a quantity (Zod, at
+  most 1,000,000), an address id, a checkout key and the total it showed.
+  `placeBrandOrder` locks the draft and checks again that the product is
+  still eligible, the packaging is valid, the logo is there and the
+  quantity is a positive multiple of the minimum within the caps. It
+  prices from the database and refuses if the shown total differs. Retries
+  pay the stored order total. No coins are earned or used on brand orders.
+- **Status transitions and proof approval:** every stage change goes
+  through `moveStage` (transitions table and who may act). It's claimed from
+  the stage the caller saw, under the order row lock. Only the customer
+  may approve or ask for changes, and only on the one pending proof.
+  Production needs an approved proof. Cancelling is refused once production
+  starts, and an unpaid order can't get a proof. The admin action and proof
+  upload take the order id and stages through Zod enums.
+- **Proof and logo uploads:** the body size is capped before parsing, the
+  type comes from the bytes (PNG, JPEG or PDF; no SVG), with a same-origin
+  check and per-user/per-admin rate limits. Files sit in private storage
+  with random keys and are served with `nosniff`, `no-store` and a cleaned
+  file name (PDFs always download). Admin CSV exports already neutralise
+  formula cells, so brand text typed by customers is safe there.
+- **Quiz answer leakage and timer bypass:** the play view selects no
+  `isCorrect` and no explanations (the e2e test checks the page HTML). The
+  server sets the start time. A late answer is refused and closes the
+  attempt at the deadline. The time taken is worked out on the server. One
+  attempt per user and quiz (unique key). Questions are locked once played
+  (and now so is deleting).
+- **Coin double-credit:** the quiz reward is credited inside the attempt's
+  close, under the user's lock and the attempt row lock, with a unique
+  ledger reference `quiz-attempt:<id>`. A double submit, a refresh or a race
+  credits once (Vitest covers concurrent submits). Brand payments skip
+  `earnForOrder`, and cancelling one reverses nothing that was never
+  earned.
 
-**Next steps (in order)**
-1. Finish and commit P1.3 (steps in the P1.4 entry).
-2. Build P1.4 to P1.11, then run P1.12.
-3. Build P2.1, P2.2 and P2.3.
-4. Re-queue P2.4 once P2.1 to P2.3 are committed and green.
+**Not done**
+- Lighthouse was not run (as in P1.12, the CLI isn't installed here).
+- No screenshots were saved to `docs/`. The width checks above are the
+  record. I also looked at the signed-in header at 360 and 375 px by
+  screenshot.
 
-Nothing was changed apart from this entry. No code was written, no checks were
-run and no screenshots were taken. The tree still holds P1.3's uncommitted
-work.
+**Checks:** typecheck, lint, test (705), test:e2e (253 passed, 9 skipped by
+design: the six before plus the three width tests in the projects that don't
+run them) and build (run by the e2e web server) pass. The server log's
+"destination stream closed early" lines are aborted page loads when tests
+move on, seen in earlier runs too; no test failed on them.
+
+**Next:** Phase 2 is done. Go-live (G.1 onwards) waits for the client's
+accounts and keys and the CLAUDE.md "no real integrations" rule change.

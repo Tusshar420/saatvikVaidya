@@ -149,6 +149,9 @@ all its variants.
   - Search with a ⌘K hint and a popular-searches popover (icon only on phones).
   - The coin pill, the bag with a count, and a profile trigger showing "Sign in
     / Register" or the avatar.
+  - Below 375 px the wordmark is 15 px and the gaps are tighter, so the
+    signed-in bar (search, coins, bag, profile) fits a 360 px phone with
+    every target still 44 px.
 
   Under the bar sits a section nav rail that scrolls sideways with an edge fade
   and highlights the section currently on screen.

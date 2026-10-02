@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Browser, type BrowserContextOptions, type Page } from "@playwright/test";
 import { admin } from "../../src/content/admin";
 import { coins } from "../../src/content/coins";
 import { quiz } from "../../src/content/quiz";
@@ -299,4 +299,83 @@ test("admin: the quiz form has the week and pass mark", async ({ page, baseURL }
   await expect(page.getByLabel(text.passPercent)).toHaveValue("60");
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
+});
+
+test("admin: a played quiz can't be deleted", async ({ page, baseURL }) => {
+  const open = await openQuiz();
+  const player = await signInAs(page, baseURL!, { role: "user" });
+  await e2eDb().quizAttempt.create({ data: { userId: player.id, quizId: open.id, answers: {} } });
+  await page.context().clearCookies();
+  await signInAs(page, baseURL!, { role: "admin", adminRole: "content" });
+
+  await page.goto("/admin/content/quiz");
+  await page.getByRole("button", { name: `${admin.common.delete} ${open.title}` }).click();
+  await page.getByRole("button", { name: admin.common.confirmDelete.confirm }).click();
+  await expect(page.getByText(admin.quiz.deletePlayed)).toBeVisible();
+  expect(await e2eDb().quiz.count({ where: { id: open.id } })).toBe(1);
+  expect(await e2eDb().quizAttempt.count({ where: { quizId: open.id } })).toBe(1);
+  expect(await axeViolations(page)).toEqual([]);
+});
+
+// P2.4: every quiz screen (ready, playing, finished, leaderboard; signed out
+// and in) fits every width from 360 to 1280 px, with no axe issues at 360 and
+// 1280 px. It sets its own viewports, so only the desktop-last project runs it.
+test("P2.4: the quiz screens fit every width", async ({ browser, baseURL }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-last", "Sets its own viewports; desktop-last runs it.");
+  test.setTimeout(240_000);
+  const widths = [360, 375, 414, 768, 1024, 1280];
+  type State = Exclude<BrowserContextOptions["storageState"], string | undefined>;
+  const openAt = async (b: Browser, width: number, storageState?: State) => {
+    const context = await b.newContext({
+      viewport: { width, height: width <= 414 ? 800 : 768 },
+      isMobile: width <= 414,
+      hasTouch: width <= 414,
+      storageState,
+    });
+    const page = await context.newPage();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    return { context, page };
+  };
+  const checkAll = async (paths: string[], state?: State, ready?: (page: Page) => Promise<void>) => {
+    for (const width of widths) {
+      const { context, page } = await openAt(browser, width, state);
+      for (const path of paths) {
+        await page.goto(path, { waitUntil: "load" });
+        if (ready && path === "/quiz") await ready(page);
+        expect(await horizontalOverflow(page), `${path} at ${width}px`).toBe(0);
+        if (width === 360 || width === 1280) {
+          expect(await axeViolations(page), `${path} at ${width}px`).toEqual([]);
+        }
+      }
+      await context.close();
+    }
+  };
+
+  await openQuiz();
+  // Signed out: the open quiz and the leaderboard.
+  await checkAll(["/quiz", "/quiz/leaderboard"]);
+
+  const setup = await openAt(browser, 1280);
+  await signInAs(setup.page, baseURL!, { role: "user", name: "Meera Kulkarni" });
+  const state = await setup.context.storageState();
+  // Signed in, before starting.
+  await checkAll(["/quiz"], state, (page) =>
+    expect(page.getByRole("button", { name: quiz.start })).toBeVisible(),
+  );
+
+  // Playing (well inside the 5 minutes: this pass takes about a minute).
+  await setup.page.goto("/quiz");
+  await setup.page.getByRole("button", { name: quiz.start }).click();
+  await expect(setup.page.getByRole("timer")).toBeVisible();
+  for (let n = 1; n <= 10; n++) await answer(setup.page, n, n <= 6);
+  await expect(setup.page.getByText(quiz.play.answered(10, 10))).toBeVisible();
+  await checkAll(["/quiz"], state, (page) => expect(page.getByRole("timer")).toBeVisible());
+
+  // Finished: the result and the review, and the leaderboard with the player in it.
+  await setup.page.getByRole("button", { name: quiz.play.submit }).click();
+  await expect(setup.page.getByRole("heading", { name: quiz.result.title })).toBeVisible();
+  await setup.context.close();
+  await checkAll(["/quiz", "/quiz/leaderboard"], state, (page) =>
+    expect(page.getByRole("heading", { name: quiz.result.title })).toBeVisible(),
+  );
 });

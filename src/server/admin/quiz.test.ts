@@ -180,4 +180,13 @@ describe("quiz storage", () => {
     expect(await deleteQuiz(id, adminId)).toBe(false);
     expect(await updateQuiz(id, form(), adminId)).toBe(false);
   });
+
+  it("won't delete a quiz someone has played (their results would go with it)", async () => {
+    const id = await createQuiz(form(), adminId);
+    await db.quizAttempt.create({ data: { userId: adminId, quizId: id, answers: {}, submittedAt: new Date(), score: 10 } });
+    expect(await deleteQuiz(id, adminId)).toBe("locked");
+    expect(await db.quiz.count({ where: { id } })).toBe(1);
+    expect(await db.quizAttempt.count({ where: { quizId: id } })).toBe(1);
+    expect(await db.adminLog.count({ where: { action: "quiz.delete" } })).toBe(0);
+  });
 });
