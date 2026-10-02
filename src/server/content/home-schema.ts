@@ -33,7 +33,7 @@ export const siteModals = ["sign-in", "track-order"] as const;
 export type SiteModal = (typeof siteModals)[number];
 
 /**
- * A path on this site, such as "/coins", "/#launch" or "/media/x.jpg". Rejects
+ * A path on this site, such as "/coins", "/#brands" or "/media/x.jpg". Rejects
  * other origins, protocol-relative "//" URLs, backslashes and "javascript:".
  */
 export const sitePathSchema = z

@@ -62,7 +62,7 @@ export const homeSectionSeed: HomeSectionSeed[] = [
     description:
       "Select a formulation, explore label directions and submit one complete request. Our team reviews the technical details before confirmation.",
     linkLabel: "Explore 150+ formulations",
-    linkHref: "/#launch-catalogue",
+    linkHref: "/launch",
     content: {
       steps: [
         {
@@ -377,7 +377,7 @@ export const reelSeed: Seed<Prisma.ReelCreateInput>[] = [
     metaLabel: "00:42",
     title: "Explore low-MOQ Ayurveda formulations.",
     linkLabel: "Explore range",
-    linkHref: "/#launch",
+    linkHref: "/launch",
   },
   {
     key: "doctor-feedback-letterhead",

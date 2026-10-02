@@ -7,6 +7,7 @@ import type {
 } from "@/generated/prisma/enums";
 import type { HomeSection as HomeSectionRow } from "@/generated/prisma/client";
 import { catalogueHref } from "@/lib/catalogue";
+import { pageForSectionLink } from "@/lib/section-links";
 import { db } from "@/server/db";
 import { cachedRead, contentTags } from "./cache";
 import {
@@ -484,7 +485,7 @@ function logInvalid(where: string): void {
 function href(value: string | null, where: string): LinkTarget | null {
   if (value === null) return null;
   const parsed = linkTargetSchema.safeParse(value);
-  if (parsed.success) return parsed.data;
+  if (parsed.success) return pageForSectionLink(parsed.data);
   logInvalid(`link in ${where}`);
   return null;
 }

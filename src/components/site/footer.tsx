@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { telHref } from "@/lib/phone";
+import { sectionHref } from "@/lib/section-links";
 import { homeSections, policyLinks, shell } from "@/content/shell";
 import { Logo } from "./logo";
 import { SiteModalButton } from "./site-modals";
@@ -52,7 +53,7 @@ export function Footer({
         <Column title={shell.footer.platformTitle}>
           {shell.footer.platformLinks.map((id) => (
             <li key={id}>
-              <Link href={`/#${id}`} className={linkClasses}>
+              <Link href={sectionHref(id)} className={linkClasses}>
                 {homeSections[id]}
               </Link>
             </li>
@@ -74,7 +75,7 @@ export function Footer({
           </li>
           {shell.footer.supportLinks.map((id) => (
             <li key={id}>
-              <Link href={`/#${id}`} className={linkClasses}>
+              <Link href={sectionHref(id)} className={linkClasses}>
                 {homeSections[id]}
               </Link>
             </li>

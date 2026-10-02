@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House, Phone } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { sectionHref, sectionPages } from "@/lib/section-links";
 import { telHref } from "@/lib/phone";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useScrollEdges } from "@/lib/use-scroll-edges";
@@ -25,9 +26,17 @@ export type NavRailProps = {
  * on screen and keeps that link in view.
  */
 export function NavRail({ items, phone, className }: NavRailProps) {
-  const onHome = usePathname() === "/";
+  const pathname = usePathname();
+  const onHome = pathname === "/";
   const [spied, setSpied] = useState<string>(TOP);
-  const active = onHome ? spied : null;
+  // Off the homepage, a section with its own page (Launch Your Brand) is
+  // active on that page.
+  const onPage =
+    items.find(({ id }) => {
+      const page = sectionPages[id];
+      return page && (pathname === page || pathname.startsWith(`${page}/`));
+    })?.id ?? null;
+  const active = onHome ? spied : onPage;
   const reducedMotion = useReducedMotion();
   const { ref, onScroll, style } = useScrollEdges<HTMLDivElement>("38px");
 
@@ -93,6 +102,7 @@ export function NavRail({ items, phone, className }: NavRailProps) {
         <ul className="flex h-12 w-max min-w-full items-center gap-1.75 px-3 sm:px-3.5 md:h-13 md:px-0 xl:gap-0.5">
           <li>
             <RailLink
+              href={`/#${TOP}`}
               section={TOP}
               active={active === TOP}
               label={shell.nav.home}
@@ -103,7 +113,12 @@ export function NavRail({ items, phone, className }: NavRailProps) {
           </li>
           {items.map((item) => (
             <li key={item.id}>
-              <RailLink section={item.id} active={active === item.id}>
+              <RailLink
+                href={sectionHref(item.id)}
+                section={item.id}
+                active={active === item.id}
+                onPage={!onHome && onPage === item.id}
+              >
                 {item.label}
                 {item.soon && (
                   <span className="rounded-[5px] bg-orange-soft px-1.5 py-0.5 text-[11px] leading-none font-extrabold tracking-[0.06em] text-orange-ink uppercase">
@@ -132,14 +147,20 @@ export function NavRail({ items, phone, className }: NavRailProps) {
 }
 
 function RailLink({
+  href,
   section,
   active,
+  onPage = false,
   label,
   className,
   children,
 }: {
+  /** The section anchor, or the section's own page (see sectionPages). */
+  href: string;
   section: string;
   active: boolean;
+  /** Active because this is the section's own page, not by scroll-spy. */
+  onPage?: boolean;
   /** For icon-only links. */
   label?: string;
   className?: string;
@@ -147,9 +168,9 @@ function RailLink({
 }) {
   return (
     <Link
-      href={`/#${section}`}
+      href={href}
       data-section={section}
-      aria-current={active ? "location" : undefined}
+      aria-current={active ? (onPage ? "page" : "location") : undefined}
       aria-label={label}
       title={label}
       // The link is 44 px tall for touch; the visible pill inside is 36 px.

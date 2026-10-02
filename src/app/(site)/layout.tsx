@@ -7,6 +7,7 @@ import { MobileDock } from "@/components/site/mobile-dock";
 import { SiteModalsProvider } from "@/components/site/site-modals";
 import { SkipLink } from "@/components/site/skip-link";
 import { navItems } from "@/content/shell";
+import { sectionPages } from "@/lib/section-links";
 import { getSetting } from "@/server/content/settings";
 import { getEnabledSectionKeys } from "@/server/content/home";
 import { getSignUpUserTypes } from "@/server/content/user-types";
@@ -66,8 +67,10 @@ export default async function SiteLayout({
   const coinBalance =
     session && coinRules.enabled ? (await coinSummary(db, session.user.id)).balance : null;
 
-  const filteredNavItems = navItems.filter((item) =>
-    enabledSections.includes(item.id),
+  // A section with its own page (Launch Your Brand) stays in the nav even
+  // when its homepage section is hidden.
+  const filteredNavItems = navItems.filter(
+    (item) => item.id in sectionPages || enabledSections.includes(item.id),
   );
 
   return (

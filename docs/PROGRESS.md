@@ -3412,3 +3412,43 @@ a way into the admin panel from their profile.
   `/admin`, at 375 and 1280 px. Typecheck, lint, test (705) and the account,
   sign-in, shell and accessibility e2e specs (54 passed) pass; the full e2e
   suite was not rerun.
+
+## Fix: Launch Your Brand links open the Launch page (2026-10-03)
+
+A bug fix outside the chunk list. The nav rail and footer built every section
+link as `/#id`, so "Launch Your Brand" pointed at the homepage's `#launch`
+section: after any section link had put a hash in the URL, clicking it only
+scrolled the homepage instead of opening `/launch`.
+
+- **Built:** `src/lib/section-links.ts` lists the homepage sections that also
+  have a page (`sectionPages`, for now only `launch` → `/launch`).
+  `sectionHref(id)` gives the page or the `/#id` anchor; the nav rail and
+  footer use it. On `/launch` the rail marks Launch Your Brand with
+  `aria-current="page"`; on the homepage scroll-spy still highlights it over
+  the section. The Launch nav item stays even when an admin hides the
+  homepage section, since it now goes to a page.
+- **Home content:** `pageForSectionLink` runs on every admin-edited homepage
+  link (hero, reels, offers, quick actions, section buttons), so a stored
+  `/#launch` or `#launch` still opens `/launch`. The Launch section now
+  renders its own button ("Explore 150+ formulations", as in the mockup),
+  which goes to `/launch`. Migration `20261003100000_launch_links` repoints
+  the last two seeded links still at the section (that button, which held
+  `/#launch-catalogue`, and the "Explore range" reel) where an admin hasn't
+  changed them; the seed matches. The admin help text no longer offers
+  `/#launch` as its example.
+- **Checked:** the hero button and Launch Studio panel, the "Start your
+  brand" reel, the private-label offer, the quick action and the mobile dock
+  already opened `/launch` or `/my-brand`. The category cards and "View all
+  products" in the Launch section's catalogue card still go to the store
+  catalogue (`/products`), unchanged. Other nav items (Coins, Quiz) still
+  jump to their homepage sections, as in the mockup; adding a page for one
+  is a one-line change in `sectionPages`.
+- **Tests:** `src/lib/section-links.test.ts`; `tests/e2e/shell.spec.ts`
+  signs in, follows Top Brands (`#brands` in the URL), then checks the
+  rail, the homepage section's button and the footer link each open
+  `/launch`, at 375 and 1280 px. Typecheck, lint, test (709) pass. Full e2e:
+  245 passed, 1 failed: `quiz.last.spec.ts` "no quiz open shows the next
+  start" fails because the dev database holds the open "Weekly Ayurveda Quiz
+  (demo)" from `pnpm db:seed:demo` (until 2026-10-04), so the homepage shows
+  that quiz. Not caused by this fix; it passes once the demo quiz is closed
+  or removed.

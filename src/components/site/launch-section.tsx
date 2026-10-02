@@ -8,13 +8,13 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { catalogue } from "@/content/catalogue";
 import { catalogueHref } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
-import type { CategoryItem } from "@/server/content/home";
+import type { CategoryItem, SectionHeading as Heading } from "@/server/content/home";
 import type {
   SectionContent,
 } from "@/server/content/home-schema";
 
 type LaunchSectionProps = {
-  heading: { eyebrow: string | null; title: string | null; titleEmphasis: string | null; description: string | null };
+  heading: Heading;
   steps: SectionContent<"launch">["steps"];
   categories: { form: CategoryItem[]; practiceArea: CategoryItem[] };
   catalogueMeta: SectionContent<"launch">["catalogue"];
@@ -54,6 +54,15 @@ export function LaunchSection({
                 <p className="text-body text-muted sm:mt-2">{step.body}</p>
               </div>
             ))}
+            {heading.link?.href?.startsWith("/") ? (
+              <Link
+                href={heading.link.href}
+                className={buttonClasses({ className: "max-sm:w-full" })}
+              >
+                {heading.link.label}
+                <ButtonArrow />
+              </Link>
+            ) : null}
           </div>
 
           {/* Catalogue card */}

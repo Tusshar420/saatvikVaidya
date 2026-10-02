@@ -3,6 +3,7 @@ import {
   policyPages,
   type PolicyPageCopy,
 } from "../../src/content/pages";
+import { brand } from "../../src/content/brand";
 import { cart } from "../../src/content/cart";
 import { catalogue } from "../../src/content/catalogue";
 import { coins as coinsCopy } from "../../src/content/coins";
@@ -11,6 +12,7 @@ import { orders } from "../../src/content/orders";
 import { navItems, policyLinks, shell } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
 import { ui } from "../../src/content/ui";
+import { signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 const phone = settingDefaults["contact.phone"];
@@ -250,6 +252,45 @@ test.describe("nav rail", () => {
     await nav.getByRole("link", { name: "Courses" }).click();
     await expect(page).toHaveURL(/\/#courses$/);
     await expect(page.locator("#courses")).toBeInViewport();
+  });
+
+  test("Launch Your Brand opens the Launch page, whatever the hash", async ({
+    page,
+    baseURL,
+  }) => {
+    await useFreshIp(page);
+    await signInAs(page, baseURL!, { role: "user" });
+    const onLaunchPage = async () => {
+      await expect(page).toHaveURL(/\/launch(\?|$)/);
+      await expect(
+        page.getByRole("list", { name: brand.launch.stepsLabel }),
+      ).toBeVisible();
+    };
+
+    // After a section link has put a hash in the URL, the rail's Launch
+    // link still opens the page instead of scrolling the homepage.
+    await page.goto("/");
+    const nav = rail(page);
+    await nav.getByRole("link", { name: "Top Brands" }).click();
+    await expect(page).toHaveURL(/#brands$/);
+    const launch = nav.getByRole("link", { name: "Launch Your Brand" });
+    await expect(launch).toHaveAttribute("href", "/launch");
+    await launch.click();
+    await onLaunchPage();
+    await expect(launch).toHaveAttribute("aria-current", "page");
+
+    // The homepage section's button.
+    await page.goto("/#courses");
+    await page
+      .locator("#launch")
+      .getByRole("link", { name: "Explore 150+ formulations" })
+      .click();
+    await onLaunchPage();
+
+    // The footer link.
+    await page.goto("/#coins");
+    await footer(page).getByRole("link", { name: "Launch Your Brand" }).click();
+    await onLaunchPage();
   });
 });
 

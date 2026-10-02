@@ -53,7 +53,7 @@ export const admin = {
     linkLabel: "Link label",
     linkHref: "Link target",
     linkHrefHelp:
-      'A site path such as "/coins" or "/#launch", or "modal:sign-in" / "modal:track-order". Leave empty while the page isn\'t built; the site then shows "coming soon".',
+      'A site path such as "/coins" or "/#brands", or "modal:sign-in" / "modal:track-order". Leave empty while the page isn\'t built; the site then shows "coming soon".',
     brandLinkHrefHelp:
       'A site path such as "/products?brand=flowgra", or "modal:sign-in". Leave empty to link to this brand\'s products in the catalogue.',
     tone: "Colour",
