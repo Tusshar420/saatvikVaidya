@@ -3089,3 +3089,27 @@ open), then replace this entry with the real one. The button needs no keys
 sooner, the plan could move it ahead of Phase 3; that decision belongs to a
 person, not to a chunk run. G.5 later swaps in the real channel behind the
 same `src/server/notify/` interface.
+
+## P3.4. Hindi (BLOCKED, 2026-10-02)
+
+Not started. Two things stop it (checked in git, `src/` and docs on
+2026-10-02, latest commit `82737b6`):
+
+- **P3.1 to P3.3 aren't built.** P3.1 has no entry or commit, and P3.2 and
+  P3.3 have only BLOCKED entries. There is no `/courses` or `/community`
+  route yet. Phase 3 chunks run in order, and P3.4 has to translate the
+  strings and admin content those chunks add, so it waits for all three.
+- **Phase 3 hasn't started.** The current phase is Go-live (G.1 to G.6),
+  which runs before Phase 3. It has no commits yet and is waiting for the
+  client's keys.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+There is no language switch yet: `src/app/layout.tsx` sets a fixed
+`lang="en"`, and the only Hindi in `src/` is the Devanagari font and comments
+saying Hindi comes later.
+
+**For the run that builds P3.4:** first run P3.1 to P3.3 (once Phase 3 is
+open), then replace this entry with the real one. All user-facing text
+already lives in `src/content/` (23 files), so the Hindi drafts can sit
+beside them. Admin-editable content will need optional Hindi columns (a
+migration) that fall back to English when empty.
