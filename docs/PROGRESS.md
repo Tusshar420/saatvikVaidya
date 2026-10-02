@@ -5,6 +5,44 @@ built, decisions, known gaps and next steps.
 
 ---
 
+# Phase 1 summary (2026-10-02)
+
+**What exists:** the store and admin, built across P1.1 to P1.12, all on `dev`,
+none deployed: admin panel and approvals, professional document uploads,
+catalogue and product pages, cart and checkout with a test payment screen,
+orders with simulated delivery tracking, GST invoices and credit notes, Super
+Coins, ebooks, site settings and maintenance mode, homepage editing, "my
+account" and admin reports, and admin two-factor, per-area roles and invites.
+
+**Quality and security:** see the P1.12 entry. Axe and width checks pass on
+the public pages, `pnpm audit` is clean, and the security review found no holes.
+Lighthouse still needs a run.
+
+**Providers are test ones:** payments (`PAYMENT_PROVIDER=test`), shipping
+(`SHIPPING_PROVIDER=test`), SMS and email (dev notifier that logs), files
+(local disk under `storage/`). All refuse to run in a production build unless
+the explicit local flags are set.
+
+**Launch checklist (nothing here is built; each is a Go-live or later ticket)**
+1. Razorpay (G.1): live keys, a Razorpay provider next to the test one,
+   webhook with signature check, then set `PAYMENT_PROVIDER`.
+2. Shiprocket (G.2): account and keys, provider, webhook for tracking, then
+   `SHIPPING_PROVIDER`.
+3. SMS and email (G.3): MSG91 (sender ID and DLT templates) and the email
+   provider or Hostinger SMTP, with SPF and DKIM; turn off `DEV_SHOW_OTP`.
+4. File storage (G.4): Cloudflare R2 bucket (private) behind the storage
+   interface; move existing local files across.
+5. WhatsApp Business API (G.5) if wanted.
+6. Hostinger (G.6): production MySQL, env vars from `.env.example`, a strong
+   `BETTER_AUTH_SECRET` and encryption keys, `BETTER_AUTH_URL`, HTTPS, HSTS,
+   create the first admin with `pnpm admin:create`, then admins enrol
+   two-factor. Make sure `SHOW_DESIGN_PAGE`, the `TEST_*_IN_LOCAL_BUILD` flags
+   and `DEV_SHOW_OTP` are unset.
+7. Before launch: run Lighthouse, replace the sample products and content,
+   and have the client check the GST, shipping and policy text.
+
+---
+
 # Stage A summary (2026-10-01)
 
 **What exists:** A fully responsive, accessible mobile-first website for Saatvik Vaidya running locally, built across 9 chunks. Includes the design system, site shell (header, nav, footer, mobile dock), comprehensive authentication system with email and OTP sign-up/sign-in, and a database-driven homepage with all sections from the mockup.
@@ -1318,32 +1356,51 @@ desktop project only) and `build` all pass. Admin screens checked at 375 and
   checks passed again (typecheck, lint, test 250, test:e2e 148 passed with 4
   skipped by design, build).
 
-## P1.12. Phase 1 quality and security pass (BLOCKED, 2026-10-01)
+## P1.12. Phase 1 quality and security pass (2026-10-02)
 
-Not started. This replaces the earlier blocked entry. P1.12 reviews everything
-Phase 1 built, and the chunks it depends on are not done, so per the task rules
-nothing was built around them.
+**Built**
+- `tests/e2e/p1-12-quality.spec.ts`: every public Phase 1 page (products, a
+  product page, ebooks, cart, search, coins, track, shipping, rewards policy,
+  privacy, terms) has no sideways scroll at 360, 375, 414, 768, 1024 and
+  1280 px, and no serious or critical axe issues at 360 and 1280 px. The seed
+  has no ebooks, so the ebook page is checked only when one exists. Signed-in
+  and admin screens keep the checks in their own chunk specs.
+- `pnpm audit` is clean: `package.json` now has pnpm overrides `mariadb`
+  ^3.4.6, `mysql2` ^3.23.1 and `deepmerge-ts` ^8.0.0 (the six Stage A findings,
+  all in the database drivers and the Prisma CLI). Typecheck, tests and the
+  whole e2e suite pass on these versions.
 
-**State found (checked in `docs/PROGRESS.md` and git)**
-- **Done and committed:** P1.1, P1.2, P1.3.
-- **P1.4 is built but unfinished:** its work is still uncommitted on `dev`
-  (39 changed or untracked paths: cart, checkout, payments, schema and
-  migration). Its entry exists, but it has no commit and no confirmed
-  green run of the five checks.
-- **P1.5 to P1.11 are all marked BLOCKED** (orders and tracking, GST invoices,
-  Super Coins, ebooks, settings and maintenance mode, account and reports,
-  admin security). None are built.
+**Security review (code read against PLAN.md; no holes found)**
+- **Uploads:** documents, product images and ebook files go through
+  `src/server/storage/files.ts`: body size is capped before parsing, type is
+  checked, files sit outside `public/`, same-origin check on the admin routes,
+  a per-user upload rate limit on documents.
+- **Payment and shipping state changes:** the test payment is a server action
+  that needs a signed-in owner, verifies through the provider and checks the
+  order id matches; the test provider refuses production builds. Shipment
+  steps are moved only by admin actions with the "orders" area.
+- **Price tampering:** checkout reprices every line from the database
+  (`priceLine`, `priceEbookLine`, `computeTotals`); the browser's total is
+  only compared to notice a change, never used as a price. Coins are
+  redeemed on the server.
+- **Admin permissions:** every admin server action and API route calls
+  `getAdminSession(area)`; others get a 404. Customer actions call
+  `requireUser` and take the user id from the session.
+- **Rate limits:** sign-in, OTP, document uploads, ebook downloads, cart,
+  checkout, tracking and admin invites have rules in `rateLimitRules`.
+- **Download access:** documents, invoices, credit notes and ebooks are owner
+  (or buyer) or admin only, with the same 404 otherwise and `no-store`.
 
-**Why it can't go ahead:** the security review (payment and shipping state
-changes, download access for invoices and ebooks, admin permissions) and the
-Lighthouse run on checkout need those features.
+**Not done**
+- **Lighthouse** on the homepage, product page and checkout was not run:
+  the CLI is not installed here and an unattended run can't add it. Run it
+  against `pnpm build && pnpm start --port 3100`; targets are in the Stage A
+  summary.
+- Screenshots are the Playwright overflow checks above; no new images were
+  saved to `docs/`.
 
-**Next steps**
-1. Verify and commit P1.4 (all five checks green).
-2. Run P1.5 to P1.11 in order, replacing their BLOCKED entries.
-3. Re-queue P1.12 once P1.11 has a done entry here.
-
-Nothing was changed apart from this entry. Checks were not run.
+**Checks:** typecheck, lint, test (605), test:e2e (228 passed, 6 skipped by
+design) and build (run by the e2e web server) pass.
 
 ---
 
