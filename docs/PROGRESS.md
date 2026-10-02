@@ -3161,3 +3161,34 @@ run notes. Then rerun G.1 and replace this entry with the real one. The
 provider plugs in behind `PaymentProvider` in `src/server/payments/types.ts`
 next to the test provider. It also needs the CSP/Permissions-Policy changes and
 the refund in `cancelOrder()` noted under "Later" and in the P1.5 entry.
+
+## G.2. Shiprocket delivery (BLOCKED, 2026-10-02)
+
+Not started. Three things stop it (checked on 2026-10-02, latest commit
+`7989c85`):
+
+- **G.1 (Razorpay payments) is blocked.** It has only a BLOCKED entry and
+  no code. Go-live chunks run in order, so G.2 waits for G.1.
+- **CLAUDE.md still forbids it.** The "No real integrations yet" rule still
+  lists Shiprocket, and the Go-live gate in `docs/CHUNKS.md` says these
+  chunks may only start once that rule is updated.
+- **No client keys, and the run notes park it.** `.env.local` has only
+  `SHIPPING_PROVIDER` and `TEST_SHIPPING_IN_LOCAL_BUILD`; there are no
+  Shiprocket login, API token, pickup location or webhook secret values.
+  The standing chunk-run notes say Shiprocket is parked for a later ticket
+  and must not be added.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+The only Shiprocket mentions in `src/` and `prisma/` are comments saying the
+provider comes later, plus a unit test that `SHIPPING_PROVIDER=shiprocket`
+is rejected as unknown (that test will need updating when the provider
+lands).
+
+**To unblock (a person decides):** finish G.1 first. Then add the client's
+Shiprocket credentials to `.env.local` (and their names, with placeholders,
+to `.env.example`), update CLAUDE.md's "No real integrations yet" rule to
+allow Shiprocket, and drop the "parked" line from the run notes. Then rerun
+G.2 and replace this entry with the real one. The provider plugs in behind
+`ShippingProvider` in `src/server/shipping/types.ts` next to the test
+provider; its webhook should move shipments the same way the admin's
+step-by-step test tracking does (see the P1.5 entry).
