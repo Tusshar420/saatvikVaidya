@@ -5,15 +5,16 @@ import { productHref } from "@/lib/catalogue";
 import type { ProductCard as ProductCardData } from "@/server/catalogue/products";
 import { PriceTag } from "./price-tag";
 import { ProductVisual } from "./product-visual";
+import { QuickAdd } from "./quick-add";
 
-/** One product in a listing; the whole card links to the product page. */
+/**
+ * One product in a listing. The picture and details link to the product
+ * page; the button underneath adds the minimum order to the cart.
+ */
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
-    <li className="min-w-0">
-      <Link
-        href={productHref(product.slug)}
-        className="group flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card transition hover:border-teal/40 hover:shadow-raised motion-safe:hover:-translate-y-0.75"
-      >
+    <li className="group flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card transition hover:border-teal/40 hover:shadow-raised motion-safe:hover:-translate-y-0.75">
+      <Link href={productHref(product.slug)} className="flex flex-1 flex-col">
         <div className="relative aspect-square overflow-hidden border-b border-line bg-surface-alt">
           <ProductVisual image={product.image} glyph={product.glyph} />
           <div className="absolute top-2 left-2 flex flex-col items-start gap-1.5">
@@ -37,6 +38,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           )}
         </div>
       </Link>
+      <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+        <QuickAdd
+          productId={product.id}
+          name={product.name}
+          moq={product.moq}
+          outOfStock={!product.inStock}
+        />
+      </div>
     </li>
   );
 }

@@ -53,6 +53,7 @@ export type ProductImageView = { src: string; alt: string };
 
 /** What the listing shows for the viewer: no stored prices besides MRP. */
 export type ProductCard = {
+  id: number;
   slug: string;
   name: string;
   brandName: string | null;
@@ -177,6 +178,7 @@ function orderFor(
 }
 
 const cardSelect = {
+  id: true,
   slug: true,
   name: true,
   packSize: true,
@@ -201,6 +203,7 @@ function toCard(row: CardRow, viewer: PricingViewer): ProductCard {
   const { unitPaise, mrpPaise, tier } = priceFor(row, viewer);
   const image = row.images[0];
   return {
+    id: row.id,
     slug: row.slug,
     name: row.name,
     brandName: row.brand?.name ?? null,

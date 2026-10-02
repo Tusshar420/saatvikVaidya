@@ -4,7 +4,7 @@ import { test, expect, type Browser, type Page } from "@playwright/test";
 import { admin } from "../../src/content/admin";
 import { cart } from "../../src/content/cart";
 import { catalogue as copy } from "../../src/content/catalogue";
-import { E2E_CONTENT_PREFIX, signInAs } from "./auth-helpers";
+import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 // The catalogue (P1.3): listing, filters, search, the product page's price
@@ -117,6 +117,54 @@ test("search finds products and says when nothing matches", async ({ page }) => 
 
   await page.goto("/search?q=zzqx");
   await expect(page.getByRole("heading", { name: copy.search.empty.title("zzqx") })).toBeVisible();
+});
+
+test("a listing card adds the minimum order to the cart", async ({ page }) => {
+  await useFreshIp(page);
+  const errors = collectErrors(page);
+  const db = e2eDb();
+  const form = await db.category.findFirstOrThrow({ where: { kind: "FORM", active: true } });
+  const word = `Quickadd${token()}`;
+  const make = (suffix: string, stock: number) =>
+    db.product.create({
+      data: {
+        slug: `${E2E_CONTENT_PREFIX}quick-${suffix}-${token()}`,
+        name: `${word} ${suffix}`,
+        formId: form.id,
+        description: "A product made by the catalogue e2e test.",
+        packSize: "60 tablets",
+        mrpPaise: 32_000,
+        professionalPricePaise: 24_000,
+        gstRate: 5,
+        hsnCode: "30049011",
+        stock,
+        moq: 3,
+      },
+      select: { name: true },
+    });
+  const inStock = await make("Vati", 20);
+  const soldOut = await make("Churna", 0);
+
+  await page.goto(`/search?q=${word}`);
+  await expect(results(page).getByRole("listitem")).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: cart.quickAdd.buttonLabel(soldOut.name) }),
+  ).toHaveCount(0);
+  await expect(results(page).getByRole("button", { name: cart.quickAdd.outOfStock })).toBeDisabled();
+
+  await page.getByRole("button", { name: cart.quickAdd.buttonLabel(inStock.name) }).click();
+  await expect(page.getByText(cart.quickAdd.addedLine(inStock.name))).toBeAttached();
+  await expect(
+    page.getByRole("button", { name: cart.quickAdd.addedLabel(inStock.name) }),
+  ).toBeVisible();
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  expect(await axeViolations(page)).toEqual([]);
+
+  // The minimum order (3) is in the cart.
+  await results(page).getByRole("link", { name: cart.quickAdd.viewCart }).click();
+  await expect(page).toHaveURL("/cart");
+  await expect(page.getByLabel(cart.line.quantityFor(inStock.name))).toHaveValue("3");
+  expect(errors).toEqual([]);
 });
 
 test.describe("product page", () => {

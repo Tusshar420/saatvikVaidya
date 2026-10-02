@@ -71,6 +71,17 @@ export const cart = {
       `This product is out of stock right now. Call ${phone} to ask when it's back.`,
   },
 
+  /** The "Add to cart" button on product cards in listings. */
+  quickAdd: {
+    button: "Add to cart",
+    buttonLabel: (name: string) => `Add ${name} to cart`,
+    added: "Added",
+    addedLabel: (name: string) => `Add another ${name} to cart`,
+    addedLine: (name: string) => `${name} is in your cart.`,
+    viewCart: "View cart",
+    outOfStock: "Out of stock",
+  },
+
   /** Paid ebooks in the cart (P1.8). */
   ebook: {
     listLabel: "Ebooks in your cart",
