@@ -4,6 +4,7 @@ import {
   Noto_Sans_Devanagari,
   Noto_Serif_Devanagari,
 } from "next/font/google";
+import { ErrorReporter } from "@/components/error-reporter";
 import { ToastProvider } from "@/components/ui/toast";
 import { site } from "@/content/site";
 import "./globals.css";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${notoSansDevanagari.variable} ${notoSerifDevanagari.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <ErrorReporter />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

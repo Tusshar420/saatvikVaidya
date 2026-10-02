@@ -25,8 +25,8 @@ describe("admin roles", () => {
     }
   });
 
-  it("only a super admin reaches admins, users, settings and the database", () => {
-    for (const area of ["admins", "users", "settings", "database"] as const) {
+  it("only a super admin reaches admins, users, settings, the database and the error log", () => {
+    for (const area of ["admins", "users", "settings", "database", "errors"] as const) {
       expect(adminRoles.filter((role) => roleCanAccess(role, area))).toEqual(["super"]);
     }
   });

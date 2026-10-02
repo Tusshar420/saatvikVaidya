@@ -3483,3 +3483,55 @@ products the way the store listing does.
   filter test deletes its product at the end so the admin catalogue list
   (25 per page) in other specs isn't pushed past page 1 when specs run in
   parallel.
+
+## Error log (Phase 4, 2026-10-03)
+
+A request outside the chunk list: errors are captured automatically and shown
+in a super-admin-only **Error log** (`/admin/errors`).
+
+- **Capture:** `src/instrumentation.ts` `onRequestError` records unhandled
+  errors from route handlers, server actions and server components
+  (`server/errors/server.ts`: skips redirect/notFound signals, finds the user
+  from the session cookie, never stores headers). `logError(error, { where,
+  userId?, ...context })` in `server/errors/record.ts` is for caught errors
+  (payment/webhook failures); it never throws. In the browser,
+  `ErrorReporter` (root layout) listens for `error` and `unhandledrejection`;
+  `app/error.tsx` and `app/global-error.tsx` show a friendly screen and report
+  too. Reports go to `POST /api/errors` (`server/errors/report.ts`): same-origin
+  only, 16 KB cap, Zod, bots and noise (extensions, cross-origin scripts,
+  ResizeObserver, "Script error.", aborted requests) dropped, rate limits
+  30/10 min per IP, 60/h per account, and 200 new error groups/h overall.
+  The page also sends each distinct error once and at most 5 per page load.
+- **Store:** models `ErrorGroup` and `ErrorOccurrence` (migration
+  `20261003110000_p4_error_log`). Fingerprint = sha256 of source + message
+  (ids/numbers blanked) + top stack frame (no line numbers or build hashes) +
+  route (ids → `:id`). Group keeps count, first/last seen, status, version;
+  the latest 20 occurrences keep URL, method, status, user, user agent/device,
+  version, stack and scrubbed context. `src/lib/error-scrub.ts` removes
+  passwords, tokens, JWTs, cookies/auth headers, card numbers, UPI ids and OTPs
+  from text, URLs (query values, link tokens in `/reset-password/…`) and context
+  objects; request bodies are never taken.
+- **Admin:** new area `errors` (super only), nav "Error log". List with filters
+  (message, route, server/browser, status, last-seen dates), sort newest or
+  most frequent, pages of 25. Detail: facts, stack, affected users, latest
+  occurrences, status form New → Investigating → Fixed/Ignored (written to the
+  admin log as `error.status`). A Fixed error that recurs is reopened as New.
+- **Retention:** occurrences and errors not seen for 90 days are deleted.
+  There is no scheduler on the host, so this runs on about 1% of recorded
+  errors and every time the Error log page opens.
+- **Email:** a new or reopened error emails super admins (dev notifier for
+  now), at most once an hour per error and 10 an hour overall; ignored errors
+  stay quiet. `APP_VERSION` (optional, in `.env.example`) or the git commit at
+  build time is shown as the app version.
+- **Tests:** `lib/error-scrub.test.ts` (scrubbing, fingerprints, noise),
+  `server/errors/record.test.ts` (grouping, reopening, retention, email
+  limits, endpoint rate limits), `server/errors/server.test.ts`, e2e
+  `error-log.spec.ts` at 375 and 1280 px with axe and overflow checks. Typecheck,
+  lint, test (758) and build pass. Full e2e: 253 passed, 1 failed
+  (`quiz.last.spec.ts` "no quiz open", the demo quiz from `db:seed:demo`, as
+  before; 12 tests after it did not run).
+- **Later:** `x-forwarded-for` is trusted for the IP limits (same open item as
+  the auth limits; check the Hostinger proxy). Real email
+  goes through the notifier once a provider exists. An error count badge in the
+  admin nav, and linking `logError` into the payment/webhook code once those
+  integrations exist.

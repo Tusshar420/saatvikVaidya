@@ -102,6 +102,7 @@ model User {
   sessions                Session[]
   accounts                Account[]
   adminLogs               AdminLog[]
+  errorOccurrences        ErrorOccurrence[]
   documents               ProfessionalDocument[]
   /// Decisions about this user's verification.
   verificationComments    VerificationComment[]  @relation("VerificationSubject")
@@ -233,6 +234,82 @@ model AdminLog {
   createdAt  DateTime @default(now())
 
   @@index([resource, resourceId])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+// ─── Error log (Phase 4) ────────────────────────────────────────────────────
+// Errors from the server and from visitors' browsers, grouped by fingerprint
+// (src/lib/error-scrub.ts) so one bug is one row with a count. Everything is
+// scrubbed before it is stored (no passwords, tokens, cookies, card/UPI details
+// or OTPs, and never request bodies). Code: src/server/errors/.
+
+enum ErrorSource {
+  server
+  browser
+}
+
+enum ErrorStatus {
+  new
+  investigating
+  fixed
+  ignored
+}
+
+/// One bug: every occurrence with the same fingerprint lands here.
+model ErrorGroup {
+  id             Int               @id @default(autoincrement())
+  /// sha256 of source + normalised message + top stack frame + route.
+  fingerprint    String            @unique @db.VarChar(64)
+  source         ErrorSource
+  message        String            @db.VarChar(500)
+  /// Stack of the first occurrence (scrubbed).
+  stack          String?           @db.Text
+  /// Route pattern, e.g. "/orders/:id" or "/app/products/[slug]".
+  route          String            @db.VarChar(191)
+  method         String?           @db.VarChar(10)
+  statusCode     Int?
+  status         ErrorStatus       @default(new)
+  /// Every time it happened, even after old occurrences were deleted.
+  count          Int               @default(1)
+  firstSeenAt    DateTime          @default(now())
+  lastSeenAt     DateTime          @default(now())
+  /// When admins were last emailed about it (at most once an hour).
+  lastNotifiedAt DateTime?
+  /// App version (commit) of the latest occurrence.
+  appVersion     String?           @db.VarChar(40)
+  occurrences    ErrorOccurrence[]
+
+  @@index([status, lastSeenAt])
+  @@index([source, lastSeenAt])
+  @@index([route])
+  @@index([count])
+  @@index([lastSeenAt])
+}
+
+/// One time an error happened; only the latest few per group are kept, and
+/// none older than 90 days.
+model ErrorOccurrence {
+  id         Int        @id @default(autoincrement())
+  groupId    Int
+  group      ErrorGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  /// The page or request URL, scrubbed.
+  url        String?    @db.VarChar(500)
+  method     String?    @db.VarChar(10)
+  statusCode Int?
+  /// The signed-in user, if any; null once that account is deleted.
+  userId     String?    @db.VarChar(64)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userAgent  String?    @db.VarChar(255)
+  /// mobile, tablet, desktop, bot or unknown.
+  device     String?    @db.VarChar(12)
+  appVersion String?    @db.VarChar(40)
+  stack      String?    @db.Text
+  /// Small scrubbed extras: Next's digest, route type, what the caller was doing.
+  context    Json?
+
+  @@index([groupId, createdAt])
   @@index([createdAt])
   @@index([userId])
 }

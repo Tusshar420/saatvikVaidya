@@ -69,4 +69,12 @@ export const rateLimitRules = {
   brandProofUploadPerAdmin: { name: "brand-proof-upload:user", windowSeconds: 60 * 60, max: 60 },
   /** Ebook downloads by one account: 20 per hour. */
   ebookDownloadPerUser: { name: "ebook-download:user", windowSeconds: 60 * 60, max: 20 },
+  /** Browser error reports from one IP: 30 per 10 minutes (Phase 4). */
+  errorReportPerIp: { name: "error-report:ip", windowSeconds: 10 * 60, max: 30 },
+  /** Browser error reports from one signed-in account: 60 per hour. */
+  errorReportPerUser: { name: "error-report:user", windowSeconds: 60 * 60, max: 60 },
+  /** Brand-new error groups from the browser endpoint, all visitors: 200 per hour. */
+  errorNewGroupsPerHour: { name: "error-report:new-groups", windowSeconds: 60 * 60, max: 200 },
+  /** "New error" emails to admins, all errors together: 10 per hour. */
+  errorEmailsPerHour: { name: "error-email:all", windowSeconds: 60 * 60, max: 10 },
 } as const satisfies Record<string, RateLimitRule>;

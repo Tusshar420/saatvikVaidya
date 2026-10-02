@@ -9,6 +9,7 @@ import {
   Building2,
   Coins,
   Clapperboard,
+  Bug,
   Database,
   GalleryHorizontal,
   GraduationCap,
@@ -32,6 +33,7 @@ import {
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
+import { errorLog } from "@/content/errors";
 import { adminSecurity } from "@/content/admin-security";
 import { adminHome } from "@/content/admin-site";
 import { roleCanAccess, type AdminArea, type AdminRoleKey } from "@/lib/admin-permissions";
@@ -76,6 +78,7 @@ const rest: NavLink[] = [
   { href: "/admin/coins", area: "orders", label: copy.nav.coins, icon: Coins },
   { href: "/admin/settings", area: "settings", label: copy.nav.settings, icon: Settings },
   { href: "/admin/database", area: "database", label: copy.nav.database, icon: Database },
+  { href: "/admin/errors", area: "errors", label: errorLog.nav, icon: Bug },
   { href: "/admin/admins", area: "admins", label: adminSecurity.admins.nav, icon: ShieldCheck },
   { href: "/account/two-factor", area: "dashboard", label: adminSecurity.twoFactor.metaTitle, icon: KeyRound },
 ];

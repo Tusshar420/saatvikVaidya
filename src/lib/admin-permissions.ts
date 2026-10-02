@@ -23,6 +23,7 @@ export type AdminRoleKey = (typeof adminRoles)[number];
  * - users: customer accounts (create, edit, delete).
  * - admins: admin accounts, roles and invites.
  * - database: the read-only database browser.
+ * - errors: the error log (Phase 4).
  */
 export const adminAreas = [
   "dashboard",
@@ -35,6 +36,7 @@ export const adminAreas = [
   "users",
   "admins",
   "database",
+  "errors",
 ] as const;
 export type AdminArea = (typeof adminAreas)[number];
 
