@@ -2778,57 +2778,78 @@ rewrite is committed with this chunk.
 **Next:** P2.2 (label proof and production) builds on `Order.type = brand`,
 `BrandOrderDetails` and `/my-brand/[id]`'s stepper.
 
-## P2.2. Launch Your Brand: quote, label proof and production (BLOCKED, 2026-10-01)
+## P2.2. Launch Your Brand: label proof and production (2026-10-02)
 
-Not started. This replaces the earlier P2.2 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`), and P1.4's `PaymentProvider` and test
-provider are in the tree. But every chunk P2.2 builds on is still unfinished or
-blocked, so per the task rules it stops here.
+Replaces the earlier BLOCKED entry: Phase 1 and P2.1 are committed and green.
 
-**What it waits on (checked in git, schema and docs on 2026-10-01, latest
-commit `c9e2449`)**
-- **P2.1 (request and admin review) is BLOCKED** and not built. P2.2 adds
-  quotes, proofs and production steps to P2.1's `BrandRequest`, its status
-  flow and `/my-brand/[id]`. There is no `BrandRequest` in
-  `prisma/schema.prisma` and no `my-brand` route.
-- **P1.4 (Cart, checkout and test payment) is unfinished.** Its work is still
-  uncommitted on `dev` (39 changed or untracked paths, including the
-  `p1_4_cart_checkout` migration, `prisma/schema.prisma` and
-  `src/server/payments/`), and its entry's **Checks** line is still the
-  placeholder `CHECKS_LINE`. The advance payment must go through its
-  `PaymentProvider`. No P1.4 run is active (only this one was running).
-- **P1.5 (test delivery tracking) is BLOCKED.** The Dispatched step needs its
-  test `ShippingProvider`, which doesn't exist in `src/`.
-- **P1.6 (GST invoices) is BLOCKED.** The advance invoice uses it.
+**Built**
+- **Schema** (`p2_2_brand_proofs`): `BrandOrderDetails.stage` (`BrandStage`),
+  `BrandProof` (one row per version, never overwritten), `BrandStageEvent`
+  (every change, with actor kind, actor id and note), and `Payment.refundReference`
+  / `refundedAt`. The migration is dated after P2.1's so a fresh database
+  applies them in order.
+- **One transitions table** in `src/lib/brand-stage.ts`: awaiting_proof →
+  proof_sent → proof_approved / changes_requested → in_production →
+  quality_check → dispatched → delivered, with cancelled allowed only before
+  production. Also says who may make each change (the customer decides on a
+  proof; everything else is the team's).
+- **Server** (`src/server/brand/stages.ts`): every change goes through
+  `moveStage()` (table + actor check, claimed from the stage seen so double
+  clicks apply once, order status kept in step: paid / processing / shipped /
+  delivered, event logged). Transactions run at READ COMMITTED with a row
+  lock per order (the default isolation deadlocked on index gap locks).
+- **Proofs:** admin uploads PDF/PNG/JPEG (type from bytes, 10 MB, same-origin
+  check, 60/hour per admin) at `POST /api/brand-orders/[id]/proofs`. Upload =
+  send. Another upload while one is undecided supersedes it. The customer
+  approves or asks for changes (comment required, 1,000 chars) on
+  `/my-brand/[id]`. Production can't start without an approved proof. Files
+  are served by `GET /api/brand-orders/[id]/proofs/[version]` to the owner or
+  an orders admin only (404 otherwise).
+- **Production** (`/admin/brand-orders/[id]`): one button for the next step.
+  Dispatch books the test `ShippingProvider` (AWB, shipment with
+  created/packed/shipped events); Delivered completes the shipment. No coins.
+  The generic store shipment tools refuse brand orders (`brand_order`) and
+  `/admin/orders/[id]` points to the brand page.
+- **Cancel:** `cancelOrder` now also cancels the stage (logged), is refused
+  once production starts, issues the credit note for a paid brand order and
+  records a test refund through the new `PaymentProvider.refundPayment()`.
+- **Customer page:** four-step stepper (Confirmed, Production, Quality check,
+  Dispatch), what happens next, proof versions with approve / ask-for-changes,
+  courier and tracking number, order history. Admin page: proofs, upload,
+  production, history, cancel.
+- **Messages (dev log):** customer on each proof and stage change; order
+  admins on approval or change request. The customer's own decision isn't
+  echoed back to them.
 
-**Why not build part of it:** a quote/proof migration would stack on P1.4's
-uncommitted migration and on P2.1's missing `BrandRequest`, and P2.2's commits
-couldn't be kept apart from P1.4's edits to shared files.
+**Decisions**
+- Stage lives in its own column; `Order.status` follows it so reports and
+  lists keep working.
+- Cancelling is the one admin path (`cancelOrder`), reused from the orders
+  page, with brand wording.
+- The success message of a final action disappears with its form (the page
+  shows the new stage instead).
 
-**For the run that builds P2.2** (still valid from the earlier entry)
-- Already available: `Storage` for proof uploads (P1.2, with type checks
-  based on the file's bytes), the dev notifier, the A2 Stepper for the
-  Confirmed / Production / Quality check / Dispatch stepper, and `AdminLog`.
-- P1.4's `Payment` has a unique provider reference and an attempt number per
-  order. For quotes, either reuse it with a quote link or give the quote's
-  payment its own unique key (one paid advance per quote), and apply results
-  once with conditional updates the way `completePayment()` does.
-- Check quote expiry on the server when the quote is accepted *and* again when
-  payment is confirmed, so a quote that expires during checkout can't be paid.
-- Proof versions: add a new row per upload (never overwrite), and serve the
-  approved proof through an owner-or-admin check, the same way P1.2 serves
-  documents.
-- Add the quote and proof statuses to P2.1's single transitions table rather
-  than spreading the rules across routes.
+**Known gaps / Later**
+- Lists (`/my-brand`, admin brand orders) show the order status, not the
+  finer stage label.
+- A refund failure is only logged; a real provider will need a retry.
+- Abandoned proof files of cancelled orders stay in storage.
+- One earlier `pnpm test` run had a single failing test I couldn't
+  reproduce (two reruns: 662 passed).
 
-**Next steps (in order)**
-1. Finish P1.4: run all five checks, fill in its **Checks** line, commit on
-   `dev`.
-2. Build P1.5 to P1.12 in order, replacing their BLOCKED entries, then P2.1.
-3. Re-queue P2.2 once P2.1, P1.4, P1.5 and P1.6 are committed and green.
+**Tests**
+- Vitest: `src/lib/brand-stage.test.ts` (table, actors, status mapping) and
+  `src/server/brand/stages.test.ts` (file checks, versions, supersede,
+  ownership, comment rule, concurrent approve / step / dispatch, skipped
+  steps, shipment and no coins, store shipment tools refused, cancel with
+  refund and credit note, refused after production, proof access).
+- Playwright `tests/e2e/brand-proof.spec.ts` on phone and desktop: paid order,
+  proof, changes requested, new proof, approval, production to delivered, file
+  access by a stranger, cross-site upload refused; and cancel with refund.
+  axe, sideways scroll and console errors checked. Screens looked at at 375
+  and 1280 px.
 
-Nothing was changed apart from this entry. No P2.2 code was written and no
-checks were run. The tree still holds P1.4's uncommitted work.
+**Checks:** typecheck, lint, test (662), test:e2e (236 passed, 6 skipped by design) and build (run by the e2e web server) pass.
 
 ## P2.3. Quiz & Win (BLOCKED, 2026-10-01)
 

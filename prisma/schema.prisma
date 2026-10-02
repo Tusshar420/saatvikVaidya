@@ -892,7 +892,75 @@ model BrandOrderDetails {
   /// Checked from the file's bytes on upload: PNG, JPEG or PDF.
   logoContentType   String   @db.VarChar(64)
   logoSizeBytes     Int
+  /// Where the order is in proof and production (P2.2). Only moves through
+  /// src/server/brand/stages.ts, which follows src/lib/brand-stage.ts.
+  stage             BrandStage @default(awaiting_proof)
   createdAt         DateTime @default(now())
+  proofs            BrandProof[]
+  stageEvents       BrandStageEvent[]
+}
+
+/// Proof and production stages of a paid brand order (P2.2).
+enum BrandStage {
+  awaiting_proof
+  proof_sent
+  changes_requested
+  proof_approved
+  in_production
+  quality_check
+  dispatched
+  delivered
+  cancelled
+}
+
+enum BrandProofStatus {
+  /// Sent, waiting for the customer.
+  pending
+  approved
+  changes_requested
+  /// Replaced by a newer version before the customer decided.
+  superseded
+}
+
+/// One version of the packaging proof the team sent. Every version is kept.
+model BrandProof {
+  id            Int               @id @default(autoincrement())
+  orderId       String            @db.VarChar(32)
+  details       BrandOrderDetails @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  /// 1, 2, 3... per order.
+  version       Int
+  /// The file's key in Storage (private).
+  fileKey       String            @unique @db.VarChar(191)
+  fileName      String            @db.VarChar(191)
+  contentType   String            @db.VarChar(64)
+  sizeBytes     Int
+  /// The team's note shown with the proof.
+  note          String?           @db.VarChar(500)
+  status        BrandProofStatus  @default(pending)
+  /// What the customer asked to change.
+  comment       String?           @db.VarChar(1000)
+  uploadedById  String?           @db.VarChar(64)
+  decidedAt     DateTime?
+  createdAt     DateTime          @default(now())
+
+  @@unique([orderId, version])
+}
+
+/// Every stage change of a brand order, with who made it. Never edited.
+model BrandStageEvent {
+  id        Int               @id @default(autoincrement())
+  orderId   String            @db.VarChar(32)
+  details   BrandOrderDetails @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  /// Null for the first stage.
+  fromStage BrandStage?
+  toStage   BrandStage
+  /// "admin", "customer" or "system".
+  actorKind String            @db.VarChar(10)
+  actorId   String?           @db.VarChar(64)
+  note      String?           @db.VarChar(1000)
+  createdAt DateTime          @default(now())
+
+  @@index([orderId, createdAt])
 }
 
 /// A Launch Your Brand order in progress (P2.1): one per user, saved after
@@ -989,6 +1057,9 @@ model Payment {
   attempt       Int
   /// Why it failed, e.g. "declined" or "out_of_stock".
   failureReason String?       @db.VarChar(40)
+  /// Set when the payment was refunded (a cancelled brand order, P2.2).
+  refundReference String?     @db.VarChar(64)
+  refundedAt    DateTime?
   completedAt   DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

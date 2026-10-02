@@ -3,6 +3,7 @@ import type { OrderStatus, OrderType, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 import { earnForOrder, ledgerTransaction, releaseCoins } from "@/server/coins/ledger";
 import { issueInvoice, issueQuietly } from "@/server/invoices/invoices";
+import { recordFirstStage } from "@/server/brand/stages";
 import { sendBrandOrderPaid } from "@/server/notify/brand";
 import { sendOrderConfirmation } from "@/server/notify/orders";
 import type { VerifiedPayment } from "@/server/payments";
@@ -103,7 +104,10 @@ export async function completePayment(
         data: { status: "paid", paidAt: now },
       });
       if (order.count === 0) throw new NotPending();
-      if (isBrand) return true;
+      if (isBrand) {
+        await recordFirstStage(tx, orderId);
+        return true;
+      }
 
       const items = await tx.orderItem.findMany({
         where: { orderId },

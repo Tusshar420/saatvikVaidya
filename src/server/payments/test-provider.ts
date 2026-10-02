@@ -62,4 +62,9 @@ export const testPaymentProvider: PaymentProvider = {
       ? { reference, outcome: "succeeded" }
       : { reference, outcome: "failed", failureReason: "declined" };
   },
+  async refundPayment() {
+    assertAllowed();
+    // No money moved, so there is nothing to give back: only a made-up reference.
+    return { reference: `test_refund_${randomBytes(12).toString("hex")}` };
+  },
 };

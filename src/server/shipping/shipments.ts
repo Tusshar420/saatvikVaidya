@@ -28,7 +28,9 @@ export type ShipmentError =
   | "not_allowed"
   | "shipping_off"
   /** Ebooks only (P1.8). */
-  | "nothing_to_ship";
+  | "nothing_to_ship"
+  /** Brand orders (P2.2) are dispatched from their own page, after proof and production. */
+  | "brand_order";
 
 export type ShipmentResult =
   | { ok: true; changed: boolean; status: ShipmentStatusKey }
@@ -69,6 +71,7 @@ export async function createShipment(actorId: string, orderId: string): Promise<
       id: true,
       number: true,
       status: true,
+      type: true,
       shipCity: true,
       shipState: true,
       shipPincode: true,
@@ -77,6 +80,7 @@ export async function createShipment(actorId: string, orderId: string): Promise<
     },
   });
   if (!order) return { ok: false, error: "not_found" };
+  if (order.type === "brand") return { ok: false, error: "brand_order" };
   if (order.shipment) return { ok: false, error: "exists" };
   if (order.status !== "paid") return { ok: false, error: "not_paid" };
   // Ebooks only (P1.8): nothing to deliver.
@@ -230,9 +234,10 @@ export async function simulateShipmentStep(
   if (!provider.isAvailable()) return { ok: false, error: "shipping_off" };
   const shipment = await db.shipment.findUnique({
     where: { orderId },
-    select: { awb: true, status: true, order: { select: { shipCity: true } } },
+    select: { awb: true, status: true, order: { select: { shipCity: true, type: true } } },
   });
   if (!shipment) return { ok: false, error: "not_found" };
+  if (shipment.order.type === "brand") return { ok: false, error: "brand_order" };
   // Already moved on from what the admin saw (a double click): nothing to do.
   if (shipment.status !== from) return { ok: true, changed: false, status: shipment.status };
 

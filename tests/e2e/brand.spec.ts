@@ -194,10 +194,10 @@ test("order a product in your own packaging, pay after a failed try, and see it 
   await page.getByRole("button", { name: checkout.pay.success }).click();
   await expect(page).toHaveURL(`/my-brand/${orderId}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Asha Ayurveda");
-  await expect(page.getByText(brand.detail.next.paid)).toBeVisible();
+  await expect(page.getByText(brand.detail.stageNext.awaiting_proof)).toBeVisible();
   await expect(page.getByText(brand.detail.testNote)).toBeVisible();
   const timeline = page.getByRole("list", { name: brand.detail.timelineLabel });
-  await expect(timeline.getByRole("listitem").nth(2)).toHaveAttribute("aria-current", "step");
+  await expect(timeline.getByRole("listitem").first()).toHaveAttribute("aria-current", "step");
   await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Asha Ayurveda") })).toBeVisible();
   await checkPage(page, errors);
   // Made to order: the store's stock (2) didn't change.

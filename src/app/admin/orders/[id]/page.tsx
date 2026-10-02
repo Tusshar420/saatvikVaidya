@@ -98,7 +98,14 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
               {text.shipmentTitle}
             </h2>
             <div className="mt-4">
-              {!shipment && order.items.every((item) => item.kind === "ebook") ? (
+              {order.type === "brand" ? (
+                <p className="text-sm text-muted">
+                  {text.brandShipment}{" "}
+                  <Link href={`/admin/brand-orders/${order.id}`} className="font-bold text-teal hover:underline">
+                    {text.openBrandOrder}
+                  </Link>
+                </p>
+              ) : !shipment && order.items.every((item) => item.kind === "ebook") ? (
                 <p className="text-sm text-muted">{text.nothingToShip}</p>
               ) : !shippingOn && !shipment ? (
                 <ComingSoon as="h3" title={text.shippingOff} />
@@ -293,8 +300,9 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
               <CancelOrder
                 orderId={order.id}
                 number={order.number}
-                allowed={canCancelOrder(order)}
+                allowed={canCancelOrder({ ...order, brandStage: order.brandDetails?.stage ?? null })}
                 restock={order.status === "paid" || order.status === "processing"}
+                brand={order.type === "brand"}
               />
             </div>
           </Card>

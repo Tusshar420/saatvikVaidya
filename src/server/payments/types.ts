@@ -21,6 +21,12 @@ export type VerifiedPayment = {
   failureReason?: string;
 };
 
+export type RefundPaymentInput = {
+  /** The provider's reference of the payment that succeeded. */
+  reference: string;
+  amountPaise: number;
+};
+
 export interface PaymentProvider {
   readonly name: PaymentProviderName;
   /** False when the provider must not take payments here (see the test provider). */
@@ -32,6 +38,8 @@ export interface PaymentProvider {
    * Throws if the payload isn't valid for this provider.
    */
   verifyPayment(reference: string, payload: unknown): Promise<VerifiedPayment>;
+  /** Refunds a payment that succeeded (P2.2: a cancelled brand order); returns the refund's reference. */
+  refundPayment(input: RefundPaymentInput): Promise<{ reference: string }>;
 }
 
 /** Thrown when a provider refuses to run (e.g. the test provider in production). */

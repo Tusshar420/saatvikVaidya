@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Download, FlaskConical } from "lucide-react";
 import { retryPaymentAction } from "@/app/(site)/checkout/actions";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
+import { ProofDecision } from "@/components/site/brand/proof-decision";
+import { ProofList } from "@/components/site/brand/proof-list";
 import { OrderSummary } from "@/components/site/cart/order-summary";
 import { SubmitButton } from "@/components/site/checkout/submit-button";
 import { OrderDocuments } from "@/components/site/orders/order-documents";
@@ -14,41 +16,24 @@ import { Card } from "@/components/ui/card";
 import { Stepper } from "@/components/ui/stepper";
 import { brand as copy } from "@/content/brand";
 import { checkout as checkoutCopy } from "@/content/checkout";
-import type { OrderStatus } from "@/generated/prisma/enums";
+import type { BrandStage } from "@/generated/prisma/enums";
 import { addressLines, addressPhone } from "@/lib/address";
 import { isImageLogo } from "@/lib/brand";
+import { customerStepIndex } from "@/lib/brand-stage";
 import { formatDate, formatDateTime, formatPaise } from "@/lib/format";
 import { isOrderId } from "@/lib/orders";
 import { requireUser } from "@/server/auth/session";
 import { readBrandOrderForUser } from "@/server/brand/orders";
+import { readBrandStages } from "@/server/brand/stages";
 import { readOrderDocuments } from "@/server/invoices/invoices";
 
 const text = copy.detail;
+const proofText = copy.proof;
 
 export const metadata: Metadata = {
   title: text.eyebrow,
   robots: { index: false, follow: false },
 };
-
-/** Where the order is on Placed → Paid → Label proof → Production → Dispatch. */
-function timelineStep(status: OrderStatus): number {
-  switch (status) {
-    case "pending_payment":
-    case "payment_failed":
-      return 1;
-    case "paid":
-      return 2;
-    case "processing":
-      return 3;
-    case "shipped":
-      return 4;
-    case "delivered":
-      return 5;
-    case "cancelled":
-    case "returned":
-      return 0;
-  }
-}
 
 /**
  * One of the user's brand orders (P2.1): its progress, what happens next,
@@ -61,13 +46,22 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
   const { user } = await requireUser(`/my-brand/${id}`);
   const order = await readBrandOrderForUser(user.id, id);
   if (!order) notFound();
-  const documents = await readOrderDocuments(order);
+  const [documents, stages] = await Promise.all([readOrderDocuments(order), readBrandStages(order.id)]);
+  if (!stages) notFound();
+  const stage: BrandStage = stages.stage;
+  const paid = order.paidAt !== null && order.status !== "pending_payment" && order.status !== "payment_failed";
+  const latestProof = stages.proofs[0];
+  const decidable = stage === "proof_sent" && latestProof?.status === "pending";
+  const shipment = stages.order.shipment;
 
   const unpaid = order.status === "pending_payment" || order.status === "payment_failed";
   const unitLabel = order.unitLabel ?? "";
   const logoSrc = `/api/brand-orders/${order.id}/logo`;
-  const next =
-    order.status in text.next ? text.next[order.status as keyof typeof text.next] : null;
+  const next = paid
+    ? text.stageNext[stage]
+    : order.status in text.next
+      ? text.next[order.status as keyof typeof text.next]
+      : null;
   const details = order.details;
   const rows: [string, string | null][] = details
     ? [
@@ -104,21 +98,20 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
             {copy.myBrand.placedOn(formatDate(order.createdAt))}
           </p>
         </div>
-        <OrderStatusBadge status={order.status} />
+        {paid ? <Badge variant={stage === "cancelled" ? "live" : "teal"}>{text.stageLabels[stage]}</Badge> : <OrderStatusBadge status={order.status} />}
       </div>
 
       <Card className="mt-6">
-        {order.status !== "cancelled" && order.status !== "returned" && (
+        {stage !== "cancelled" && order.status !== "cancelled" && order.status !== "returned" && (
           <Stepper
             label={text.timelineLabel}
             steps={[
-              { label: text.timeline.placed, detail: formatDate(order.createdAt) },
-              { label: text.timeline.paid, detail: order.paidAt ? formatDate(order.paidAt) : undefined },
-              { label: text.timeline.proof },
+              { label: text.timeline.confirmed, detail: order.paidAt ? formatDate(order.paidAt) : undefined },
               { label: text.timeline.production },
+              { label: text.timeline.quality },
               { label: text.timeline.dispatch },
             ]}
-            current={timelineStep(order.status)}
+            current={customerStepIndex(stage, paid)}
           />
         )}
         {next && <p className="mt-5 text-body text-ink">{next}</p>}
@@ -146,6 +139,36 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-8">
         <div className="flex min-w-0 flex-col gap-6">
+          {paid && (
+            <Card as="section" aria-labelledby="brand-proof">
+              <h2 id="brand-proof" className="text-h3 text-ink">
+                {proofText.title}
+              </h2>
+              <p className="mt-1 text-body text-muted">{proofText.line}</p>
+              {stages.proofs.length === 0 ? (
+                <p className="mt-4 text-body text-ink">{proofText.none}</p>
+              ) : (
+                <div className="mt-4">
+                  <ProofList orderId={order.id} proofs={stages.proofs} />
+                </div>
+              )}
+              {decidable && latestProof && (
+                <div className="mt-5 border-t border-line pt-5">
+                  <ProofDecision orderId={order.id} proofId={latestProof.id} />
+                </div>
+              )}
+            </Card>
+          )}
+
+          {shipment && (stage === "dispatched" || stage === "delivered") && (
+            <Card as="section" aria-labelledby="brand-tracking">
+              <h2 id="brand-tracking" className="text-h3 text-ink">
+                {proofText.tracking}
+              </h2>
+              <p className="mt-2 text-body text-ink">{proofText.courier(shipment.courierName, shipment.awb)}</p>
+            </Card>
+          )}
+
           <Card>
             <h2 className="text-h3 text-ink">{text.packaging}</h2>
             {details && (
@@ -196,6 +219,25 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
               </span>
             </address>
           </Card>
+
+          {paid && (
+            <Card as="section" aria-labelledby="brand-history">
+              <h2 id="brand-history" className="text-h3 text-ink">
+                {proofText.history}
+              </h2>
+              <ol className="mt-3 flex flex-col gap-2 text-sm text-ink">
+                {stages.stageEvents.map((event) => (
+                  <li key={event.id}>
+                    {proofText.historyLine(
+                      text.stageLabels[event.toStage],
+                      formatDateTime(event.createdAt),
+                      proofText.actors[event.actorKind as keyof typeof proofText.actors] ?? proofText.actors.system,
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
 
           <OrderDocuments
             orderId={order.id}

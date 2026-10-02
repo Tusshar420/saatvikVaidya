@@ -65,6 +65,8 @@ export const rateLimitRules = {
   passwordChangePerUser: { name: "password-change:user", windowSeconds: 15 * 60, max: 5 },
   /** Launch Your Brand logo uploads by one account: 20 per hour (P2.1). */
   brandLogoUploadPerUser: { name: "brand-logo-upload:user", windowSeconds: 60 * 60, max: 20 },
+  /** Label proof uploads by one admin: 60 per hour (P2.2). */
+  brandProofUploadPerAdmin: { name: "brand-proof-upload:user", windowSeconds: 60 * 60, max: 60 },
   /** Ebook downloads by one account: 20 per hour. */
   ebookDownloadPerUser: { name: "ebook-download:user", windowSeconds: 60 * 60, max: 20 },
 } as const satisfies Record<string, RateLimitRule>;

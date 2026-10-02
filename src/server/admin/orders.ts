@@ -1,7 +1,10 @@
 import "server-only";
 import { z } from "zod";
 import type { OrderStatus, OrderType, Prisma } from "@/generated/prisma/client";
+import { canCancelBrandStage, type BrandStageKey } from "@/lib/brand-stage";
 import { isOrderId } from "@/lib/orders";
+import { cancelStageInTx } from "@/server/brand/stages";
+import { refundOrderPayment } from "@/server/checkout/refunds";
 import { ledgerTransaction, releaseCoins, reverseOrderEarnings } from "@/server/coins/ledger";
 import { db } from "@/server/db";
 import { issueCreditNote, issueQuietly } from "@/server/invoices/invoices";
@@ -140,6 +143,7 @@ export async function readAdminOrder(orderId: string) {
       user: { select: { id: true, name: true, email: true, phoneNumber: true } },
       items: { orderBy: { id: "asc" } },
       payments: { orderBy: { attempt: "desc" } },
+      brandDetails: { select: { stage: true } },
       shipment: {
         include: { events: { orderBy: [{ createdAt: "desc" }, { id: "desc" }] } },
       },
@@ -163,12 +167,17 @@ const cancellableShipment = ["created", "packed"] as const;
 export function canCancelOrder(order: {
   status: OrderStatus;
   shipment: { status: string } | null;
+  /** A brand order's stage (P2.2): it can only be cancelled before production. */
+  brandStage?: BrandStageKey | null;
 }): boolean {
   return (
     (cancellableStatuses as readonly string[]).includes(order.status) &&
-    (!order.shipment || (cancellableShipment as readonly string[]).includes(order.shipment.status))
+    (!order.shipment || (cancellableShipment as readonly string[]).includes(order.shipment.status)) &&
+    (!order.brandStage || canCancelBrandStage(order.brandStage))
   );
 }
+
+class StageMoved extends Error {}
 
 export type CancelResult =
   | { ok: true; changed: boolean; restocked: boolean }
@@ -196,20 +205,31 @@ export async function cancelOrder(
       type: true,
       userId: true,
       shipment: { select: { id: true, status: true, awb: true, provider: true } },
+      brandDetails: { select: { stage: true } },
     },
   });
   if (!order) return { ok: false, error: "not_found" };
   if (order.status === "cancelled") return { ok: true, changed: false, restocked: false };
-  if (!canCancelOrder(order)) return { ok: false, error: "not_allowed" };
+  const brandStage = order.brandDetails?.stage ?? null;
+  if (!canCancelOrder({ ...order, brandStage })) return { ok: false, error: "not_allowed" };
 
   const now = new Date();
   const outcome = await ledgerTransaction(async (tx) => {
+    // A brand order's stage (P2.2) is cancelled with it and logged, first,
+    // so it takes its locks in the same order as a stage change does.
+    if (brandStage) {
+      const stageMoved = await cancelStageInTx(tx, { orderId, from: brandStage, actorId, note });
+      if (!stageMoved) throw new StageMoved();
+    }
     // Claim the cancel from the status we saw, so it happens once.
     const claimed = await tx.order.updateMany({
       where: { id: orderId, status: order.status },
       data: { status: "cancelled", cancelledAt: now },
     });
-    if (claimed.count === 0) return null;
+    if (claimed.count === 0) {
+      if (brandStage) throw new StageMoved();
+      return null;
+    }
 
     // Paid (or being prepared): the payment took the stock, so put it back.
     // Brand orders (P2.1) are made to order and never took stock.
@@ -257,6 +277,10 @@ export async function cancelOrder(
       note,
     });
     return { restocked };
+  }).catch((error: unknown) => {
+    // Someone moved the order's stage first: nothing was cancelled.
+    if (error instanceof StageMoved) return null;
+    throw error;
   });
   if (!outcome) {
     const now = await db.order.findUniqueOrThrow({ where: { id: orderId }, select: { status: true } });
@@ -270,8 +294,18 @@ export async function cancelOrder(
       .cancelShipment(order.shipment.awb)
       .catch((error: unknown) => console.error("cancelOrder: shipment not called off.", error));
   }
-  // Only a paid order (the payment took the stock) has an invoice to reverse.
-  if (outcome.restocked) await issueQuietly(issueCreditNote, orderId);
+  // A paid order has an invoice to reverse (a store order's payment took the
+  // stock; a brand order was made to order and took none).
+  const wasPaid = order.status === "paid" || order.status === "processing";
+  if (wasPaid) await issueQuietly(issueCreditNote, orderId);
+  // A brand order's payment is refunded through the provider (a test refund here).
+  if (wasPaid && order.type === "brand") {
+    try {
+      await refundOrderPayment(orderId);
+    } catch (error) {
+      console.error("cancelOrder: refund not recorded.", error);
+    }
+  }
   try {
     await sendOrderCancelled(orderId);
   } catch (error) {

@@ -33,6 +33,8 @@ export type AdminAction =
   | "order.cancel"
   | "shipment.create"
   | "shipment.update"
+  | "brand.proof.upload"
+  | "brand.stage"
   | "export.orders"
   | "export.users"
   | "coins.adjust"

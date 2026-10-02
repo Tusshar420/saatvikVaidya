@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
 import { Modal, ModalContent, ModalTrigger } from "@/components/ui/modal";
 import { admin as copy } from "@/content/admin";
+import { brand as brandCopy } from "@/content/brand";
 import { idleForm, type FormState } from "@/server/admin/form";
 import { dangerButtonClasses } from "./confirm-delete";
 
 const text = copy.orderDetail;
+const brandText = brandCopy.admin.detail;
 
 /** "Cancel order", confirmed in a dialog with an optional reason for the audit log. */
 export function CancelOrder({
@@ -19,6 +21,7 @@ export function CancelOrder({
   number,
   allowed,
   restock,
+  brand = false,
 }: {
   orderId: string;
   number: string;
@@ -26,6 +29,8 @@ export function CancelOrder({
   allowed: boolean;
   /** Whether cancelling puts stock back (the order was paid). */
   restock: boolean;
+  /** A Launch Your Brand order (P2.2): its own wording, and the payment is refunded. */
+  brand?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(
@@ -40,7 +45,13 @@ export function CancelOrder({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted">
-        {allowed ? text.cancelIntro : text.cancelNotAllowed}
+        {brand
+          ? allowed
+            ? brandText.cancelLine
+            : brandText.cancelNotAllowed
+          : allowed
+            ? text.cancelIntro
+            : text.cancelNotAllowed}
       </p>
       {allowed && (
         <Modal open={open} onOpenChange={setOpen}>
@@ -55,7 +66,7 @@ export function CancelOrder({
           </ModalTrigger>
           <ModalContent
             title={text.cancelConfirmTitle(number)}
-            description={text.cancelConfirmBody(restock)}
+            description={brand ? brandText.cancelConfirmBody : text.cancelConfirmBody(restock)}
           >
             <form action={action} className="flex flex-col gap-4">
               <input type="hidden" name="orderId" value={orderId} />

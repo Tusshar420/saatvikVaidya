@@ -309,6 +309,11 @@ export async function cleanUpE2eData() {
       select: { logoKey: true },
     })),
   ].flatMap(({ logoKey }) => (logoKey ? [{ fileKey: logoKey }] : []));
+  // Label proofs (P2.2) of e2e users' brand orders.
+  const brandProofs = await db.brandProof.findMany({
+    where: { details: { order: { userId: { in: ids } } } },
+    select: { fileKey: true },
+  });
   const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
   for (const { fileKey } of [
     ...documents,
@@ -316,6 +321,7 @@ export async function cleanUpE2eData() {
     ...invoiceFiles,
     ...ebookFiles,
     ...brandLogos,
+    ...brandProofs,
   ]) {
     const path = resolve(storageDir, fileKey);
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
@@ -373,6 +379,7 @@ export async function cleanUpE2eData() {
           { key: { in: ids.map((id) => `order-place:user:${id.toLowerCase()}`) } },
           { key: { in: ids.map((id) => `ebook-download:user:${id.toLowerCase()}`) } },
           { key: { in: ids.map((id) => `brand-logo-upload:user:${id.toLowerCase()}`) } },
+          { key: { in: ids.map((id) => `brand-proof-upload:user:${id.toLowerCase()}`) } },
           { key: { in: orderNumbers } },
           { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
           { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },
