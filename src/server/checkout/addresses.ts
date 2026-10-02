@@ -3,7 +3,7 @@ import { z } from "zod";
 import { checkout as copy } from "@/content/checkout";
 import { indianStateCodes, pincodeMatchesState, pincodePattern } from "@/lib/india";
 import { toIndianE164 } from "@/lib/phone";
-import { fieldErrorsOf } from "@/server/admin/form";
+import { fieldErrorsOf, type FormState } from "@/server/admin/form";
 import { db } from "@/server/db";
 
 // Saved delivery addresses. Each user manages only their own: every read and
@@ -139,4 +139,44 @@ export async function updateAddress(
     data: toColumns(input),
   });
   return count === 1 ? { ok: true, id } : { ok: false, error: "not_found" };
+}
+
+/** Removes one of the user's own addresses. Past orders keep their own copy. */
+export async function deleteAddress(userId: string, id: number): Promise<boolean> {
+  const { count } = await db.address.deleteMany({ where: { id, userId } });
+  return count === 1;
+}
+
+export type AddressFormState = FormState & { savedId?: number };
+
+const addressIdSchema = z.coerce.number().int().positive().max(2_147_483_647);
+
+/**
+ * Saves the address form (create, or update when `values.id` is set) for the
+ * user and says what to show. Shared by checkout and /account/addresses.
+ */
+export async function saveAddressFromForm(
+  userId: string,
+  values: Record<string, string>,
+): Promise<AddressFormState> {
+  const parsed = parseAddress(values);
+  if (!parsed.success) {
+    return { status: "error", message: errors.form, fieldErrors: parsed.fieldErrors, values };
+  }
+  let result: AddressSave;
+  if (values.id) {
+    const id = addressIdSchema.safeParse(values.id);
+    if (!id.success) return { status: "error", message: errors.notFound, values };
+    result = await updateAddress(userId, id.data, parsed.data);
+  } else {
+    result = await createAddress(userId, parsed.data);
+  }
+  if (!result.ok) {
+    return {
+      status: "error",
+      message: result.error === "too_many" ? errors.tooMany(MAX_ADDRESSES) : errors.notFound,
+      values,
+    };
+  }
+  return { status: "success", message: copy.address.saved, savedId: result.id };
 }

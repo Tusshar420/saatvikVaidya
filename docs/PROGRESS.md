@@ -2480,59 +2480,65 @@ couldn't be kept apart from P1.4's edits to shared files
 Nothing was changed apart from this entry. No P1.11 code was written and no
 checks were run. The tree still holds P1.4's uncommitted work.
 
-## P1.10. My account and admin reports (BLOCKED, 2026-10-01)
+## P1.10. My account and admin reports (2026-10-02)
 
-Not started. This replaces the earlier P1.10 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`), and P1.4's `Address`, `Order`,
-`OrderItem` and `Payment` models are in the tree. But P1.10 still waits on
-earlier chunks, so per the task rules it stops here.
+Replaces the earlier BLOCKED entry: P1.4 to P1.9 are committed and green.
 
-**What it waits on (checked in git, schema and docs on 2026-10-01, latest
-commit `4a62a9b`)**
-- **P1.4 (Cart, checkout and test payment) is unfinished.** Its work is still
-  uncommitted on `dev` (no P1.4 commit; 39 paths modified or untracked,
-  including the `p1_4_cart_checkout` migration, `src/server/cart/`,
-  `src/server/checkout/` and `src/server/payments/`), and its entry's
-  **Checks** line is still the placeholder `CHECKS_LINE`, so nothing shows the
-  five checks passed. P1.10's sales, orders, top products and orders CSV all
-  read P1.4's orders, and `/account` manages its saved addresses.
-- **P1.5 (Orders and test delivery tracking) is BLOCKED**, so `/orders` is
-  still a placeholder and order statuses past `paid` aren't used. "Orders by
-  status" and the account page's orders link need it.
-- **P1.7 (Super Coins) is BLOCKED**: there is no `CoinLedger` model, so "coins
-  issued/redeemed" can't be reported.
-- **P1.8 (Ebooks) is BLOCKED**: there is no `Ebook` model or `/ebooks` page for
-  the account page to link to.
-- No P1.4 run is active right now.
+**Built**
+- **Migration `p1_10_notification_prefs`:** `User.notifyOrderSms` and
+  `notifyOrderEmail` (default true). Offers and news use the existing
+  `marketingOptIn`.
+- **`/account`:** quick links (orders, coins, ebooks, addresses, verification),
+  edit name, "Send verification link" for an unverified email, change
+  password, notification preferences. `/account/addresses`: add, edit and
+  delete saved addresses (`AddressForm` moved to `components/site/address-form.tsx`
+  and shared with checkout; `saveAddressFromForm` shared in
+  `server/checkout/addresses.ts`).
+- **Email verification:** Better Auth `emailVerification` sends the link
+  through the dev notifier (printed to the server log). `/send-verification-email`
+  now has a Zod body schema and the per-address and per-IP send limits.
+- **Change password:** goes through Better Auth, so the password rules apply;
+  `/change-password` is rate-limited per IP and per account (5 per 15 min).
+  Other devices are signed out. Phone-code accounts with no password see a
+  note instead of the form.
+- **Order messages respect preferences** (`server/notify/orders.ts`).
+- **`/admin/reports`** (sidebar "Reports"): period (default last 30 India days,
+  max 400) and day/week/month grouping; sales (paid, not cancelled, failed or
+  returned), orders by status, top products, new users by type, pending
+  approvals, coins issued/redeemed/taken back. Money in paise from order and
+  item rows, coins from the ledger.
+- **CSV export** `/admin/reports/export/orders|users`: admin session only
+  (others get 404), `no-store`, formula-injection safe, BOM for Excel, written
+  to `AdminLog` (`export.orders`, `export.users`) in a transaction before the
+  file is returned. 50,000 row cap.
 
-**Why not build part of it:** the chunk's tests ("reports match seeded
-orders") need committed, verified orders. The notification preferences need a
-schema change, which would stack on P1.4's uncommitted migration, and P1.10's
-commits couldn't be kept apart from P1.4's uncommitted edits (for example
-`prisma/schema.prisma`).
+**Decisions**
+- Change password signs out other devices with a separate `revokeOtherSessions`
+  call: the option on `changePassword` swaps the current session, and the
+  page that re-renders after the action then used the old cookie and sent the
+  user to sign-in.
+- Reports use plain tables with a bar per sales row; no chart library.
+- Phone and email changes are not editable (out of scope).
 
-**Notes for the run that builds P1.10** (still valid from the earlier entry)
-- `/account` today is `src/app/(site)/account/page.tsx` (A5/P1.2: verification
-  status and documents). `src/server/auth/account.ts` reads `emailVerified`.
-  The dev notifier (`src/server/notify/`, `dev-outbox.ts` for tests) can send
-  the verification link. `AdminLog` (`src/server/admin/audit.ts`) can log CSV
-  exports.
-- If P1.11 is built first, `/admin/reports` and the CSV routes must use its
-  per-area permission check rather than plain `requireAdmin()`.
-- Sum money in paise from `OrderItem` snapshots and coins from `CoinLedger`,
-  so reports match invoices and balances exactly.
-- Escape CSV cells starting with `=`, `+`, `-` or `@` (formula injection),
-  since names and addresses are user-typed.
+**Tests:** Vitest for range and bucket logic, reports against seeded orders,
+users and ledger rows, CSV escaping and content, export access rules (signed
+out, customer, admin, bad kind) and logging, name and preferences, change
+password and session revocation, verification link, preference-aware messages,
+address deletion scope. Playwright (`account.spec.ts`) for the account page,
+addresses, and reports with export and access checks.
 
-**Next steps**
-1. Finish P1.4: run the five checks, fill in its **Checks** line, commit.
-2. Build P1.5, P1.7 and P1.8 (and P1.6 and P1.9 in order), replacing their
-   BLOCKED entries.
-3. Re-queue P1.10.
+**Checks:** typecheck, lint, test (515), test:e2e (210 passed, 4 skipped) and
+build pass. Screens checked at 375 and 1280 px (overflow and axe in e2e,
+screenshots reviewed).
 
-Nothing was changed apart from this entry. No P1.10 code was written and no
-checks were run, since no file under `src/`, `prisma/` or `tests/` was
-touched. The tree still holds P1.4's uncommitted work.
+**Known gaps / later**
+- P1.11: `/admin/reports` and the export routes use plain admin checks; switch
+  to the per-area permission check when it lands.
+- Flaky specs seen under load: `catalogue.spec.ts` "no console errors" (one
+  404 resource, passed on rerun) and the `admin orders search` Vitest test
+  (failed once, passed on rerun); look in P1.12.
+- Password form clears after a failed try (React resets action forms).
+- Exports are not rate-limited beyond the admin check.
 
 ## P2.1. Launch Your Brand: request and admin review (BLOCKED, 2026-10-01)
 

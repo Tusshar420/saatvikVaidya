@@ -13,6 +13,11 @@ export type AccountView = {
   userTypeLabel: string;
   isProfessional: boolean;
   verificationStatus: "none" | "pending" | "approved" | "rejected";
+  marketingOptIn: boolean;
+  notifyOrderSms: boolean;
+  notifyOrderEmail: boolean;
+  /** False for phone-code accounts that never set a password. */
+  hasPassword: boolean;
 };
 
 /**
@@ -29,6 +34,14 @@ export async function readAccount(userId: string): Promise<AccountView | null> {
       email: true,
       emailVerified: true,
       verificationStatus: true,
+      marketingOptIn: true,
+      notifyOrderSms: true,
+      notifyOrderEmail: true,
+      accounts: {
+        where: { providerId: "credential", password: { not: null } },
+        select: { id: true },
+        take: 1,
+      },
       userType: { select: { label: true, isProfessional: true } },
     },
   });
@@ -43,5 +56,9 @@ export async function readAccount(userId: string): Promise<AccountView | null> {
     userTypeLabel: user.userType.label,
     isProfessional: user.userType.isProfessional,
     verificationStatus: user.verificationStatus,
+    marketingOptIn: user.marketingOptIn,
+    notifyOrderSms: user.notifyOrderSms,
+    notifyOrderEmail: user.notifyOrderEmail,
+    hasPassword: user.accounts.length > 0,
   };
 }

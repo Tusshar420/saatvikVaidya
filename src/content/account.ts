@@ -34,6 +34,81 @@ export const account = {
   },
   call: (phone: string) => `Call ${phone}`,
   signOut: "Sign out",
+
+  shortcuts: {
+    title: "Quick links",
+    orders: { label: "My orders", help: "Track and review your orders." },
+    coins: { label: "Super Coins", help: "Your balance and history." },
+    ebooks: { label: "My ebooks", help: "Download what you've bought." },
+    addresses: { label: "Saved addresses", help: "Where we deliver." },
+    verification: { label: "Verification", help: "Documents and approval status." },
+  },
+
+  nameForm: {
+    title: "Edit your name",
+    label: "Full name",
+    save: "Save name",
+    saved: "Name updated.",
+  },
+
+  emailVerify: {
+    send: "Send verification link",
+    sent: (email: string) => `We sent a verification link to ${email}. It works for 60 minutes.`,
+    failed: "We couldn't send the link. Please try again in a few minutes.",
+    tooMany: "Too many requests. Please wait a few minutes and try again.",
+    justVerified: "Your email is verified. Thank you.",
+  },
+
+  password: {
+    title: "Change password",
+    current: "Current password",
+    next: "New password",
+    save: "Change password",
+    saved: "Password changed. Your other devices have been signed out.",
+    wrongCurrent: "That isn't your current password.",
+    none: "You sign in with a code sent to your mobile, so there is no password to change. To set one, sign out and use “Forgot password” on the sign-in screen.",
+  },
+
+  notifications: {
+    title: "Notifications",
+    intro: "Choose how we keep you posted. Account and security messages are always sent.",
+    orderSms: "Order updates by SMS",
+    orderSmsHelp: "Order confirmed, shipped, delivered or cancelled.",
+    orderEmail: "Order updates by email",
+    orderEmailHelp: "The same updates, to your email address.",
+    marketing: "Offers and news",
+    marketingHelp: "Occasional offers, new products and live sessions.",
+    save: "Save preferences",
+    saved: "Preferences saved.",
+  },
+
+  addresses: {
+    metaTitle: "Saved addresses",
+    eyebrow: "My account",
+    title: "Saved addresses",
+    back: "Back to my account",
+    intro: "These are the addresses you can choose at checkout. Past orders keep the address they were sent to.",
+    empty: "You haven't saved an address yet.",
+    add: "Add a new address",
+    edit: "Edit",
+    editLabel: (name: string) => `Edit address for ${name}`,
+    remove: "Delete",
+    removeLabel: (name: string) => `Delete address for ${name}`,
+    removeTitle: "Delete this address?",
+    removeConfirm: "Yes, delete",
+    cancel: "Cancel",
+    removed: "Address deleted.",
+    saved: "Address saved.",
+    notFound: "That address was already removed.",
+    count: (n: number, max: number) => `${n} of ${max} saved`,
+  },
+
+  errors: {
+    name: "Enter your name, 2 to 80 characters.",
+    form: "Check the highlighted fields.",
+    generic: "That didn't save. Please try again.",
+    currentRequired: "Enter your current password.",
+  },
 } as const;
 
 export type VerificationStatusKey = keyof typeof account.status;

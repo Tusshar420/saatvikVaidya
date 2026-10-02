@@ -1,6 +1,6 @@
 import "server-only";
 import { authMessages } from "@/content/auth";
-import { otpPolicy, passwordResetLinkSeconds } from "@/server/auth/policy";
+import { emailVerificationLinkSeconds, otpPolicy, passwordResetLinkSeconds } from "@/server/auth/policy";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { getNotifier, type OtpPurpose } from "./index";
 
@@ -58,5 +58,20 @@ export async function sendExistingAccountEmail(user: Recipient): Promise<void> {
     to: user.email,
     subject,
     text: body(user.name),
+  });
+}
+
+/** The "verify your email" link requested from /account. */
+export async function sendVerificationEmail(
+  user: Recipient,
+  url: string,
+): Promise<void> {
+  if (isPlaceholderEmail(user.email)) return;
+  const { subject, body } = authMessages.verificationEmail;
+  await getNotifier().send({
+    channel: "email",
+    to: user.email,
+    subject,
+    text: body(user.name, url, emailVerificationLinkSeconds / 60),
   });
 }

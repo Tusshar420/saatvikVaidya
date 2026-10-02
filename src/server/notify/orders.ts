@@ -11,13 +11,23 @@ import { getNotifier } from "./index";
 
 // Order messages (dev log for now). Text lives in src/content/checkout.ts.
 // Phone-only accounts (placeholder email) get an SMS instead of an email.
+// Each buyer's notification preferences (P1.10) decide whether the email or
+// the SMS is sent at all.
+
+const recipientSelect = {
+  name: true,
+  email: true,
+  phoneNumber: true,
+  notifyOrderSms: true,
+  notifyOrderEmail: true,
+} as const;
 
 /** To the buyer: their order is paid and confirmed. */
 export async function sendOrderConfirmation(orderId: string): Promise<void> {
   const order = await db.order.findUnique({
     where: { id: orderId },
     include: {
-      user: { select: { name: true, email: true, phoneNumber: true } },
+      user: { select: recipientSelect },
       items: { orderBy: { id: "asc" } },
     },
   });
@@ -27,6 +37,7 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
   const total = formatPaise(order.totalPaise);
 
   if (!isPlaceholderEmail(user.email)) {
+    if (!user.notifyOrderEmail) return;
     await getNotifier().send({
       channel: "email",
       to: user.email,
@@ -50,7 +61,7 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
         }),
       ),
     });
-  } else if (user.phoneNumber) {
+  } else if (user.phoneNumber && user.notifyOrderSms) {
     await getNotifier().send({
       channel: "sms",
       to: user.phoneNumber,
@@ -59,7 +70,13 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
   }
 }
 
-type Recipient = { name: string; email: string; phoneNumber: string | null };
+type Recipient = {
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  notifyOrderSms: boolean;
+  notifyOrderEmail: boolean;
+};
 
 /** Email, or SMS for phone-only accounts. Nothing if there's no way to reach them. */
 async function sendToBuyer(
@@ -68,8 +85,10 @@ async function sendToBuyer(
   sms: string,
 ): Promise<void> {
   if (!isPlaceholderEmail(user.email)) {
-    await getNotifier().send({ channel: "email", to: user.email, ...email });
-  } else if (user.phoneNumber) {
+    if (user.notifyOrderEmail) {
+      await getNotifier().send({ channel: "email", to: user.email, ...email });
+    }
+  } else if (user.phoneNumber && user.notifyOrderSms) {
     await getNotifier().send({ channel: "sms", to: user.phoneNumber, text: sms });
   }
 }
@@ -80,7 +99,7 @@ export async function sendShipmentUpdate(orderId: string, status: ShipmentStatus
     where: { id: orderId },
     select: {
       number: true,
-      user: { select: { name: true, email: true, phoneNumber: true } },
+      user: { select: recipientSelect },
       shipment: { select: { courierName: true, awb: true } },
     },
   });
@@ -109,7 +128,7 @@ export async function sendOrderCancelled(orderId: string): Promise<void> {
     select: {
       number: true,
       paidAt: true,
-      user: { select: { name: true, email: true, phoneNumber: true } },
+      user: { select: recipientSelect },
     },
   });
   if (!order?.user) return;

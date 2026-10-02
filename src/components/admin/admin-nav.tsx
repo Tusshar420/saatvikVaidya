@@ -13,6 +13,7 @@ import {
   GalleryHorizontal,
   GraduationCap,
   LayoutList,
+  LineChart,
   ListOrdered,
   MessageSquareQuote,
   Shapes,
@@ -63,6 +64,7 @@ const content: NavLink[] = [
 
 const rest: NavLink[] = [
   { href: "/admin/orders", label: copy.nav.orders, icon: Package },
+  { href: "/admin/reports", label: copy.nav.reports, icon: LineChart },
   { href: "/admin/coins", label: copy.nav.coins, icon: Coins },
   { href: "/admin/settings", label: copy.nav.settings, icon: Settings },
   { href: "/admin/database", label: copy.nav.database, icon: Database },

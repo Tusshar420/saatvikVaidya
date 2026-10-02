@@ -100,6 +100,10 @@ export const authBodySchemas = {
     email: emailSchema,
     redirectTo: sitePathSchema.optional(),
   }),
+  "/send-verification-email": z.strictObject({
+    email: emailSchema,
+    callbackURL,
+  }),
   "/reset-password": z.strictObject({
     token: z.string().min(1).max(512),
     newPassword: passwordSchema,

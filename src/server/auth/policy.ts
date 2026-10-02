@@ -15,6 +15,9 @@ export const passwordPolicy = {
   adminMinLength: 12,
 } as const;
 
+/** How long an email-verification link works. */
+export const emailVerificationLinkSeconds = 60 * 60;
+
 /** How long an email password-reset link works. */
 export const passwordResetLinkSeconds = 60 * 60;
 
@@ -58,6 +61,8 @@ export const rateLimitRules = {
    * guess the phone or email for a known number.
    */
   trackOrderPerNumber: { name: "track-order:number", windowSeconds: 60 * 60, max: 10 },
+  /** Wrong-password guesses on "change password": 5 per 15 minutes per account. */
+  passwordChangePerUser: { name: "password-change:user", windowSeconds: 15 * 60, max: 5 },
   /** Ebook downloads by one account: 20 per hour. */
   ebookDownloadPerUser: { name: "ebook-download:user", windowSeconds: 60 * 60, max: 20 },
 } as const satisfies Record<string, RateLimitRule>;

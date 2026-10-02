@@ -7,12 +7,7 @@ import { checkout as copy } from "@/content/checkout";
 import { checkoutPathFor, orderIdPattern } from "@/lib/orders";
 import { formValues, type FormState } from "@/server/admin/form";
 import { requireUser } from "@/server/auth/session";
-import {
-  createAddress,
-  MAX_ADDRESSES,
-  parseAddress,
-  updateAddress,
-} from "@/server/checkout/addresses";
+import { saveAddressFromForm, type AddressFormState } from "@/server/checkout/addresses";
 import { placeOrder, retryPayment, type PlaceOrderError } from "@/server/checkout/orders";
 import { completePayment } from "@/server/checkout/payments";
 import { getSetting } from "@/server/content/settings";
@@ -23,7 +18,7 @@ import { getPricingViewer } from "@/server/pricing";
 // session itself (requireUser) and validates its input with Zod. The browser
 // sends ids, a checkout key and the simulated outcome, never a price.
 
-export type AddressFormState = FormState & { savedId?: number };
+export type { AddressFormState };
 
 const idSchema = z.coerce.number().int().positive().max(2_147_483_647);
 const orderIdSchema = z.string().regex(orderIdPattern);
@@ -33,36 +28,9 @@ export async function saveAddressAction(
   formData: FormData,
 ): Promise<AddressFormState> {
   const { user } = await requireUser("/checkout");
-  const values = formValues(formData);
-  const parsed = parseAddress(values);
-  if (!parsed.success) {
-    return {
-      status: "error",
-      message: copy.address.errors.form,
-      fieldErrors: parsed.fieldErrors,
-      values,
-    };
-  }
-  let result;
-  if (values.id) {
-    const id = idSchema.safeParse(values.id);
-    if (!id.success) return { status: "error", message: copy.address.errors.notFound, values };
-    result = await updateAddress(user.id, id.data, parsed.data);
-  } else {
-    result = await createAddress(user.id, parsed.data);
-  }
-  if (!result.ok) {
-    return {
-      status: "error",
-      message:
-        result.error === "too_many"
-          ? copy.address.errors.tooMany(MAX_ADDRESSES)
-          : copy.address.errors.notFound,
-      values,
-    };
-  }
-  revalidatePath("/checkout");
-  return { status: "success", message: copy.address.saved, savedId: result.id };
+  const result = await saveAddressFromForm(user.id, formValues(formData));
+  if (result.status === "success") revalidatePath("/checkout");
+  return result;
 }
 
 const placeSchema = z.object({

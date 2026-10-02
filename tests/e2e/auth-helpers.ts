@@ -194,7 +194,7 @@ export async function signInAs(
     data: { email, password },
   });
   expect(response.status()).toBe(200);
-  return { id, email, name };
+  return { id, email, name, password };
 }
 
 /** A professional account waiting for approval, made straight in the database. */

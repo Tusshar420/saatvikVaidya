@@ -45,6 +45,7 @@ const sendPaths = new Set<AuthPath>([
   "/phone-number/send-otp",
   "/phone-number/request-password-reset",
   "/request-password-reset",
+  "/send-verification-email",
 ]);
 
 /** Endpoints that check a credential or create an account. */
@@ -55,6 +56,7 @@ const signInPaths = new Set<AuthPath>([
   "/phone-number/verify",
   "/phone-number/reset-password",
   "/reset-password",
+  "/change-password",
 ]);
 
 type Body<P extends AuthPath> = z.output<(typeof authBodySchemas)[P]>;

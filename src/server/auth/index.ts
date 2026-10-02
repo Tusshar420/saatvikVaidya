@@ -12,10 +12,16 @@ import { authEnv } from "@/server/env";
 import {
   sendExistingAccountEmail,
   sendOtpSms,
+  sendVerificationEmail,
   sendPasswordResetEmail,
 } from "@/server/notify/auth";
 import { placeholderEmailFor } from "./placeholder-email";
-import { otpPolicy, passwordPolicy, passwordResetLinkSeconds } from "./policy";
+import {
+  emailVerificationLinkSeconds,
+  otpPolicy,
+  passwordPolicy,
+  passwordResetLinkSeconds,
+} from "./policy";
 import { policyPlugin } from "./policy-plugin";
 import { prepareNewUser, userAdditionalFields } from "./user-fields";
 
@@ -44,6 +50,11 @@ export const auth = betterAuth({
     sendResetPassword: ({ user, url }) => sendPasswordResetEmail(user, url),
     resetPasswordTokenExpiresIn: passwordResetLinkSeconds,
     revokeSessionsOnPasswordReset: true,
+  },
+  emailVerification: {
+    // Sent from /account ("Verify my email"); the link comes back to it.
+    sendVerificationEmail: ({ user, url }) => sendVerificationEmail(user, url),
+    expiresIn: emailVerificationLinkSeconds,
   },
   databaseHooks: {
     user: {

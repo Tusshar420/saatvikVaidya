@@ -76,6 +76,10 @@ model User {
   /// uploaded; shown as "submitted" on /account and in admin approvals.
   verificationSubmittedAt DateTime?
   marketingOptIn          Boolean                @default(false)
+  /// Order and delivery updates by SMS and by email (P1.10). Marketing is
+  /// marketingOptIn above.
+  notifyOrderSms          Boolean                @default(true)
+  notifyOrderEmail        Boolean                @default(true)
   /// When the user accepted the terms at sign-up (set by the server).
   termsAcceptedAt         DateTime
   createdAt               DateTime               @default(now())

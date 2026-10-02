@@ -12,6 +12,11 @@ export const authMessages = {
     body: (name: string, url: string, minutes: number) =>
       `Namaste ${name},\n\nUse this link to choose a new password. It works once and expires in ${minutes} minutes:\n\n${url}\n\nIf you didn't ask to reset your password, you can ignore this email.`,
   },
+  verificationEmail: {
+    subject: "Verify your Saatvik Vaidya email",
+    body: (name: string, url: string, minutes: number) =>
+      `Namaste ${name},\n\nUse this link to confirm your email address. It expires in ${minutes} minutes:\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+  },
   existingAccountEmail: {
     subject: "Someone tried to register with your email",
     body: (name: string) =>
