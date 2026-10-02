@@ -3267,3 +3267,50 @@ Product images and ebook covers are the likely candidates for a public bucket;
 deciding that also means changing how their URLs are built.
 The migration of existing local files should be a script that copies each key
 under `STORAGE_DIR` to the matching bucket and can be rerun safely.
+
+## G.5. WhatsApp Business API (BLOCKED, 2026-10-03)
+
+Not started. Three things stop it (checked on 2026-10-03, latest commit
+`a8e70de`):
+
+- **G.1 to G.4 are blocked.** All four have only BLOCKED entries and no code.
+  Go-live chunks run in order, so G.5 waits for them. G.3 matters most here:
+  the real-notifier switch and the "dev sender never runs in production" guard
+  in `src/server/notify/` are G.3's work, and the WhatsApp channel would sit
+  next to them.
+- **CLAUDE.md still forbids it.** The "No real integrations yet" rule still
+  lists "WhatsApp API", and the Go-live gate in `docs/CHUNKS.md` says these
+  chunks may only start once that rule is updated.
+- **No client account, keys or templates.** `.env.local` and `.env.example`
+  have nothing for WhatsApp: no phone number id, business account id, access
+  token, app secret or webhook verify token. No message templates have been
+  submitted or approved by Meta, and it isn't decided whether to use the Meta
+  Cloud API directly or a provider (for example MSG91's WhatsApp product, if
+  G.3 goes with MSG91).
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+There are no WhatsApp mentions in `src/` or `prisma/` yet.
+
+**To unblock (a person decides):** finish G.1 to G.4 first (at least G.3), or
+say that G.5 may go ahead of them. Then:
+- set up the WhatsApp Business account and number, pick the API route, and
+  get the order and Launch Your Brand templates approved;
+- add the keys and template names to `.env.local` and list every name, with a
+  placeholder, in `.env.example`;
+- update CLAUDE.md's "No real integrations yet" rule to allow the WhatsApp API.
+
+Then rerun G.5 and replace this entry with the real one.
+
+Notes for that run: `Message` in `src/server/notify/index.ts` has only `sms`
+and `email` channels; WhatsApp needs a new `whatsapp` channel that carries a
+template name and parameters rather than free text (outside a 24-hour customer
+window only approved templates can be sent). The senders to extend are in
+`src/server/notify/orders.ts` (`sendOrderConfirmation`, `sendToBuyer`,
+`sendShipmentUpdate`, `sendOrderCancelled`) and `src/server/notify/brand.ts`
+(`sendBrandOrderPaid`, `sendProofSent`, `sendStageUpdate`,
+`sendProofDecision`). Opt-in: `User` has `notifyOrderSms`,
+`notifyOrderEmail` and `marketingOptIn` but no WhatsApp field, so it needs a
+`notifyOrderWhatsapp` (default off, since WhatsApp requires explicit opt-in),
+a migration, a toggle on `/account` next to the P1.10 ones, and text in
+`src/content/`. Incoming status webhooks, if used, must check the signature
+with the app secret.
