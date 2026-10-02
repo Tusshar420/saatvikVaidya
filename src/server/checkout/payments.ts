@@ -1,8 +1,9 @@
 import "server-only";
-import type { OrderStatus, Prisma } from "@/generated/prisma/client";
+import type { OrderStatus, OrderType, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 import { earnForOrder, ledgerTransaction, releaseCoins } from "@/server/coins/ledger";
 import { issueInvoice, issueQuietly } from "@/server/invoices/invoices";
+import { sendBrandOrderPaid } from "@/server/notify/brand";
 import { sendOrderConfirmation } from "@/server/notify/orders";
 import type { VerifiedPayment } from "@/server/payments";
 
@@ -19,10 +20,14 @@ import type { VerifiedPayment } from "@/server/payments";
 // - Success when an item no longer has the stock: recorded as a failure
 //   ("out_of_stock"), with nothing taken. With a real provider this is where
 //   a refund would start (see "Later" in docs/PROGRESS.md).
+// - Brand orders (P2.1) are made to order: no stock is taken, there is no
+//   cart to clear and no coins are earned; the customer and the admins get
+//   the brand messages instead of the store confirmation.
 
 export type PaymentOutcome = {
   orderId: string;
   status: OrderStatus;
+  type: OrderType;
   /** False when this result had already been applied (or was too late). */
   changed: boolean;
 };
@@ -63,17 +68,18 @@ export async function completePayment(
 ): Promise<PaymentOutcome | null> {
   const payment = await db.payment.findUnique({
     where: { reference: verified.reference },
-    select: { id: true, orderId: true, order: { select: { userId: true } } },
+    select: { id: true, orderId: true, order: { select: { userId: true, type: true } } },
   });
   if (!payment) return null;
   if (ownerId !== undefined && payment.order.userId !== ownerId) return null;
   const { id: paymentId, orderId } = payment;
+  const isBrand = payment.order.type === "brand";
   const current = async (changed: boolean): Promise<PaymentOutcome> => {
     const order = await db.order.findUniqueOrThrow({
       where: { id: orderId },
       select: { status: true },
     });
-    return { orderId, status: order.status, changed };
+    return { orderId, status: order.status, type: payment.order.type, changed };
   };
 
   if (verified.outcome === "failed") {
@@ -97,6 +103,7 @@ export async function completePayment(
         data: { status: "paid", paidAt: now },
       });
       if (order.count === 0) throw new NotPending();
+      if (isBrand) return true;
 
       const items = await tx.orderItem.findMany({
         where: { orderId },
@@ -146,11 +153,13 @@ export async function completePayment(
 
   if (changed) {
     await issueQuietly(issueInvoice, orderId);
-    await earnForOrder(orderId, "paid").catch((error: unknown) => {
-      console.error("completePayment: coins not credited.", error);
-    });
+    if (!isBrand) {
+      await earnForOrder(orderId, "paid").catch((error: unknown) => {
+        console.error("completePayment: coins not credited.", error);
+      });
+    }
     try {
-      await sendOrderConfirmation(orderId);
+      await (isBrand ? sendBrandOrderPaid(orderId) : sendOrderConfirmation(orderId));
     } catch (error) {
       console.error("completePayment: confirmation not sent.", error);
     }

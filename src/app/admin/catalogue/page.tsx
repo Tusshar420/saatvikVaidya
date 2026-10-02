@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Plus, Search, Upload } from "lucide-react";
 import { ActiveBadge } from "@/components/admin/badges";
 import {
   DataTable,
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
 import { admin as copy } from "@/content/admin";
+import { brand as brandCopy } from "@/content/brand";
 import { productImageSrc } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import { formatNumber, formatPaise } from "@/lib/format";
@@ -47,10 +48,19 @@ export default async function CataloguePage({
         title={text.title}
         description={text.description}
         action={
-          <Link href="/admin/catalogue/new" className={buttonClasses()}>
-            <Plus aria-hidden className="size-4.5" />
-            {text.add}
-          </Link>
+          <div className="flex flex-wrap gap-2 max-sm:flex-col">
+            <Link
+              href="/admin/catalogue/brand-import"
+              className={buttonClasses({ variant: "secondary" })}
+            >
+              <Upload aria-hidden className="size-4.5" />
+              {brandCopy.catalogue.importLink}
+            </Link>
+            <Link href="/admin/catalogue/new" className={buttonClasses()}>
+              <Plus aria-hidden className="size-4.5" />
+              {text.add}
+            </Link>
+          </div>
         }
       />
       <Notice notice={parseNotice(params.notice)} />
@@ -144,6 +154,9 @@ export default async function CataloguePage({
                   <span className="font-bold text-ink">{product.name}</span>
                   {product.featured && <Badge variant="gold">{text.featured}</Badge>}
                   {product.isSample && <Badge variant="soon">{text.sample}</Badge>}
+                  {product.brandEligible && (
+                    <Badge variant="orange">{brandCopy.catalogue.listBadge}</Badge>
+                  )}
                 </span>
                 <code className="block text-small text-muted">{product.slug}</code>
               </Td>

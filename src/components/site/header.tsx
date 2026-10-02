@@ -68,7 +68,7 @@ export function Header({
           <Link
             href="/cart"
             aria-label={shell.header.bag(bagCount)}
-            className={cn(actionClasses, "relative px-2.5 max-sm:hidden")}
+            className={cn(actionClasses, "relative px-2.5")}
           >
             <ShoppingBag aria-hidden className="size-5.25" />
             <span

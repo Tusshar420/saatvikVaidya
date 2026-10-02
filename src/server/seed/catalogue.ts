@@ -26,6 +26,13 @@ export type ProductSeed = {
   moq?: number;
   featured?: boolean;
   sortOrder: number;
+  /**
+   * Launch Your Brand sample values (P2.1): the minimum (also the step), the
+   * branded price per unit and the unit's name. Placeholders until the
+   * client's sheet of eligible products arrives (load it through the admin
+   * CSV import at /admin/catalogue/brand-import).
+   */
+  brand?: { minQty: number; unitPricePaise: number; unitLabel: string };
 };
 
 export const SAMPLE_GST_RATE = 5;
@@ -62,6 +69,7 @@ export const productSeed: ProductSeed[] = [
     stock: 240,
     featured: true,
     sortOrder: 10,
+    brand: { minQty: 50, unitPricePaise: 18_000, unitLabel: "bottles" },
   },
   {
     slug: "chandraprabha-vati",
@@ -122,6 +130,7 @@ export const productSeed: ProductSeed[] = [
     stock: 400,
     featured: true,
     sortOrder: 40,
+    brand: { minQty: 25, unitPricePaise: 12_000, unitLabel: "jars" },
   },
   {
     slug: "avipattikar-churna",
@@ -193,6 +202,7 @@ export const productSeed: ProductSeed[] = [
     ],
     stock: 90,
     sortOrder: 80,
+    brand: { minQty: 12, unitPricePaise: 21_000, unitLabel: "bottles" },
   },
   {
     slug: "ashokarishta",
@@ -245,6 +255,7 @@ export const productSeed: ProductSeed[] = [
     bulkTiers: [],
     stock: 40,
     sortOrder: 110,
+    brand: { minQty: 4, unitPricePaise: 26_000, unitLabel: "jars" },
   },
   {
     slug: "mahanarayan-taila",

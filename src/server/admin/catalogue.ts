@@ -1,6 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import { admin as copy } from "@/content/admin";
+import { brand as brandCopy } from "@/content/brand";
+import { MAX_BRAND_MIN_QTY, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_BULK_TIERS,
@@ -31,6 +33,7 @@ import {
 // still point at them.
 
 const errors = copy.catalogue.errors;
+const brandErrors = brandCopy.catalogue.errors;
 const imageErrors = copy.catalogue.images.errors;
 
 export const ADMIN_PRODUCTS_PAGE_SIZE = 25;
@@ -102,6 +105,13 @@ const productFormSchema = z
     featured: checkbox,
     isSample: checkbox,
     sortOrder: sortOrder("Check this field."),
+    brandEligible: checkbox,
+    brandMinQty: z.preprocess(blankToNull, z.string().trim().nullable()),
+    brandUnitPrice: z.preprocess(blankToNull, z.string().trim().nullable()),
+    brandUnitLabel: z.preprocess(
+      blankToNull,
+      z.string({ error: brandErrors.unitLabel }).trim().max(30, brandErrors.unitLabel).nullable(),
+    ),
   })
   .transform((data, ctx) => {
     const slug = data.slug ?? slugify(data.name);
@@ -147,6 +157,32 @@ const productFormSchema = z
       bulkTiers.push({ minQuantity, pricePaise });
     });
 
+    // Launch Your Brand terms (P2.1): optional, but each filled one must be
+    // valid, and all three are needed to open the product for branding.
+    const brandMinQty =
+      data.brandMinQty === null
+        ? null
+        : /^\d{1,5}$/.test(data.brandMinQty) &&
+            Number(data.brandMinQty) >= 1 &&
+            Number(data.brandMinQty) <= MAX_BRAND_MIN_QTY
+          ? Number(data.brandMinQty)
+          : NaN;
+    if (Number.isNaN(brandMinQty)) {
+      ctx.addIssue({ code: "custom", path: ["brandMinQty"], message: brandErrors.minQty });
+    }
+    const brandPricePaise = data.brandUnitPrice === null ? null : rupeesToPaise(data.brandUnitPrice);
+    const brandPriceValid =
+      brandPricePaise !== null && brandPricePaise > 0 && brandPricePaise <= MAX_BRAND_UNIT_PRICE_PAISE;
+    if (data.brandUnitPrice !== null && !brandPriceValid) {
+      ctx.addIssue({ code: "custom", path: ["brandUnitPrice"], message: brandErrors.unitPrice });
+    }
+    if (
+      data.brandEligible &&
+      (data.brandMinQty === null || data.brandUnitPrice === null || data.brandUnitLabel === null)
+    ) {
+      ctx.addIssue({ code: "custom", path: ["brandEligible"], message: brandErrors.needed });
+    }
+
     return {
       name: data.name,
       slug,
@@ -167,6 +203,10 @@ const productFormSchema = z
       featured: data.featured,
       isSample: data.isSample,
       sortOrder: data.sortOrder,
+      brandEligible: data.brandEligible,
+      brandMinQty: Number.isNaN(brandMinQty) ? null : brandMinQty,
+      brandUnitPricePaise: brandPriceValid ? brandPricePaise : null,
+      brandUnitLabel: data.brandUnitLabel,
       bulkTiers,
     };
   });
@@ -232,6 +272,7 @@ export async function listAdminProducts(filters: ProductFilters) {
       active: true,
       featured: true,
       isSample: true,
+      brandEligible: true,
       brand: { select: { name: true } },
       images: {
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
@@ -300,6 +341,11 @@ export function productFormValues(
     featured: product.featured,
     isSample: product.isSample,
     sortOrder: product.sortOrder,
+    brandEligible: product.brandEligible,
+    brandMinQty: product.brandMinQty,
+    brandUnitPrice:
+      product.brandUnitPricePaise === null ? null : paiseToRupeeInput(product.brandUnitPricePaise),
+    brandUnitLabel: product.brandUnitLabel,
   };
   for (const area of product.practiceAreas) values[`area-${area.id}`] = true;
   product.bulkTiers.forEach((tier, index) => {

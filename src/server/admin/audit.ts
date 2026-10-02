@@ -26,6 +26,7 @@ export type AdminAction =
   | "quiz.delete"
   | "product.create"
   | "product.update"
+  | "product.brand_import"
   | "product.image.add"
   | "product.image.update"
   | "product.image.delete"

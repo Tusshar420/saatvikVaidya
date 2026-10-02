@@ -792,7 +792,7 @@ export const admin = {
       gst: "GST",
       total: "Line total",
     },
-    tier: { mrp: "MRP", professional: "Professional", bulk: "Bulk" } as Record<string, string>,
+    tier: { mrp: "MRP", professional: "Professional", bulk: "Bulk", brand: "Brand" } as Record<string, string>,
     totals: {
       subtotal: "Items (incl. GST)",
       tax: "GST included",

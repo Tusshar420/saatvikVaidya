@@ -79,7 +79,7 @@ export const shell = {
   dock: {
     label: "Quick navigation",
     home: "Home",
-    cart: "Cart",
+    myBrand: "My Brand",
     orders: "Orders",
     coins: "Coins",
     profile: "Profile",

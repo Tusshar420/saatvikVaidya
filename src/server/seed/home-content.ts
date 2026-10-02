@@ -235,7 +235,7 @@ export const heroSlideSeed: Seed<Prisma.HeroSlideCreateInput>[] = [
     titleEmphasis: "We’ll build the rest.",
     body: "Choose from 150+ classical formulations with low MOQ, transparent net rates and end-to-end label support.",
     primaryLabel: "Launch Your Brand",
-    primaryHref: "/#launch",
+    primaryHref: "/launch",
     secondaryLabel: "Watch how it works",
     secondaryHref: "/#reels",
     proof: {
@@ -261,7 +261,7 @@ export const heroSlideSeed: Seed<Prisma.HeroSlideCreateInput>[] = [
         { label: "For you", value: "View net rate" },
       ],
       nextLabel: "Continue to label options",
-      nextHref: null,
+      nextHref: "/launch",
       note: "No payment at this stage",
     },
   },
@@ -363,7 +363,7 @@ export const reelSeed: Seed<Prisma.ReelCreateInput>[] = [
     metaLabel: "00:36",
     title: "Your product. Your label. Your identity.",
     linkLabel: "Start your brand",
-    linkHref: "/#launch",
+    linkHref: "/launch",
   },
   {
     key: "product-range",
@@ -445,7 +445,7 @@ export const offerSeed: Seed<Prisma.OfferCreateInput>[] = [
     title: "Launch without a large inventory burden",
     body: "Low MOQ across selected classical products",
     linkLabel: "Launch your brand",
-    linkHref: "/#launch",
+    linkHref: "/launch",
   },
   {
     key: "quiz-and-win",
@@ -468,7 +468,7 @@ export const quickActionSeed: Seed<Prisma.QuickActionCreateInput>[] = [
     iconText: "＋",
     title: "Launch Your Brand",
     description: "Start a private-label request",
-    href: "/#launch",
+    href: "/launch",
   },
   {
     key: "explore-brands",

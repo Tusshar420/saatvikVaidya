@@ -7,6 +7,7 @@ import { OrderItemsSummary } from "@/components/site/checkout/order-items-summar
 import { SubmitButton } from "@/components/site/checkout/submit-button";
 import { Eyebrow } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
+import { brand as brandCopy } from "@/content/brand";
 import { checkout as copy } from "@/content/checkout";
 import { checkoutPathFor, isOrderId } from "@/lib/orders";
 import { requireUser } from "@/server/auth/session";
@@ -31,7 +32,7 @@ export default async function PaymentFailedPage({
   const { user } = await requireUser(`/checkout/failed/${orderId}`);
   const order = await readOrderForUser(user.id, orderId);
   if (!order) notFound();
-  if (order.status !== "payment_failed") redirect(checkoutPathFor(order.id, order.status));
+  if (order.status !== "payment_failed") redirect(checkoutPathFor(order.id, order.status, order.type));
   const outOfStock = order.payment?.failureReason === "out_of_stock";
 
   return (
@@ -51,7 +52,9 @@ export default async function PaymentFailedPage({
           aria-label={text.eyebrow}
           className="rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6"
         >
-          <p className="text-body-lg text-ink">{text.line(order.number)}</p>
+          <p className="text-body-lg text-ink">
+            {order.type === "brand" ? brandCopy.checkout.failedLine(order.number) : text.line(order.number)}
+          </p>
           {outOfStock && (
             <p className="mt-3 rounded-lg bg-danger-soft px-3.5 py-3 text-sm font-medium text-danger">
               {text.outOfStock}
@@ -62,9 +65,15 @@ export default async function PaymentFailedPage({
               <input type="hidden" name="orderId" value={order.id} />
               <SubmitButton className="max-sm:w-full">{text.tryAgain}</SubmitButton>
             </form>
-            <Link href="/cart" className={buttonClasses({ variant: "secondary" })}>
-              {text.backToCart}
-            </Link>
+            {order.type === "brand" ? (
+              <Link href={`/my-brand/${order.id}`} className={buttonClasses({ variant: "secondary" })}>
+                {brandCopy.checkout.backToMyBrand}
+              </Link>
+            ) : (
+              <Link href="/cart" className={buttonClasses({ variant: "secondary" })}>
+                {text.backToCart}
+              </Link>
+            )}
           </div>
         </section>
 

@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/site/checkout/submit-button";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 
 import { ComingSoon } from "@/components/ui/empty-state";
+import { brand as brandCopy } from "@/content/brand";
 import { checkout as copy } from "@/content/checkout";
 import { formatPaise } from "@/lib/format";
 import { checkoutPathFor, isOrderId } from "@/lib/orders";
@@ -36,7 +37,7 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
   const order = await readOrderForUser(user.id, orderId);
   if (!order) notFound();
   if (order.status !== "pending_payment" && order.status !== "cancelled") {
-    redirect(checkoutPathFor(order.id, order.status));
+    redirect(checkoutPathFor(order.id, order.status, order.type));
   }
 
   const provider = getPaymentProvider();
@@ -111,9 +112,15 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
         <OrderItemsSummary order={order} className="lg:sticky lg:top-40" />
       </div>
       <p className="mt-6">
-        <Link href="/cart" className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline">
-          {copy.failed.backToCart}
-        </Link>
+        {order.type === "brand" ? (
+          <Link href={`/my-brand/${order.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline">
+            {brandCopy.checkout.backToMyBrand}
+          </Link>
+        ) : (
+          <Link href="/cart" className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline">
+            {copy.failed.backToCart}
+          </Link>
+        )}
       </p>
     </div>
   );

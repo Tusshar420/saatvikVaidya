@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, FlaskConical, Phone } from "lucide-react";
 import { OrderItemsSummary } from "@/components/site/checkout/order-items-summary";
 import { OrderDocuments } from "@/components/site/orders/order-documents";
@@ -42,6 +42,8 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
     getSetting("contact.phone"),
   ]);
   if (!order || !tracking) notFound();
+  // Brand orders (P2.1) have their own page with the logo and label details.
+  if (order.type === "brand") redirect(`/my-brand/${order.id}`);
   const unpaid = order.status === "pending_payment" || order.status === "payment_failed";
   const ebookIds = order.items.flatMap((item) =>
     item.kind === "ebook" && item.ebookId !== null ? [item.ebookId] : [],

@@ -25,6 +25,7 @@ import {
   SAMPLE_GST_RATE,
   SAMPLE_HSN_CODE,
   productSeed,
+  type ProductSeed,
 } from "./catalogue";
 import { userTypeSeed } from "./user-types";
 
@@ -67,6 +68,7 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
       await createMissing(feedbackSeed, (args) => tx.feedback.upsert(args));
       await createMissing(whyStepSeed, (args) => tx.whyStep.upsert(args));
       const productsCreated = await createMissingProducts(tx);
+      await addBrandSamples(tx);
 
       return {
         userTypes: userTypeSeed.length,
@@ -171,12 +173,13 @@ async function createMissingProducts(
 
   let created = 0;
   for (const product of productSeed) {
-    const { brandKey, formKey, practiceAreaKeys, bulkTiers, ...fields } = product;
+    const { brandKey, formKey, practiceAreaKeys, bulkTiers, brand, ...fields } = product;
     const form = formId.get(formKey);
     if (existing.has(product.slug) || form === undefined) continue;
     await tx.product.create({
       data: {
         ...fields,
+        ...(brand && brandFields(brand)),
         isSample: true,
         gstRate: SAMPLE_GST_RATE,
         hsnCode: SAMPLE_HSN_CODE,
@@ -194,6 +197,30 @@ async function createMissingProducts(
     created += 1;
   }
   return created;
+}
+
+function brandFields(brand: NonNullable<ProductSeed["brand"]>) {
+  return {
+    brandEligible: true,
+    brandMinQty: brand.minQty,
+    brandUnitPricePaise: brand.unitPricePaise,
+    brandUnitLabel: brand.unitLabel,
+  };
+}
+
+/**
+ * Launch Your Brand sample values (P2.1) for sample products made before
+ * they existed. Only products still marked sample whose brand minimum was
+ * never set are changed, so the admin's (or the CSV import's) values stay.
+ */
+async function addBrandSamples(tx: Prisma.TransactionClient): Promise<void> {
+  for (const product of productSeed) {
+    if (!product.brand) continue;
+    await tx.product.updateMany({
+      where: { slug: product.slug, isSample: true, brandMinQty: null },
+      data: brandFields(product.brand),
+    });
+  }
 }
 
 async function createMissingSettings(

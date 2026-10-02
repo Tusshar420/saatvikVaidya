@@ -63,6 +63,8 @@ export const rateLimitRules = {
   trackOrderPerNumber: { name: "track-order:number", windowSeconds: 60 * 60, max: 10 },
   /** Wrong-password guesses on "change password": 5 per 15 minutes per account. */
   passwordChangePerUser: { name: "password-change:user", windowSeconds: 15 * 60, max: 5 },
+  /** Launch Your Brand logo uploads by one account: 20 per hour (P2.1). */
+  brandLogoUploadPerUser: { name: "brand-logo-upload:user", windowSeconds: 60 * 60, max: 20 },
   /** Ebook downloads by one account: 20 per hour. */
   ebookDownloadPerUser: { name: "ebook-download:user", windowSeconds: 60 * 60, max: 20 },
 } as const satisfies Record<string, RateLimitRule>;

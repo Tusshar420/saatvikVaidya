@@ -116,7 +116,7 @@ describe("getHomeContent", () => {
     expect(hero.slides[0]).toMatchObject({
       title: "Build your Ayurveda brand.",
       titleEmphasis: "We’ll build the rest.",
-      primary: { label: "Launch Your Brand", href: "/#launch" },
+      primary: { label: "Launch Your Brand", href: "/launch" },
       proof: { initials: ["DR", "AV", "+"] },
     });
     expect(hero.slides[1]?.secondary?.href).toBe("modal:track-order");

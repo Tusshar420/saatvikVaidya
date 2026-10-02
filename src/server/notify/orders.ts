@@ -14,7 +14,7 @@ import { getNotifier } from "./index";
 // Each buyer's notification preferences (P1.10) decide whether the email or
 // the SMS is sent at all.
 
-const recipientSelect = {
+export const recipientSelect = {
   name: true,
   email: true,
   phoneNumber: true,
@@ -79,7 +79,7 @@ type Recipient = {
 };
 
 /** Email, or SMS for phone-only accounts. Nothing if there's no way to reach them. */
-async function sendToBuyer(
+export async function sendToBuyer(
   user: Recipient,
   email: { subject: string; text: string },
   sms: string,

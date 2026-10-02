@@ -213,7 +213,7 @@ describe("completePayment", () => {
     const later = await makeProduct(db);
     await addToCart(who.owner, later.id, 1);
 
-    expect(await succeed(orderId)).toEqual({ orderId, status: "paid", changed: true });
+    expect(await succeed(orderId)).toEqual({ orderId, status: "paid", type: "store", changed: true });
     expect(await stockOf(db, ordered.id)).toBe(6);
     const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { payments: true } });
     expect(order.status).toBe("paid");
@@ -238,11 +238,12 @@ describe("completePayment", () => {
 
     const both = await Promise.all([completePayment(verified), completePayment(verified)]);
     expect(both.map((r) => r?.changed).sort()).toEqual([false, true]);
-    expect(await completePayment(verified)).toEqual({ orderId, status: "paid", changed: false });
+    expect(await completePayment(verified)).toEqual({ orderId, status: "paid", type: "store", changed: false });
     // A late "failure" for the same attempt doesn't undo it.
     expect(await completePayment({ reference, outcome: "failed" })).toEqual({
       orderId,
       status: "paid",
+      type: "store",
       changed: false,
     });
     expect(await stockOf(db, product.id)).toBe(7);
@@ -255,12 +256,13 @@ describe("completePayment", () => {
     const orderId = await placed(who);
     const { reference } = await livePayment(orderId);
 
-    expect(await decline(orderId)).toEqual({ orderId, status: "payment_failed", changed: true });
+    expect(await decline(orderId)).toEqual({ orderId, status: "payment_failed", type: "store", changed: true });
     expect(await completePayment({ reference, outcome: "failed" })).toMatchObject({ changed: false });
     // A success arriving for the failed attempt is ignored.
     expect(await completePayment({ reference, outcome: "succeeded" })).toEqual({
       orderId,
       status: "payment_failed",
+      type: "store",
       changed: false,
     });
     expect(await stockOf(db, product.id)).toBe(10);
@@ -312,6 +314,7 @@ describe("completePayment", () => {
     expect(await succeed(firstOrder)).toEqual({
       orderId: firstOrder,
       status: "payment_failed",
+      type: "store",
       changed: true,
     });
     // The whole order rolled back: neither product lost stock for it.

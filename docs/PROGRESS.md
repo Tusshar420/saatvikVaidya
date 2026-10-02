@@ -1298,6 +1298,16 @@ at the start). Nothing needed fixing first.
   - Also check whether the P1.5 checkout flake is the same "axe runs while a
     button is still busy or fading" race that was fixed in the tracking test.
 
+- **Launch Your Brand (P2.1) follow-ups:**
+  - Load the client's sheet of eligible products and minimums through
+    `/admin/catalogue/brand-import` when it arrives, and switch off the
+    sample terms on the four sample products.
+  - Confirm with the client: one product per brand order; one brand price
+    for every user type; no Super Coins on brand orders; the store delivery
+    charge on brand orders; logo always required.
+  - Remove abandoned draft logos (drafts untouched for, say, 90 days).
+  - Split brand orders from store orders in the admin reports.
+
 ## P1.1. Admin dashboard: users and approvals (2026-10-01)
 
 Started in an earlier run, paused, and finished at the start of the P1.2 run
@@ -2641,38 +2651,132 @@ screenshots reviewed).
 - Password form clears after a failed try (React resets action forms).
 - Exports are not rate-limited beyond the admin check.
 
-## P2.1. Launch Your Brand: request and admin review (BLOCKED, 2026-10-01)
+## P2.1. Launch Your Brand: branded ordering (2026-10-02)
 
-Not started. This replaces the earlier P2.1 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`). But Phase 1 is still unfinished, so
-per the task rules this chunk stops here instead of building around it.
+Replaces the earlier BLOCKED entry: Phase 1 (P1.1 to P1.12) is committed and
+green. Built to the rewritten P2.1 in `docs/CHUNKS.md` (the client's direct
+branded-ordering flow, which replaces the quote-first design); that CHUNKS.md
+rewrite is committed with this chunk.
 
-**What it waits on (checked in `docs/PROGRESS.md` and git)**
-- **P1.4 (Cart, checkout and test payment) is unfinished:** its work is still
-  uncommitted on `dev` (39 changed or untracked paths, including the
-  `p1_4_cart_checkout` migration and `prisma/schema.prisma`). Its entry's
-  Checks line is still the placeholder `CHECKS_LINE`. Nothing under `src/`,
-  `prisma/` or `tests/` has changed since the P1.12 blocker commit
-  (`bb51e2e`).
-- **P1.5 to P1.12 are all marked BLOCKED** and not built.
+**Built**
+- **Schema** (`p2_1_brand_orders`): `Product.brandEligible`, `brandMinQty`
+  (the minimum, also the step), `brandUnitPricePaise` and `brandUnitLabel`;
+  `Order.type` (`store` | `brand`); `BrandOrderDetails` (logo and label
+  text, one per brand order); `BrandDraft` (one per user, saved between
+  steps). The migration also points the seeded homepage links (hero button
+  and Launch Studio panel, "Start your brand" reel, "Launch your brand"
+  offer, "Start a private-label request" quick action) at `/launch`, only
+  where they still hold the seeded `/#launch`.
+- **Rules** (`src/lib/brand.ts`): a quantity must be a positive multiple of
+  the minimum; + adds the minimum, − takes it off, never below it; a typed
+  number moves up to the next multiple. A cap keeps any order within 1,00,000
+  units and ₹1 crore.
+- **`/launch`** (sign-in required, any user type and verification status),
+  four steps with the Stepper; a step only opens once the ones before it are
+  done (`furthestStep`):
+  1. Product: search and form chips over eligible products, with minimum and
+     brand price.
+  2. Packaging: logo upload (`POST /api/launch/logo`: PNG, JPEG or PDF, type
+     from the bytes, 5 MB, same-origin check, 20 per hour per user; no SVG),
+     brand name (required), tagline, "Marketed by" name and address, contact
+     number and notes, all with Zod limits.
+  3. Quantity: starts at the minimum; price, GST and total update live.
+  4. Review and pay: summary with the logo preview and Edit links, a
+     delivery address (the checkout address picker, reused), then the P1.4
+     test payment screen.
+- **Orders** (`src/server/brand/orders.ts`): `placeBrandOrder` locks the
+  draft, checks every step again (product still eligible, packaging valid,
+  logo present, quantity a multiple of the minimum), prices from the
+  database, compares the total the page showed, and creates an `Order` of
+  type `brand` with one line (price tier `brand`) and its details; the draft
+  is removed in the same transaction and its logo moves to the order. Same
+  checkout key = same order. The checkout switch and maintenance mode stop
+  brand orders too.
+- **Payment**: the shared pay and failed pages work for brand orders ("Back to
+  My Brand" instead of the cart); success goes to `/my-brand/[id]`.
+  `completePayment` takes no stock and clears no cart for a brand order,
+  earns no coins, issues the P1.6 invoice, and sends the brand messages.
+- **My Brand**: `/my-brand` lists brand orders (and a "Continue your order"
+  link for a draft); `/my-brand/[id]` shows the progress stepper (Placed,
+  Paid, Label proof, Production, Dispatch), what happens next, Pay now / Try
+  again, the logo and label details, address, totals and invoice. Store
+  order history (`/orders`) lists store orders only; `/orders/[id]` sends a
+  brand order to its My Brand page.
+- **Logos** are private: `/api/launch/logo` (the draft's, owner only) and
+  `/api/brand-orders/[id]/logo` (owner, or an admin with the orders area);
+  anyone else gets a 404. Images open inline or download with `?download=1`;
+  PDFs always download. `no-store` and `nosniff`.
+- **Shell**: the mobile dock's Cart is now **My Brand**; the header bag shows
+  on phones too. DESIGN.md updated.
+- **Admin**:
+  - `/admin/catalogue`: a Launch Your Brand section on the product form
+    (switch, minimum, price, unit; all three needed to switch it on) and a
+    "Brand" badge in the list.
+  - `/admin/catalogue/brand-import`: CSV import (product slug or exact name,
+    minimum, price in rupees, unit). The preview shows each row's match or
+    error; apply sends the same text back, which is checked again and applied
+    only if every row is valid. Each change is in the audit log
+    (`product.brand_import`). 200 KB and 500 rows at most.
+  - `/admin/brand-orders` (orders area): list with search (number, brand,
+    name, phone, email), status and date filters; detail with the logo
+    (view and download), label text, product and quantity, payment, invoice,
+    delivery address and the customer's type, verification and contact.
+  - `/admin/orders` now lists store orders only. Cancelling a brand order
+    puts no stock back.
+- **Notifications** (dev log, `src/server/notify/brand.ts`): to the customer
+  on payment (their P1.10 preferences apply), and to every super or orders
+  admin on a paid brand order.
+- **Seed**: sample brand terms on four sample products (Punarnava Mandoor 50
+  bottles at ₹180, Triphala Churna 25 jars at ₹120, Dashmoolarishta 12
+  bottles at ₹210, Vasavaleha 4 jars at ₹260), applied to existing sample
+  products only while their minimum was never set.
 
-**Why not just go on:** P2.1 adds `Product.privateLabel`, `BrandRequest` and
-`BrandRequestEvent`. That migration would stack on P1.4's uncommitted
-migration, and P2.1's commits couldn't be kept apart from P1.4's work. The
-mobile dock change (Cart becomes My Brand) also touches P1.4's cart.
+**Decisions**
+- Field named `brandUnitPricePaise` (the spec's `brandUnitPrice`), matching
+  the other `...Paise` columns.
+- The logo is required to finish step 2.
+- Brand orders are made to order: no store stock is taken or returned.
+- Brand orders don't earn or use Super Coins, and the store's delivery
+  charge rule applies (free above the threshold, which most brand orders
+  pass). One price per product for every user type. These follow the
+  client's notes so far; see Later.
+- A delivery address is picked on the review step: the order needs one, and
+  P2.2's dispatch uses it.
+- One-product-per-order and the status flow stop at "paid" here; the label
+  proof and production statuses are P2.2.
 
-**Still useful for the run that builds P2.1:** the notes in the earlier entry
-still apply. Use `Storage` (P1.2) for the logo, the dev notifier, the Stepper,
-`AdminLog`, and P1.11's per-area permission check if it exists by then. Keep
-status transitions in one table in `src/server/` so P2.2 can extend it.
+**Known gaps**
+- `/admin/orders/[id]` still opens a brand order by its id and offers the
+  store shipment panel; P2.2 should hold dispatch until the proof is
+  approved.
+- Abandoned draft logos stay in storage until the user replaces the logo or
+  places the order.
+- Reports count brand orders in sales without a separate split.
 
-**Next steps**
-1. Verify and commit P1.4 (all five checks green), then run P1.5 to P1.12 in
-   order, replacing their BLOCKED entries.
-2. Re-queue P2.1. It can then replace this entry.
+**Tests**
+- Vitest: `src/lib/brand.test.ts` (step and minimum rules, cap, terms,
+  contact numbers) and `src/server/brand/brand.test.ts` (eligible list,
+  step gating, logo type and replacement, packaging limits, server-side
+  quantity step, pricing and total check, double submit, foreign address,
+  payment with no stock or coins, messages to the right admins, cancel
+  without restock, ownership of orders and logos, product form rules, CSV
+  parsing, preview errors and apply). Existing tests updated for the new
+  payment outcome field, the `/launch` link and the admin access scan.
+- Playwright `tests/e2e/brand.spec.ts` on phone and desktop: sign-in
+  redirect, step gating, SVG refused, required fields, + / − by the minimum
+  and a typed number snapping, address, payment failure then retry and
+  success, My Brand (from the dock on phones), stock unchanged, a stranger
+  gets 404s, and the orders admin's view and logo download; plus the CSV
+  import with a blocked preview and a clean apply. axe, sideways scroll and
+  console errors checked on every step. `shell.spec.ts` (dock, phone bag)
+  and `admin.spec.ts` (nav link names) updated.
+- Screens looked at by screenshot at 375 and 1280 px (steps 1 to 4 and My
+  Brand).
 
-Nothing was changed apart from this entry. No P2.1 code was written and checks
-were not run. The tree still holds P1.4's uncommitted work.
+**Checks:** typecheck, lint, test (634), test:e2e (232 passed, 6 skipped by design; the exclusive specs ran) and build (run by the e2e web server) pass.
+
+**Next:** P2.2 (label proof and production) builds on `Order.type = brand`,
+`BrandOrderDetails` and `/my-brand/[id]`'s stepper.
 
 ## P2.2. Launch Your Brand: quote, label proof and production (BLOCKED, 2026-10-01)
 

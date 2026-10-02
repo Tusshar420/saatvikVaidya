@@ -115,6 +115,7 @@ model User {
   settingHistory          SettingHistory[]       @relation("SettingHistoryChangedBy")
   twoFactors              TwoFactor[]
   adminInvitesSent        AdminInvite[]          @relation("AdminInviteSender")
+  brandDraft              BrandDraft?
 
   @@index([userTypeId])
 }
@@ -674,16 +675,26 @@ model Product {
   sortOrder              Int             @default(0)
   /// Seeded example, not a real product: the site labels it "Sample".
   isSample               Boolean         @default(false)
+  /// Launch Your Brand (P2.1): can be ordered in the buyer's own packaging.
+  brandEligible          Boolean         @default(false)
+  /// Smallest branded order, which is also the step: 4 allows 4, 8, 12...
+  brandMinQty            Int?
+  /// Branded price per unit, including GST, in paise (one price for everyone).
+  brandUnitPricePaise    Int?
+  /// What one unit is called on Launch Your Brand, e.g. "bottles".
+  brandUnitLabel         String?         @db.VarChar(30)
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
   images                 ProductImage[]
   bulkTiers              BulkPriceTier[]
   cartItems              CartItem[]
   orderItems             OrderItem[]
+  brandDrafts            BrandDraft[]
 
   @@index([active, sortOrder])
   @@index([brandId])
   @@index([formId])
+  @@index([brandEligible, active])
 }
 
 /// A product photo, stored in Storage (src/server/storage) and served by
@@ -802,24 +813,32 @@ enum OrderStatus {
 
 /// An order. Prices, tax and the delivery address are copied in when it is
 /// placed and never recomputed afterwards.
+/// "store": the cart and checkout (P1.4). "brand": a Launch Your Brand
+/// order in the buyer's own packaging (P2.1), one product, no cart.
+enum OrderType {
+  store
+  brand
+}
+
 model Order {
-  id                String      @id @db.VarChar(32)
+  id                String             @id @db.VarChar(32)
   /// Shown to the customer, e.g. "SV-7K2Q9F4M".
-  number            String      @unique @db.VarChar(20)
+  number            String             @unique @db.VarChar(20)
+  type              OrderType          @default(store)
   /// Null only if the account was deleted; the order is kept for records.
-  userId            String?     @db.VarChar(64)
-  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId            String?            @db.VarChar(64)
+  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   /// Random key from the checkout page, so a double submit places one order.
-  checkoutKey       String      @db.VarChar(36)
-  status            OrderStatus @default(pending_payment)
-  shipName          String      @db.VarChar(100)
-  shipPhone         String      @db.VarChar(20)
-  shipLine1         String      @db.VarChar(200)
-  shipLine2         String?     @db.VarChar(200)
-  shipLandmark      String?     @db.VarChar(120)
-  shipCity          String      @db.VarChar(100)
-  shipState         String      @db.VarChar(4)
-  shipPincode       String      @db.Char(6)
+  checkoutKey       String             @db.VarChar(36)
+  status            OrderStatus        @default(pending_payment)
+  shipName          String             @db.VarChar(100)
+  shipPhone         String             @db.VarChar(20)
+  shipLine1         String             @db.VarChar(200)
+  shipLine2         String?            @db.VarChar(200)
+  shipLandmark      String?            @db.VarChar(120)
+  shipCity          String             @db.VarChar(100)
+  shipState         String             @db.VarChar(4)
+  shipPincode       String             @db.Char(6)
   /// Sum of the line totals (prices include GST), in paise.
   subtotalPaise     Int
   /// GST included in the subtotal, in paise.
@@ -827,27 +846,81 @@ model Order {
   shippingPaise     Int
   /// Value of the Super Coins used, taken off the items (P1.7). Spread over
   /// the lines in OrderItem.discountPaise; the total below is already net.
-  coinDiscountPaise Int         @default(0)
+  coinDiscountPaise Int                @default(0)
   /// Coins the buyer chose to use; held from their balance while the order
   /// waits for payment and returned if payment fails or it is cancelled.
-  coinsRedeemed     Int         @default(0)
+  coinsRedeemed     Int                @default(0)
   /// Items total minus coin discount plus delivery: what the buyer pays.
   totalPaise        Int
   /// When payment succeeded and stock was taken.
   paidAt            DateTime?
   /// When an admin cancelled it (stock taken by payment is put back).
   cancelledAt       DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   items             OrderItem[]
   payments          Payment[]
   shipment          Shipment?
   /// The tax invoice once paid, and a credit note if cancelled after (P1.6).
   invoices          Invoice[]
+  /// Logo and packaging details of a brand order (P2.1).
+  brandDetails      BrandOrderDetails?
 
   @@unique([userId, checkoutKey])
   @@index([userId, createdAt])
   @@index([status, createdAt])
+  @@index([type, userId, createdAt])
+  @@index([type, createdAt])
+}
+
+/// What goes on the packaging of a brand order (P2.1), copied from the
+/// buyer's BrandDraft when the order is placed. The logo file is private
+/// (Storage) and served only to the buyer and admins.
+model BrandOrderDetails {
+  orderId           String   @id @db.VarChar(32)
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  brandName         String   @db.VarChar(80)
+  tagline           String?  @db.VarChar(120)
+  marketedByName    String?  @db.VarChar(120)
+  marketedByAddress String?  @db.VarChar(300)
+  contactPhone      String?  @db.VarChar(20)
+  notes             String?  @db.VarChar(1000)
+  /// The logo's key in Storage (not a URL).
+  logoKey           String   @unique @db.VarChar(191)
+  /// The name the logo had on the buyer's device (cleaned), for display.
+  logoName          String   @db.VarChar(191)
+  /// Checked from the file's bytes on upload: PNG, JPEG or PDF.
+  logoContentType   String   @db.VarChar(64)
+  logoSizeBytes     Int
+  createdAt         DateTime @default(now())
+}
+
+/// A Launch Your Brand order in progress (P2.1): one per user, saved after
+/// each step of /launch and removed when the order is placed (its logo
+/// then belongs to the order).
+model BrandDraft {
+  userId            String   @id @db.VarChar(64)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId         Int?
+  product           Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  brandName         String?  @db.VarChar(80)
+  tagline           String?  @db.VarChar(120)
+  marketedByName    String?  @db.VarChar(120)
+  marketedByAddress String?  @db.VarChar(300)
+  contactPhone      String?  @db.VarChar(20)
+  notes             String?  @db.VarChar(1000)
+  /// True once the packaging step was saved with every required field.
+  packagingDone     Boolean  @default(false)
+  logoKey           String?  @unique @db.VarChar(191)
+  logoName          String?  @db.VarChar(191)
+  logoContentType   String?  @db.VarChar(64)
+  logoSizeBytes     Int?
+  /// Null until the quantity step is saved (and again after a product change).
+  quantity          Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([productId])
 }
 
 /// One line of an order, with the product as it was when ordered.

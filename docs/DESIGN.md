@@ -155,7 +155,8 @@ all its variants.
 - **Footer.** Brand block, Platform and Support link columns, the assistance
   note with the phone link, a legal row, and links to the policy pages.
 - **MobileDock** (`.mobile-dock`). Fixed bottom bar under 560 px with five
-  items: Home, Cart (My Brand comes in Phase 2), Orders, Coins, Profile. Labels
+  items: Home, My Brand (Launch Your Brand orders, since P2.1), Orders, Coins,
+  Profile; the cart is the bag in the header, shown on phones too. Labels
   are 11 px (not the mockup's 8 px). It respects `safe-area-inset-bottom`, and
   the body gets bottom padding so content is not hidden behind it.
 - **SkipLink** to `#main`.

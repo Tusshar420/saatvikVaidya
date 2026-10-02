@@ -24,11 +24,12 @@ export async function listOrdersForUser(
   userId: string,
   requestedPage = 1,
 ): Promise<{ orders: OrderListItem[]; page: number; pageCount: number; total: number }> {
-  const total = await db.order.count({ where: { userId } });
+  // Store orders only: brand orders (P2.1) are listed on /my-brand.
+  const total = await db.order.count({ where: { userId, type: "store" } });
   const pageCount = Math.max(1, Math.ceil(total / ORDERS_PAGE_SIZE));
   const page = Math.min(Math.max(1, requestedPage), pageCount);
   const rows = await db.order.findMany({
-    where: { userId },
+    where: { userId, type: "store" },
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     skip: (page - 1) * ORDERS_PAGE_SIZE,
     take: ORDERS_PAGE_SIZE,

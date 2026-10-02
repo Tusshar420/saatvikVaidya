@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { admin as copy } from "@/content/admin";
+import { brand as brandCopy } from "@/content/brand";
 import { MAX_BULK_TIERS, gstRates } from "@/lib/catalogue";
 import { idleForm, type FormState } from "@/server/admin/form";
 import {
@@ -17,6 +18,7 @@ import {
 } from "./form-fields";
 
 const text = copy.catalogue;
+const brandText = brandCopy.catalogue;
 const form = text.form;
 
 type Option = { id: number; name: string; active: boolean };
@@ -217,6 +219,41 @@ export function ProductForm({ action, initial, mode, options }: ProductFormProps
           inputMode="numeric"
           maxLength={5}
           required
+        />
+      </FormSection>
+
+      <FormSection title={brandText.section}>
+        <p className="text-small text-muted sm:col-span-2">{brandText.help}</p>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <CheckboxField name="brandEligible" label={brandText.eligible} values={values} />
+          {values.error("brandEligible") && (
+            <p className="text-small font-medium text-danger">{values.error("brandEligible")}</p>
+          )}
+        </div>
+        <TextField
+          name="brandMinQty"
+          label={brandText.minQty}
+          values={values}
+          inputMode="numeric"
+          maxLength={5}
+          optional
+        />
+        <TextField
+          name="brandUnitPrice"
+          label={brandText.unitPrice}
+          help={brandText.unitPriceHelp}
+          values={values}
+          inputMode="decimal"
+          maxLength={14}
+          optional
+        />
+        <TextField
+          name="brandUnitLabel"
+          label={brandText.unitLabel}
+          help={brandText.unitLabelHelp}
+          values={values}
+          maxLength={30}
+          optional
         />
       </FormSection>
 

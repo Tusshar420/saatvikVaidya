@@ -25,11 +25,13 @@ import {
   Pill,
   KeyRound,
   Settings,
+  Sparkles,
   ShieldCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
+import { brand as brandCopy } from "@/content/brand";
 import { adminSecurity } from "@/content/admin-security";
 import { adminHome } from "@/content/admin-site";
 import { roleCanAccess, type AdminArea, type AdminRoleKey } from "@/lib/admin-permissions";
@@ -69,6 +71,7 @@ const content: NavLink[] = [
 
 const rest: NavLink[] = [
   { href: "/admin/orders", area: "orders", label: copy.nav.orders, icon: Package },
+  { href: "/admin/brand-orders", area: "orders", label: brandCopy.admin.nav, icon: Sparkles },
   { href: "/admin/reports", area: "reports", label: copy.nav.reports, icon: LineChart },
   { href: "/admin/coins", area: "orders", label: copy.nav.coins, icon: Coins },
   { href: "/admin/settings", area: "settings", label: copy.nav.settings, icon: Settings },

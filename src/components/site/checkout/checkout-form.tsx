@@ -13,7 +13,7 @@ import { coins as coinCopy } from "@/content/coins";
 import { formatPaise } from "@/lib/format";
 import { addressLines, addressPhone } from "@/lib/address";
 import { cn } from "@/lib/cn";
-import { idleForm } from "@/server/admin/form";
+import { idleForm, type FormState } from "@/server/admin/form";
 import type { SavedAddress } from "@/server/checkout/addresses";
 
 const text = copy.address;
@@ -32,6 +32,14 @@ export type CheckoutFormProps = {
   } | null;
   /** Shown instead of "Place order" when online payment can't be taken. */
   paymentsOff: ReactNode | null;
+  /**
+   * For Launch Your Brand's review step (P2.1): its own place and
+   * save-address actions and button text. The store's are the defaults.
+   */
+  placeAction?: (state: FormState, formData: FormData) => Promise<FormState>;
+  saveAddress?: typeof saveAddressAction;
+  placeLabel?: string;
+  placeNote?: string;
 };
 
 /**
@@ -46,6 +54,10 @@ export function CheckoutForm({
   items,
   coinOffer,
   paymentsOff,
+  placeAction: placeOrder = placeOrderAction,
+  saveAddress = saveAddressAction,
+  placeLabel = copy.place.button,
+  placeNote = copy.place.note,
 }: CheckoutFormProps) {
   const [useCoins, setUseCoins] = useState(false);
   const canUseCoins = coinOffer !== null && coinOffer.coins > 0;
@@ -54,7 +66,7 @@ export function CheckoutForm({
   const [editing, setEditing] = useState<"new" | number | null>(
     addresses.length === 0 ? "new" : null,
   );
-  const [placeState, placeAction, placing] = useActionState(placeOrderAction, idleForm);
+  const [placeState, placeAction, placing] = useActionState(placeOrder, idleForm);
   const chosen = addresses.some((address) => address.id === selected) ? selected : null;
 
   // Closing the address form removes the focused element with it; move focus
@@ -149,7 +161,7 @@ export function CheckoutForm({
           ) : (
             <AddressForm
               key={editing}
-              action={saveAddressAction}
+              action={saveAddress}
               address={
                 editing === "new"
                   ? null
@@ -214,9 +226,9 @@ export function CheckoutForm({
               arrow
               className="w-full"
             >
-              {copy.place.button}
+              {placeLabel}
             </Button>
-            <p className="text-small text-muted">{copy.place.note}</p>
+            <p className="text-small text-muted">{placeNote}</p>
           </form>
         )}
       </OrderSummary>

@@ -27,15 +27,22 @@ type StatusForPath =
   | "delivered"
   | "returned";
 
-/** Where an order's buyer goes after checkout: pay, confirmation or failure. */
-export function checkoutPathFor(orderId: string, status: StatusForPath): string {
+/**
+ * Where an order's buyer goes after checkout: pay, confirmation or failure.
+ * A paid brand order (P2.1) has its own page on /my-brand.
+ */
+export function checkoutPathFor(
+  orderId: string,
+  status: StatusForPath,
+  type: "store" | "brand" = "store",
+): string {
   switch (status) {
     case "paid":
     case "processing":
     case "shipped":
     case "delivered":
     case "returned":
-      return `/checkout/confirmation/${orderId}`;
+      return type === "brand" ? `/my-brand/${orderId}` : `/checkout/confirmation/${orderId}`;
     case "payment_failed":
       return `/checkout/failed/${orderId}`;
     case "pending_payment":

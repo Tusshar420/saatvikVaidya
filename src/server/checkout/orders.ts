@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import type { OrderStatus, PaymentStatus } from "@/generated/prisma/client";
+import type { OrderStatus, OrderType, PaymentStatus } from "@/generated/prisma/client";
 import { ORDER_NUMBER_ALPHABET, isOrderId } from "@/lib/orders";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
@@ -338,6 +338,8 @@ export async function retryPayment(userId: string, orderId: string): Promise<Liv
 export type OrderView = {
   id: string;
   number: string;
+  /** "brand" for a Launch Your Brand order (P2.1). */
+  type: OrderType;
   status: OrderStatus;
   createdAt: Date;
   paidAt: Date | null;
@@ -403,6 +405,7 @@ export async function readOrderForUser(userId: string, orderId: string): Promise
   return {
     id: order.id,
     number: order.number,
+    type: order.type,
     status: order.status,
     createdAt: order.createdAt,
     paidAt: order.paidAt,

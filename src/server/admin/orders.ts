@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { OrderStatus, Prisma } from "@/generated/prisma/client";
+import type { OrderStatus, OrderType, Prisma } from "@/generated/prisma/client";
 import { isOrderId } from "@/lib/orders";
 import { ledgerTransaction, releaseCoins, reverseOrderEarnings } from "@/server/coins/ledger";
 import { db } from "@/server/db";
@@ -47,8 +47,12 @@ export type OrderFilters = z.infer<typeof orderFiltersSchema>;
 /** Start of a day in India ("2026-10-01" -> 1 Oct 00:00 IST). */
 const istDayStart = (day: string) => new Date(`${day}T00:00:00+05:30`);
 
-function filtersWhere(filters: OrderFilters): Prisma.OrderWhereInput {
-  const where: Prisma.OrderWhereInput = {};
+/** Where clause for the filters, for one order type (store orders or brand orders). */
+export function filtersWhere(
+  filters: OrderFilters,
+  type: OrderType = "store",
+): Prisma.OrderWhereInput {
+  const where: Prisma.OrderWhereInput = { type };
   if (filters.status) where.status = filters.status;
   if (filters.from || filters.to) {
     where.createdAt = {
@@ -189,6 +193,7 @@ export async function cancelOrder(
     where: { id: orderId },
     select: {
       status: true,
+      type: true,
       userId: true,
       shipment: { select: { id: true, status: true, awb: true, provider: true } },
     },
@@ -207,7 +212,9 @@ export async function cancelOrder(
     if (claimed.count === 0) return null;
 
     // Paid (or being prepared): the payment took the stock, so put it back.
-    const restocked = order.status === "paid" || order.status === "processing";
+    // Brand orders (P2.1) are made to order and never took stock.
+    const restocked =
+      order.type === "store" && (order.status === "paid" || order.status === "processing");
     if (restocked) {
       const items = await tx.orderItem.findMany({
         where: { orderId },

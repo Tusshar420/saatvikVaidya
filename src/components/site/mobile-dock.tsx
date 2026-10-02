@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins, House, Package, ShoppingBag, UserRound } from "lucide-react";
+import { Coins, House, Package, Sparkles, UserRound } from "lucide-react";
 import { useAuthSession } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
 import { shell } from "@/content/shell";
@@ -16,13 +16,14 @@ const labelClasses = "text-[11px] leading-tight font-bold";
 
 const links = [
   { href: "/", label: shell.dock.home, Icon: House },
-  { href: "/cart", label: shell.dock.cart, Icon: ShoppingBag },
+  { href: "/my-brand", label: shell.dock.myBrand, Icon: Sparkles },
   { href: "/orders", label: shell.dock.orders, Icon: Package },
   { href: "/coins", label: shell.dock.coins, Icon: Coins },
 ] as const;
 
 /**
- * Fixed bottom bar on phones (under 560 px): Home, Cart, Orders, Coins and
+ * Fixed bottom bar on phones (under 560 px): Home, My Brand (Launch Your
+ * Brand orders, P2.1; the cart is the bag in the header), Orders, Coins and
  * Profile (sign-in, or /account once signed in). It clears the home indicator with safe-area-inset-bottom; the
  * footer carries matching bottom padding so nothing hides behind it.
  */
@@ -38,7 +39,7 @@ export function MobileDock({ className }: { className?: string }) {
     >
       <ul className="grid grid-cols-5">
         {links.map(({ href, label, Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
           return (
             <li key={href}>
               <Link

@@ -74,11 +74,13 @@ test.describe("header", () => {
     const phoneLink = bar.getByRole("link", { name: phone });
 
     if (isMobile) {
-      // Phones: search is an icon; bag, track order and phone step aside
-      // (the dock has Cart and Orders).
+      // Phones: search is an icon; track order and phone step aside (the
+      // dock has Orders). The bag stays, since the dock's second item is
+      // My Brand (P2.1).
       await expect(searchIcon).toBeVisible();
       await expect(searchbox).toBeHidden();
-      await expect(bag).toBeHidden();
+      await expect(bag).toBeVisible();
+      await expect(bag).toHaveAttribute("href", "/cart");
       await expect(track).toBeHidden();
       await expect(phoneLink).toBeHidden();
     } else {
@@ -264,7 +266,7 @@ test.describe("mobile dock", () => {
     await expect(bar).toBeVisible();
     for (const label of [
       shell.dock.home,
-      shell.dock.cart,
+      shell.dock.myBrand,
       shell.dock.orders,
       shell.dock.coins,
     ])

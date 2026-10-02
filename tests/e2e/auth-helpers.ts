@@ -301,8 +301,22 @@ export async function cleanUpE2eData() {
   const ebookFiles = ebooks.flatMap((ebook) =>
     [ebook.fileKey, ebook.coverKey].flatMap((fileKey) => (fileKey ? [{ fileKey }] : [])),
   );
+  // Launch Your Brand logos (P2.1): on e2e users' drafts and brand orders.
+  const brandLogos = [
+    ...(await db.brandDraft.findMany({ where: { userId: { in: ids } }, select: { logoKey: true } })),
+    ...(await db.brandOrderDetails.findMany({
+      where: { order: { userId: { in: ids } } },
+      select: { logoKey: true },
+    })),
+  ].flatMap(({ logoKey }) => (logoKey ? [{ fileKey: logoKey }] : []));
   const storageDir = resolve(process.env.STORAGE_DIR ?? "storage");
-  for (const { fileKey } of [...documents, ...productImages, ...invoiceFiles, ...ebookFiles]) {
+  for (const { fileKey } of [
+    ...documents,
+    ...productImages,
+    ...invoiceFiles,
+    ...ebookFiles,
+    ...brandLogos,
+  ]) {
     const path = resolve(storageDir, fileKey);
     if (path.startsWith(`${storageDir}${sep}`)) await rm(path, { force: true });
   }
@@ -358,6 +372,7 @@ export async function cleanUpE2eData() {
           // Per-account limits of e2e users (keys are lowercased).
           { key: { in: ids.map((id) => `order-place:user:${id.toLowerCase()}`) } },
           { key: { in: ids.map((id) => `ebook-download:user:${id.toLowerCase()}`) } },
+          { key: { in: ids.map((id) => `brand-logo-upload:user:${id.toLowerCase()}`) } },
           { key: { in: orderNumbers } },
           { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
           { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },

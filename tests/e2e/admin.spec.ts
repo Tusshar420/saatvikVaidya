@@ -101,7 +101,10 @@ test.describe("as an admin", () => {
       copy.nav.orders,
       copy.nav.settings,
     ]) {
-      await expect(nav.getByRole("link", { name: label })).toHaveCount(1);
+      // Starts with the label: "Approvals" carries a count, and "Orders"
+      // mustn't match "Brand orders" (P2.1).
+      const name = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+      await expect(nav.getByRole("link", { name })).toHaveCount(1);
     }
     await expect(
       nav.getByRole("link", { name: copy.nav.dashboard }),

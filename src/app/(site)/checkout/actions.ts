@@ -110,7 +110,7 @@ export async function simulatePaymentAction(formData: FormData): Promise<void> {
   if (!result || result.orderId !== orderId) notFound();
   // The bag count changes after a successful payment.
   revalidatePath("/", "layout");
-  redirect(checkoutPathFor(result.orderId, result.status));
+  redirect(checkoutPathFor(result.orderId, result.status, result.type));
 }
 
 /** "Try again" (or "Continue to payment"): a new attempt on the same order. */

@@ -28,7 +28,7 @@ export default async function ConfirmationPage({
   const { user } = await requireUser(`/checkout/confirmation/${orderId}`);
   const order = await readOrderForUser(user.id, orderId);
   if (!order) notFound();
-  const path = checkoutPathFor(order.id, order.status);
+  const path = checkoutPathFor(order.id, order.status, order.type);
   if (!path.startsWith("/checkout/confirmation/")) redirect(path);
 
   return (
