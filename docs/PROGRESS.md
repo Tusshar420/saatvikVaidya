@@ -3231,3 +3231,39 @@ plugin in `src/server/auth/index.ts`. The installed version (better-auth
 1.7.6) has no option to store codes hashed, so hashing needs its own work:
 either hash them where the plugin writes and checks them, or upgrade to a
 version that supports it. `src/server/auth/otp.test.ts` should cover it.
+
+## G.4. File storage (BLOCKED, 2026-10-03)
+
+Not started. Three things stop it (checked on 2026-10-03, latest commit
+`715778f`):
+
+- **G.1, G.2 and G.3 are blocked.** All three have only BLOCKED entries and
+  no code. Go-live chunks run in order, so G.4 waits for them.
+- **CLAUDE.md still forbids it.** The "No real integrations yet" rule still
+  lists R2, and the Go-live gate in `docs/CHUNKS.md` says these chunks may
+  only start once that rule is updated. The standing run notes also say files
+  use local storage.
+- **No client account or keys.** `.env.local` and `.env.example` have no R2
+  account id, access key id, secret access key, bucket names or public bucket
+  URL; the only storage setting is `STORAGE_DIR`.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+
+**To unblock (a person decides):** finish G.1 to G.3 first, or say that G.4
+may go ahead of them. Then create the R2 bucket(s), add the account id, access
+keys and bucket names to `.env.local` (names with placeholders in
+`.env.example`), and update CLAUDE.md's "No real integrations yet" rule (and
+the run notes) to allow R2. Then rerun G.4 and replace this entry with the
+real one.
+
+Notes for that run: the R2 implementation plugs in behind `Storage` in
+`src/server/storage/index.ts` (`put`, `get` returning a stream and size,
+`delete`); `getStorage()` currently always returns the local-disk one, so it
+needs a `STORAGE_PROVIDER`-style switch, with local disk kept for development.
+Today every file is private and served only through routes that check access.
+Keys are made by `newFileKey()` in these folders: `documents`, `invoices`,
+`brand-logos`, `brand-proofs`, `products`, `ebooks` and `ebook-covers`.
+Product images and ebook covers are the likely candidates for a public bucket;
+deciding that also means changing how their URLs are built.
+The migration of existing local files should be a script that copies each key
+under `STORAGE_DIR` to the matching bucket and can be rerun safely.
