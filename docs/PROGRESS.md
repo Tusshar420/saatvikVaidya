@@ -3047,3 +3047,23 @@ move on, seen in earlier runs too; no test failed on them.
 
 **Next:** Phase 2 is done. Go-live (G.1 onwards) waits for the client's
 accounts and keys and the CLAUDE.md "no real integrations" rule change.
+
+## P3.2. Vaidya Community (BLOCKED, 2026-10-02)
+
+Not started. Two things stop it (checked in git, schema and docs on
+2026-10-02, latest commit `a5a138c`):
+
+- **P3.1 (Courses and Saatvik Live) is missing.** It has no entry in this
+  file and no commit. There is no `/courses` or `/community` route, and
+  `prisma/schema.prisma` has no course, lesson, reservation or community
+  models. Only the A4 homepage `CourseTeaser` and `LiveSession` tables
+  exist. Phase 3 chunks run in order, so P3.2 waits for P3.1.
+- **Phase 3 hasn't started.** The current phase is Go-live (G.1 to G.6),
+  which runs before Phase 3 and is waiting for the client's keys. No
+  Phase 3 work should start until Go-live is finished or the plan changes.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+
+**For the run that builds P3.2:** first run P3.1 (once Phase 3 is open).
+Then replace this entry with the real one. Community coin rewards should
+credit through `CoinLedger` with a unique reference (see the P1.7 entry).
