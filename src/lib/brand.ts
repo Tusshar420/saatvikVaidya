@@ -132,3 +132,21 @@ export function isContactNumber(value: string): boolean {
   const digits = value.replace(/\D/g, "").length;
   return digits >= 8 && digits <= 15;
 }
+
+export const brandSorts = ["featured", "price-asc", "price-desc", "name", "newest"] as const;
+export type BrandSort = (typeof brandSorts)[number];
+
+/** Step 1 with these filters, e.g. { form: "syrup", minPrice: "100" }; defaults left out. */
+export function launchHref(
+  filters: Partial<Record<"q" | "form" | "area" | "maker" | "minPrice" | "maxPrice" | "sort" | "page", string | number>> = {},
+): string {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(filters)) {
+    if (value === undefined || value === "") continue;
+    if (name === "sort" && value === "featured") continue;
+    if (name === "page" && Number(value) <= 1) continue;
+    query.set(name, String(value));
+  }
+  const text = query.toString();
+  return text ? `/launch?${text}` : "/launch";
+}

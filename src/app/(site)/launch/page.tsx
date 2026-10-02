@@ -3,12 +3,15 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CreditCard, PackageSearch, Phone, Search } from "lucide-react";
+import { CreditCard, PackageSearch, Phone, Search, X } from "lucide-react";
 import { saveBrandAddressAction, placeBrandOrderAction } from "@/app/(site)/launch/actions";
+import { LaunchFilterPanel } from "@/components/site/brand/launch-filters";
 import { ChooseProductButton } from "@/components/site/brand/choose-product-button";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
 import { PackagingForm } from "@/components/site/brand/packaging-form";
 import { QuantityForm } from "@/components/site/brand/quantity-form";
+import { CataloguePagination } from "@/components/site/catalogue/catalogue-pagination";
+import { FormChips } from "@/components/site/catalogue/form-chips";
 import { ProductVisual } from "@/components/site/catalogue/product-visual";
 import { CheckoutForm } from "@/components/site/checkout/checkout-form";
 import { Badge, Eyebrow } from "@/components/ui/badge";
@@ -20,12 +23,13 @@ import { Stepper } from "@/components/ui/stepper";
 import { brand as copy } from "@/content/brand";
 import { checkout as checkoutCopy } from "@/content/checkout";
 import { checkoutOff as paused } from "@/content/maintenance";
-import { launchStepNumber } from "@/lib/brand";
+import { launchHref, launchStepNumber } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
 import { requireUser } from "@/server/auth/session";
 import {
+  brandFiltersSchema,
   furthestStep,
   listBrandProducts,
   readDraft,
@@ -41,8 +45,6 @@ export const metadata: Metadata = {
   title: copy.launch.metaTitle,
   robots: { index: false, follow: false },
 };
-
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 /**
  * Launch Your Brand (P2.1, sign-in required): order a product in your own
@@ -78,7 +80,7 @@ export default async function LaunchPage({ searchParams }: PageProps<"/launch">)
         <p className="text-label text-teal uppercase">
           {copy.launch.stepOf(step, copy.launch.steps.length)}
         </p>
-        {step === 1 && <ProductStep draft={draft} q={first(params.q)} form={first(params.form)} />}
+        {step === 1 && <ProductStep draft={draft} params={params} />}
         {step === 2 && draft?.product && <PackagingStep draft={draft} />}
         {step === 3 && draft?.product && <QuantityStep draft={draft} product={draft.product} />}
         {step === 4 && draft?.product && (
@@ -104,25 +106,18 @@ function StepHeading({ title, line }: { title: string; line: string }) {
 
 async function ProductStep({
   draft,
-  q,
-  form,
+  params,
 }: {
   draft: BrandDraftView | null;
-  q: string | undefined;
-  form: string | undefined;
+  params: Record<string, string | string[] | undefined>;
 }) {
-  const query = q?.trim().slice(0, 100) || undefined;
-  const listing = await listBrandProducts({ q: query, form });
-  const formKey = listing.forms.some((option) => option.key === form) ? form : undefined;
+  const listing = await listBrandProducts(brandFiltersSchema.parse(params));
+  const { filters, products } = listing;
   const chosenId = draft?.product?.id ?? null;
   const text = copy.product;
-  const href = (next: { form?: string }) => {
-    const search = new URLSearchParams();
-    if (query) search.set("q", query);
-    if (next.form) search.set("form", next.form);
-    const value = search.toString();
-    return value ? `/launch?${value}` : "/launch";
-  };
+  const filterText = text.filters;
+  const hrefFor = (next: Partial<Record<keyof typeof filters, string | number | undefined>>) =>
+    launchHref({ ...filters, ...next, page: undefined });
 
   if (listing.totalEligible === 0) {
     return (
@@ -138,6 +133,28 @@ async function ProductStep({
       </>
     );
   }
+
+  const nameOf = (options: { key: string; name: string }[], key?: string) =>
+    options.find((option) => option.key === key)?.name;
+  const rupees = (n: number) => formatPaise(n * 100);
+  const priceChip =
+    filters.minPrice !== undefined && filters.maxPrice !== undefined
+      ? filterText.priceRange(rupees(filters.minPrice), rupees(filters.maxPrice))
+      : filters.minPrice !== undefined
+        ? filterText.priceFrom(rupees(filters.minPrice))
+        : filters.maxPrice !== undefined
+          ? filterText.priceUpTo(rupees(filters.maxPrice))
+          : undefined;
+  const chips = (
+    [
+      [["q"], filters.q && filterText.search(filters.q)],
+      [["form"], nameOf(listing.forms, filters.form)],
+      [["area"], nameOf(listing.areas, filters.area)],
+      [["maker"], nameOf(listing.makers, filters.maker)],
+      [["minPrice", "maxPrice"], priceChip],
+    ] as [(keyof typeof filters)[], string | undefined][]
+  ).filter((chip): chip is [(keyof typeof filters)[], string] => Boolean(chip[1]));
+  const resultsLabel = filters.q ? text.resultsFor(listing.total, filters.q) : text.results(listing.total);
 
   return (
     <>
@@ -156,7 +173,13 @@ async function ProductStep({
       )}
 
       <form method="get" action="/launch" role="search" aria-label={text.searchLabel} className="mt-5 flex max-w-xl gap-2">
-        {formKey && <input type="hidden" name="form" value={formKey} />}
+        {(["form", "area", "maker", "minPrice", "maxPrice", "sort"] as const).map(
+          (name) =>
+            filters[name] !== undefined &&
+            !(name === "sort" && filters.sort === "featured") && (
+              <input key={name} type="hidden" name={name} value={filters[name]} />
+            ),
+        )}
         <label htmlFor="launch-q" className="sr-only">
           {text.searchLabel}
         </label>
@@ -169,7 +192,7 @@ async function ProductStep({
             id="launch-q"
             type="search"
             name="q"
-            defaultValue={query ?? ""}
+            defaultValue={filters.q ?? ""}
             placeholder={text.searchPlaceholder}
             maxLength={100}
             className={cn(inputClasses, "pl-10")}
@@ -180,73 +203,122 @@ async function ProductStep({
         </Button>
       </form>
 
-      {listing.forms.length > 1 && (
-        <nav aria-label={text.formsLabel} className="mt-4">
-          <ul className="-mx-1 flex scrollbar-none gap-2 overflow-x-auto px-1 py-1">
-            {[{ key: undefined, name: text.allForms }, ...listing.forms].map((option) => {
-              const current = formKey === option.key;
-              return (
-                <li key={option.key ?? "all"} className="shrink-0">
-                  <Link
-                    href={href({ form: option.key })}
-                    aria-current={current ? "true" : undefined}
-                    className={cn(
-                      "inline-flex min-h-11 items-center rounded-sm border px-3.5 text-sm font-semibold whitespace-nowrap transition",
-                      current
-                        ? "border-teal bg-teal-soft font-extrabold text-teal"
-                        : "border-line bg-surface text-ink hover:border-teal/60",
-                    )}
-                  >
-                    {option.name}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      )}
+      <div className="mt-4">
+        <FormChips
+          forms={listing.forms}
+          filters={filters}
+          hrefFor={(form) => hrefFor({ form })}
+          allLabel={text.allForms}
+          label={text.formsLabel}
+        />
+      </div>
 
-      {listing.products.length === 0 ? (
-        <p className="mt-6 text-body text-muted">{text.empty}</p>
-      ) : (
-        <ul aria-label={text.listLabel} className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {listing.products.map((product) => (
-            <ProductChoice key={product.id} product={product} chosen={product.id === chosenId} />
-          ))}
-        </ul>
-      )}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
+        <aside className="lg:sticky lg:top-40 lg:self-start">
+          <LaunchFilterPanel
+            forms={listing.forms}
+            areas={listing.areas}
+            makers={listing.makers}
+            filters={filters}
+            priceRange={listing.priceRange}
+            activeCount={chips.length}
+          />
+        </aside>
+
+        <section aria-labelledby="launch-results" className="min-w-0">
+          <div className="mb-4 flex flex-col gap-3">
+            <h3 id="launch-results" aria-live="polite" className="text-base font-extrabold text-ink">
+              {resultsLabel}
+            </h3>
+            {chips.length > 0 && (
+              <ul aria-label={filterText.active} className="flex flex-wrap gap-2">
+                {chips.map(([names, label]) => (
+                  <li key={names.join("-")}>
+                    <Link
+                      href={hrefFor(Object.fromEntries(names.map((name) => [name, undefined])))}
+                      aria-label={filterText.remove(label)}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-teal bg-teal-soft px-3 text-sm font-bold text-teal transition hover:bg-surface"
+                    >
+                      {label}
+                      <X aria-hidden className="size-4" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {products.length === 0 ? (
+            <EmptyState
+              as="h3"
+              icon={<PackageSearch aria-hidden />}
+              title={text.empty}
+              action={
+                <Link href="/launch" className={buttonClasses({ variant: "secondary" })}>
+                  {text.clearAll}
+                </Link>
+              }
+            />
+          ) : (
+            <>
+              <ul aria-label={text.listLabel} className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                {products.map((product) => (
+                  <ProductChoice key={product.id} product={product} chosen={product.id === chosenId} />
+                ))}
+              </ul>
+              <CataloguePagination
+                basePath="/launch"
+                params={{ ...filters, page: undefined, sort: filters.sort === "featured" ? undefined : filters.sort, minPrice: filters.minPrice?.toString(), maxPrice: filters.maxPrice?.toString() }}
+                page={listing.page}
+                pageCount={listing.pageCount}
+              />
+            </>
+          )}
+        </section>
+      </div>
     </>
   );
 }
 
+/**
+ * One product in the brand catalogue: the store card's picture-on-top
+ * layout, but with the branded price, minimum order and step in a teal panel
+ * (the retail price isn't shown) and a Choose button instead of Add to cart.
+ */
 function ProductChoice({ product, chosen }: { product: BrandProduct; chosen: boolean }) {
   const text = copy.product;
   const { terms } = product;
   return (
     <li
       className={cn(
-        "flex min-w-0 gap-3 rounded-lg border bg-surface p-3 shadow-card sm:p-4",
+        "flex min-w-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-card",
         chosen ? "border-teal" : "border-line",
       )}
     >
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-md border border-line bg-surface-alt">
+      <div className="relative aspect-4/3 overflow-hidden border-b border-line bg-surface-alt">
         <ProductVisual image={product.image} glyph={product.glyph} />
+        <div className="absolute top-2 left-2 flex flex-col items-start gap-1.5">
+          <Badge variant="teal">{text.catalogueTag}</Badge>
+          {chosen && <Badge variant="live">{text.chosen}</Badge>}
+        </div>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h3 className="text-[15px] leading-snug font-bold text-ink sm:text-base">{product.name}</h3>
+      <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+        {product.makerName && <p className="truncate text-label text-muted uppercase">{product.makerName}</p>}
+        <h4 className="text-[15px] leading-snug font-bold text-ink sm:text-base">{product.name}</h4>
         <p className="text-small text-muted">
           {product.formName} · {product.packSize}
         </p>
-        <p className="text-sm font-extrabold text-ink">
-          {text.price(formatPaise(terms.unitPricePaise))}
-          <span className="block text-small font-medium text-muted">{text.priceNote}</span>
-        </p>
-        <p className="text-small font-bold text-teal">
-          {text.minimum(terms.minQty, terms.unitLabel)}
-          {terms.minQty > 1 && <span className="block font-medium text-muted">{text.steps(terms.minQty)}</span>}
-        </p>
-        {chosen && <Badge variant="teal" className="w-fit">{text.chosen}</Badge>}
-        <div className="mt-auto pt-2">
+        <div className="mt-2 rounded-md bg-teal-soft/60 p-2.5">
+          <p className="text-sm font-extrabold text-ink">
+            {text.price(formatPaise(terms.unitPricePaise))}
+            <span className="block text-small font-medium text-muted">{text.priceNote}</span>
+          </p>
+          <p className="mt-1.5 text-small font-bold text-teal">
+            {text.minimum(terms.minQty, terms.unitLabel)}
+            {terms.minQty > 1 && <span className="block font-medium text-muted">{text.steps(terms.minQty)}</span>}
+          </p>
+        </div>
+        <div className="mt-auto pt-3">
           <ChooseProductButton productId={product.id} productName={product.name} chosen={chosen} />
         </div>
       </div>

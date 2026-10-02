@@ -3452,3 +3452,34 @@ scrolled the homepage instead of opening `/launch`.
   (demo)" from `pnpm db:seed:demo` (until 2026-10-04), so the homepage shows
   that quiz. Not caused by this fix; it passes once the demo quiz is closed
   or removed.
+
+## Launch page: brand catalogue with filters (2026-10-03)
+
+A request outside the chunk list: Launch step 1 now lists the private-label
+products the way the store listing does.
+
+- **Built:** `listBrandProducts` takes search, product type (`form`), practice
+  area, brand (`maker`), a branded-price range (`minPrice`/`maxPrice`, whole
+  rupees), sort and page (12 per page, same as the store). `brandFiltersSchema`
+  parses the URL (invalid values dropped). Step 1 shows the search box, the
+  shop's `FormChips` (now with optional `hrefFor`/labels) and `CataloguePagination`,
+  a new `LaunchFilterPanel` (`components/site/brand/launch-filters.tsx`: selects,
+  two-handle price range made of two range inputs, sort; a toggle on phones,
+  sidebar from 1100 px), removable filter chips and a result count. Cards are
+  picture-on-top with a "Private label" tag and a teal panel with the branded
+  price, minimum order and step; no retail price. Copy in
+  `brand.product.filters`; `launchHref`/`brandSorts` in `src/lib/brand.ts`.
+- **Decisions:** the store listing has no price filter, so the slider exists
+  only here. Facets list only values with an eligible product. A range end at
+  the cheapest/dearest price means no limit; a flipped range is swapped.
+  Bulk-tier prices aren't shown: brand terms hold one price and minimum.
+  Replaced the old 60-product cap with pages.
+- **Tests:** unit test for price filter, sort, flipped range and paging; e2e in
+  `brand.spec.ts` (empty state, panel on phone, slider, chip) at 375 and
+  1280 px with axe and overflow checks.
+- **Checks:** typecheck, lint, test (710) and build pass. Full e2e: 247 passed,
+  1 failed (`quiz.last.spec.ts` "no quiz open", the demo quiz from
+  `db:seed:demo`, as above; 12 tests after it did not run). The new brand
+  filter test deletes its product at the end so the admin catalogue list
+  (25 per page) in other specs isn't pushed past page 1 when specs run in
+  parallel.

@@ -136,7 +136,35 @@ describe("eligible products", () => {
     const searched = await listBrandProducts({ q: "Vasavaleha" });
     expect(searched.products.map((product) => product.slug)).toEqual(["vasavaleha"]);
     const byForm = await listBrandProducts({ form: "no-such-form" });
-    expect(byForm.products).toEqual([]);
+    // An unknown form is dropped, like the store listing, rather than emptying the list.
+    expect(byForm.filters.form).toBeUndefined();
+    expect(byForm.total).toBe(byForm.totalEligible);
+  });
+
+  it("filters by branded price, sorts and pages", async () => {
+    const cheap = await makeProduct(db, { brand: { minQty: 6, unitPricePaise: 11_100 } });
+    const dear = await makeProduct(db, { brand: { minQty: 6, unitPricePaise: 99_900 } });
+    const all = await listBrandProducts({});
+    expect(all.priceRange.min).toBeLessThanOrEqual(111);
+    expect(all.priceRange.max).toBeGreaterThanOrEqual(999);
+
+    const mid = await listBrandProducts({ minPrice: 112, maxPrice: 998 });
+    const ids = mid.products.map((product) => product.id);
+    expect(ids).not.toContain(cheap.id);
+    expect(ids).not.toContain(dear.id);
+    // ₹999.00 is inside "up to ₹999"; a flipped range is put right.
+    const top = await listBrandProducts({ minPrice: 999, maxPrice: 111, sort: "price-desc" });
+    expect(top.filters.minPrice).toBe(111);
+    expect(top.filters.maxPrice).toBe(999);
+    expect(top.products.map((product) => product.id)).toContain(dear.id);
+    const prices = top.products.map((product) => product.terms.unitPricePaise);
+    expect(prices).toEqual([...prices].sort((a, b) => b - a));
+
+    // The ends of the range mean no limit; a page past the end shows the last.
+    const ends = await listBrandProducts({ minPrice: all.priceRange.min, maxPrice: all.priceRange.max });
+    expect(ends.total).toBe(all.total);
+    const far = await listBrandProducts({ page: 999 });
+    expect(far.page).toBe(far.pageCount);
   });
 });
 

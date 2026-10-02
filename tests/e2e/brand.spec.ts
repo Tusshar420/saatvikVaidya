@@ -305,3 +305,46 @@ test("a catalogue admin imports brand terms from a CSV after a preview", async (
     brandUnitLabel: "packs",
   });
 });
+
+test("the brand catalogue filters by branded price and product type, like the store listing", async ({
+  page,
+  baseURL,
+  isMobile,
+}) => {
+  await useFreshIp(page);
+  const errors = collectErrors(page);
+  const product = await makeBrandProduct();
+  // Removed at the end, so the admin catalogue list in other specs stays on one page.
+  await signInAs(page, baseURL!, { role: "user", userType: "customer" });
+  const text = brand.product;
+  const choices = page.getByRole("list", { name: text.listLabel });
+  const q = encodeURIComponent(product.name);
+
+  // A price range that leaves the ₹260 product out shows the empty state.
+  await page.goto(`/launch?q=${q}&maxPrice=100`);
+  await expect(page.getByText(text.empty)).toBeVisible();
+  await page.getByRole("link", { name: text.clearAll }).click();
+  await expect(page).toHaveURL("/launch");
+
+  // The panel: open it on a phone, raise the lowest price and apply.
+  await page.goto(`/launch?q=${q}`);
+  if (isMobile) {
+    await page.getByRole("button", { name: text.filters.toggle }).click();
+  }
+  const panel = page.getByRole("form", { name: text.filters.label });
+  await expect(panel.getByRole("slider", { name: text.filters.priceMin })).toBeVisible();
+  await panel.getByRole("slider", { name: text.filters.priceMin }).fill("200");
+  await panel.getByRole("button", { name: text.filters.apply }).click();
+  await expect(page).toHaveURL(/minPrice=200/);
+  await expect(choices.getByRole("listitem")).toHaveCount(1);
+  await expect(choices).toContainText(text.catalogueTag);
+  await checkPage(page, errors);
+
+  // The active chip drops just the price filter.
+  await page.getByRole("link", { name: text.filters.remove(text.filters.priceFrom("₹200")) }).click();
+  await expect(page).not.toHaveURL(/minPrice/);
+  await expect(page).toHaveURL(/q=/);
+  await expect(choices.getByRole("listitem")).toHaveCount(1);
+
+  await e2eDb().product.delete({ where: { id: product.id } });
+});
