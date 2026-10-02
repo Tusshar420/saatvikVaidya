@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, LogOut, Package, UserRound } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, Package, UserRound } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { shell } from "@/content/shell";
 import { signIn as copy } from "@/content/sign-in";
@@ -28,7 +28,8 @@ const itemClasses =
 /**
  * The header's profile button. Signed out it opens sign-in ("My Profile /
  * Sign in / Register"); signed in it shows the avatar and opens a menu with
- * My account and Sign out. While the session is loading it shows the
+ * My account and Sign out, plus the admin panel for admins (which checks
+ * the role and two-factor itself). While the session is loading it shows the
  * signed-out look.
  */
 export function ProfileMenu({ className }: { className?: string }) {
@@ -130,6 +131,14 @@ export function ProfileMenu({ className }: { className?: string }) {
               {copy.menu.orders}
             </Link>
           </Menu.Item>
+          {user.role === "admin" && (
+            <Menu.Item asChild className={itemClasses}>
+              <Link href="/admin">
+                <LayoutDashboard aria-hidden />
+                {copy.menu.admin}
+              </Link>
+            </Menu.Item>
+          )}
           <Menu.Item
             className={itemClasses}
             onSelect={() => void signOut(focusKey)}

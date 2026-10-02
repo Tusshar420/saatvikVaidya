@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, BookOpen, ChevronRight, Coins, MapPin, Package, Phone, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BadgeCheck, BookOpen, ChevronRight, Coins, LayoutDashboard, MapPin, Package, Phone, ShieldCheck, type LucideIcon } from "lucide-react";
 import { NameForm, NotificationsForm, PasswordForm, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { DocumentUpload } from "@/components/site/account/document-upload";
@@ -71,7 +71,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
           </FormAlert>
         )}
 
-        <Shortcuts />
+        <Shortcuts isAdmin={user.role === "admin"} />
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <Card as="section" aria-labelledby="account-details">
@@ -169,7 +169,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
   );
 }
 
-const shortcutLinks: { href: string; icon: LucideIcon; text: { label: string; help: string } }[] = [
+type ShortcutLink = { href: string; icon: LucideIcon; text: { label: string; help: string } };
+
+const shortcutLinks: ShortcutLink[] = [
   { href: "/orders", icon: Package, text: copy.shortcuts.orders },
   { href: "/coins", icon: Coins, text: copy.shortcuts.coins },
   { href: "/account#account-ebooks", icon: BookOpen, text: copy.shortcuts.ebooks },
@@ -177,12 +179,18 @@ const shortcutLinks: { href: string; icon: LucideIcon; text: { label: string; he
   { href: "/account#account-status", icon: ShieldCheck, text: copy.shortcuts.verification },
 ];
 
-/** Links to the rest of the signed-in area. */
-function Shortcuts() {
+const adminLink: ShortcutLink = { href: "/admin", icon: LayoutDashboard, text: copy.shortcuts.admin };
+
+/**
+ * Links to the rest of the signed-in area. Admins also get a link to the
+ * admin panel, which checks their role and two-factor itself.
+ */
+function Shortcuts({ isAdmin }: { isAdmin: boolean }) {
+  const links = isAdmin ? [adminLink, ...shortcutLinks] : shortcutLinks;
   return (
     <nav aria-label={copy.shortcuts.title} className="mt-8">
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {shortcutLinks.map(({ href, icon: Icon, text }) => (
+        {links.map(({ href, icon: Icon, text }) => (
           <li key={href}>
             <Link
               href={href}

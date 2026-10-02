@@ -37,6 +37,7 @@ export const account = {
 
   shortcuts: {
     title: "Quick links",
+    admin: { label: "Admin panel", help: "Manage the store and approvals." },
     orders: { label: "My orders", help: "Track and review your orders." },
     coins: { label: "Super Coins", help: "Your balance and history." },
     ebooks: { label: "My ebooks", help: "Download what you've bought." },

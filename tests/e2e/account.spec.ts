@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { account } from "../../src/content/account";
 import { admin } from "../../src/content/admin";
 import { checkout } from "../../src/content/checkout";
+import { signIn } from "../../src/content/sign-in";
 import { e2eDb, freshIp, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
@@ -36,6 +37,7 @@ test("a customer edits their name, changes their password and sets notification 
     "href",
     "/orders",
   );
+  await expect(links.getByRole("link", { name: new RegExp(account.shortcuts.admin.label) })).toHaveCount(0);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("account.png"), fullPage: true });
@@ -135,6 +137,27 @@ test("a customer adds, edits and deletes a saved address", async ({ page, baseUR
 test("an admin sees the reports and downloads a logged CSV; others can't", async ({ page, baseURL, browser }, testInfo) => {
   const errors = collectErrors(page);
   const adminUser = await signInAs(page, baseURL!, { role: "admin" });
+
+  // The account page links admins to the admin panel.
+  await page.goto("/account");
+  const adminLink = page
+    .getByRole("navigation", { name: account.shortcuts.title })
+    .getByRole("link", { name: new RegExp(account.shortcuts.admin.label) });
+  await expect(adminLink).toHaveAttribute("href", "/admin");
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  await page.screenshot({ path: testInfo.outputPath("account-admin.png"), fullPage: true });
+  await adminLink.click();
+  await expect(page).toHaveURL(/\/admin$/);
+
+  // So does the header's account menu.
+  await page.goto("/account");
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: signIn.menu.trigger(adminUser.name) })
+    .click();
+  await page.getByRole("menuitem", { name: signIn.menu.admin }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(admin.reports.title);
   for (const heading of [

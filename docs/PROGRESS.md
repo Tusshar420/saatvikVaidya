@@ -3393,3 +3393,22 @@ opening the product page.
   failed once in a full run (`target-size` on a product link) and passed on
   its own; it seems to depend on which test products are listed at the time.
   Worth making stable.
+
+## Admin panel link on the profile (2026-10-03)
+
+A small request outside the chunk list: admins signed in on the site now have
+a way into the admin panel from their profile.
+
+- **Built:** an "Admin panel" card at the start of the Quick links on
+  `/account`, and an "Admin panel" item in the header's account menu, both
+  linking to `/admin`. Shown only when the user's role is `admin`. Copy is in
+  `account.shortcuts.admin` and `signIn.menu.admin`.
+- **Decisions:** the link shows for every admin, whatever their admin role or
+  two-factor state. Every admin role can use the dashboard, and `/admin`
+  itself sends an admin without two-factor to set it up, so the link never
+  leads to a dead end. It hides nothing: the role is already in the session.
+- **Tests:** `tests/e2e/account.spec.ts` checks a customer doesn't see the
+  card, and an admin gets the card and the menu item, both landing on
+  `/admin`, at 375 and 1280 px. Typecheck, lint, test (705) and the account,
+  sign-in, shell and accessibility e2e specs (54 passed) pass; the full e2e
+  suite was not rerun.
