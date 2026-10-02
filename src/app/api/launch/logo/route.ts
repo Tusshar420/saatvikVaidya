@@ -28,7 +28,7 @@ type ErrorCode = LogoUploadError | "signedOut" | "rateLimited" | "failed";
 
 const failures: Record<ErrorCode, { status: number; message: string }> = {
   signedOut: { status: 401, message: errors.signedOut },
-  noDraft: { status: 409, message: copy.product.errors.product },
+  noDraft: { status: 409, message: copy.cart.empty.title },
   empty: { status: 400, message: errors.empty },
   tooLarge: { status: 413, message: errors.tooLarge(maxSize) },
   fileType: { status: 415, message: errors.fileType },

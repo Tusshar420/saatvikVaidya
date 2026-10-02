@@ -32,7 +32,13 @@ export type ProductSeed = {
    * client's sheet of eligible products arrives (load it through the admin
    * CSV import at /admin/catalogue/brand-import).
    */
-  brand?: { minQty: number; unitPricePaise: number; unitLabel: string };
+  brand?: {
+    minQty: number;
+    unitPricePaise: number;
+    unitLabel: string;
+    /** Sample bulk branded prices (Launch cart). */
+    tiers?: { minQuantity: number; pricePaise: number }[];
+  };
 };
 
 export const SAMPLE_GST_RATE = 5;
@@ -69,7 +75,15 @@ export const productSeed: ProductSeed[] = [
     stock: 240,
     featured: true,
     sortOrder: 10,
-    brand: { minQty: 50, unitPricePaise: 18_000, unitLabel: "bottles" },
+    brand: {
+      minQty: 50,
+      unitPricePaise: 18_000,
+      unitLabel: "bottles",
+      tiers: [
+        { minQuantity: 200, pricePaise: 16_500 },
+        { minQuantity: 500, pricePaise: 15_000 },
+      ],
+    },
   },
   {
     slug: "chandraprabha-vati",

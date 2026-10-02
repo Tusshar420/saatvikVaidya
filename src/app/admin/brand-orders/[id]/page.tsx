@@ -38,7 +38,7 @@ const paymentVariant = { created: "orange", succeeded: "teal", failed: "live" } 
 
 /**
  * One brand order (P2.1): the logo (view and download), what goes on the
- * label, the product and quantity, payment, and the customer's contact (P2.1);
+ * label, the products and quantities, payment, and the customer's contact (P2.1);
  * and the label proofs, production steps, stage history and cancelling (P2.2).
  */
 export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/brand-orders/[id]">) {
@@ -54,7 +54,6 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
   const nextStep = paid ? nextProductionStage(stage) : null;
   const details = order.details;
   const logoSrc = `/api/brand-orders/${order.id}/logo`;
-  const unitLabel = order.unitLabel ?? "";
   const rows: [string, string | null][] = details
     ? [
         [detailText.brandName, details.brandName],
@@ -131,22 +130,26 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
 
           <Card as="section" aria-labelledby="brand-product">
             <h2 id="brand-product" className="text-h3 text-ink">
-              {text.product}
+              {text.products}
             </h2>
-            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-small font-bold text-muted">{text.product}</dt>
-                <dd className="font-bold text-ink">{order.productName}</dd>
-                <dd className="text-small text-muted">{order.packSize}</dd>
-              </div>
-              <div>
-                <dt className="text-small font-bold text-muted">{text.quantity}</dt>
-                <dd className="text-ink">{copy.admin.units(order.quantity, unitLabel)}</dd>
-              </div>
-              <div>
-                <dt className="text-small font-bold text-muted">{text.unitPrice}</dt>
-                <dd className="text-ink">{formatPaise(order.unitPaise)}</dd>
-              </div>
+            <ul aria-label={text.products} className="mt-3 flex flex-col divide-y divide-line border-y border-line text-sm">
+              {order.items.map((item) => (
+                <li key={item.productSlug} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-3">
+                  <div className="min-w-0">
+                    <p className="font-bold break-words text-ink">{item.productName}</p>
+                    <p className="text-small text-muted">
+                      {item.packSize} · {copy.admin.units(item.quantity, item.unitLabel ?? "")} ·{" "}
+                      {text.unitPrice} {formatPaise(item.unitPaise)}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-right">
+                    <span className="sr-only">{text.lineTotal}: </span>
+                    <span className="font-bold text-ink">{formatPaise(item.lineTotalPaise)}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <dl className="mt-3 text-sm">
               <div>
                 <dt className="text-small font-bold text-muted">{text.total}</dt>
                 <dd className="text-lg font-extrabold text-ink">{formatPaise(order.totalPaise)}</dd>

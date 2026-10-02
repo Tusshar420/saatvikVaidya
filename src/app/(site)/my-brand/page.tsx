@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { brand as copy } from "@/content/brand";
 import { formatDate, formatPaise } from "@/lib/format";
 import { requireUser } from "@/server/auth/session";
-import { readDraft } from "@/server/brand/drafts";
+import { brandCartCount } from "@/server/brand/cart";
 import { listBrandOrdersForUser } from "@/server/brand/orders";
 
 const text = copy.myBrand;
@@ -18,14 +18,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** "My Brand" (P2.1): the signed-in user's Launch Your Brand orders, newest first. */
+/** "My Brand" (P2.1): the signed-in user's Launch Your Brand orders, newest first, and a link back to an unfinished Launch cart. */
 export default async function MyBrandPage() {
   const { user } = await requireUser("/my-brand");
-  const [orders, draft] = await Promise.all([listBrandOrdersForUser(user.id), readDraft(user.id)]);
+  const [orders, inCart] = await Promise.all([listBrandOrdersForUser(user.id), brandCartCount(user.id)]);
 
   const start = (
-    <Link href="/launch" className={buttonClasses()}>
-      {draft ? text.continueDraft : text.start}
+    <Link href={inCart > 0 ? "/launch?step=2" : "/launch"} className={buttonClasses()}>
+      {inCart > 0 ? text.continueDraft : text.start}
       <ButtonArrow />
     </Link>
   );
@@ -51,11 +51,7 @@ export default async function MyBrandPage() {
           <>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-cream p-4">
               <p className="min-w-0 flex-1 text-sm text-ink">
-                {draft
-                  ? draft.product
-                    ? text.draftLine(draft.product.name)
-                    : text.draftLineNoProduct
-                  : text.another}
+                {inCart > 0 ? text.draftLine(inCart) : text.another}
               </p>
               <div className="max-sm:w-full max-sm:*:w-full">{start}</div>
             </div>
@@ -72,9 +68,14 @@ export default async function MyBrandPage() {
                     </div>
                     <OrderStatusBadge status={order.status} />
                   </div>
-                  <p className="mt-3 text-sm break-words text-ink">
-                    {order.productName} · {text.units(order.quantity, order.unitLabel ?? "")}
-                  </p>
+                  <ul className="mt-3 flex flex-col gap-0.5 text-sm break-words text-ink">
+                    {order.items.slice(0, 3).map((item, index) => (
+                      <li key={index}>
+                        {item.productName} · {text.units(item.quantity, item.unitLabel ?? "")}
+                      </li>
+                    ))}
+                    {order.items.length > 3 && <li className="text-muted">{text.more(order.items.length - 3)}</li>}
+                  </ul>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-small text-muted">
                       {text.placedOn(formatDate(order.createdAt))} ·{" "}

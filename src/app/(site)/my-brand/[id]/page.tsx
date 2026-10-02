@@ -55,7 +55,6 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
   const shipment = stages.order.shipment;
 
   const unpaid = order.status === "pending_payment" || order.status === "payment_failed";
-  const unitLabel = order.unitLabel ?? "";
   const logoSrc = `/api/brand-orders/${order.id}/logo`;
   const next = paid
     ? text.stageNext[stage]
@@ -72,10 +71,10 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
         [text.notes, details.notes],
       ]
     : [];
-  // The order's own snapshot: one line at one GST rate.
+  // The order's own snapshot, GST grouped by rate.
   const totals = {
     subtotalPaise: order.subtotalPaise,
-    gst: [{ rate: order.gstRate, taxablePaise: order.subtotalPaise - order.taxPaise, taxPaise: order.taxPaise }],
+    gst: order.gst,
     shippingPaise: order.shippingPaise,
     totalPaise: order.totalPaise,
   };
@@ -249,14 +248,12 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
 
         <OrderSummary
           totals={totals}
-          items={[
-            {
-              key: order.productSlug,
-              name: order.productName,
-              detail: copy.review.itemDetail(order.quantity, unitLabel, formatPaise(order.unitPaise)),
-              totalPaise: order.subtotalPaise,
-            },
-          ]}
+          items={order.items.map((item) => ({
+            key: item.productSlug,
+            name: item.productName,
+            detail: copy.review.itemDetail(item.quantity, item.unitLabel ?? "", formatPaise(item.unitPaise)),
+            totalPaise: item.lineTotalPaise,
+          }))}
           itemsLabel={checkoutCopy.confirmation.items}
           hideNote
           className="lg:sticky lg:top-40"

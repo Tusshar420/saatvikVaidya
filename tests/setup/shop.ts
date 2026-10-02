@@ -21,7 +21,12 @@ export async function makeProduct(
     active?: boolean;
     bulkTiers?: { minQuantity: number; pricePaise: number }[];
     /** Launch Your Brand terms (P2.1); the product is then open for branding. */
-    brand?: { minQty: number; unitPricePaise: number; unitLabel?: string };
+    brand?: {
+      minQty: number;
+      unitPricePaise: number;
+      unitLabel?: string;
+      tiers?: { minQuantity: number; pricePaise: number }[];
+    };
   } = {},
 ): Promise<TestProduct> {
   counter += 1;
@@ -47,6 +52,7 @@ export async function makeProduct(
         brandMinQty: values.brand.minQty,
         brandUnitPricePaise: values.brand.unitPricePaise,
         brandUnitLabel: values.brand.unitLabel ?? "bottles",
+        brandTiers: values.brand.tiers ? { create: values.brand.tiers } : undefined,
       }),
     },
     select: { id: true, slug: true },

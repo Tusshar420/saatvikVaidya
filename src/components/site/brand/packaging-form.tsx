@@ -87,7 +87,7 @@ export function PackagingForm({
           />
         </div>
         <div className="flex flex-wrap items-center gap-3 max-sm:flex-col-reverse max-sm:*:w-full">
-          <Link href="/launch?step=1" className={buttonClasses({ variant: "secondary" })}>
+          <Link href="/launch?step=2" className={buttonClasses({ variant: "secondary" })}>
             {copy.launch.back}
           </Link>
           <Button type="submit" loading={pending} arrow>

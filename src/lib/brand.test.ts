@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_BRAND_ORDER_PAISE,
   MAX_BRAND_UNITS,
+  brandLineTotal,
   brandTermsOf,
+  brandUnitPriceFor,
   isContactNumber,
   isValidBrandQuantity,
   launchStepNumber,
   maxBrandQuantity,
+  nextBrandTier,
   snapBrandQuantity,
   stepBrandQuantity,
+  usableBrandTiers,
 } from "./brand";
 
 // Launch Your Brand quantity rules (P2.1): the minimum is also the step.
@@ -70,11 +74,58 @@ describe("brandTermsOf", () => {
   };
 
   it("needs the switch on and every term set", () => {
-    expect(brandTermsOf(product)).toEqual({ minQty: 4, unitPricePaise: 26_000, unitLabel: "jars" });
+    expect(brandTermsOf(product)).toEqual({ minQty: 4, unitPricePaise: 26_000, unitLabel: "jars", tiers: [] });
     expect(brandTermsOf({ ...product, brandEligible: false })).toBeNull();
     expect(brandTermsOf({ ...product, brandMinQty: null })).toBeNull();
     expect(brandTermsOf({ ...product, brandUnitPricePaise: 0 })).toBeNull();
     expect(brandTermsOf({ ...product, brandUnitLabel: null })).toBeNull();
+  });
+});
+
+describe("bulk tiers", () => {
+  const terms = brandTermsOf({
+    brandEligible: true,
+    brandMinQty: 10,
+    brandUnitPricePaise: 10_000,
+    brandUnitLabel: "packs",
+    brandTiers: [
+      { minQuantity: 100, pricePaise: 8_000 },
+      { minQuantity: 45, pricePaise: 9_000 },
+    ],
+  })!;
+
+  it("sorts the tiers and prices each quantity at the tier it reaches", () => {
+    expect(terms.tiers).toEqual([
+      { minQty: 45, unitPricePaise: 9_000 },
+      { minQty: 100, unitPricePaise: 8_000 },
+    ]);
+    expect(brandUnitPriceFor(terms, 10)).toBe(10_000);
+    expect(brandUnitPriceFor(terms, 40)).toBe(10_000);
+    expect(brandUnitPriceFor(terms, 50)).toBe(9_000);
+    expect(brandUnitPriceFor(terms, 100)).toBe(8_000);
+    expect(brandUnitPriceFor(terms, 5_000)).toBe(8_000);
+    expect(brandLineTotal(terms, 50)).toBe(450_000);
+  });
+
+  it("says how many more units reach the next tier, on the step", () => {
+    // 45 isn't a multiple of 10, so the next allowed quantity is 50.
+    expect(nextBrandTier(terms, 20)).toEqual({ tier: terms.tiers[0], quantity: 50, unitsMore: 30 });
+    expect(nextBrandTier(terms, 50)).toEqual({ tier: terms.tiers[1], quantity: 100, unitsMore: 50 });
+    expect(nextBrandTier(terms, 100)).toBeNull();
+  });
+
+  it("drops tiers that can't apply", () => {
+    const base = { minQty: 10, unitPricePaise: 10_000 };
+    expect(
+      usableBrandTiers(base, [
+        { minQuantity: 10, pricePaise: 9_000 }, // not above the minimum
+        { minQuantity: 20, pricePaise: 10_000 }, // not cheaper than the base price
+        { minQuantity: 30, pricePaise: 9_500 },
+        { minQuantity: 40, pricePaise: 9_600 }, // dearer than the tier before
+        { minQuantity: MAX_BRAND_UNITS + 1, pricePaise: 1 }, // beyond the cap
+        { minQuantity: 60, pricePaise: 0 },
+      ]),
+    ).toEqual([{ minQty: 30, unitPricePaise: 9_500 }]);
   });
 });
 

@@ -6,12 +6,14 @@ import { shell } from "../../src/content/shell";
 import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
-// Launch Your Brand (P2.1), end to end on phone and desktop: choose a
-// product, upload a logo and the label text, step the quantity by the
-// product's minimum, then pay with the test provider (a failure first, then
-// a retry that succeeds), see it on My Brand, and open it as an admin. Each
-// test makes its own product (slug "e2e-..."); tests/e2e/cleanup.ts removes
-// it with the e2e users, their orders and their logo files.
+// Launch Your Brand (P2.1) with the Launch cart, end to end on phone and
+// desktop: add several products to the Launch cart, step their quantities by
+// each product's minimum (a bulk tier kicks in), remove one, upload a logo
+// and the label text, then pay for the whole cart as one brand order with
+// the test provider (a failure first, then a retry that succeeds), see it on
+// My Brand, and open it as an admin. Each test makes its own products (slug
+// "e2e-..."); tests/e2e/cleanup.ts removes them with the e2e users, their
+// orders and their logo files.
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -27,15 +29,26 @@ const pngLogo = {
   ),
 };
 
-/** A product open for branding: minimum 4 jars at ₹260 (5% GST), low stock. */
-async function makeBrandProduct() {
+/**
+ * A product open for branding: by default minimum 4 jars at ₹260 (5% GST),
+ * low stock; `overrides` change the name, terms and bulk tiers.
+ */
+async function makeBrandProduct(
+  overrides: {
+    label?: string;
+    brandMinQty?: number;
+    brandUnitPricePaise?: number;
+    brandUnitLabel?: string;
+    tiers?: { minQuantity: number; pricePaise: number }[];
+  } = {},
+) {
   const db = e2eDb();
   const form = await db.category.findFirstOrThrow({ where: { kind: "FORM", active: true } });
   const token = `${Date.now().toString(36)}${randomInt(10_000)}`;
   return db.product.create({
     data: {
       slug: `${E2E_CONTENT_PREFIX}brand-${token}`,
-      name: `E2E Brand Avaleha ${token}`,
+      name: `E2E Brand ${overrides.label ?? "Avaleha"} ${token}`,
       formId: form.id,
       description: "A product made by the Launch Your Brand e2e test.",
       packSize: "250 g",
@@ -45,9 +58,10 @@ async function makeBrandProduct() {
       hsnCode: "30049011",
       stock: 2,
       brandEligible: true,
-      brandMinQty: 4,
-      brandUnitPricePaise: 26_000,
-      brandUnitLabel: "jars",
+      brandMinQty: overrides.brandMinQty ?? 4,
+      brandUnitPricePaise: overrides.brandUnitPricePaise ?? 26_000,
+      brandUnitLabel: overrides.brandUnitLabel ?? "jars",
+      brandTiers: overrides.tiers ? { create: overrides.tiers } : undefined,
     },
     select: { id: true, slug: true, name: true },
   });
@@ -61,7 +75,7 @@ async function checkPage(page: Page, errors: string[]) {
 
 const fields = checkout.address.fields;
 
-test("order a product in your own packaging, pay after a failed try, and see it on My Brand", async ({
+test("add several products to the launch cart, set bulk quantities, pay for them as one order, and see it on My Brand", async ({
   page,
   browser,
   baseURL,
@@ -70,6 +84,15 @@ test("order a product in your own packaging, pay after a failed try, and see it 
   await useFreshIp(page);
   const errors = collectErrors(page);
   const product = await makeBrandProduct();
+  // Minimum 10 packs at ₹100, ₹90 each from 50.
+  const bulk = await makeBrandProduct({
+    label: "Churna",
+    brandMinQty: 10,
+    brandUnitPricePaise: 10_000,
+    brandUnitLabel: "packs",
+    tiers: [{ minQuantity: 50, pricePaise: 9_000 }],
+  });
+  const extra = await makeBrandProduct({ label: "Vati" });
 
   // Signed out, /launch asks to sign in first.
   await page.goto("/launch");
@@ -82,7 +105,7 @@ test("order a product in your own packaging, pay after a failed try, and see it 
     verificationStatus: "pending",
   });
 
-  // Step 1: eligible products only, with their minimum and branded price.
+  // Step 1: eligible products only, with their minimum, branded and bulk price.
   await page.goto("/launch");
   const steps = page.getByRole("list", { name: brand.launch.stepsLabel });
   await expect(steps.getByRole("listitem").first()).toHaveAttribute("aria-current", "step");
@@ -92,13 +115,77 @@ test("order a product in your own packaging, pay after a failed try, and see it 
   await expect(choices.getByRole("listitem")).toHaveCount(1);
   await expect(choices).toContainText(brand.product.minimum(4, "jars"));
   await expect(choices).toContainText(brand.product.price("₹260"));
-  // A step further on can't be opened yet.
+  // Packaging can't be opened yet; the empty cart shows instead.
   await page.goto("/launch?step=3");
-  await expect(page).toHaveURL("/launch");
+  await expect(page).toHaveURL("/launch?step=2");
+  await expect(page.getByRole("heading", { name: brand.cart.empty.title })).toBeVisible();
+
+  // Add the first product, then one more step of its minimum.
   await page.goto(`/launch?q=${encodeURIComponent(product.name)}`);
   await checkPage(page, errors);
-  await page.getByRole("button", { name: brand.product.chooseLabel(product.name) }).click();
+  await page.getByRole("button", { name: brand.product.addLabel(product.name) }).click();
+  await expect(choices).toContainText(brand.product.inCartLine(4, "jars"));
+  const cartBar = page.getByRole("region", { name: brand.product.cartBar.label });
+  await expect(cartBar).toContainText(brand.product.cartBar.summary(1, 4, "₹1,040"));
+  await page.getByRole("button", { name: brand.product.addMoreLabel(product.name, 4) }).click();
+  await expect(choices).toContainText(brand.product.inCartLine(8, "jars"));
+  await expect(cartBar).toContainText(brand.product.cartBar.summary(1, 8, "₹2,080"));
+  // Two more products: their cards show the bulk price.
+  for (const other of [bulk, extra]) {
+    await page.goto(`/launch?q=${encodeURIComponent(other.name)}`);
+    await page.getByRole("button", { name: brand.product.addLabel(other.name) }).click();
+    await expect(choices).toContainText(brand.product.inCart);
+  }
+  await page.goto(`/launch?q=${encodeURIComponent(bulk.name)}`);
+  await expect(choices).toContainText(brand.product.bulkFrom(50, "packs", "₹90"));
+  await checkPage(page, errors);
+  await page.getByRole("link", { name: brand.product.cartBar.view }).click();
   await expect(page).toHaveURL("/launch?step=2");
+
+  // Step 2: the cart is saved to the account, so it is still there after leaving.
+  await page.goto("/");
+  await page.goto("/launch?step=2");
+  const lines = page.getByRole("list", { name: brand.cart.listLabel });
+  await expect(lines.getByRole("listitem").filter({ has: page.getByRole("heading") })).toHaveCount(3);
+  const summary = page.getByRole("region", { name: brand.cart.summaryTitle });
+  // 8 × ₹260 + 10 × ₹100 + 4 × ₹260
+  await expect(summary).toContainText("₹4,120");
+
+  // − and + move by each product's minimum.
+  const first = page.getByLabel(brand.cart.quantityFor(product.name, "jars"));
+  await expect(first).toHaveValue("8");
+  await page.getByRole("button", { name: brand.cart.decrease(product.name, 4) }).click();
+  await expect(first).toHaveValue("4");
+  await expect(page.getByRole("button", { name: brand.cart.decrease(product.name, 4) })).toBeDisabled();
+  // A typed number moves up to the next multiple of 4, with a note.
+  await first.fill("7");
+  await first.blur();
+  await expect(first).toHaveValue("8");
+  await expect(page.getByText(brand.cart.snapped(8, 4))).toBeVisible();
+  await page.getByRole("button", { name: brand.cart.decrease(product.name, 4) }).click();
+  await expect(first).toHaveValue("4");
+
+  // The bulk product: the next tier is 40 packs away; at 50 it costs ₹90 each.
+  const bulkQuantity = page.getByLabel(brand.cart.quantityFor(bulk.name, "packs"));
+  await expect(page.getByText(brand.cart.nextTier(40, "packs", "₹90"))).toBeVisible();
+  const morePacks = page.getByRole("button", { name: brand.cart.increase(bulk.name, 10) });
+  for (const expected of ["20", "30", "40", "50"]) {
+    await morePacks.click();
+    await expect(bulkQuantity).toHaveValue(expected);
+  }
+  const bulkLine = lines.getByRole("listitem").filter({ has: page.getByRole("heading", { name: bulk.name }) });
+  await expect(bulkLine).toContainText(brand.cart.each("₹90"));
+  await expect(bulkLine).toContainText(brand.cart.bulkApplied);
+  await expect(bulkLine).toContainText("₹4,500");
+
+  // Remove the third product.
+  await page.getByRole("button", { name: brand.cart.removeLabel(extra.name) }).click();
+  await expect(page.getByRole("heading", { name: extra.name })).toHaveCount(0);
+  // 4 × ₹260 + 50 × ₹90
+  await expect(summary).toContainText("₹5,540");
+  await checkPage(page, errors);
+  await page.getByRole("link", { name: brand.cart.continue }).click();
+  await expect(page).toHaveURL("/launch?step=3");
 
   // Step 2: an SVG is refused; a PNG logo uploads and shows.
   const fileInput = page.locator("#logo-file");
@@ -129,37 +216,13 @@ test("order a product in your own packaging, pay after a failed try, and see it 
   await form.getByLabel(brand.packaging.fields.contactPhone).fill("+91 98765 43210");
   await checkPage(page, errors);
   await form.getByRole("button", { name: brand.launch.continue }).click();
-  await expect(page).toHaveURL("/launch?step=3");
-
-  // Step 3: starts at the minimum; + adds 4 and − takes 4 off.
-  const quantity = page.getByLabel(brand.quantity.field("jars"));
-  const more = page.getByRole("button", { name: brand.quantity.increase(4) });
-  const fewer = page.getByRole("button", { name: brand.quantity.decrease(4) });
-  const summary = page.getByRole("region", { name: brand.quantity.summaryLabel });
-  await expect(quantity).toHaveValue("4");
-  await expect(fewer).toBeDisabled();
-  await expect(summary).toContainText("₹1,040");
-  await more.click();
-  await more.click();
-  await expect(quantity).toHaveValue("12");
-  await expect(summary).toContainText("₹3,120");
-  await fewer.click();
-  await expect(quantity).toHaveValue("8");
-  await expect(summary).toContainText("₹2,080");
-  // A typed number moves up to the next multiple of 4.
-  await quantity.fill("7");
-  await quantity.blur();
-  await expect(quantity).toHaveValue("8");
-  await expect(page.getByText(brand.quantity.snapped(8, 4))).toBeVisible();
-  await checkPage(page, errors);
-  await page.getByRole("button", { name: brand.launch.continue }).click();
   await expect(page).toHaveURL("/launch?step=4");
 
   // Step 4: the summary, an address, then the test payment.
   await expect(page.getByRole("region", { name: brand.review.packaging })).toContainText("Asha Ayurveda");
-  await expect(page.getByRole("region", { name: brand.review.quantity })).toContainText(
-    brand.review.units(8, "jars"),
-  );
+  const reviewProducts = page.getByRole("region", { name: brand.review.products });
+  await expect(reviewProducts).toContainText(brand.review.itemDetail(4, "jars", "₹260"));
+  await expect(reviewProducts).toContainText(brand.review.itemDetail(50, "packs", "₹90"));
   await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Asha Ayurveda") })).toBeVisible();
   const address = page.getByRole("form", { name: checkout.address.formTitleNew });
   await address.getByLabel(fields.name).fill("Asha Rao");
@@ -179,8 +242,17 @@ test("order a product in your own packaging, pay after a failed try, and see it 
     where: { id: orderId },
     include: { items: true, brandDetails: true },
   });
-  expect(order).toMatchObject({ type: "brand", totalPaise: 208_000, status: "pending_payment" });
-  expect(order.items).toMatchObject([{ productId: product.id, quantity: 8, unitPaise: 26_000 }]);
+  expect(order).toMatchObject({ type: "brand", totalPaise: 554_000, status: "pending_payment" });
+  expect(
+    order.items
+      .sort((a, b) => a.id - b.id)
+      .map((item) => ({ productId: item.productId, quantity: item.quantity, unitPaise: item.unitPaise })),
+  ).toEqual([
+    { productId: product.id, quantity: 4, unitPaise: 26_000 },
+    { productId: bulk.id, quantity: 50, unitPaise: 9_000 },
+  ]);
+  // The cart is now empty.
+  expect(await e2eDb().brandCartItem.count({ where: { userId: buyer.id } })).toBe(0);
   expect(order.brandDetails?.brandName).toBe("Asha Ayurveda");
   await expect(page.getByRole("link", { name: brand.checkout.backToMyBrand })).toBeVisible();
 
@@ -217,6 +289,7 @@ test("order a product in your own packaging, pay after a failed try, and see it 
   await expect(page).toHaveURL("/my-brand");
   const list = page.getByRole("list", { name: brand.myBrand.listLabel });
   await expect(list).toContainText("Asha Ayurveda");
+  await expect(list).toContainText(bulk.name);
   await expect(list.getByRole("link", { name: brand.myBrand.viewLabel(order.number) })).toHaveAttribute(
     "href",
     `/my-brand/${orderId}`,
@@ -242,6 +315,9 @@ test("order a product in your own packaging, pay after a failed try, and see it 
   await expect(adminPage).toHaveURL(`/admin/brand-orders/${orderId}`);
   await expect(adminPage.getByRole("heading", { level: 1 })).toHaveText("Asha Ayurveda");
   await expect(adminPage.getByText("Asha Wellness LLP, Flat 4, MG Road, Pune 411001")).toBeVisible();
+  const adminProducts = adminPage.getByRole("list", { name: brand.admin.detail.products });
+  await expect(adminProducts).toContainText(product.name);
+  await expect(adminProducts).toContainText(bulk.name);
   await expect(adminPage.getByRole("link", { name: brand.admin.detail.downloadLogo })).toHaveAttribute(
     "href",
     `/api/brand-orders/${orderId}/logo?download=1`,

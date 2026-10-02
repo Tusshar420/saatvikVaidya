@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
+import { MAX_BRAND_TIERS } from "@/lib/brand";
 import { MAX_BULK_TIERS, gstRates } from "@/lib/catalogue";
 import { idleForm, type FormState } from "@/server/admin/form";
 import {
@@ -255,6 +256,27 @@ export function ProductForm({ action, initial, mode, options }: ProductFormProps
           maxLength={30}
           optional
         />
+        <p className="border-t border-line pt-4 text-small text-muted sm:col-span-2">{brandText.tiersHelp}</p>
+        {Array.from({ length: MAX_BRAND_TIERS }, (_, index) => (
+          <div key={index} className="grid gap-3 sm:col-span-2 sm:grid-cols-2 sm:gap-5">
+            <TextField
+              name={`brandTiers.${index}.minQuantity`}
+              label={brandText.tierMin(index + 1)}
+              values={values}
+              inputMode="numeric"
+              maxLength={6}
+              optional
+            />
+            <TextField
+              name={`brandTiers.${index}.price`}
+              label={brandText.tierPrice(index + 1)}
+              values={values}
+              inputMode="decimal"
+              maxLength={14}
+              optional
+            />
+          </div>
+        ))}
       </FormSection>
 
       <FormSection title={form.sections.placement}>

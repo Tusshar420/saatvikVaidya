@@ -712,7 +712,9 @@ replaces the earlier quote-first design.
 - **Orders:**
   - Reuse `Order` / `OrderItem` / `Payment` from P1.4 with an order type of
     `store` or `brand`.
-  - One product per brand order.
+  - One product per brand order. (Since 2026-10-03 an order can hold several
+    products through the Launch cart; see "Launch page: bulk-order Launch
+    cart" in `docs/PROGRESS.md`.)
   - A `BrandOrderDetails` record holds the logo and packaging fields.
   - Brand orders don't go through the normal cart, and the **normal store
     cart keeps +1 / −1** with its existing minimum check.

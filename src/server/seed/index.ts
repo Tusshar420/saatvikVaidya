@@ -192,6 +192,7 @@ async function createMissingProducts(
           }),
         },
         bulkTiers: { create: bulkTiers },
+        brandTiers: { create: brand?.tiers ?? [] },
       },
     });
     created += 1;
@@ -212,14 +213,33 @@ function brandFields(brand: NonNullable<ProductSeed["brand"]>) {
  * Launch Your Brand sample values (P2.1) for sample products made before
  * they existed. Only products still marked sample whose brand minimum was
  * never set are changed, so the admin's (or the CSV import's) values stay.
+ * Sample bulk tiers are added the same way: only to a sample product that
+ * still has the seeded minimum and price and no brand tiers yet.
  */
 async function addBrandSamples(tx: Prisma.TransactionClient): Promise<void> {
   for (const product of productSeed) {
-    if (!product.brand) continue;
+    const brand = product.brand;
+    if (!brand) continue;
     await tx.product.updateMany({
       where: { slug: product.slug, isSample: true, brandMinQty: null },
-      data: brandFields(product.brand),
+      data: brandFields(brand),
     });
+    if (!brand.tiers?.length) continue;
+    const row = await tx.product.findFirst({
+      where: {
+        slug: product.slug,
+        isSample: true,
+        brandMinQty: brand.minQty,
+        brandUnitPricePaise: brand.unitPricePaise,
+        brandTiers: { none: {} },
+      },
+      select: { id: true },
+    });
+    if (row) {
+      await tx.brandPriceTier.createMany({
+        data: brand.tiers.map((tier) => ({ productId: row.id, ...tier })),
+      });
+    }
   }
 }
 

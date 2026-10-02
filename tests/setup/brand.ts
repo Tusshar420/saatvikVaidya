@@ -3,12 +3,14 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { createAddress, parseAddress } from "@/server/checkout/addresses";
 import { startPaymentAttempt } from "@/server/checkout/orders";
 import { completePayment } from "@/server/checkout/payments";
-import { chooseBrandProduct, saveBrandQuantity, saveDraftLogo, savePackaging } from "@/server/brand/drafts";
-import { brandTotals, placeBrandOrder } from "@/server/brand/orders";
+import { addToBrandCart, brandCartTotals, readBrandCart, setBrandCartQuantity } from "@/server/brand/cart";
+import { saveDraftLogo, savePackaging } from "@/server/brand/drafts";
+import { placeBrandOrder } from "@/server/brand/orders";
 import { makeProduct, makeUser, validAddress } from "./shop";
 
 // A Launch Your Brand order for the P2.2 tests, made through the real P2.1
-// code (draft, placeBrandOrder, test payment), so it looks like a real one.
+// code (Launch cart, draft, placeBrandOrder, test payment), so it looks
+// like a real one.
 
 const shipping = { feePaise: 8_000, freeFromPaise: 99_900 };
 
@@ -25,7 +27,7 @@ export async function makeBrandOrder(
 ): Promise<TestBrandOrder> {
   const product = await makeProduct(db, { stock: 3, brand: { minQty: 4, unitPricePaise: 26_000 } });
   const userId = options.userId ?? (await makeUser(db));
-  if (!(await chooseBrandProduct(userId, product.id))) throw new Error("product not chosen");
+  if (!(await addToBrandCart(userId, product.id)).ok) throw new Error("product not added");
   const logo = await saveDraftLogo({ userId, fileName: "logo.png", bytes: pngBytes() });
   if (!logo.ok) throw new Error("logo not saved");
   const packaged = await savePackaging(userId, {
@@ -37,8 +39,9 @@ export async function makeBrandOrder(
     notes: "",
   });
   if (!packaged.ok) throw new Error("packaging not saved");
-  const quantity = await saveBrandQuantity(userId, 8);
+  const quantity = await setBrandCartQuantity(userId, product.id, 8);
   if (!quantity.ok) throw new Error("quantity not saved");
+  const expectedTotalPaise = brandCartTotals(await readBrandCart(userId), shipping).totalPaise;
   const parsed = parseAddress(validAddress);
   if (!parsed.success) throw new Error("fixture should be valid");
   const address = await createAddress(userId, parsed.data);
@@ -47,7 +50,7 @@ export async function makeBrandOrder(
     userId,
     addressId: address.id,
     checkoutKey: randomUUID(),
-    expectedTotalPaise: brandTotals({ unitPricePaise: 26_000 }, 5, 8, shipping).totalPaise,
+    expectedTotalPaise,
     shipping,
   });
   if (!placed.ok) throw new Error(`order not placed: ${placed.error}`);

@@ -17,6 +17,8 @@ export type AdminBrandOrderRow = {
   productName: string;
   quantity: number;
   unitLabel: string | null;
+  /** Products after the first one (a brand order can hold several). */
+  moreProducts: number;
   customerName: string;
   customerContact: string | null;
 };
@@ -64,6 +66,7 @@ export async function listAdminBrandOrders(filters: OrderFilters): Promise<{
         orderBy: { id: "asc" },
         select: { productName: true, quantity: true, product: { select: { brandUnitLabel: true } } },
       },
+      _count: { select: { items: true } },
     },
   });
   return {
@@ -77,6 +80,7 @@ export async function listAdminBrandOrders(filters: OrderFilters): Promise<{
       productName: row.items[0]?.productName ?? "",
       quantity: row.items[0]?.quantity ?? 0,
       unitLabel: row.items[0]?.product?.brandUnitLabel ?? null,
+      moreProducts: Math.max(0, row._count.items - 1),
       customerName: row.user?.name ?? row.shipName,
       customerContact: row.shipPhone,
     })),

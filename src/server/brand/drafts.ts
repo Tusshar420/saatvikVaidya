@@ -7,7 +7,6 @@ import {
   brandSorts,
   type BrandSort,
   brandTermsOf,
-  isValidBrandQuantity,
   type BrandTerms,
 } from "@/lib/brand";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
@@ -18,11 +17,12 @@ import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
 import { checkUpload, cleanFileName } from "@/server/storage/files";
 import { packagingSchema, type PackagingInput } from "./packaging";
 
-// Launch Your Brand drafts (docs/CHUNKS.md, P2.1): the order a signed-in
-// user is putting together on /launch, saved after each step. One per user.
-// Callers check the session and pass the signed-in user's id; nothing here
-// trusts the browser, and every step is checked again when the order is
-// placed (./orders.ts).
+// Launch Your Brand drafts (docs/CHUNKS.md, P2.1): the packaging of the
+// order a signed-in user is putting together on /launch (logo and label
+// text), one per user. The products and quantities are in the Launch cart
+// (./cart.ts). Callers check the session and pass the signed-in user's id;
+// nothing here trusts the browser, and everything is checked again when the
+// order is placed (./orders.ts).
 
 // ─── Products ───────────────────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ export const brandProductWhere = {
   brandUnitLabel: { not: null },
 } satisfies Prisma.ProductWhereInput;
 
-const brandProductSelect = {
+export const brandProductSelect = {
   id: true,
   slug: true,
   name: true,
@@ -46,6 +46,7 @@ const brandProductSelect = {
   brandMinQty: true,
   brandUnitPricePaise: true,
   brandUnitLabel: true,
+  brandTiers: { select: { minQuantity: true, pricePaise: true } },
   form: { select: { key: true, name: true, glyph: true } },
   brand: { select: { name: true } },
   images: {
@@ -55,7 +56,7 @@ const brandProductSelect = {
   },
 } satisfies Prisma.ProductSelect;
 
-type BrandProductRow = Prisma.ProductGetPayload<{ select: typeof brandProductSelect }>;
+export type BrandProductRow = Prisma.ProductGetPayload<{ select: typeof brandProductSelect }>;
 
 export type BrandProduct = {
   id: number;
@@ -71,7 +72,7 @@ export type BrandProduct = {
   terms: BrandTerms;
 };
 
-function toBrandProduct(row: BrandProductRow): BrandProduct | null {
+export function toBrandProduct(row: BrandProductRow): BrandProduct | null {
   const terms = row.active ? brandTermsOf(row) : null;
   if (!terms) return null;
   const image = row.images[0];
@@ -278,37 +279,16 @@ export type DraftLogo = {
 };
 
 export type BrandDraftView = {
-  /** The chosen product, if it is still open for branded orders. */
-  product: BrandProduct | null;
-  /** True when a product was chosen but is no longer available. */
-  productGone: boolean;
   packaging: Record<keyof PackagingInput, string | null>;
   packagingDone: boolean;
   logo: DraftLogo | null;
-  quantity: number | null;
   updatedAt: Date;
 };
 
-/** The furthest step the draft may open: each step needs the ones before it. */
-export function furthestStep(draft: BrandDraftView | null): number {
-  if (!draft?.product) return 1;
-  if (!draft.packagingDone || !draft.logo) return 2;
-  if (draft.quantity === null || !isValidBrandQuantity(draft.quantity, draft.product.terms)) {
-    return 3;
-  }
-  return 4;
-}
-
 export async function readDraft(userId: string): Promise<BrandDraftView | null> {
-  const draft = await db.brandDraft.findUnique({
-    where: { userId },
-    include: { product: { select: brandProductSelect } },
-  });
+  const draft = await db.brandDraft.findUnique({ where: { userId } });
   if (!draft) return null;
-  const product = draft.product ? toBrandProduct(draft.product) : null;
   return {
-    product,
-    productGone: draft.productId !== null && product === null,
     packaging: {
       brandName: draft.brandName,
       tagline: draft.tagline,
@@ -322,30 +302,13 @@ export async function readDraft(userId: string): Promise<BrandDraftView | null> 
       draft.logoKey && draft.logoName && draft.logoContentType && draft.logoSizeBytes !== null
         ? { name: draft.logoName, contentType: draft.logoContentType, sizeBytes: draft.logoSizeBytes }
         : null,
-    quantity: draft.quantity,
     updatedAt: draft.updatedAt,
   };
 }
 
-/**
- * Step 1: picks the product. Choosing a different product clears the
- * quantity, since its minimum differs. False if the product isn't open
- * for branded orders.
- */
-export async function chooseBrandProduct(userId: string, productId: number): Promise<boolean> {
-  const product = await findBrandProduct(productId);
-  if (!product) return false;
-  const existing = await db.brandDraft.findUnique({
-    where: { userId },
-    select: { productId: true },
-  });
-  const changed = existing?.productId !== productId;
-  await db.brandDraft.upsert({
-    where: { userId },
-    create: { userId, productId },
-    update: { productId, ...(changed && { quantity: null }) },
-  });
-  return true;
+/** True when the user's Launch cart has at least one product. */
+async function hasCart(userId: string): Promise<boolean> {
+  return (await db.brandCartItem.count({ where: { userId } })) > 0;
 }
 
 export type PackagingResult =
@@ -353,19 +316,16 @@ export type PackagingResult =
   | { ok: false; fieldErrors: Record<string, string> }
   | { ok: false; noProduct: true };
 
-/** Step 2: the label text. The logo is uploaded separately (saveDraftLogo). */
+/** Step 3: the label text. The logo is uploaded separately (saveDraftLogo). */
 export async function savePackaging(
   userId: string,
   values: Record<string, string>,
 ): Promise<PackagingResult> {
-  const draft = await db.brandDraft.findUnique({
-    where: { userId },
-    select: { productId: true, logoKey: true },
-  });
-  if (!draft?.productId) return { ok: false, noProduct: true };
+  if (!(await hasCart(userId))) return { ok: false, noProduct: true };
+  const draft = await db.brandDraft.findUnique({ where: { userId }, select: { logoKey: true } });
   const parsed = packagingSchema.safeParse(values);
   const fieldErrors = parsed.success ? {} : fieldErrorsOf(parsed.error);
-  if (!draft.logoKey) fieldErrors.logo = copy.packaging.errors.logo;
+  if (!draft?.logoKey) fieldErrors.logo = copy.packaging.errors.logo;
   if (!parsed.success || Object.keys(fieldErrors).length > 0) {
     return { ok: false, fieldErrors };
   }
@@ -379,7 +339,7 @@ export async function savePackaging(
 export type LogoUploadError = "noDraft" | "empty" | "tooLarge" | "fileType";
 
 /**
- * Step 2: stores the logo (PNG, JPEG or PDF, checked from its bytes) and
+ * Step 3: stores the logo (PNG, JPEG or PDF, checked from its bytes) and
  * puts it on the draft, removing the one it replaces. The file is written
  * first; if the database step fails it's removed again.
  */
@@ -390,11 +350,9 @@ export async function saveDraftLogo(options: {
 }): Promise<{ ok: true; logo: DraftLogo } | { ok: false; error: LogoUploadError }> {
   const checked = checkUpload(options.bytes, brandLogoUpload);
   if (!checked.ok) return checked;
-  const draft = await db.brandDraft.findUnique({
-    where: { userId: options.userId },
-    select: { productId: true },
-  });
-  if (!draft?.productId) return { ok: false, error: "noDraft" };
+  // A logo belongs to an order in progress: the cart needs a product first.
+  if (!(await hasCart(options.userId))) return { ok: false, error: "noDraft" };
+  await db.brandDraft.upsert({ where: { userId: options.userId }, create: { userId: options.userId }, update: {} });
 
   const fileKey = newFileKey("brand-logos", options.userId, checked.extension);
   await getStorage().put(fileKey, options.bytes);
@@ -439,21 +397,4 @@ export async function draftLogoFile(userId: string) {
   });
   if (!draft?.logoKey || !draft.logoName || !draft.logoContentType) return null;
   return { key: draft.logoKey, name: draft.logoName, contentType: draft.logoContentType };
-}
-
-export type QuantityResult =
-  | { ok: true }
-  | { ok: false; error: "product" | "packaging" }
-  | { ok: false; error: "quantity"; minQty: number };
-
-/** Step 3: a quantity in steps of the product's minimum. */
-export async function saveBrandQuantity(userId: string, quantity: number | null): Promise<QuantityResult> {
-  const draft = await readDraft(userId);
-  if (!draft?.product) return { ok: false, error: "product" };
-  if (furthestStep(draft) < 3) return { ok: false, error: "packaging" };
-  if (quantity === null || !isValidBrandQuantity(quantity, draft.product.terms)) {
-    return { ok: false, error: "quantity", minQty: draft.product.terms.minQty };
-  }
-  await db.brandDraft.update({ where: { userId }, data: { quantity } });
-  return { ok: true };
 }

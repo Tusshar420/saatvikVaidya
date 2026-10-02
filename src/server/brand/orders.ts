@@ -1,23 +1,23 @@
 import "server-only";
 import type { OrderStatus, PaymentStatus, Prisma } from "@/generated/prisma/client";
-import { isValidBrandQuantity, type BrandTerms } from "@/lib/brand";
 import { isOrderId } from "@/lib/orders";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
 import { findAddress } from "@/server/checkout/addresses";
 import { newOrderId, newOrderNumber, startPaymentAttempt } from "@/server/checkout/orders";
-import { computeTotals, gstIncluded, type OrderTotals, type ShippingRule } from "@/server/checkout/totals";
+import { gstIncluded, type ShippingRule } from "@/server/checkout/totals";
 import { db } from "@/server/db";
 import { getPaymentProvider } from "@/server/payments";
-import { findBrandProduct } from "./drafts";
+import { brandCartTotals, readBrandCart } from "./cart";
 import { packagingSchema } from "./packaging";
 
 // Launch Your Brand orders (docs/CHUNKS.md, P2.1). A brand order is an
-// Order of type "brand" with one product line and a BrandOrderDetails row
-// for the logo and label text. It is made from the user's draft, priced
-// again here from the database (the browser sends only the address, a
-// checkout key and the total it showed), and paid through the same
-// PaymentProvider as the store (./checkout/payments.ts completes it).
+// Order of type "brand" with one line per product of the user's Launch cart
+// (./cart.ts) and a BrandOrderDetails row for the logo and label text (one
+// brand for the whole order, from the draft). It is priced again here from
+// the database, with each line's bulk tier (the browser sends only the
+// address, a checkout key and the total it showed), and paid through the
+// same PaymentProvider as the store (./checkout/payments.ts completes it).
 //
 // Brand orders are made to order: they don't use the store's stock or
 // cart, and they don't earn or use Super Coins (store orders only, until
@@ -25,16 +25,6 @@ import { packagingSchema } from "./packaging";
 
 /** The price tier recorded on a brand order line. */
 export const BRAND_PRICE_TIER = "brand";
-
-/** Totals for `quantity` units at the brand price (GST included in the price). */
-export function brandTotals(
-  terms: Pick<BrandTerms, "unitPricePaise">,
-  gstRate: number,
-  quantity: number,
-  shipping: ShippingRule,
-): OrderTotals {
-  return computeTotals([{ lineTotalPaise: terms.unitPricePaise * quantity, gstRate }], shipping);
-}
 
 export type PlaceBrandOrderInput = {
   userId: string;
@@ -80,11 +70,12 @@ async function orderForKey(userId: string, checkoutKey: string) {
 }
 
 /**
- * Turns the user's draft into a brand order waiting for payment and starts
- * the first payment attempt. Every step is checked again: the product is
- * still open for branding, the packaging is valid and has a logo, and the
- * quantity is a positive multiple of the minimum. The draft is removed in
- * the same transaction (its logo now belongs to the order).
+ * Turns the user's Launch cart and draft into one brand order waiting for
+ * payment and starts the first payment attempt. Everything is checked again:
+ * every product is still open for branding, every quantity is a positive
+ * multiple of its minimum, the cart is within the limits, and the packaging
+ * is valid and has a logo. The cart and draft are removed in the same
+ * transaction (the logo now belongs to the order).
  */
 export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<PlaceBrandOrderResult> {
   const { userId, checkoutKey } = input;
@@ -106,27 +97,48 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
           SELECT userId FROM BrandDraft WHERE userId = ${userId} FOR UPDATE`;
         if (locked.length === 0) throw new Refused("draft");
         const draft = await tx.brandDraft.findUniqueOrThrow({ where: { userId } });
-        if (!draft.productId || !draft.packagingDone) throw new Refused("draft");
+        if (!draft.packagingDone) throw new Refused("draft");
         if (!draft.logoKey || !draft.logoName || !draft.logoContentType || draft.logoSizeBytes === null) {
           throw new Refused("draft");
         }
         const packaging = packagingSchema.safeParse(draft);
         if (!packaging.success) throw new Refused("draft");
 
-        const product = await findBrandProduct(draft.productId, tx);
-        if (!product) throw new Refused("changed");
-        const quantity = draft.quantity;
-        if (quantity === null || !isValidBrandQuantity(quantity, product.terms)) {
-          throw new Refused("changed");
-        }
-        const totals = brandTotals(product.terms, product.gstRate, quantity, input.shipping);
+        // Locks the cart lines too: a quantity change waits for the order.
+        await tx.$queryRaw`SELECT id FROM BrandCartItem WHERE userId = ${userId} FOR UPDATE`;
+        const cart = await readBrandCart(userId, tx);
+        if (cart.lines.length === 0) throw new Refused("draft");
+        if (!cart.ready) throw new Refused("changed");
+        const totals = brandCartTotals(cart, input.shipping);
         if (totals.totalPaise !== input.expectedTotalPaise) throw new Refused("changed");
 
-        const full = await tx.product.findUniqueOrThrow({
-          where: { id: product.id },
-          select: { hsnCode: true, mrpPaise: true },
+        const snapshots = await tx.product.findMany({
+          where: { id: { in: cart.lines.map((line) => line.productId) } },
+          select: { id: true, hsnCode: true, mrpPaise: true },
         });
-        const lineTotalPaise = product.terms.unitPricePaise * quantity;
+        const snapshotOf = new Map(snapshots.map((row) => [row.id, row]));
+        const items = cart.lines.flatMap((line) => {
+          const product = line.product;
+          const snapshot = snapshotOf.get(line.productId);
+          if (!product || !snapshot) return [];
+          return [
+            {
+              productId: product.id,
+              productSlug: product.slug,
+              productName: product.name,
+              packSize: product.packSize,
+              hsnCode: snapshot.hsnCode,
+              gstRate: product.gstRate,
+              mrpPaise: snapshot.mrpPaise,
+              unitPaise: line.unitPricePaise,
+              priceTier: BRAND_PRICE_TIER,
+              quantity: line.quantity,
+              lineTotalPaise: line.lineTotalPaise,
+              taxPaise: gstIncluded(line.lineTotalPaise, product.gstRate),
+            },
+          ];
+        });
+        if (items.length !== cart.lines.length) throw new Refused("changed");
         const id = newOrderId();
         await tx.order.create({
           data: {
@@ -147,22 +159,7 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
             taxPaise: totals.taxPaise,
             shippingPaise: totals.shippingPaise,
             totalPaise: totals.totalPaise,
-            items: {
-              create: {
-                productId: product.id,
-                productSlug: product.slug,
-                productName: product.name,
-                packSize: product.packSize,
-                hsnCode: full.hsnCode,
-                gstRate: product.gstRate,
-                mrpPaise: full.mrpPaise,
-                unitPaise: product.terms.unitPricePaise,
-                priceTier: BRAND_PRICE_TIER,
-                quantity,
-                lineTotalPaise,
-                taxPaise: gstIncluded(lineTotalPaise, product.gstRate),
-              },
-            },
+            items: { create: items },
             brandDetails: {
               create: {
                 ...packaging.data,
@@ -174,6 +171,7 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
             },
           },
         });
+        await tx.brandCartItem.deleteMany({ where: { userId } });
         await tx.brandDraft.delete({ where: { userId } });
         await tx.address.update({ where: { id: address.id }, data: { lastUsedAt: new Date() } });
         return id;
@@ -198,6 +196,18 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
 
 // ─── Reading ────────────────────────────────────────────────────────────────
 
+/** One product of a brand order, as it was ordered. */
+export type BrandOrderLine = {
+  productSlug: string;
+  productName: string;
+  packSize: string;
+  quantity: number;
+  unitLabel: string | null;
+  unitPaise: number;
+  gstRate: number;
+  lineTotalPaise: number;
+};
+
 export type BrandOrderSummary = {
   id: string;
   number: string;
@@ -205,9 +215,8 @@ export type BrandOrderSummary = {
   createdAt: Date;
   totalPaise: number;
   brandName: string;
-  productName: string;
-  quantity: number;
-  unitLabel: string | null;
+  /** Every product of the order, in the order they were added. */
+  items: Pick<BrandOrderLine, "productName" | "quantity" | "unitLabel">[];
 };
 
 const summarySelect = {
@@ -218,7 +227,6 @@ const summarySelect = {
   totalPaise: true,
   brandDetails: { select: { brandName: true } },
   items: {
-    take: 1,
     orderBy: { id: "asc" },
     select: { productName: true, quantity: true, product: { select: { brandUnitLabel: true } } },
   },
@@ -227,7 +235,6 @@ const summarySelect = {
 type SummaryRow = Prisma.OrderGetPayload<{ select: typeof summarySelect }>;
 
 function toSummary(row: SummaryRow): BrandOrderSummary {
-  const item = row.items[0];
   return {
     id: row.id,
     number: row.number,
@@ -235,9 +242,11 @@ function toSummary(row: SummaryRow): BrandOrderSummary {
     createdAt: row.createdAt,
     totalPaise: row.totalPaise,
     brandName: row.brandDetails?.brandName ?? "",
-    productName: item?.productName ?? "",
-    quantity: item?.quantity ?? 0,
-    unitLabel: item?.product?.brandUnitLabel ?? null,
+    items: row.items.map((item) => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      unitLabel: item.product?.brandUnitLabel ?? null,
+    })),
   };
 }
 
@@ -252,15 +261,14 @@ export async function listBrandOrdersForUser(userId: string): Promise<BrandOrder
   return rows.map(toSummary);
 }
 
-export type BrandOrderView = BrandOrderSummary & {
+export type BrandOrderView = Omit<BrandOrderSummary, "items"> & {
   paidAt: Date | null;
   subtotalPaise: number;
   taxPaise: number;
   shippingPaise: number;
-  unitPaise: number;
-  gstRate: number;
-  productSlug: string;
-  packSize: string;
+  items: BrandOrderLine[];
+  /** GST by rate, for the order summary. */
+  gst: { rate: number; taxablePaise: number; taxPaise: number }[];
   details: {
     brandName: string;
     tagline: string | null;
@@ -292,16 +300,22 @@ export type BrandOrderView = BrandOrderSummary & {
 
 const viewInclude = {
   brandDetails: true,
-  items: { take: 1, orderBy: { id: "asc" }, include: { product: { select: { brandUnitLabel: true } } } },
+  items: { orderBy: { id: "asc" }, include: { product: { select: { brandUnitLabel: true } } } },
   payments: { orderBy: { attempt: "desc" }, take: 1 },
 } satisfies Prisma.OrderInclude;
 
 type ViewRow = Prisma.OrderGetPayload<{ include: typeof viewInclude }>;
 
 function toView(order: ViewRow): BrandOrderView {
-  const item = order.items[0];
   const details = order.brandDetails;
   const payment = order.payments[0];
+  const gst = new Map<number, { rate: number; taxablePaise: number; taxPaise: number }>();
+  for (const item of order.items) {
+    const group = gst.get(item.gstRate) ?? { rate: item.gstRate, taxablePaise: 0, taxPaise: 0 };
+    group.taxablePaise += item.lineTotalPaise - item.taxPaise;
+    group.taxPaise += item.taxPaise;
+    gst.set(item.gstRate, group);
+  }
   return {
     id: order.id,
     number: order.number,
@@ -313,13 +327,17 @@ function toView(order: ViewRow): BrandOrderView {
     taxPaise: order.taxPaise,
     shippingPaise: order.shippingPaise,
     brandName: details?.brandName ?? "",
-    productName: item?.productName ?? "",
-    productSlug: item?.productSlug ?? "",
-    packSize: item?.packSize ?? "",
-    quantity: item?.quantity ?? 0,
-    unitPaise: item?.unitPaise ?? 0,
-    gstRate: item?.gstRate ?? 0,
-    unitLabel: item?.product?.brandUnitLabel ?? null,
+    items: order.items.map((item) => ({
+      productSlug: item.productSlug,
+      productName: item.productName,
+      packSize: item.packSize,
+      quantity: item.quantity,
+      unitLabel: item.product?.brandUnitLabel ?? null,
+      unitPaise: item.unitPaise,
+      gstRate: item.gstRate,
+      lineTotalPaise: item.lineTotalPaise,
+    })),
+    gst: [...gst.values()].sort((a, b) => a.rate - b.rate),
     details: details && {
       brandName: details.brandName,
       tagline: details.tagline,

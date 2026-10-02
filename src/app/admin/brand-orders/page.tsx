@@ -157,6 +157,7 @@ export default async function AdminBrandOrdersPage({
                   <span className="block font-semibold break-words text-ink">{order.brandName}</span>
                   <span className="block text-small break-words text-muted">
                     {order.productName} · {brandText.units(order.quantity, order.unitLabel ?? "")}
+                    {order.moreProducts > 0 && ` ${brandCopy.myBrand.more(order.moreProducts)}`}
                   </span>
                 </span>
               </Td>

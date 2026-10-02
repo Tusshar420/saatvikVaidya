@@ -16,8 +16,14 @@ export type QuantityStepperProps = {
   min: number;
   max: number;
   disabled?: boolean;
-  /** Called with a whole number within min…max. */
+  /** How much − and + change the value (default 1). */
+  step?: number;
+  /** Turns a typed number into an allowed one (default: kept within min…max). */
+  normalize?: (value: number) => number;
+  /** Called with an allowed whole number when it differs from `value`. */
   onCommit: (value: number) => void;
+  /** Called when a typed number had to be changed into an allowed one. */
+  onAdjusted?: (typed: number, value: number) => void;
   /** Ids of text that explains the limits (MOQ, stock). */
   describedBy?: string;
   className?: string;
@@ -25,7 +31,8 @@ export type QuantityStepperProps = {
 
 /**
  * − [n] + for a quantity. The buttons commit at once; typed numbers commit on
- * Enter or when the field loses focus, kept within min…max.
+ * Enter or when the field loses focus, kept within min…max (or moved to an
+ * allowed value by `normalize`, e.g. a multiple of a minimum).
  */
 export function QuantityStepper({
   id,
@@ -36,7 +43,10 @@ export function QuantityStepper({
   min,
   max,
   disabled,
+  step = 1,
+  normalize,
   onCommit,
+  onAdjusted,
   describedBy,
   className,
 }: QuantityStepperProps) {
@@ -55,8 +65,9 @@ export function QuantityStepper({
       setDraft(String(value));
       return;
     }
-    const next = clamp(typed);
+    const next = normalize ? normalize(typed) : clamp(typed);
     setDraft(String(next));
+    if (next !== typed) onAdjusted?.(typed, next);
     if (next !== value) onCommit(next);
   };
 
@@ -66,7 +77,7 @@ export function QuantityStepper({
         label={decreaseLabel}
         variant="outline"
         disabled={disabled || value <= min}
-        onClick={() => onCommit(clamp(value - 1))}
+        onClick={() => onCommit(clamp(value - step))}
       >
         <Minus aria-hidden />
       </IconButton>
@@ -78,7 +89,7 @@ export function QuantityStepper({
         aria-describedby={describedBy}
         min={min}
         max={max}
-        step={1}
+        step={step}
         value={draft}
         disabled={disabled}
         onChange={(event) => setDraft(event.target.value)}
@@ -95,7 +106,7 @@ export function QuantityStepper({
         label={increaseLabel}
         variant="outline"
         disabled={disabled || value >= max}
-        onClick={() => onCommit(clamp(value + 1))}
+        onClick={() => onCommit(clamp(value + step))}
       >
         <Plus aria-hidden />
       </IconButton>

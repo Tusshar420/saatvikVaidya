@@ -11,9 +11,9 @@ export const brand = {
     title: "Your product, your label.",
     titleEmphasis: "We'll make the rest.",
     intro:
-      "Pick a product, add your logo and packaging details, choose how many and pay. Your progress is saved after each step.",
+      "Add the products you want to your launch cart and set how many of each. Then add your logo and packaging details once for the whole order, and pay. Your cart is saved to your account.",
     stepsLabel: "Launch Your Brand steps",
-    steps: ["Product", "Packaging", "Quantity", "Review and pay"] as const,
+    steps: ["Products", "Launch cart", "Packaging", "Review and pay"] as const,
     stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
     back: "Back",
     continue: "Save and continue",
@@ -26,8 +26,8 @@ export const brand = {
   },
 
   product: {
-    title: "Choose a product",
-    line: "These products can be packed in your brand. Each shows its minimum order and branded price.",
+    title: "Choose your products",
+    line: "Add as many products as you like to your launch cart. Each shows its minimum order, branded price and any bulk prices.",
     searchLabel: "Search products",
     searchPlaceholder: "Search by name",
     search: "Search",
@@ -75,13 +75,66 @@ export const brand = {
     steps: (n: number) => `Order in steps of ${count(n)}`,
     price: (price: string) => `${price} each`,
     priceNote: "Branded price, GST included",
-    choose: "Choose",
-    chooseLabel: (name: string) => `Choose ${name}`,
-    chosen: "Chosen",
-    chosenLabel: (name: string) => `${name} (chosen)`,
+    add: "Add to launch cart",
+    addLabel: (name: string) => `Add ${name} to your launch cart`,
+    addMore: (n: number) => `Add ${count(n)} more`,
+    addMoreLabel: (name: string, n: number) => `Add ${count(n)} more ${name} to your launch cart`,
+    inCart: "In cart",
+    inCartLine: (n: number, unit: string) => `${count(n)} ${unit} in your cart`,
+    added: "Added to your launch cart",
+    bulkFrom: (n: number, unit: string, price: string) => `Bulk: ${price} each from ${count(n)} ${unit}`,
     listLabel: "Products for your brand",
+    cartBar: {
+      label: "Your launch cart",
+      summary: (products: number, units: number, total: string) =>
+        `${products === 1 ? "1 product" : `${count(products)} products`} · ${count(units)} units · ${total}`,
+      view: "View launch cart",
+    },
+  },
+
+  cart: {
+    title: "Your launch cart",
+    line: "Set how many of each product. Quantities go in steps of each product's minimum, and bulk prices apply on their own as quantities grow.",
+    listLabel: "Products in your launch cart",
+    count: (n: number) => (n === 1 ? "1 product" : `${count(n)} products`),
+    empty: {
+      title: "Your launch cart is empty",
+      line: "Add products from the catalogue to start your branded order.",
+      browse: "Browse products",
+    },
+    quantityFor: (name: string, unit: string) => `Quantity of ${name} (${unit})`,
+    decrease: (name: string, n: number) => `Fewer ${name}, take off ${count(n)}`,
+    increase: (name: string, n: number) => `More ${name}, add ${count(n)}`,
+    steps: (n: number, unit: string) => `Minimum ${count(n)} ${unit}, in steps of ${count(n)}`,
+    snapped: (n: number, min: number) => `Quantities go in steps of ${count(min)}, so this is now ${count(n)}.`,
+    max: (n: number) => `${count(n)} is the most we can take online. Call us for larger orders.`,
+    each: (price: string) => `${price} each`,
+    bulkApplied: "Bulk price",
+    lineTotal: "Line total",
+    tiersLabel: (name: string) => `Prices for ${name}`,
+    tier: (n: number, unit: string, price: string) => `${count(n)}+ ${unit}: ${price} each`,
+    currentTier: "your price",
+    nextTier: (n: number, unit: string, price: string) => `Add ${count(n)} more ${unit} to pay ${price} each.`,
+    remove: "Remove",
+    removeLabel: (name: string) => `Remove ${name} from your launch cart`,
+    removed: "Removed from your launch cart",
+    unavailable: "This product isn't available for branded orders now. Remove it to continue.",
+    invalid: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
+    overLimit:
+      "This order is above ₹1 crore, the most we take online. Lower some quantities, or call us for larger orders.",
+    tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products. Place this order first, then start another.`,
+    summaryTitle: "Cart total",
+    itemsLabel: "Products",
+    continue: "Continue to packaging",
+    addMore: "Add more products",
     errors: {
-      product: "That product isn't available for branded orders now. Choose another one.",
+      unavailable: "That product isn't available for branded orders now.",
+      notInCart: "That product is no longer in your launch cart. The page has been refreshed.",
+      quantity: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
+      tooLarge:
+        "That would take the order above ₹1 crore, the most we take online. Call us for larger orders.",
+      tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products.`,
+      generic: "We couldn't update your launch cart. Please try again.",
     },
   },
 
@@ -132,31 +185,11 @@ export const brand = {
     },
   },
 
-  quantity: {
-    title: "How many?",
-    line: (min: number, unit: string) =>
-      `Order in steps of ${count(min)} ${unit}: + adds ${count(min)}, − takes ${count(min)} off.`,
-    field: (unit: string) => `Quantity (${unit})`,
-    decrease: (n: number) => `Fewer, take off ${count(n)}`,
-    increase: (n: number) => `More, add ${count(n)}`,
-    snapped: (n: number, min: number) =>
-      `Quantities go in steps of ${count(min)}, so this is now ${count(n)}.`,
-    max: (n: number) => `${count(n)} is the most we can take online. Call us for larger orders.`,
-    summaryLabel: "Price",
-    unitPrice: "Price each",
-    units: "Quantity",
-    errors: {
-      quantity: (min: number) =>
-        `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
-    },
-  },
-
   review: {
     title: "Review and pay",
     line: "Check everything below, choose where to deliver, then pay.",
-    product: "Product",
+    products: "Products",
     packaging: "Packaging",
-    quantity: "Quantity",
     units: (n: number, unit: string) => `${count(n)} ${unit}`,
     noLogo: "No logo yet",
     summaryTitle: "Order summary",
@@ -167,7 +200,7 @@ export const brand = {
       address: "Choose a delivery address.",
       draft: "Something in your order is missing. Go back through the steps and try again.",
       changed:
-        "The product's price or availability changed. Check the quantity step and try again.",
+        "A price or product in your launch cart changed. Check your cart and try again.",
       paymentsOff: "Online payment is not available right now.",
       checkoutOff: "We're not taking new orders right now. Please try again later.",
       generic: "We couldn't place your order. Please try again.",
@@ -181,13 +214,14 @@ export const brand = {
     titleEmphasis: "Every label, in one place.",
     start: "Start your brand",
     continueDraft: "Continue your order",
-    draftLine: (name: string) => `You have an order in progress for ${name}.`,
-    draftLineNoProduct: "You have an order in progress.",
-    another: "Order another product in your own packaging.",
+    draftLine: (products: number) =>
+      `You have ${products === 1 ? "1 product" : `${count(products)} products`} in your launch cart.`,
+    another: "Order more products in your own packaging.",
     empty: {
       title: "No branded orders yet",
-      line: "Order a product in your own packaging: pick it, add your logo, choose how many and pay.",
+      line: "Order products in your own packaging: add them to your launch cart, add your logo, choose how many and pay.",
     },
+    more: (n: number) => `and ${count(n)} more`,
     listLabel: "Your branded orders",
     orderLabel: (number: string) => `Order ${number}`,
     units: (n: number, unit: string) => `${count(n)} ${unit}`,
@@ -238,8 +272,6 @@ export const brand = {
     },
     pay: "Pay now",
     tryAgain: "Try again",
-    product: "Product",
-    quantity: "Quantity",
     packaging: "Packaging",
     brandName: "Brand name",
     tagline: "Tagline",
@@ -330,9 +362,11 @@ export const brand = {
       packaging: "Packaging",
       logo: "Logo",
       downloadLogo: "Download logo",
+      products: "Products",
       product: "Product",
       quantity: "Quantity",
       unitPrice: "Price each",
+      lineTotal: "Line total",
       total: "Total",
       payment: "Payment",
       attempt: (n: number) => `Attempt ${count(n)}`,
@@ -404,6 +438,10 @@ export const brand = {
     unitPriceHelp: "One price for every customer.",
     unitLabel: "Unit name",
     unitLabelHelp: "Plural, e.g. bottles, jars or packs.",
+    tiersHelp:
+      "Optional bulk prices for bigger branded orders, from a quantity upwards. Each tier needs a quantity above the minimum and above the tier before, and a lower price. Leave rows empty to skip them.",
+    tierMin: (n: number) => `Bulk price ${n}: from units`,
+    tierPrice: (n: number) => `Bulk price ${n}: price each (₹)`,
     listBadge: "Brand",
     importLink: "Import brand terms (CSV)",
     errors: {
@@ -411,6 +449,10 @@ export const brand = {
       unitPrice: "Enter a price above ₹0, up to ₹1,00,000.",
       unitLabel: "Enter the unit name (up to 30 characters).",
       needed: "Fill in the minimum, price and unit name to open this product for branded orders.",
+      tierMin: `Enter a quantity above the minimum and the tier before, up to ${count(100_000)}.`,
+      tierPrice: "Enter a price below the branded price and the tier before.",
+      tierIncomplete: "Fill in both the quantity and the price, or neither.",
+      tierNeedsTerms: "Set the minimum and branded price before adding bulk tiers.",
     },
   },
 
@@ -471,12 +513,13 @@ export const brand = {
   messages: {
     paid: {
       subject: (number: string) => `Brand order ${number} is confirmed`,
-      body: (name: string, number: string, product: string, units: string, total: string, link: string) =>
+      body: (name: string, number: string, products: string[], total: string, link: string) =>
         [
           `Hello ${name},`,
           "",
           `Thank you! We've received the payment for brand order ${number}.`,
-          `${product}, ${units}. Total paid: ${total}.`,
+          ...products,
+          `Total paid: ${total}.`,
           "",
           "Our team is preparing your label proof and will share it with you to approve before anything is printed.",
           "",
@@ -532,14 +575,15 @@ export const brand = {
           `Send a new proof: ${link}`,
         ].join("\n"),
     },
+    /** One product line in a message, e.g. "Triphala Churna, 50 jars". */
+    line: (product: string, units: string) => `${product}, ${units}`,
     admin: {
       subject: (number: string, brandName: string) => `New brand order ${number}: ${brandName}`,
       body: (
         number: string,
         customer: string,
         brandName: string,
-        product: string,
-        units: string,
+        products: string[],
         total: string,
         link: string,
       ) =>
@@ -548,7 +592,8 @@ export const brand = {
           "",
           `Customer: ${customer}`,
           `Brand: ${brandName}`,
-          `Product: ${product}, ${units}`,
+          "Products:",
+          ...products.map((line) => `- ${line}`),
           `Total: ${total}`,
           "",
           `Open it: ${link}`,

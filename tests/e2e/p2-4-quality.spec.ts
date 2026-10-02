@@ -53,9 +53,9 @@ async function signedIn(browser: Browser, baseURL: string, role: "user" | "admin
 }
 
 /**
- * A customer with a finished /launch draft (product, packaging, logo,
- * quantity), a saved address, and a paid brand order whose first proof is
- * waiting for their decision.
+ * A customer with a ready Launch cart (the product, at 8), a finished
+ * packaging draft (with logo), a saved address, and a paid brand order
+ * whose first proof is waiting for their decision.
  */
 async function brandCustomer(userId: string) {
   const db = e2eDb();
@@ -87,7 +87,6 @@ async function brandCustomer(userId: string) {
   await db.brandDraft.create({
     data: {
       userId,
-      productId: item.productId,
       brandName: "Asha Ayurveda",
       tagline: "Classical care, every day",
       marketedByName: "Asha Ayurveda LLP",
@@ -99,9 +98,11 @@ async function brandCustomer(userId: string) {
       logoName: "asha-logo.png",
       logoContentType: "image/png",
       logoSizeBytes: png.byteLength,
-      quantity: 8,
     },
   });
+  if (item.productId) {
+    await db.brandCartItem.create({ data: { userId, productId: item.productId, quantity: 8 } });
+  }
   await db.address.create({
     data: {
       userId,

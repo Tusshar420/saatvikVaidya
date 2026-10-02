@@ -3582,3 +3582,110 @@ in the same units as the label spec; draw the brand elements live in the
 browser from the line's label details; download as PNG; attach the image to
 the launch order next to the per-line label details so proofs and the admin
 brand-order page show what the customer expects.
+
+## Launch page: bulk-order Launch cart (2026-10-03)
+
+A request outside the chunk list: brand owners can put several products in
+a **Launch cart** (separate from the store cart), set a bulk quantity for each,
+and check the whole cart out as **one** brand order, which then goes through
+the existing P2.2 flow (label proof, production, dispatch). This replaces
+P2.1's "one product per brand order".
+
+- **Schema** (migration `20261003120000_launch_cart`): `BrandCartItem`
+  (user, product, quantity; unique per user and product; cascades with
+  either) and `BrandPriceTier` (product, from-quantity, price in paise).
+  `BrandDraft` keeps only the packaging and logo: its `productId` and
+  `quantity` are dropped, and an existing draft's product moves into the cart
+  (a missing quantity becomes the minimum).
+- **Rules** (`src/lib/brand.ts`): `brandTermsOf` now carries `tiers`;
+  `usableBrandTiers` drops tiers that can't apply (not above the minimum, not
+  cheaper, beyond the cap); `brandUnitPriceFor` / `brandLineTotal` price a
+  quantity at the tier it reaches; `nextBrandTier` gives "add N more to pay ₹X
+  each" on the step. A cart holds at most 25 products
+  (`MAX_BRAND_CART_LINES`), and the ₹1 crore online cap now applies to the
+  whole cart.
+- **Server** (`src/server/brand/cart.ts`): `readBrandCart` prices every line
+  again (never stored), marks lines whose product was taken off branding or
+  whose minimum changed, and says whether the cart is `ready`;
+  `addToBrandCart` (minimum, or one more step of it), `setBrandCartQuantity`
+  (positive multiple of the minimum), `removeFromBrandCart`, `brandCartTotals`
+  (GST grouped by rate) and `furthestStep(cart, draft)`. Server actions in
+  `launch/actions.ts` check the session and parse with Zod; only ids and
+  quantities come from the browser.
+- **Orders** (`placeBrandOrder`): locks the draft and the cart lines, checks
+  every line and the total the page showed, and creates one `brand` order with
+  one `OrderItem` per product at its tier price; cart and draft are removed in
+  the same transaction. Order views (`BrandOrderView.items`, `gst` by rate),
+  My Brand, the admin brand-order list ("and N more") and detail (all
+  products), and the paid messages to buyer and admins list every product.
+- **`/launch` steps** are now: 1 Products (catalogue cards with "Add to launch
+  cart" / "Add N more", "In cart" badge, the best bulk price, and a cart bar
+  with products, units, total and "View launch cart"), 2 Launch cart (per line:
+  price each with a "Bulk price" badge, the tier chips with the current one
+  marked, the next-tier hint, − / + by the minimum, typed numbers snapped up
+  with a note, remove, line total; summary with "Continue to packaging";
+  empty state), 3 Packaging (logo and label text once for the whole order),
+  4 Review and pay (all products, packaging, address, test payment). The cart
+  step always opens; the others still need the ones before them.
+- **Admin**: the product form's Launch Your Brand section has up to 4 bulk
+  price rows ("Bulk price n: from units / price each"), checked like the
+  store tiers (above the minimum and the row before, cheaper than the branded
+  price and the row before; needs minimum and price first), saved and audited
+  with the product. The seed gives Punarnava Mandoor sample tiers (200+ ₹165,
+  500+ ₹150) only while it still has the seeded terms and no tiers.
+- **Shared**: `QuantityStepper` takes an optional `step`, `normalize` and
+  `onAdjusted` (the store cart still steps by 1).
+
+**Decisions**
+- Signed-in only, as before: `/launch` already needs an account, so the cart
+  lives in the database and follows the user across sign-outs and devices.
+  No guest Launch cart.
+- One brand (logo and label text) per order; ordering under a second brand
+  means a second order.
+- There is no quote step: since 2026-10-02 the client's flow is pay first,
+  then label proof and production, and the cart checks out into that flow.
+- Tier prices are recorded on the order line as the unit price with price tier
+  `brand`. Tiers are one set per product for every user type, like the base
+  brand price.
+- A product taken off branding stays in the cart, unpriced, with a remove
+  button; checkout waits until it's removed (no silent dropping).
+
+**Tests**
+- Vitest: `src/lib/brand.test.ts` (tier pricing, next tier on the step,
+  unusable tiers) and `src/server/brand/brand.test.ts` (add / step / set /
+  remove, gating, unavailable and changed-minimum lines, tier pricing, 25-line
+  and ₹1 crore limits, other users' carts, packaging needs a cart, a
+  two-product order at tier prices with two GST rates, total changed after
+  adding, unavailable product refused, admin tier form rules). Fixtures:
+  `tests/setup/brand.ts`, `tests/setup/shop.ts` (brand tiers).
+- Playwright `tests/e2e/brand.spec.ts`, phone and desktop: three products
+  added (with "Add 4 more"), cart bar, cart kept after leaving the page, − / +
+  by each minimum, typed number snapped with note, bulk tier reached at 50,
+  remove, packaging, review of both products, one order with both lines at
+  the right prices, cart emptied, payment failure and retry, My Brand and the
+  admin page list both products. axe, sideways scroll and console errors
+  checked on each step. `p2-4-quality.spec.ts` fixture now seeds a cart line.
+- Screens looked at by screenshot at 375 and 1280 px (catalogue with cart
+  bar, Launch cart with tiers, My Brand, order detail); the cart line was
+  changed to keep the picture beside the name on phones.
+
+**Checks:** typecheck, lint, test (771) and build pass. e2e: `brand.spec.ts`
+6/6, and in the full run every Launch, proof, P2.4, shell and admin spec
+passed. Failures not caused by this change:
+- `catalogue.spec.ts` store listing and search tests (3 per viewport): the dev
+  database now holds the client's 159 products (`db:seed:catalogue`, previous
+  commit), so e.g. "Triphala Churna" matches two products and the real one is
+  ₹75 and out of stock. The specs need updating for the real catalogue, or the
+  e2e server needs its own database.
+- `quiz.last.spec.ts` "no quiz open": the open demo quiz from `db:seed:demo`
+  (until 2026-10-04), as before.
+- `site-settings.exclusive.spec.ts` footer and announcement test: flaky (fails
+  in some group runs, passes alone and in a later group run).
+- The admin catalogue test that found two "Tier 1: from quantity" fields was
+  caused by this change (the first label wording) and is fixed.
+
+**Later**
+- CSV brand import doesn't take tiers yet (tiers are set on the product form).
+- Abandoned cart lines are kept indefinitely; a cleanup (or a reminder) could
+  come later.
+- `/admin/reports` doesn't split brand sales by product tier.

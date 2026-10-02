@@ -27,18 +27,15 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
       user: { select: recipientSelect },
       brandDetails: { select: { brandName: true } },
       items: {
-        take: 1,
         orderBy: { id: "asc" },
         select: { productName: true, quantity: true, product: { select: { brandUnitLabel: true } } },
       },
     },
   });
   if (!order || order.type !== "brand") return;
-  const item = order.items[0];
-  const units = item
-    ? copy.myBrand.units(item.quantity, item.product?.brandUnitLabel ?? "")
-    : "";
-  const productName = item?.productName ?? "";
+  const products = order.items.map((item) =>
+    copy.messages.line(item.productName, copy.myBrand.units(item.quantity, item.product?.brandUnitLabel ?? "")),
+  );
   const total = formatPaise(order.totalPaise);
   const base = authEnv().BETTER_AUTH_URL;
 
@@ -49,7 +46,7 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
       order.user,
       {
         subject: subject(order.number),
-        text: body(order.user.name, order.number, productName, units, total, link),
+        text: body(order.user.name, order.number, products, total, link),
       },
       sms(order.number, total),
     );
@@ -68,7 +65,7 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
       channel: "email",
       to: admin.email,
       subject: subject(order.number, brandName),
-      text: body(order.number, order.user?.name ?? "", brandName, productName, units, total, link),
+      text: body(order.number, order.user?.name ?? "", brandName, products, total, link),
     });
   }
 }

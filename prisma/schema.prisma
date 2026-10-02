@@ -118,6 +118,7 @@ model User {
   twoFactors              TwoFactor[]
   adminInvitesSent        AdminInvite[]          @relation("AdminInviteSender")
   brandDraft              BrandDraft?
+  brandCartItems          BrandCartItem[]
 
   @@index([userTypeId])
 }
@@ -804,7 +805,8 @@ model Product {
   bulkTiers              BulkPriceTier[]
   cartItems              CartItem[]
   orderItems             OrderItem[]
-  brandDrafts            BrandDraft[]
+  brandCartItems         BrandCartItem[]
+  brandTiers             BrandPriceTier[]
 
   @@index([active, sortOrder])
   @@index([brandId])
@@ -1078,14 +1080,12 @@ model BrandStageEvent {
   @@index([orderId, createdAt])
 }
 
-/// A Launch Your Brand order in progress (P2.1): one per user, saved after
-/// each step of /launch and removed when the order is placed (its logo
-/// then belongs to the order).
+/// The packaging of a Launch Your Brand order in progress (P2.1): one per
+/// user, saved on /launch and removed when the order is placed (its logo
+/// then belongs to the order). The products are in BrandCartItem.
 model BrandDraft {
   userId            String   @id @db.VarChar(64)
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId         Int?
-  product           Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   brandName         String?  @db.VarChar(80)
   tagline           String?  @db.VarChar(120)
   marketedByName    String?  @db.VarChar(120)
@@ -1098,12 +1098,40 @@ model BrandDraft {
   logoName          String?  @db.VarChar(191)
   logoContentType   String?  @db.VarChar(64)
   logoSizeBytes     Int?
-  /// Null until the quantity step is saved (and again after a product change).
-  quantity          Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
 
+/// One product in a user's Launch cart (/launch): the bulk order they are
+/// putting together, separate from the store cart. Prices are never stored
+/// here; every view and the order price the lines again. The quantity is a
+/// multiple of the product's brand minimum (checked again at checkout).
+model BrandCartItem {
+  id        Int      @id @default(autoincrement())
+  userId    String   @db.VarChar(64)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
   @@index([productId])
+}
+
+/// A lower branded unit price from a quantity upwards (Launch Your Brand
+/// bulk pricing). Below the first tier the product's brandUnitPricePaise
+/// applies. Prices fall as quantities rise.
+model BrandPriceTier {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  /// Unit price, including GST, in paise.
+  pricePaise  Int
+
+  @@unique([productId, minQuantity])
 }
 
 /// One line of an order, with the product as it was when ordered.

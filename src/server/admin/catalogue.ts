@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
-import { MAX_BRAND_MIN_QTY, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
+import { MAX_BRAND_MIN_QTY, MAX_BRAND_TIERS, MAX_BRAND_UNITS, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_BULK_TIERS,
@@ -101,6 +101,7 @@ const productFormSchema = z
     stock: wholeNumber(0, 1_000_000, errors.stock),
     moq: wholeNumber(1, 10_000, errors.moq),
     tiers: z.array(tierRowSchema).max(MAX_BULK_TIERS),
+    brandTiers: z.array(tierRowSchema).max(MAX_BRAND_TIERS),
     active: checkbox,
     featured: checkbox,
     isSample: checkbox,
@@ -183,6 +184,42 @@ const productFormSchema = z
       ctx.addIssue({ code: "custom", path: ["brandEligible"], message: brandErrors.needed });
     }
 
+    // Brand bulk tiers: like the store's, above the brand minimum and below
+    // the branded price (and the tier before). They need those two first.
+    const brandTiers: { minQuantity: number; pricePaise: number }[] = [];
+    data.brandTiers.forEach((row, index) => {
+      if (!row.minQuantity && !row.price) return;
+      const path = (field: string) => ["brandTiers", index, field];
+      if (!row.minQuantity || !row.price) {
+        ctx.addIssue({
+          code: "custom",
+          path: path(row.minQuantity ? "price" : "minQuantity"),
+          message: brandErrors.tierIncomplete,
+        });
+        return;
+      }
+      if (brandMinQty === null || Number.isNaN(brandMinQty) || !brandPriceValid || brandPricePaise === null) {
+        ctx.addIssue({ code: "custom", path: path("minQuantity"), message: brandErrors.tierNeedsTerms });
+        return;
+      }
+      const previous = brandTiers.at(-1);
+      const minQuantity = /^\d{1,6}$/.test(row.minQuantity) ? Number(row.minQuantity) : NaN;
+      if (
+        !(minQuantity > brandMinQty && minQuantity <= MAX_BRAND_UNITS) ||
+        (previous && minQuantity <= previous.minQuantity)
+      ) {
+        ctx.addIssue({ code: "custom", path: path("minQuantity"), message: brandErrors.tierMin });
+        return;
+      }
+      const pricePaise = rupeesToPaise(row.price);
+      const ceiling = previous?.pricePaise ?? brandPricePaise;
+      if (pricePaise === null || pricePaise <= 0 || pricePaise >= ceiling) {
+        ctx.addIssue({ code: "custom", path: path("price"), message: brandErrors.tierPrice });
+        return;
+      }
+      brandTiers.push({ minQuantity, pricePaise });
+    });
+
     return {
       name: data.name,
       slug,
@@ -208,6 +245,7 @@ const productFormSchema = z
       brandUnitPricePaise: brandPriceValid ? brandPricePaise : null,
       brandUnitLabel: data.brandUnitLabel,
       bulkTiers,
+      brandTiers,
     };
   });
 
@@ -216,7 +254,8 @@ export type ProductInput = z.output<typeof productFormSchema>;
 /**
  * Turns the form's flat values into the product input. Practice areas come
  * from ticked `area-<id>` boxes and tiers from `tiers.<n>.minQuantity` /
- * `tiers.<n>.price`, so a failed save can show every value again.
+ * `tiers.<n>.price` (brand tiers: `brandTiers.<n>....`), so a failed save
+ * can show every value again.
  */
 export function parseProductForm(
   values: Record<string, string>,
@@ -230,7 +269,11 @@ export function parseProductForm(
     minQuantity: values[`tiers.${index}.minQuantity`] ?? "",
     price: values[`tiers.${index}.price`] ?? "",
   }));
-  const parsed = productFormSchema.safeParse({ ...values, practiceAreaIds, tiers });
+  const brandTiers = Array.from({ length: MAX_BRAND_TIERS }, (_, index) => ({
+    minQuantity: values[`brandTiers.${index}.minQuantity`] ?? "",
+    price: values[`brandTiers.${index}.price`] ?? "",
+  }));
+  const parsed = productFormSchema.safeParse({ ...values, practiceAreaIds, tiers, brandTiers });
   if (parsed.success) return { success: true, data: parsed.data };
   return { success: false, fieldErrors: fieldErrorsOf(parsed.error) };
 }
@@ -290,6 +333,7 @@ export async function getAdminProduct(id: number) {
     include: {
       practiceAreas: { select: { id: true } },
       bulkTiers: { orderBy: { minQuantity: "asc" } },
+      brandTiers: { orderBy: { minQuantity: "asc" } },
       images: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
     },
   });
@@ -352,6 +396,10 @@ export function productFormValues(
     values[`tiers.${index}.minQuantity`] = tier.minQuantity;
     values[`tiers.${index}.price`] = paiseToRupeeInput(tier.pricePaise);
   });
+  product.brandTiers.forEach((tier, index) => {
+    values[`brandTiers.${index}.minQuantity`] = tier.minQuantity;
+    values[`brandTiers.${index}.price`] = paiseToRupeeInput(tier.pricePaise);
+  });
   return values;
 }
 
@@ -409,12 +457,16 @@ async function checkRelations(
 function auditValues(input: {
   practiceAreaIds: number[];
   bulkTiers: { minQuantity: number; pricePaise: number }[];
+  brandTiers: { minQuantity: number; pricePaise: number }[];
 } & Record<string, unknown>) {
-  const { practiceAreaIds, bulkTiers, ...fields } = input;
+  const { practiceAreaIds, bulkTiers, brandTiers, ...fields } = input;
+  const tierText = (tiers: { minQuantity: number; pricePaise: number }[]) =>
+    tiers.map((t) => `${t.minQuantity}:${t.pricePaise}`).join(",");
   return {
     ...fields,
     practiceAreaIds: practiceAreaIds.join(","),
-    bulkTiers: bulkTiers.map((t) => `${t.minQuantity}:${t.pricePaise}`).join(","),
+    bulkTiers: tierText(bulkTiers),
+    brandTiers: tierText(brandTiers),
   };
 }
 
@@ -424,7 +476,7 @@ export async function createProduct(
   input: ProductInput,
   actorId: string,
 ): Promise<ProductResult> {
-  const { practiceAreaIds, bulkTiers, ...fields } = input;
+  const { practiceAreaIds, bulkTiers, brandTiers, ...fields } = input;
   try {
     return await db.$transaction(async (tx) => {
       const invalid = await checkRelations(tx, input);
@@ -434,6 +486,7 @@ export async function createProduct(
           ...fields,
           practiceAreas: { connect: practiceAreaIds.map((id) => ({ id })) },
           bulkTiers: { create: bulkTiers },
+          brandTiers: { create: brandTiers },
         },
         select: { id: true },
       });
@@ -458,7 +511,7 @@ export async function updateProduct(
   input: ProductInput,
   actorId: string,
 ): Promise<ProductResult | null> {
-  const { practiceAreaIds, bulkTiers, ...fields } = input;
+  const { practiceAreaIds, bulkTiers, brandTiers, ...fields } = input;
   try {
     return await db.$transaction(async (tx) => {
       const existing = await tx.product.findUnique({
@@ -466,6 +519,7 @@ export async function updateProduct(
         include: {
           practiceAreas: { select: { id: true }, orderBy: { id: "asc" } },
           bulkTiers: { orderBy: { minQuantity: "asc" } },
+          brandTiers: { orderBy: { minQuantity: "asc" } },
         },
       });
       if (!existing) return null;
@@ -477,6 +531,7 @@ export async function updateProduct(
           ...existing,
           practiceAreaIds: existing.practiceAreas.map((area) => area.id),
           bulkTiers: existing.bulkTiers,
+          brandTiers: existing.brandTiers,
         }),
         auditValues(input),
       );
@@ -488,6 +543,7 @@ export async function updateProduct(
           ...fields,
           practiceAreas: { set: practiceAreaIds.map((areaId) => ({ id: areaId })) },
           bulkTiers: { deleteMany: {}, create: bulkTiers },
+          brandTiers: { deleteMany: {}, create: brandTiers },
         },
       });
       await logAdminAction(tx, {
