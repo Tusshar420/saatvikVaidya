@@ -3314,3 +3314,55 @@ window only approved templates can be sent). The senders to extend are in
 a migration, a toggle on `/account` next to the P1.10 ones, and text in
 `src/content/`. Incoming status webhooks, if used, must check the signature
 with the app secret.
+
+## G.6. Deploy to Hostinger (BLOCKED, 2026-10-03)
+
+Not started. Two things stop it (checked on 2026-10-03, latest commit
+`8b9d02f`):
+
+- **G.1 to G.5 are blocked.** All five have only BLOCKED entries and no code.
+  Go-live chunks run in order, so G.6 waits for them. The deploy checklist
+  and smoke test depend on them: the environment variables to list, the
+  "test provider never runs in production" guards, the payment and shipping
+  webhooks to check, and the storage setup all come from G.1 to G.5.
+- **CLAUDE.md's go-live gate isn't met.** The "No real integrations yet" rule
+  is unchanged, and the Go-live gate in `docs/CHUNKS.md` says these chunks may
+  only start once the client's keys are ready and that rule is updated.
+
+Nothing was built (no `docs/DEPLOY.md`, no smoke test), so the checks were not
+run. The tree had no other changes.
+
+**To unblock (a person decides):** finish G.1 to G.5, or say that G.6 may be
+prepared ahead of them against today's test providers. Then rerun G.6 and
+replace this entry with the real one. G.6 never deploys; a person does.
+
+Notes for that run (what the checklist must cover, from today's code):
+- **Node:** `package.json` `engines` asks for Node `>=24.0.0`; check that the
+  Hostinger plan offers it.
+- **Migrations:** `pnpm db:migrate` is `prisma migrate dev`, which is for
+  development only. Production needs `prisma migrate deploy` (a new script,
+  for example `db:deploy`). `db:reset` must never run there.
+- **Seed and admin:** `pnpm db:seed` seeds the content; the first admin comes
+  from `pnpm admin:create` (`scripts/admin-create.ts`, using `ADMIN_EMAIL`,
+  `ADMIN_PASSWORD`, `ADMIN_NAME`). Remove those values from the server's env
+  afterwards.
+- **Environment:** today's names are in `.env.example` (`DATABASE_URL`,
+  `STORAGE_DIR`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SHOW_DESIGN_PAGE`,
+  `DEV_SHOW_OTP`, `PAYMENT_PROVIDER`, `SHIPPING_PROVIDER` and the two
+  `TEST_*_IN_LOCAL_BUILD` flags) plus whatever G.1 to G.5 add. Production
+  values: `DEV_SHOW_OTP` and `SHOW_DESIGN_PAGE` off, the `TEST_*` flags unset,
+  a fresh `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL` set to the live https URL.
+- **HSTS:** no `Strict-Transport-Security` header is set yet; it goes with the
+  other security headers in the Next.js config, once https is confirmed.
+- **Trusted proxy for rate limits:** `src/server/request-origin.ts` and Better
+  Auth (`ipAddressHeaders: ["x-forwarded-for"]` in `src/server/auth/index.ts`)
+  take the first `x-forwarded-for` entry, which a client can fake unless
+  Hostinger's proxy overwrites it. Check what Hostinger sends and switch to the
+  header or entry the proxy controls, or rate limits per IP can be bypassed.
+- **Storage, backups and monitoring:** `STORAGE_DIR` must be on persistent
+  disk until R2 (G.4) lands; the checklist needs MySQL and file backups with a
+  restore test, plus uptime and error monitoring.
+- **Smoke test:** a small Playwright spec (or script) pointed at a
+  `SMOKE_BASE_URL`, read-only: homepage, a product page, sign-in page,
+  security headers (CSP, HSTS), `/design` hidden, and no test-provider screens
+  reachable. It must never place orders or create accounts on the live site.
