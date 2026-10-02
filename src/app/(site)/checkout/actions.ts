@@ -81,6 +81,7 @@ const placeErrors: Record<PlaceOrderError, string> = {
   empty: copy.place.errors.empty,
   cart_changed: copy.place.errors.cartChanged,
   payments_off: copy.place.errors.paymentsOff,
+  checkout_off: copy.place.errors.checkoutOff,
   coins: copy.place.errors.coins,
   rate_limited: copy.place.errors.generic,
 };
@@ -95,11 +96,17 @@ export async function placeOrderAction(_: FormState, formData: FormData): Promis
       message: missingAddress ? copy.place.errors.address : copy.place.errors.generic,
     };
   }
-  const [viewer, shipping, coinRules] = await Promise.all([
+  const [viewer, shipping, coinRules, checkoutSwitch, maintenance] = await Promise.all([
     getPricingViewer(),
     getSetting("checkout.shipping"),
     getSetting("coins.rules"),
+    getSetting("checkout.enabled"),
+    getSetting("site.maintenance"),
   ]);
+  // The checkout switch, and maintenance mode (admins can still order).
+  if (!checkoutSwitch.enabled || (maintenance.enabled && user.role !== "admin")) {
+    return { status: "error", message: placeErrors.checkout_off };
+  }
   const result = await placeOrder({ userId: user.id, viewer, shipping, coinRules, ...parsed.data });
   if (!result.ok) {
     // Show the cart as it is now, so the summary matches what changed.

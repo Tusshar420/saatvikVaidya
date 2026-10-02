@@ -10,6 +10,10 @@ const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
  * 1.4.3 exempts from contrast minimums.
  */
 export async function axeViolations(page: Page) {
+  // Move the pointer off whatever was just clicked: axe would otherwise read
+  // the colours of a button in the middle of its hover transition.
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(250);
   const results = await new AxeBuilder({ page })
     .withTags(WCAG_TAGS)
     .exclude("[data-logo]")

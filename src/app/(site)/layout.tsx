@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { AnnouncementBar } from "@/components/site/announcement-bar";
 import { Footer } from "@/components/site/footer";
 import { Header } from "@/components/site/header";
+import { MaintenancePage } from "@/components/site/maintenance-page";
 import { MobileDock } from "@/components/site/mobile-dock";
 import { SiteModalsProvider } from "@/components/site/site-modals";
 import { SkipLink } from "@/components/site/skip-link";
@@ -32,6 +34,8 @@ export default async function SiteLayout({
     enabledSections,
     bagCount,
     coinRules,
+    maintenance,
+    announcement,
   ] = await Promise.all([
     getSetting("contact.phone"),
     getSetting("contact.supportNote"),
@@ -42,7 +46,23 @@ export default async function SiteLayout({
     getEnabledSectionKeys(),
     currentCartOwner().then(cartCount),
     getSetting("coins.rules"),
+    getSetting("site.maintenance"),
+    getSetting("site.announcement"),
   ]);
+  // Maintenance mode: everyone but signed-in admins gets the branded page.
+  // Sign-in stays open (the modal, and /api/auth, which isn't under this
+  // layout) so an admin can come in.
+  if (maintenance.enabled && session?.user.role !== "admin") {
+    return (
+      <SiteModalsProvider
+        phone={phone}
+        userTypes={userTypes}
+        devShowOtp={isDevOtpVisible()}
+      >
+        <MaintenancePage message={maintenance.message} phone={phone} />
+      </SiteModalsProvider>
+    );
+  }
   const coinBalance =
     session && coinRules.enabled ? (await coinSummary(db, session.user.id)).balance : null;
 
@@ -59,6 +79,9 @@ export default async function SiteLayout({
       devShowOtp={isDevOtpVisible()}
     >
       <SkipLink />
+      {announcement.enabled && announcement.text && (
+        <AnnouncementBar text={announcement.text} href={announcement.href} />
+      )}
       <Header
         popularSearches={popularSearches}
         phone={phone}

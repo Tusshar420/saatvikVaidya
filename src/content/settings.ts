@@ -57,6 +57,18 @@ export type SettingValues = {
    * too; either off pauses that book's downloads.
    */
   "ebooks.downloads": { enabled: boolean };
+  /**
+   * The slim bar above the header (P1.9). `href` is a site path or modal
+   * target (src/server/content/home-schema.ts), or null for plain text.
+   */
+  "site.announcement": { enabled: boolean; text: string; href: string | null };
+  /** Checkout switch (P1.9): off stops new orders; carts still work. */
+  "checkout.enabled": { enabled: boolean };
+  /**
+   * Maintenance mode (P1.9): visitors see a branded page; signed-in admins
+   * see the site as usual.
+   */
+  "site.maintenance": { enabled: boolean; message: string };
 };
 
 export type SettingKey = keyof SettingValues;
@@ -99,4 +111,11 @@ export const settingDefaults: SettingValues = {
     expiryMonths: 60,
   },
   "ebooks.downloads": { enabled: true },
+  "site.announcement": { enabled: false, text: "", href: null },
+  "checkout.enabled": { enabled: true },
+  "site.maintenance": {
+    enabled: false,
+    message:
+      "We're making the site better and will be back shortly. Thank you for your patience.",
+  },
 };

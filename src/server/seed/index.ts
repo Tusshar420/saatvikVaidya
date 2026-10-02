@@ -31,11 +31,13 @@ import { userTypeSeed } from "./user-types";
 /**
  * Seeds user types, default settings and homepage content. Safe to run any
  * number of times:
- * - User types and content are upserted by `key`. Re-running restores the
- *   seeded copy, but keeps placement and visibility (`sortOrder`, `active`,
- *   `enabled`, `featured`), which only apply when a row is first created.
- * - Reels, brands and courses are edited in the admin panel, so they are only
- *   created when missing; their copy is never overwritten.
+ * - User types are upserted by `key`. Re-running restores the seeded copy,
+ *   but keeps placement and visibility (`sortOrder`, `active`, `enabled`,
+ *   `featured`), which only apply when a row is first created.
+ * - Homepage content (sections, hero slides, stats, reels, offers, quick
+ *   actions, categories, brands, courses, live sessions, feedback and
+ *   why-steps) is edited in the admin panel (/admin/content), so it is only
+ *   created when its key is missing; an existing row is never overwritten.
  * - Sample products (./catalogue.ts) are only created when their slug is
  *   missing, so catalogue edits are kept.
  * - Settings are only created when missing, so edited values are never
@@ -52,18 +54,18 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
     async (tx) => {
       await syncByKey(userTypeSeed, (args) => tx.userType.upsert(args));
       const settingsCreated = await createMissingSettings(tx);
-      await syncByKey(homeSectionSeed, (args) => tx.homeSection.upsert(args));
-      await syncByKey(heroSlideSeed, (args) => tx.heroSlide.upsert(args));
-      await syncByKey(statItemSeed, (args) => tx.statItem.upsert(args));
+      await createMissing(homeSectionSeed, (args) => tx.homeSection.upsert(args));
+      await createMissing(heroSlideSeed, (args) => tx.heroSlide.upsert(args));
+      await createMissing(statItemSeed, (args) => tx.statItem.upsert(args));
       await createMissing(reelSeed, (args) => tx.reel.upsert(args));
-      await syncByKey(offerSeed, (args) => tx.offer.upsert(args));
-      await syncByKey(quickActionSeed, (args) => tx.quickAction.upsert(args));
-      await syncByKey(categorySeed, (args) => tx.category.upsert(args));
+      await createMissing(offerSeed, (args) => tx.offer.upsert(args));
+      await createMissing(quickActionSeed, (args) => tx.quickAction.upsert(args));
+      await createMissing(categorySeed, (args) => tx.category.upsert(args));
       await createMissing(brandSeed, (args) => tx.brand.upsert(args));
       await createMissing(courseTeaserSeed, (args) => tx.courseTeaser.upsert(args));
-      await syncByKey(liveSessionSeed, (args) => tx.liveSession.upsert(args));
-      await syncByKey(feedbackSeed, (args) => tx.feedback.upsert(args));
-      await syncByKey(whyStepSeed, (args) => tx.whyStep.upsert(args));
+      await createMissing(liveSessionSeed, (args) => tx.liveSession.upsert(args));
+      await createMissing(feedbackSeed, (args) => tx.feedback.upsert(args));
+      await createMissing(whyStepSeed, (args) => tx.whyStep.upsert(args));
       const productsCreated = await createMissingProducts(tx);
 
       return {

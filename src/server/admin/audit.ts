@@ -37,7 +37,12 @@ export type AdminAction =
   | "ebook.create"
   | "ebook.update"
   | "ebook.file.upload"
-  | "ebooks.downloads.update";
+  | "ebooks.downloads.update"
+  | "setting.update"
+  | "home.create"
+  | "home.update"
+  | "home.delete"
+  | "home.sections.update";
 
 export type AdminResource =
   | "User"
@@ -48,7 +53,15 @@ export type AdminResource =
   | "Product"
   | "Order"
   | "Setting"
-  | "Ebook";
+  | "Ebook"
+  | "HeroSlide"
+  | "StatItem"
+  | "Offer"
+  | "QuickAction"
+  | "Category"
+  | "Feedback"
+  | "WhyStep"
+  | "HomeSection";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

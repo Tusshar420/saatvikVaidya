@@ -4,12 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BadgeCheck,
+  BarChart3,
   BookOpen,
   Building2,
   Coins,
   Clapperboard,
   Database,
+  GalleryHorizontal,
   GraduationCap,
+  LayoutList,
+  ListOrdered,
+  MessageSquareQuote,
+  Shapes,
+  Tag,
+  Zap,
   LayoutDashboard,
   ListChecks,
   Package,
@@ -19,7 +27,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
+import { adminHome } from "@/content/admin-site";
 import { cn } from "@/lib/cn";
+
+const home = adminHome.nav;
 
 type NavLink = { href: string; label: string; icon: LucideIcon };
 
@@ -32,6 +43,14 @@ const main: NavLink[] = [
 ];
 
 const content: NavLink[] = [
+  { href: "/admin/content/sections", label: home.sections, icon: LayoutList },
+  { href: "/admin/content/hero", label: home.hero, icon: GalleryHorizontal },
+  { href: "/admin/content/offers", label: home.offers, icon: Tag },
+  { href: "/admin/content/stats", label: home.stats, icon: BarChart3 },
+  { href: "/admin/content/quick-actions", label: home.quickActions, icon: Zap },
+  { href: "/admin/content/categories", label: home.categories, icon: Shapes },
+  { href: "/admin/content/feedback", label: home.feedback, icon: MessageSquareQuote },
+  { href: "/admin/content/why", label: home.why, icon: ListOrdered },
   { href: "/admin/content/reels", label: copy.nav.reels, icon: Clapperboard },
   { href: "/admin/content/brands", label: copy.nav.brands, icon: Building2 },
   {

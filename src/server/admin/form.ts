@@ -127,3 +127,6 @@ export function fieldValuesOf(
   }
   return values;
 }
+
+/** The key typed when creating a content row (see contentKey). */
+export const keyOf = (value: unknown) => contentKey("Invalid key").safeParse(value);

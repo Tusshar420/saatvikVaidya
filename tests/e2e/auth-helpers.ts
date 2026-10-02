@@ -278,6 +278,10 @@ export async function cleanUpE2eData() {
     // Orders of e2e users (their items, payments and shipments go with them). Orders
     // outlive a deleted account, so they're removed before the users.
     db.order.deleteMany({ where: { userId: { in: ids } } }),
+    // Settings an e2e admin changed and left changed (a stopped run): deleting
+    // the row puts the default back (and its history goes with it). Before the
+    // users go, or the link to them would just be cleared.
+    db.setting.deleteMany({ where: { updatedBy: { in: ids } } }),
     // Audit rows written by e2e admins, or about e2e users.
     db.adminLog.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { resourceId: { in: ids } }] },
@@ -298,6 +302,7 @@ export async function cleanUpE2eData() {
     // Cart lines go with the ebook; order lines keep their snapshot.
     db.ebook.deleteMany({ where: { slug: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.reel.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
+    db.offer.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.brand.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.courseTeaser.deleteMany({
       where: { key: { startsWith: E2E_CONTENT_PREFIX } },

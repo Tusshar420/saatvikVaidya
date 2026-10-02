@@ -2375,42 +2375,70 @@ checks passed. Nothing needed fixing before starting.
   schema is in `src/server/content/settings.ts`).
 - P1.10 can reuse `listOwnedEbooks()` for the account pages.
 
-## P1.9. Site settings, maintenance mode and homepage editing (BLOCKED, 2026-10-01)
+## P1.9. Site settings, maintenance mode and homepage editing (2026-10-02)
 
-Not started. This replaces the earlier BLOCKED entry. That one waited on P1.3,
-which is now committed (`5b6745e`). The chunk is still blocked on earlier
-chunks, so per the task rules it stops here instead of building around them.
+Replaces the earlier BLOCKED entry: P1.4 to P1.8 are committed and green.
 
-**What's blocking (checked in git and docs on 2026-10-01)**
-- **P1.4 (Cart, checkout and test payment) is unfinished.** Its code is
-  uncommitted on `dev` (no P1.4 commit; the latest commit is `a94279b`), and
-  its entry still has the placeholder `CHECKS_LINE` as its **Checks** line, so
-  nothing shows typecheck, lint, test, test:e2e and build passed.
-- **P1.5, P1.6, P1.7 and P1.8 are marked BLOCKED** (all on P1.4) and not built.
-- **P1.4's uncommitted edits overlap P1.9's files:** `prisma/schema.prisma`
-  (P1.9 needs a migration making `Setting.updatedBy` and
-  `SettingHistory.changedBy` real `User` relations, which would stack on
-  P1.4's uncommitted migration), `src/content/settings.ts` and
-  `src/server/content/settings.ts`. P1.9's commits couldn't be kept apart from
-  P1.4's work.
+**Built**
+- **Migration `p1_9_setting_user_relations`:** `Setting.updatedBy` and
+  `SettingHistory.changedBy` are now real relations to `User` (`onDelete:
+  SetNull`, so history survives a deleted admin). Orphaned ids are nulled first.
+- **`/admin/settings`:** five forms (site switches, contact and footer,
+  announcement bar, delivery fee, seller details for invoices) plus a "Recent
+  changes" list. Each save validates with Zod, then with the setting's own
+  schema (`settingSchemas`), and writes the value, a `SettingHistory` row and
+  an `AdminLog` row in one transaction. Unchanged values write nothing.
+  `updateTag` makes the next page load show the change.
+- **New settings:** `site.announcement`, `checkout.enabled`, `site.maintenance`.
+  The switches form also drives `coins.rules.enabled` (other coin rules stay in
+  `/admin/coins`) and `ebooks.downloads`.
+- **Announcement bar** above the header (text, optional site path or modal).
+- **Checkout off:** `/checkout` shows a "paused" notice and `placeOrderAction`
+  refuses (`checkout_off`). **Maintenance mode:** `(site)/layout.tsx` shows a
+  branded page (phone number, admin sign-in button) to everyone except signed-in
+  admins. `/admin` and `/api/*` are outside that layout, so admin sign-in works.
+  Maintenance also blocks non-admin order placing.
+- **`/admin/content`:** new lists, create and edit forms for hero slides,
+  offers, trust stats, quick actions, categories, feedback and why-steps, driven
+  by one spec (`src/content/admin-site.ts`, routes `/admin/content/[kind]`), and
+  `/admin/content/sections` for on/off and order of all 14 sections plus each
+  section's heading copy. Saves validate with the existing home schemas, write
+  `AdminLog` and call `updateTag(contentTags.home)`.
+- **Seed is create-only** for all homepage content (sections, hero, stats,
+  offers, quick actions, categories, live sessions, feedback, why-steps, as
+  reels/brands/courses already were). User types still sync.
+- Admin sidebar now scrolls when taller than the window.
 
-**Notes for the run once unblocked**
-- Already there: `Setting` and `SettingHistory` (A4), a coming-soon
-  `/admin/settings`, and `/admin/content` with brands, courses, quiz and reels
-  editors (P1.1). Still to do: hero slides, offers, stats, quick actions,
-  categories, feedback, why-steps, section on/off and order, create-only
-  seeding, `revalidateTag` after saves, and maintenance mode.
-- Files P1.9 will touch: `src/server/seed/home-content.ts`,
-  `src/server/seed/index.ts`, `prisma/seed.ts`, `src/server/content/home.ts`
-  and its test, `src/components/admin/admin-nav.tsx`, `src/content/admin.ts`.
+**Decisions**
+- Hero slide `panel` and `proof` are edited as JSON text, validated against the
+  existing panel schemas; a friendlier editor can come later.
+- Specs that change site-wide settings are `*.exclusive.spec.ts`. They run in
+  two extra Playwright projects (`phone-exclusive`, then `desktop-exclusive`)
+  that wait for the rest, so maintenance mode can't break parallel tests.
+  `cleanup.ts` also resets settings an e2e admin left changed.
+- `axeViolations` now moves the mouse away first; a hovered button mid-
+  transition made `checkout.spec.ts` flaky (contrast).
 
-**Next steps**
-1. Finish P1.4: run the five checks, fill in its **Checks** line, commit.
-2. Build P1.5 to P1.8 in order (replacing their BLOCKED entries), then
-   re-queue P1.9.
+**Tests:** Vitest for settings parsing and saving, history and audit, deleted
+admin, homepage item create/edit/delete showing in `readHomeContent`, section
+order, and create-only seeding. Playwright for the settings forms, maintenance
+(guest, customer, admin, `/api/auth`), checkout off, offer create/edit/delete,
+section toggle, and every content list.
 
-Nothing was changed apart from this entry. No P1.9 code was written and no
-checks were run.
+**Checks:** typecheck, lint, test (479), test:e2e (204 passed, 4 skipped) and
+build all pass. Screens checked at 375 and 1280 px (overflow and axe in e2e;
+screenshots of settings, sections and the maintenance page).
+
+**Known gaps / later**
+- Maintenance only covers pages under `(site)`; `/api/*` routes other than auth
+  (cart, orders, documents) still answer visitors. The proxy could check the
+  setting later.
+- Maintenance returns HTTP 200, not 503.
+- Section `content` JSON (launch steps, coins equation...) and live sessions are
+  not editable yet.
+- Re-seeding recreates a seeded row an admin deleted.
+- The `admin orders search` Vitest test failed once under load and passed on
+  rerun; worth a look in P1.12.
 
 ## P1.11. Admin security and permissions (BLOCKED, 2026-10-01)
 

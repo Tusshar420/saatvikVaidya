@@ -6,6 +6,7 @@ import {
   type SettingValues,
 } from "@/content/settings";
 import { indianState } from "@/lib/india";
+import { linkTargetSchema } from "./home-schema";
 import { db } from "@/server/db";
 import { cachedRead, contentTags } from "./cache";
 
@@ -47,6 +48,16 @@ export const settingSchemas = {
     expiryMonths: z.number().int().min(0).max(240),
   }),
   "ebooks.downloads": z.object({ enabled: z.boolean() }),
+  "site.announcement": z.object({
+    enabled: z.boolean(),
+    text: z.string().trim().max(200),
+    href: linkTargetSchema.nullable(),
+  }),
+  "checkout.enabled": z.object({ enabled: z.boolean() }),
+  "site.maintenance": z.object({
+    enabled: z.boolean(),
+    message: z.string().trim().min(1).max(300),
+  }),
 } satisfies { [K in SettingKey]: z.ZodType<SettingValues[K]> };
 
 const settingKeys = Object.keys(settingDefaults) as SettingKey[];

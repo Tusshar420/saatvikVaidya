@@ -92,6 +92,8 @@ model User {
   addresses               Address[]
   orders                  Order[]
   coinEntries             CoinLedger[]
+  settingsChanged         Setting[]              @relation("SettingUpdatedBy")
+  settingHistory          SettingHistory[]       @relation("SettingHistoryChangedBy")
 
   @@index([userTypeId])
 }
@@ -237,26 +239,32 @@ model VerificationComment {
 /// searches...). Read through getSetting(), which validates the value and
 /// falls back to the default in src/content/settings.ts.
 model Setting {
-  key       String           @id @db.VarChar(100)
-  value     Json
-  updatedAt DateTime         @updatedAt
-  /// Id of the user who last changed it; null when set by the seed. Becomes a
-  /// relation to User once A5 adds it.
-  updatedBy String?
-  history   SettingHistory[]
+  key           String           @id @db.VarChar(100)
+  value         Json
+  updatedAt     DateTime         @updatedAt
+  /// The user who last changed it; null when set by the seed, or once that
+  /// account is deleted.
+  updatedBy     String?          @db.VarChar(64)
+  updatedByUser User?            @relation("SettingUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history       SettingHistory[]
+
+  @@index([updatedBy])
 }
 
 /// Every value a setting has had, newest last, including the seeded one.
 model SettingHistory {
-  id         Int      @id @default(autoincrement())
-  settingKey String   @db.VarChar(100)
-  setting    Setting  @relation(fields: [settingKey], references: [key], onDelete: Cascade)
-  value      Json
-  changedAt  DateTime @default(now())
-  /// Id of the user who made the change; null for the seed.
-  changedBy  String?
+  id            Int      @id @default(autoincrement())
+  settingKey    String   @db.VarChar(100)
+  setting       Setting  @relation(fields: [settingKey], references: [key], onDelete: Cascade)
+  value         Json
+  changedAt     DateTime @default(now())
+  /// The user who made the change; null for the seed, or once that account
+  /// is deleted.
+  changedBy     String?  @db.VarChar(64)
+  changedByUser User?    @relation("SettingHistoryChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
 
   @@index([settingKey, changedAt])
+  @@index([changedBy])
 }
 
 // ─── Homepage content ───────────────────────────────────────────────────────
@@ -423,42 +431,42 @@ enum CategoryKind {
 
 /// Catalogue entry point: a product form (Vati, Churna...) or a practice area.
 model Category {
-  id        Int          @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   /// Also the future URL slug.
-  key       String       @unique @db.VarChar(64)
-  kind      CategoryKind
-  sortOrder Int          @default(0)
-  active    Boolean      @default(true)
-  name      String       @db.VarChar(80)
+  key          String       @unique @db.VarChar(64)
+  kind         CategoryKind
+  sortOrder    Int          @default(0)
+  active       Boolean      @default(true)
+  name         String       @db.VarChar(80)
   /// Short Devanagari mark shown on the tile, e.g. "चू".
-  glyph     String?      @db.VarChar(8)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  glyph        String?      @db.VarChar(8)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   /// Products of this form (kind FORM only).
-  formProducts Product[] @relation("ProductForm")
+  formProducts Product[]    @relation("ProductForm")
   /// Products in this practice area (kind PRACTICE_AREA only).
-  areaProducts Product[] @relation("ProductPracticeAreas")
+  areaProducts Product[]    @relation("ProductPracticeAreas")
 }
 
 model Brand {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   /// Also the future URL slug.
-  key         String   @unique @db.VarChar(64)
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
-  featured    Boolean  @default(false)
-  name        String   @db.VarChar(80)
-  monogram    String   @db.VarChar(4)
+  key         String    @unique @db.VarChar(64)
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  featured    Boolean   @default(false)
+  name        String    @db.VarChar(80)
+  monogram    String    @db.VarChar(4)
   /// Logo image (path under public/). Uploads come with R2 later.
-  logoSrc     String?  @db.VarChar(200)
+  logoSrc     String?   @db.VarChar(200)
   tone        Tone
-  eyebrow     String   @db.VarChar(80)
-  description String   @db.VarChar(300)
-  linkLabel   String   @db.VarChar(80)
+  eyebrow     String    @db.VarChar(80)
+  description String    @db.VarChar(300)
+  linkLabel   String    @db.VarChar(80)
   /// Null links to this brand's products in the catalogue.
-  linkHref    String?  @db.VarChar(200)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  linkHref    String?   @db.VarChar(200)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   products    Product[]
 }
 
@@ -743,47 +751,47 @@ enum OrderStatus {
 /// An order. Prices, tax and the delivery address are copied in when it is
 /// placed and never recomputed afterwards.
 model Order {
-  id            String      @id @db.VarChar(32)
+  id                String      @id @db.VarChar(32)
   /// Shown to the customer, e.g. "SV-7K2Q9F4M".
-  number        String      @unique @db.VarChar(20)
+  number            String      @unique @db.VarChar(20)
   /// Null only if the account was deleted; the order is kept for records.
-  userId        String?     @db.VarChar(64)
-  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId            String?     @db.VarChar(64)
+  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   /// Random key from the checkout page, so a double submit places one order.
-  checkoutKey   String      @db.VarChar(36)
-  status        OrderStatus @default(pending_payment)
-  shipName      String      @db.VarChar(100)
-  shipPhone     String      @db.VarChar(20)
-  shipLine1     String      @db.VarChar(200)
-  shipLine2     String?     @db.VarChar(200)
-  shipLandmark  String?     @db.VarChar(120)
-  shipCity      String      @db.VarChar(100)
-  shipState     String      @db.VarChar(4)
-  shipPincode   String      @db.Char(6)
+  checkoutKey       String      @db.VarChar(36)
+  status            OrderStatus @default(pending_payment)
+  shipName          String      @db.VarChar(100)
+  shipPhone         String      @db.VarChar(20)
+  shipLine1         String      @db.VarChar(200)
+  shipLine2         String?     @db.VarChar(200)
+  shipLandmark      String?     @db.VarChar(120)
+  shipCity          String      @db.VarChar(100)
+  shipState         String      @db.VarChar(4)
+  shipPincode       String      @db.Char(6)
   /// Sum of the line totals (prices include GST), in paise.
-  subtotalPaise Int
+  subtotalPaise     Int
   /// GST included in the subtotal, in paise.
-  taxPaise      Int
-  shippingPaise Int
+  taxPaise          Int
+  shippingPaise     Int
   /// Value of the Super Coins used, taken off the items (P1.7). Spread over
   /// the lines in OrderItem.discountPaise; the total below is already net.
-  coinDiscountPaise Int     @default(0)
+  coinDiscountPaise Int         @default(0)
   /// Coins the buyer chose to use; held from their balance while the order
   /// waits for payment and returned if payment fails or it is cancelled.
-  coinsRedeemed Int         @default(0)
+  coinsRedeemed     Int         @default(0)
   /// Items total minus coin discount plus delivery: what the buyer pays.
-  totalPaise    Int
+  totalPaise        Int
   /// When payment succeeded and stock was taken.
-  paidAt        DateTime?
+  paidAt            DateTime?
   /// When an admin cancelled it (stock taken by payment is put back).
-  cancelledAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  items         OrderItem[]
-  payments      Payment[]
-  shipment      Shipment?
+  cancelledAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  items             OrderItem[]
+  payments          Payment[]
+  shipment          Shipment?
   /// The tax invoice once paid, and a credit note if cancelled after (P1.6).
-  invoices      Invoice[]
+  invoices          Invoice[]
 
   @@unique([userId, checkoutKey])
   @@index([userId, createdAt])
@@ -792,35 +800,35 @@ model Order {
 
 /// One line of an order, with the product as it was when ordered.
 model OrderItem {
-  id             Int      @id @default(autoincrement())
-  orderId        String   @db.VarChar(32)
-  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id             Int           @id @default(autoincrement())
+  orderId        String        @db.VarChar(32)
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   /// Null if the product was deleted later; the snapshot below stays.
   productId      Int?
-  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
   /// Set for an ebook line (P1.8): no stock, no delivery. The snapshot
   /// fields below then hold the ebook's slug, title and SAC code. Null if
   /// the ebook was deleted later (and for every product line).
   ebookId        Int?
-  ebook          Ebook?   @relation(fields: [ebookId], references: [id], onDelete: SetNull)
+  ebook          Ebook?        @relation(fields: [ebookId], references: [id], onDelete: SetNull)
   /// "product" or "ebook"; stays even if the product or ebook is deleted.
   kind           OrderItemKind @default(product)
-  productSlug    String   @db.VarChar(120)
-  productName    String   @db.VarChar(160)
-  packSize       String   @db.VarChar(60)
-  hsnCode        String   @db.VarChar(8)
+  productSlug    String        @db.VarChar(120)
+  productName    String        @db.VarChar(160)
+  packSize       String        @db.VarChar(60)
+  hsnCode        String        @db.VarChar(8)
   /// GST percentage included in the price.
   gstRate        Int
   mrpPaise       Int
   /// What one unit cost this buyer, including GST.
   unitPaise      Int
   /// "mrp", "professional" or "bulk" (src/server/pricing).
-  priceTier      String   @db.VarChar(16)
+  priceTier      String        @db.VarChar(16)
   quantity       Int
   /// unitPaise × quantity.
   lineTotalPaise Int
   /// This line's share of the order's coin discount (P1.7).
-  discountPaise  Int      @default(0)
+  discountPaise  Int           @default(0)
   /// GST included in the line total after the discount.
   taxPaise       Int
 
@@ -886,17 +894,17 @@ enum ShipmentStatus {
 
 /// One parcel per order.
 model Shipment {
-  id          Int              @id @default(autoincrement())
-  orderId     String           @unique @db.VarChar(32)
-  order       Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id          Int             @id @default(autoincrement())
+  orderId     String          @unique @db.VarChar(32)
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   /// SHIPPING_PROVIDER that created it, e.g. "test" (Shiprocket later).
-  provider    String           @db.VarChar(20)
-  courierName String           @db.VarChar(80)
+  provider    String          @db.VarChar(20)
+  courierName String          @db.VarChar(80)
   /// The courier's airway bill (tracking) number.
-  awb         String           @unique @db.VarChar(40)
-  status      ShipmentStatus   @default(created)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  awb         String          @unique @db.VarChar(40)
+  status      ShipmentStatus  @default(created)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   events      ShipmentEvent[]
 }
 

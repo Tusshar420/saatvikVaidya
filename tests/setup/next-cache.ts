@@ -6,5 +6,6 @@ import { vi } from "vitest";
 vi.mock("next/cache", () => ({
   unstable_cache: (read: () => Promise<unknown>) => read,
   revalidateTag: () => undefined,
+  updateTag: () => undefined,
   revalidatePath: () => undefined,
 }));

@@ -68,6 +68,7 @@ export type PlaceOrderError =
   | "empty"
   | "cart_changed"
   | "payments_off"
+  | "checkout_off"
   | "rate_limited"
   | "coins";
 

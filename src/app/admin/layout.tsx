@@ -79,7 +79,7 @@ export default async function AdminLayout({
       </header>
       <div className="flex flex-1">
         <aside className="hidden w-60 shrink-0 border-r border-line bg-surface p-3 lg:block">
-          <div className="sticky top-19">
+          <div className="sticky top-19 max-h-[calc(100dvh-5.5rem)] overflow-y-auto">
             <AdminNav pendingCount={pendingCount} />
           </div>
         </aside>

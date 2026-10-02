@@ -6,10 +6,11 @@ import { CreditCard, Phone } from "lucide-react";
 import { CheckoutForm } from "@/components/site/checkout/checkout-form";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
-import { ComingSoon } from "@/components/ui/empty-state";
+import { ComingSoon, EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/badge";
 import { cart as cartCopy } from "@/content/cart";
 import { checkout as copy } from "@/content/checkout";
+import { checkoutOff as paused } from "@/content/maintenance";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
 import { requireUser } from "@/server/auth/session";
@@ -33,6 +34,26 @@ export const metadata: Metadata = {
  */
 export default async function CheckoutPage() {
   const { user } = await requireUser("/checkout");
+  // The admin's checkout switch: show a notice instead of the form.
+  if (!(await getSetting("checkout.enabled")).enabled) {
+    return (
+      <div className="shell section-y">
+        <EmptyState
+          as="h1"
+          icon={<CreditCard aria-hidden />}
+          title={paused.title}
+          description={paused.body}
+          className="mx-auto max-w-2xl py-14"
+          action={
+            <Link href="/cart" className={buttonClasses()}>
+              {paused.backToCart}
+              <ButtonArrow />
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
   const [viewer, shipping, addresses, phone, coinRules] = await Promise.all([
     getPricingViewer(),
     getSetting("checkout.shipping"),

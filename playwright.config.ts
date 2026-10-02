@@ -3,6 +3,21 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;
 
+const exclusive = /\.exclusive\.spec\.ts$/;
+
+const phone = {
+  ...devices["Pixel 7"],
+  browserName: "chromium" as const,
+  viewport: { width: 375, height: 812 },
+  hasTouch: true,
+  isMobile: true,
+};
+
+const desktop = {
+  ...devices["Desktop Chrome"],
+  viewport: { width: 1280, height: 800 },
+};
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
@@ -24,20 +39,28 @@ export default defineConfig({
   projects: [
     {
       name: "phone",
-      use: {
-        ...devices["Pixel 7"],
-        browserName: "chromium",
-        viewport: { width: 375, height: 812 },
-        hasTouch: true,
-        isMobile: true,
-      },
+      testIgnore: exclusive,
+      use: phone,
     },
     {
       name: "desktop",
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 1280, height: 800 },
-      },
+      testIgnore: exclusive,
+      use: desktop,
+    },
+    // Specs that change site-wide settings (maintenance mode, checkout off,
+    // the footer) would break every test running beside them, so they run on
+    // their own: after the other projects, one project after the other.
+    {
+      name: "phone-exclusive",
+      testMatch: exclusive,
+      dependencies: ["phone", "desktop"],
+      use: phone,
+    },
+    {
+      name: "desktop-exclusive",
+      testMatch: exclusive,
+      dependencies: ["phone-exclusive"],
+      use: desktop,
     },
   ],
   // Tests run against a production build (real CSP and headers) on its own

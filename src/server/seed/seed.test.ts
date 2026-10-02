@@ -116,7 +116,7 @@ describe("seedDatabase", () => {
     expect(await snapshot()).toEqual(first);
   });
 
-  it("keeps edited settings, placement and visibility, and restores copy", async () => {
+  it("keeps edited settings and homepage content, whatever was changed", async () => {
     await seedDatabase(db);
     await db.setting.update({
       where: { key: "contact.phone" },
@@ -142,10 +142,10 @@ describe("seedDatabase", () => {
     );
     expect(
       await db.homeSection.findUnique({ where: { key: "reels" } }),
-    ).toMatchObject({ enabled: false, sortOrder: 999, title: "Saatvik Reels" });
+    ).toMatchObject({ enabled: false, sortOrder: 999, title: "Edited" });
     expect(
       await db.offer.findUnique({ where: { key: offerSeed[0].key } }),
-    ).toMatchObject({ active: false, title: offerSeed[0].title });
+    ).toMatchObject({ active: false, title: "Edited" });
   });
 
   it("never overwrites reels, brands or courses edited in the admin panel", async () => {
