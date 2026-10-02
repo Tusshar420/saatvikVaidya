@@ -220,30 +220,19 @@ describe("createUser", () => {
     ).toBe("none");
   });
 
-  it("creates an admin only with a strong password", async () => {
-    const base = {
-      name: "Second Admin",
-      email: "admin2@example.test",
-      userTypeId: String(types.customer),
-      role: "admin",
-    };
-    expect(await createUser(input(base), adminId)).toMatchObject({
-      ok: false,
-      fieldErrors: { password: expect.any(String) },
-    });
-    expect(
-      await createUser(input({ ...base, password: "short-pass" }), adminId),
-    ).toMatchObject({ ok: false, fieldErrors: { password: expect.any(String) } });
-    const ok = await createUser(
-      input({ ...base, password: "a-much-longer-admin-pass" }),
+  it("won't create an admin: admins come from an invite", async () => {
+    const result = await createUser(
+      input({
+        name: "Second Admin",
+        email: "admin2@example.test",
+        userTypeId: String(types.customer),
+        role: "admin",
+        password: "a-much-longer-admin-pass",
+      }),
       adminId,
     );
-    expect(ok.ok).toBe(true);
-    if (ok.ok) {
-      expect(
-        (await db.user.findUniqueOrThrow({ where: { id: ok.id } })).role,
-      ).toBe("admin");
-    }
+    expect(result).toMatchObject({ ok: false, fieldErrors: { role: expect.any(String) } });
+    expect(await db.user.count({ where: { email: "admin2@example.test" } })).toBe(0);
   });
 
   it("refuses a taken email or phone, and a missing contact", async () => {
@@ -381,8 +370,8 @@ describe("updateUser", () => {
     expect(await db.session.count({ where: { userId: "u-edit" } })).toBe(1);
   });
 
-  it("signs the user out everywhere when their role changes", async () => {
-    await updateUser(
+  it("won't make a user an admin from the edit form", async () => {
+    const result = await updateUser(
       "u-edit",
       input({
         name: "Edit Me",
@@ -392,7 +381,45 @@ describe("updateUser", () => {
       }),
       adminId,
     );
-    expect(await db.session.count({ where: { userId: "u-edit" } })).toBe(0);
+    expect(result).toMatchObject({ ok: false, fieldErrors: { role: expect.any(String) } });
+    expect((await db.user.findUniqueOrThrow({ where: { id: "u-edit" } })).role).toBe("user");
+  });
+
+  it("demoting an admin signs them out and clears their role and authenticator", async () => {
+    await makeUser("old-admin", { name: "Old Admin", type: "customer", role: "admin" });
+    await db.user.update({
+      where: { id: "old-admin" },
+      data: { adminRole: "orders", twoFactorEnabled: true },
+    });
+    await db.twoFactor.create({
+      data: { id: "tf-old", userId: "old-admin", secret: "x", backupCodes: "y" },
+    });
+    await db.session.create({
+      data: {
+        id: "s-old",
+        userId: "old-admin",
+        token: "t-old",
+        expiresAt: new Date(Date.now() + 3600_000),
+      },
+    });
+    const result = await updateUser(
+      "old-admin",
+      input({
+        name: "Old Admin",
+        email: "old-admin@example.test",
+        userTypeId: String(types.customer),
+        role: "user",
+      }),
+      adminId,
+    );
+    expect(result).toMatchObject({ ok: true });
+    expect(await db.user.findUniqueOrThrow({ where: { id: "old-admin" } })).toMatchObject({
+      role: "user",
+      adminRole: null,
+      twoFactorEnabled: false,
+    });
+    expect(await db.session.count({ where: { userId: "old-admin" } })).toBe(0);
+    expect(await db.twoFactor.count({ where: { userId: "old-admin" } })).toBe(0);
   });
 
   it("won't let an admin remove their own admin role", async () => {
@@ -503,7 +530,9 @@ describe("decideVerification and deleteUsers", () => {
   it("keeps the audit trail when the admin who made it is deleted", async () => {
     await decideVerification(["d1"], "approved", null, "admin-1");
     await makeUser("admin-2", { name: "Other Admin", type: "customer", role: "admin" });
-    await deleteUsers([adminId], "admin-2");
+    // Admin accounts are never deleted in bulk; remove the account directly.
+    expect(await deleteUsers([adminId], "admin-2")).toEqual({ changed: 0, skipped: 1 });
+    await db.user.delete({ where: { id: adminId } });
     const log = await db.adminLog.findFirstOrThrow({
       where: { action: "user.approve" },
     });

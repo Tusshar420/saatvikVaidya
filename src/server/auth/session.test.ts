@@ -112,6 +112,13 @@ describe("session helpers", () => {
       ADMIN_PASSWORD: "A-long-admin-passphrase-1",
     });
     await signInAs("boss@example.com", "A-long-admin-passphrase-1");
+    // No pages before two-factor is set up.
+    await expect(requireAdmin()).rejects.toThrow("redirect:/account/two-factor");
+    // (The sign-in and setup steps are in two-factor.test.ts.)
+    await db.user.update({
+      where: { email: "boss@example.com" },
+      data: { twoFactorEnabled: true },
+    });
     const session = await requireAdmin();
     expect(session.user.role).toBe("admin");
   });
@@ -120,7 +127,7 @@ describe("session helpers", () => {
     await customer();
     await db.user.update({
       where: { email: "session@example.com" },
-      data: { role: "admin" },
+      data: { role: "admin", adminRole: "super", twoFactorEnabled: true },
     });
     expect((await requireAdmin()).user.role).toBe("admin");
   });

@@ -37,6 +37,8 @@ export async function clearAuthTables(db: PrismaClient): Promise<void> {
     db.account.deleteMany(),
     db.verification.deleteMany(),
     db.authRateLimit.deleteMany(),
+    db.adminInvite.deleteMany(),
+    // Authenticator secrets go with their users (onDelete: Cascade).
     db.user.deleteMany(),
   ]);
 }

@@ -2,11 +2,12 @@ import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import { randomBytes, randomInt } from "node:crypto";
-import { hashPassword } from "better-auth/crypto";
+import { hashPassword, symmetricEncrypt } from "better-auth/crypto";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { PrismaClient } from "../../src/generated/prisma/client";
 import { rateLimitRules } from "../../src/server/auth/policy";
+import { totpCode } from "../setup/totp";
 
 // Helpers for the sign-in e2e tests. The production build that Playwright
 // runs uses the dev database (.env.local), and there's no dev OTP route in
@@ -146,16 +147,27 @@ export async function createEmailAccount(
 export const E2E_CONTENT_PREFIX = "e2e-";
 export const E2E_QUIZ_PREFIX = "E2E ";
 
+/** A made-up authenticator secret, and a way to read its current code. */
+export function newTotpSecret() {
+  const secret = randomBytes(15).toString("base64url");
+  return { secret, code: (now?: number) => totpCode(Buffer.from(secret), now) };
+}
+
 /**
  * Creates an account straight in the database (role "user" or "admin") with
  * a password, then signs the page's browser context in as it through the
- * real sign-in endpoint.
+ * real sign-in endpoint. Admins get an admin role (default "super") and
+ * two-factor already set up, so sign-in goes through the real second step
+ * with a code from `totp`; `twoFactor: false` makes an admin who hasn't set
+ * it up yet.
  */
 export async function signInAs(
   page: Page,
   baseURL: string,
   options: {
     role: "user" | "admin";
+    adminRole?: "super" | "catalogue" | "orders" | "content" | "approvals";
+    twoFactor?: boolean;
     userType?: string;
     name?: string;
     verificationStatus?: "none" | "pending" | "approved" | "rejected";
@@ -169,6 +181,9 @@ export async function signInAs(
   const email = freshEmail();
   const password = `e2e-${randomBytes(12).toString("base64url")}`;
   const name = options.name ?? (options.role === "admin" ? "E2E Admin" : "E2E Customer");
+  const isAdmin = options.role === "admin";
+  const withTwoFactor = isAdmin && options.twoFactor !== false;
+  const totp = newTotpSecret();
   await db.user.create({
     data: {
       id,
@@ -176,6 +191,8 @@ export async function signInAs(
       email,
       emailVerified: true,
       role: options.role,
+      adminRole: isAdmin ? (options.adminRole ?? "super") : undefined,
+      twoFactorEnabled: withTwoFactor,
       userTypeId: type.id,
       verificationStatus: options.verificationStatus,
       termsAcceptedAt: new Date(),
@@ -189,12 +206,31 @@ export async function signInAs(
       },
     },
   });
+  if (withTwoFactor) {
+    const key = process.env.BETTER_AUTH_SECRET!;
+    await db.twoFactor.create({
+      data: {
+        id: randomBytes(24).toString("base64url"),
+        userId: id,
+        secret: await symmetricEncrypt({ key, data: totp.secret }),
+        backupCodes: await symmetricEncrypt({ key, data: JSON.stringify(["e2ebackup1", "e2ebackup2"]) }),
+      },
+    });
+  }
+  const ip = freshIp();
   const response = await page.request.post("/api/auth/sign-in/email", {
-    headers: { origin: baseURL, "x-forwarded-for": freshIp() },
+    headers: { origin: baseURL, "x-forwarded-for": ip },
     data: { email, password },
   });
   expect(response.status()).toBe(200);
-  return { id, email, name, password };
+  if (withTwoFactor) {
+    const second = await page.request.post("/api/auth/two-factor/verify-totp", {
+      headers: { origin: baseURL, "x-forwarded-for": ip },
+      data: { code: totp.code() },
+    });
+    expect(second.status()).toBe(200);
+  }
+  return { id, email, name, password, totp };
 }
 
 /** A professional account waiting for approval, made straight in the database. */
@@ -282,6 +318,8 @@ export async function cleanUpE2eData() {
     // the row puts the default back (and its history goes with it). Before the
     // users go, or the link to them would just be cleared.
     db.setting.deleteMany({ where: { updatedBy: { in: ids } } }),
+    // Admin invitations the invite tests made.
+    db.adminInvite.deleteMany({ where: { email: { endsWith: `@${E2E_EMAIL_DOMAIN}` } } }),
     // Audit rows written by e2e admins, or about e2e users.
     db.adminLog.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { resourceId: { in: ids } }] },

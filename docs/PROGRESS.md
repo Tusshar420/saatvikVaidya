@@ -2440,45 +2440,89 @@ screenshots of settings, sections and the maintenance page).
 - The `admin orders search` Vitest test failed once under load and passed on
   rerun; worth a look in P1.12.
 
-## P1.11. Admin security and permissions (BLOCKED, 2026-10-01)
+## P1.11. Admin security and permissions (2026-10-02)
 
-Not started. This replaces the earlier P1.11 blocker entry, which is out of
-date: P1.3 is now committed (`5b6745e`). But P1.11 still waits on earlier
-chunks, so per the task rules it stops here.
+Replaces the earlier BLOCKED entry: P1.4 to P1.10 are all committed now.
 
-**What it waits on (checked in git and docs on 2026-10-01, latest commit
-`b801513`)**
-- **P1.4 (Cart, checkout and test payment) is unfinished.** Its work is still
-  uncommitted on `dev` (no P1.4 commit; 39 paths modified or untracked,
-  including `prisma/schema.prisma` and the `p1_4_cart_checkout` migration),
-  and its entry's **Checks** line is still the placeholder `CHECKS_LINE`, so
-  nothing shows the five checks passed. No P1.4 run is active.
-- **P1.5 to P1.10 are all marked BLOCKED** (on P1.4) and not built.
+**Built**
+- **Two-factor for admins** (Better Auth `twoFactor` plugin, authenticator app
+  plus 8 backup codes; email/SMS second factor left off on purpose).
+  - `requireAdmin()` sends an admin without it to `/account/two-factor`, so no
+    admin page, action or route works before it is on. Setup there: password,
+    QR code (`qrcode`, new dependency) and manual key, backup codes, first
+    code. Signed-in admins can make new backup codes (password again).
+  - Sign-in: the email form gets a "Two-factor check" step (authenticator or
+    backup code). Wrong codes are counted per IP (`signInPerIp`) and by the
+    plugin's own lockout (10 failures lock 15 minutes, 5 per challenge).
+  - Closed side doors: an admin's **phone OTP sign-in is refused** (it would
+    skip the second factor); `/two-factor/disable` is **forbidden for
+    everyone** (a stolen session could otherwise drop it). A super admin
+    resets it from Admins (admin lost phone and codes).
+- **Roles** (`User.adminRole`: super, catalogue, orders, content, approvals).
+  One table in `src/lib/admin-permissions.ts`: areas dashboard, approvals,
+  catalogue (products, photos, ebooks), orders (orders, shipments, invoices,
+  coins), content (homepage content, quiz), reports (orders + super),
+  settings, users, admins, database (these four super only).
+  - `requireAdmin(area, returnTo)` is the gate: 404 outside the area,
+    redirect to setup without 2FA. `getAdminSession(area)` does the same for
+    route handlers (tables, product photos, ebook files, report export:
+    `users` kind needs `users`, `orders` kind needs `reports`).
+    `effectiveRole(session, area)` feeds the invoice, document, ebook and
+    hidden-photo access checks. The menu only hides what the server refuses.
+  - `bulkUsersAction`: delete needs `users`, approve/reject needs `approvals`;
+    `decideUserAction` needs `approvals`.
+- **Invites:** `/admin/admins` (super only): invite by email and role (dev
+  notifier prints the link), pending list with cancel, change role (signs the
+  admin out), reset two-factor, remove (back to a customer account). Never
+  leaves zero super admins; nobody changes their own account here. The link
+  `/admin-invite/<token>` (single use, 72 h, only a SHA-256 of the token is
+  stored, IP rate limited) lets the invitee set name and a 12+ character
+  password; they then set up 2FA at first sign-in.
+- **Admins are never self-registered:** the user form can no longer create or
+  promote admins (invite only; demoting still works and clears role + 2FA);
+  bulk delete skips admin accounts. `pnpm admin:create` makes a **super**
+  admin; the 2FA forcing needs nothing extra. The migration made existing
+  admins super.
+- **Audit:** new actions `admin.invite`, `.invite.revoke`, `.invite.accept`,
+  `admin.role.update`, `admin.remove`, `admin.2fa.enable`, `.2fa.reset`,
+  `admin.backup-codes.regenerate`. Every other admin write already logged.
+- Migration `20261002130000_p1_11_admin_security` (User.adminRole,
+  User.twoFactorEnabled, TwoFactor, AdminInvite).
 
-**Why not build it anyway:** P1.11 needs a migration (two-factor tables, admin
-roles, invites) that would stack on P1.4's uncommitted one, and its commits
-couldn't be kept apart from P1.4's edits to shared files
-(`prisma/schema.prisma`, `src/proxy.ts`, `src/server/auth/`).
+**Tests**
+- Vitest: 2FA enforced and the whole sign-in/setup/backup-code/lockout/
+  phone-bypass/disable flow (`two-factor.test.ts`); role matrix and the real
+  `requireAdmin` per role; a source scan that **every admin page, action and
+  route** checks its own area, first (`admin-access.test.ts`); invite flow,
+  roles, last-super guard, resets (`admins.test.ts`).
+- Playwright `admin-security.spec.ts` (phone + desktop): setup, form sign-in
+  with code, backup codes, role refusals and menus, invite end to end. The e2e
+  `signInAs` helper now gives admins real 2FA (encrypted secret in the DB and
+  a TOTP code), so every older admin spec goes through the real second step.
+- `users.test.ts` and `session.test.ts` updated for the new rules.
 
-**Notes for the run that builds P1.11** (still valid from the earlier entry)
-- `UserRole` is only `user | admin`; `requireAdmin()` in
-  `src/server/auth/session.ts` is the single admin gate (admin pages, the
-  `users`, `content` and `catalogue` actions, `src/proxy.ts`). `AdminLog` is
-  written through `src/server/admin/audit.ts`; `pnpm admin:create` is
-  `scripts/admin-create.ts`. There is no two-factor code yet.
-- A per-area check (for example `requireAdminPermission("catalogue")`) can
-  replace `requireAdmin()`, and a Vitest test can list every admin server
-  action and route handler and check that each calls it.
-- Admin areas built by P1.5 to P1.10 (orders, invoices, coins, ebooks,
-  settings, reports) need their permissions defined and enforced here.
+**Decisions**
+- One role per admin, a fixed list in code (no role editor).
+- The setup confirm step runs in the browser, not a server action: turning
+  2FA on swaps the session and the page re-rendered after an action would
+  still use the old cookie.
+- Admins who have never set up 2FA sign in with a password alone to reach the
+  setup page, so whoever knows an admin's password *before first setup* can
+  enrol their own authenticator. Mitigation: run `admin:create` / accept the
+  invite and sign in straight away; a super admin can reset any admin.
 
-**Next steps**
-1. Finish P1.4: run the five checks, fill in its **Checks** line, commit.
-2. Build P1.5 to P1.10 in order, replacing their BLOCKED entries.
-3. Re-queue P1.11.
+**Known gaps**
+- Admins page buttons (reset, remove) act without a confirm dialog.
+- The `/admin` dashboard still shows counts and links for areas the role
+  can't open (the link 404s).
+- `Checks:` typecheck, lint, test (605 passed), build and test:e2e all pass.
+  One run of the full e2e had `catalogue.spec "no axe issues"` (desktop) fail
+  under full-suite load; it passed alone and on the next runs of that spec,
+  and I did not find a cause.
 
-Nothing was changed apart from this entry. No P1.11 code was written and no
-checks were run. The tree still holds P1.4's uncommitted work.
+**Next:** P1.12 (Phase 1 quality and security pass) should re-check these
+points: Better Auth's own `/two-factor/get-totp-uri` (needs the password), the
+trusted-device option (not used), and nonce CSP.
 
 ## P1.10. My account and admin reports (2026-10-02)
 

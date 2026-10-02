@@ -12,6 +12,13 @@ const session = vi.hoisted(() => ({
 }));
 vi.mock("@/server/auth/session", () => ({
   getSession: vi.fn(async () => (session.user ? { user: session.user } : null)),
+  // The real checks (role area, two-factor) are tested in session.test.ts;
+  // here an admin is just a user with role "admin".
+  getAdminSession: vi.fn(async () =>
+    session.user?.role === "admin" ? { user: session.user } : null,
+  ),
+  effectiveRole: (current: { user: { role: string } } | null) =>
+    current?.user.role === "admin" ? "admin" : "user",
 }));
 
 const { GET } = await import("./route");

@@ -53,6 +53,8 @@ export interface AuthCall {
   headers: Headers;
   /** "name=value" of the session cookie, if the reply set one. */
   sessionCookie: string | null;
+  /** Every cookie the reply set, as a request "Cookie" header (empty ones dropped). */
+  cookies: string;
 }
 
 /** POSTs `body` to /api/auth{path} through Better Auth's HTTP handler. */
@@ -85,11 +87,17 @@ export async function callAuth(
           !cookie.startsWith("sv.session_token=;"),
       )
       ?.split(";")[0] ?? null;
+  const cookies = response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(";")[0]!)
+    .filter((pair) => !pair.endsWith("="))
+    .join("; ");
   return {
     status: response.status,
     body: text ? JSON.parse(text) : null,
     headers: response.headers,
     sessionCookie,
+    cookies,
   };
 }
 
