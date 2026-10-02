@@ -3227,5 +3227,7 @@ Notes for that run: the real senders plug in behind `Notifier` in
 `devLogNotifier`. Production must refuse to start without a real notifier, so
 the dev sender can never run there (the same pattern as
 `TEST_PAYMENTS_IN_LOCAL_BUILD`). OTPs are made by the Better Auth phone-number
-plugin in `src/server/auth/index.ts`. Hashing the stored codes is a setting
-on that plugin, and `src/server/auth/otp.test.ts` should cover it.
+plugin in `src/server/auth/index.ts`. The installed version (better-auth
+1.7.6) has no option to store codes hashed, so hashing needs its own work:
+either hash them where the plugin writes and checks them, or upgrade to a
+version that supports it. `src/server/auth/otp.test.ts` should cover it.
