@@ -28,7 +28,7 @@ const text = copy.brands;
 export default async function BrandsPage({
   searchParams,
 }: PageProps<"/admin/content/brands">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const [brands, params] = await Promise.all([listBrands(), searchParams]);
 
   return (

@@ -15,7 +15,7 @@ const text = copy.coins;
 
 /** Super Coins: the earning and redeeming rules, and the latest ledger rows. */
 export default async function AdminCoinsPage() {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [rules, recent] = await Promise.all([getSetting("coins.rules"), readRecentCoinActivity(15)]);
   const orderPaise = 1_000_000;
   return (

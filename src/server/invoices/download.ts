@@ -1,5 +1,5 @@
 import "server-only";
-import { getSession } from "@/server/auth/session";
+import { effectiveRole, getSession } from "@/server/auth/session";
 import { contentDisposition } from "@/server/storage/files";
 import type { InvoiceKind } from "./gst";
 import { openOrderDocument } from "./invoices";
@@ -20,7 +20,10 @@ function notFound() {
 export async function orderDocumentResponse(kind: InvoiceKind, orderId: string): Promise<Response> {
   const session = await getSession();
   if (!session) return notFound();
-  const document = await openOrderDocument(orderId, kind, session.user);
+  const document = await openOrderDocument(orderId, kind, {
+    id: session.user.id,
+    role: effectiveRole(session, "orders"),
+  });
   if (!document) return notFound();
   return new Response(document.file.body, {
     headers: {

@@ -8,7 +8,7 @@ import { createBrandAction } from "../../actions";
 export const metadata: Metadata = { title: copy.brands.newTitle };
 
 export default async function NewBrandPage() {
-  await requireAdmin();
+  await requireAdmin("content");
   return (
     <>
       <AdminPageHeader

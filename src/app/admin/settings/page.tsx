@@ -9,7 +9,7 @@ import { requireAdmin } from "@/server/auth/session";
 export const metadata: Metadata = { title: copy.metaTitle };
 
 export default async function AdminSettingsPage() {
-  await requireAdmin("/admin/settings");
+  await requireAdmin("settings", "/admin/settings");
   const [s, history] = await Promise.all([readSettingsForAdmin(), readSettingHistory()]);
 
   return (

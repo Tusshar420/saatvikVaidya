@@ -8,7 +8,7 @@ import { createQuizAction } from "../../actions";
 export const metadata: Metadata = { title: copy.quiz.newTitle };
 
 export default async function NewQuizPage() {
-  await requireAdmin();
+  await requireAdmin("content");
   return (
     <>
       <AdminPageHeader

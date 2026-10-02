@@ -30,7 +30,7 @@ const text = copy.review;
 export default async function ReviewPage({
   params,
 }: PageProps<"/admin/approvals/detail/[userId]">) {
-  await requireAdmin();
+  await requireAdmin("approvals");
   const { userId } = await params;
   const review = await readVerificationReview(userId);
   if (!review) notFound();

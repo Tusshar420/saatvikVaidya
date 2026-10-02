@@ -49,7 +49,7 @@ const paymentVariant = { created: "orange", succeeded: "teal", failed: "live" } 
 export default async function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]">) {
   const { id } = await params;
   if (!isOrderId(id)) notFound();
-  await requireAdmin(`/admin/orders/${id}`);
+  await requireAdmin("orders", `/admin/orders/${id}`);
   const order = await readAdminOrder(id);
   if (!order) notFound();
   const [activity, shippingOn, documents] = await Promise.all([

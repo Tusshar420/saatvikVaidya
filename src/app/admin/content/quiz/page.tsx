@@ -27,7 +27,7 @@ const text = copy.quiz;
 export default async function QuizListPage({
   searchParams,
 }: PageProps<"/admin/content/quiz">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const [quizzes, params] = await Promise.all([listQuizzes(), searchParams]);
 
   return (

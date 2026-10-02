@@ -1,4 +1,4 @@
-import { getSession } from "@/server/auth/session";
+import { effectiveRole, getSession } from "@/server/auth/session";
 import { intId } from "@/server/admin/form";
 import { getStorage } from "@/server/storage";
 import { contentDisposition } from "@/server/storage/files";
@@ -29,7 +29,10 @@ export async function GET(
   const id = intId.safeParse((await params).id);
   if (!id.success) return notFound();
 
-  const file = await findViewableDocument(id.data, session.user);
+  const file = await findViewableDocument(id.data, {
+    id: session.user.id,
+    role: effectiveRole(session, "approvals"),
+  });
   if (!file) return notFound();
   const stored = await getStorage().get(file.fileKey);
   if (!stored) {

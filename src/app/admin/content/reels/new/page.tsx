@@ -8,7 +8,7 @@ import { createReelAction } from "../../actions";
 export const metadata: Metadata = { title: copy.reels.newTitle };
 
 export default async function NewReelPage() {
-  await requireAdmin();
+  await requireAdmin("content");
   return (
     <>
       <AdminPageHeader eyebrow={copy.reels.eyebrow} title={copy.reels.newTitle} />

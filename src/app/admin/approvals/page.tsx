@@ -24,7 +24,7 @@ const text = copy.approvals;
 
 /** Professional accounts waiting for verification, oldest first. */
 export default async function ApprovalsPage() {
-  await requireAdmin();
+  await requireAdmin("approvals");
   const pending = await listPendingApprovals();
 
   return (

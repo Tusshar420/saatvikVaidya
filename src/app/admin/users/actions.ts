@@ -33,7 +33,7 @@ export async function createUserAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("users");
   const values = formValues(formData);
   const parsed = userInputSchema.safeParse(values);
   if (!parsed.success) {
@@ -62,7 +62,7 @@ export async function updateUserAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("users");
   const userId = userIdSchema.safeParse(id);
   if (!userId.success) notFound();
   const values = formValues(formData);
@@ -94,7 +94,11 @@ export async function bulkUsersAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  // Deleting accounts is for the users area; approving or rejecting is the
+  // approvals area's job, so an approvals admin can use bulk decisions too.
+  const { user } = await requireAdmin(
+    formData.get("operation") === "delete" ? "users" : "approvals",
+  );
   const parsed = bulkSchema.safeParse({
     operation: formData.get("operation"),
     ids: formData.getAll("ids"),
@@ -131,7 +135,7 @@ export async function decideUserAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("approvals");
   const parsed = decisionSchema.safeParse({
     id: formData.get("id"),
     decision: formData.get("decision"),
@@ -157,7 +161,7 @@ export async function decideUserAction(
 
 /** Delete one user from their detail page. */
 export async function deleteUserAction(formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("users");
   const id = userIdSchema.safeParse(formData.get("id"));
   if (!id.success) notFound();
   const result = await deleteUsers([id.data], user.id);

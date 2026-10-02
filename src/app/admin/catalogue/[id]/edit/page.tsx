@@ -31,7 +31,7 @@ export default async function EditProductPage({
   params,
   searchParams,
 }: PageProps<"/admin/catalogue/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("catalogue");
   const id = intId.safeParse((await params).id);
   const product = id.success ? await getAdminProduct(id.data) : null;
   if (!product) notFound();

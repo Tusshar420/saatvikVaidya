@@ -7,7 +7,7 @@ import { Eyebrow } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ebooks as copy } from "@/content/ebooks";
-import { getSession } from "@/server/auth/session";
+import { effectiveRole, getSession } from "@/server/auth/session";
 import { getSetting } from "@/server/content/settings";
 import { listEbooks } from "@/server/ebooks/ebooks";
 
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
  */
 export default async function EbooksPage() {
   const session = await getSession();
-  const viewer = session ? { id: session.user.id, role: session.user.role ?? "user" } : null;
+  const viewer = session ? { id: session.user.id, role: effectiveRole(session, "catalogue") } : null;
   const [books, downloads] = await Promise.all([listEbooks(viewer), getSetting("ebooks.downloads")]);
 
   return (

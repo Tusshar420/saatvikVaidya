@@ -26,7 +26,7 @@ const db = new PrismaClient({ adapter: new PrismaMariaDb(url) });
 upsertAdmin(db, input.data)
   .then(({ email, created }) => {
     console.info(
-      `${created ? "Created" : "Updated"} admin ${email} in ${new URL(url).pathname.slice(1)}.`,
+      `${created ? "Created" : "Updated"} super admin ${email} in ${new URL(url).pathname.slice(1)}. Two-factor is set up at the first sign-in.`,
     );
   })
   .catch((error: unknown) => {

@@ -34,7 +34,7 @@ const text = copy.catalogue;
 export default async function CataloguePage({
   searchParams,
 }: PageProps<"/admin/catalogue">) {
-  await requireAdmin();
+  await requireAdmin("catalogue");
   const params = await searchParams;
   const filters = productFiltersSchema.parse(params);
   const { products, total, page, pageCount } = await listAdminProducts(filters);

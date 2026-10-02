@@ -50,6 +50,9 @@ export const authErrors = {
   INVALID_PHONE_NUMBER_OR_PASSWORD:
     "That number and password don't match. Try again or sign in with a code.",
   INVALID_TOKEN: "This reset link has expired or was already used.",
+  TWO_FACTOR_INVALID:
+    "That code isn't right. Check your authenticator app and try again.",
+  TWO_FACTOR_EXPIRED: "That sign-in took too long. Please sign in again.",
   REGISTRATION_REQUIRED: "Tell us a little about yourself to finish.",
 } as const;
 

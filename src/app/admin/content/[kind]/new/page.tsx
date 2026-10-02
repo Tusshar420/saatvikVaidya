@@ -9,7 +9,7 @@ import { createHomeAction } from "../../home-actions";
 export const metadata: Metadata = { title: "New homepage item" };
 
 export default async function NewHomeContentPage({ params }: PageProps<"/admin/content/[kind]/new">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const kind = homeKindByPath[(await params).kind];
   if (!kind) notFound();
   const spec = homeKinds[kind];

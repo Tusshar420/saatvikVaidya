@@ -19,6 +19,17 @@ export const userAdditionalFields = {
     defaultValue: "user",
     input: false,
   },
+  adminRole: {
+    type: ["super", "catalogue", "orders", "content", "approvals"] as [
+      "super",
+      "catalogue",
+      "orders",
+      "content",
+      "approvals",
+    ],
+    required: false,
+    input: false,
+  },
   verificationStatus: {
     type: ["none", "pending", "approved", "rejected"] as [
       "none",

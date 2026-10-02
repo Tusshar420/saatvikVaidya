@@ -23,7 +23,7 @@ export default async function HomeContentListPage({
   params,
   searchParams,
 }: PageProps<"/admin/content/[kind]">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const kind = homeKindByPath[(await params).kind];
   if (!kind) notFound();
   const spec = homeKinds[kind];

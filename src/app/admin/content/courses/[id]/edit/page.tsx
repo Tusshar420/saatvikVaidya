@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: copy.courses.metaTitle };
 export default async function EditCoursePage({
   params,
 }: PageProps<"/admin/content/courses/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const id = intId.safeParse((await params).id);
   const course = id.success ? await getCourse(id.data) : null;
   if (!course) notFound();

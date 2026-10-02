@@ -1,4 +1,4 @@
-import { getSession } from "@/server/auth/session";
+import { getAdminSession } from "@/server/auth/session";
 import { intId } from "@/server/admin/form";
 import { findServableProductImage } from "@/server/catalogue/products";
 import { getStorage } from "@/server/storage";
@@ -25,8 +25,7 @@ export async function GET(
   let image = await findServableProductImage(id.data, false);
   if (!image) {
     // Only look up the session when it matters (hidden products).
-    const session = await getSession();
-    if (session?.user.role !== "admin") return notFound();
+    if (!(await getAdminSession("catalogue"))) return notFound();
     image = await findServableProductImage(id.data, true);
     if (!image) return notFound();
   }

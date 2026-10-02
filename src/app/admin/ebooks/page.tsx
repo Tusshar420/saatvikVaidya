@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: copy.ebooks.metaTitle };
 const text = copy.ebooks;
 
 export default async function AdminEbooksPage({ searchParams }: PageProps<"/admin/ebooks">) {
-  await requireAdmin();
+  await requireAdmin("catalogue");
   const [ebooks, downloads, params] = await Promise.all([
     listAdminEbooks(),
     getSetting("ebooks.downloads"),

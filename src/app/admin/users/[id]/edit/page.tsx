@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: copy.userForm.editMetaTitle };
 export default async function EditUserPage({
   params,
 }: PageProps<"/admin/users/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("users");
   const { id } = await params;
   const [user, types] = await Promise.all([getUserDetail(id), listUserTypes()]);
   if (!user) notFound();

@@ -10,7 +10,7 @@ import {
   type ImageUploadError,
 } from "@/server/admin/catalogue";
 import { intId } from "@/server/admin/form";
-import { getSession } from "@/server/auth/session";
+import { getAdminSession } from "@/server/auth/session";
 import { readBodyWithLimit } from "@/server/storage/files";
 import { isSameOrigin } from "@/server/request-origin";
 
@@ -59,8 +59,8 @@ export async function POST(
   if (!isSameOrigin(request)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
-  const session = await getSession();
-  if (session?.user.role !== "admin") return notFound();
+  const session = await getAdminSession("catalogue");
+  if (!session) return notFound();
   const productId = intId.safeParse((await params).id);
   if (!productId.success) return notFound();
 

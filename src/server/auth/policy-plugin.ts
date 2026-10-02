@@ -138,8 +138,12 @@ async function phoneVerify(
   const { phoneNumber, code, ...registration } = body;
   const existing = await db.user.findUnique({
     where: { phoneNumber },
-    select: { id: true },
+    select: { id: true, role: true },
   });
+  // Admins sign in with email, password and an authenticator code only. A
+  // phone code would skip the second factor, so it's refused with the same
+  // error as a wrong code.
+  if (existing?.role === "admin") throw authError("BAD_REQUEST", "INVALID_OTP");
   if (existing) return { body: { phoneNumber, code } };
   if (!(await isLiveOtp(adapter, phoneNumber, code))) return { body };
 
@@ -153,11 +157,46 @@ async function phoneVerify(
   return { body: { phoneNumber, code, ...parsed.data } };
 }
 
+/** Endpoints that check a second-factor code or change two-factor settings. */
+const twoFactorPaths = new Set([
+  "/two-factor/enable",
+  "/two-factor/disable",
+  "/two-factor/verify-totp",
+  "/two-factor/verify-backup-code",
+  "/two-factor/generate-backup-codes",
+]);
+
 export function policyPlugin() {
   return {
     id: "saatvik-policy",
     hooks: {
       before: [
+        {
+          // Nobody turns two-factor off from the app: a stolen session could
+          // otherwise remove the second factor. A super admin resets it from
+          // the Admins page (which is logged).
+          matcher: (ctx) => ctx.path === "/two-factor/disable",
+          handler: createAuthMiddleware(async () => {
+            throw new APIError("FORBIDDEN", {
+              code: "TWO_FACTOR_DISABLE_NOT_ALLOWED",
+              message: "Two-factor can only be reset by a super admin.",
+            });
+          }),
+        },
+        {
+          // Guessing a 6-digit code or a password must be slow: counted per
+          // IP like sign-in (the plugin also locks a user after repeated
+          // wrong codes).
+          matcher: (ctx) => twoFactorPaths.has(ctx.path ?? ""),
+          handler: createAuthMiddleware(async (ctx) => {
+            const ip =
+              getIP(
+                ctx.request ?? ctx.headers ?? new Headers(),
+                ctx.context.options,
+              ) ?? "unknown";
+            await enforce(rateLimitRules.signInPerIp, ip);
+          }),
+        },
         {
           matcher: (ctx) => isAuthPath(ctx.path),
           handler: createAuthMiddleware(async (ctx) => {

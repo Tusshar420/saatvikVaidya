@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getTableData, isTableName } from "@/server/admin/schema";
-import { getSession } from "@/server/auth/session";
+import { getAdminSession } from "@/server/auth/session";
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(0).max(100_000).catch(0),
@@ -16,9 +16,9 @@ export async function GET(
   request: NextRequest,
   { params }: RouteContext<"/api/admin/tables/[table]">,
 ) {
-  const session = await getSession();
+  const session = await getAdminSession("database");
   const notFound = NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (session?.user.role !== "admin") return notFound;
+  if (!session) return notFound;
 
   const { table } = await params;
   if (!(await isTableName(table))) return notFound;

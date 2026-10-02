@@ -23,7 +23,7 @@ function afterChange() {
 }
 
 export async function createEbookAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const values = formValues(formData);
   const parsed = parseEbookForm(values);
   if (!parsed.success) return { status: "error", fieldErrors: parsed.fieldErrors, values };
@@ -39,7 +39,7 @@ export async function updateEbookAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const id = intId.safeParse(rawId);
   if (!id.success) notFound();
   const values = formValues(formData);
@@ -54,7 +54,7 @@ export async function updateEbookAction(
 
 /** The site-wide switch: the form sends enabled=on to turn downloads on. */
 export async function setSiteDownloadsAction(formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const enabled = checkbox.parse(formData.get("enabled"));
   await setSiteDownloads(user.id, enabled);
   afterChange();

@@ -27,7 +27,7 @@ const text = copy.reels;
 export default async function ReelsPage({
   searchParams,
 }: PageProps<"/admin/content/reels">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const [reels, params] = await Promise.all([listReels(), searchParams]);
 
   return (

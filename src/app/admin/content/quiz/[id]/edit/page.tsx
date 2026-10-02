@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: copy.quiz.metaTitle };
 export default async function EditQuizPage({
   params,
 }: PageProps<"/admin/content/quiz/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const id = intId.safeParse((await params).id);
   const quiz = id.success ? await getQuiz(id.data) : null;
   if (!quiz) notFound();

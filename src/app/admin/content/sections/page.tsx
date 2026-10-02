@@ -9,7 +9,7 @@ import { requireAdmin } from "@/server/auth/session";
 export const metadata: Metadata = { title: copy.sections.metaTitle };
 
 export default async function SectionsPage({ searchParams }: PageProps<"/admin/content/sections">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const [sections, query] = await Promise.all([listSections(), searchParams]);
   return (
     <>

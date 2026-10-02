@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: copy.sections.metaTitle };
 export default async function EditSectionHeadingPage({
   params,
 }: PageProps<"/admin/content/sections/[key]/edit">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const section = await getSection((await params).key);
   if (!section) notFound();
   return (

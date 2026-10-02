@@ -3,6 +3,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { phoneNumber } from "better-auth/plugins/phone-number";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { site } from "@/content/site";
 import { cartMergePlugin } from "@/server/cart/merge";
 import { authCookiePrefix } from "@/lib/auth-routes";
@@ -79,6 +80,14 @@ export const auth = betterAuth({
         getTempEmail: placeholderEmailFor,
         getTempName: (phone) => phone,
       },
+    }),
+    // Authenticator-app codes (TOTP) with backup codes. Admins must have it
+    // (see requireAdmin() in ./session.ts). Email/SMS codes stay off: the
+    // second factor must not depend on the same inbox or phone.
+    twoFactor({
+      issuer: site.name,
+      totpOptions: { digits: 6, period: 30 },
+      backupCodeOptions: { amount: 8, length: 10 },
     }),
     policyPlugin(),
     // Moves a guest cart into the account at sign-in.

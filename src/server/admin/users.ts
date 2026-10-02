@@ -408,16 +408,14 @@ export async function createUser(
   input: UserInput,
   actorId: string,
 ): Promise<UserResult> {
+  // Admin accounts come from an invite (src/server/admin/admins.ts), which
+  // sets their role and makes them set up two-factor.
+  if (input.role === "admin") {
+    return { ok: false, fieldErrors: { role: errors.adminByInvite } };
+  }
   if (input.password) {
     const problem = passwordProblem(input.password, input.role);
     if (problem) return { ok: false, fieldErrors: { password: problem } };
-  } else if (input.role === "admin") {
-    return {
-      ok: false,
-      fieldErrors: {
-        password: errors.adminPassword(passwordPolicy.adminMinLength),
-      },
-    };
   }
   const passwordHash = input.password
     ? await hashPassword(input.password)
@@ -496,6 +494,9 @@ export async function updateUser(
   return db.$transaction(async (tx) => {
     const existing = await tx.user.findUnique({ where: { id } });
     if (!existing) return null;
+    if (input.role === "admin" && existing.role !== "admin") {
+      return { ok: false, fieldErrors: { role: errors.adminByInvite } };
+    }
 
     const type = await userTypeOrError(tx, input.userTypeId);
     if (!type) return { ok: false, fieldErrors: { userTypeId: errors.userType } };
@@ -534,6 +535,14 @@ export async function updateUser(
     });
     if (data.role !== existing.role) {
       await tx.session.deleteMany({ where: { userId: id } });
+      if (existing.role === "admin") {
+        // Demoted: no admin role and no authenticator left behind.
+        await tx.user.update({
+          where: { id },
+          data: { adminRole: null, twoFactorEnabled: false },
+        });
+        await tx.twoFactor.deleteMany({ where: { userId: id } });
+      }
     }
     await logAdminAction(tx, {
       actorId,
@@ -637,7 +646,8 @@ export async function deleteUsers(
   const fileKeys = await documentKeysOf(deletable);
   const result = await db.$transaction(async (tx) => {
     const users = await tx.user.findMany({
-      where: { id: { in: deletable } },
+      // Admin accounts are removed from the Admins page, not in bulk here.
+      where: { id: { in: deletable }, role: { not: "admin" } },
       select: {
         id: true,
         name: true,

@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Edit homepage item" };
 export default async function EditHomeContentPage({
   params,
 }: PageProps<"/admin/content/[kind]/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const { kind: path, id: rawId } = await params;
   const kind = homeKindByPath[path];
   const id = intId.safeParse(rawId);

@@ -31,7 +31,7 @@ const text = copy.orders;
 export default async function AdminOrdersPage({
   searchParams,
 }: PageProps<"/admin/orders">) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const filters = orderFiltersSchema.parse(await searchParams);
   const badRange = Boolean(filters.from && filters.to && filters.from > filters.to);
   const { orders, total, page, pageCount } = await listAdminOrders(filters);

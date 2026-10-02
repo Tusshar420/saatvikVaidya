@@ -32,7 +32,7 @@ export async function createProductAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const values = formValues(formData);
   const parsed = parseProductForm(values);
   if (!parsed.success) {
@@ -50,7 +50,7 @@ export async function updateProductAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const id = intId.safeParse(rawId);
   if (!id.success) notFound();
   const values = formValues(formData);
@@ -66,7 +66,7 @@ export async function updateProductAction(
 }
 
 export async function deleteProductImageAction(formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
   const result = await deleteProductImage(id.data, user.id);
@@ -81,7 +81,7 @@ const moveSchema = z.object({
 });
 
 export async function moveProductImageAction(formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const parsed = moveSchema.safeParse({
     id: formData.get("id"),
     direction: formData.get("direction"),
@@ -96,7 +96,7 @@ export async function updateProductImageAltAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("catalogue");
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
   const alt = imageAltSchema.safeParse(formData.get("alt"));

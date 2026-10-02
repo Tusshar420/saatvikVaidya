@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: copy.reels.metaTitle };
 export default async function EditReelPage({
   params,
 }: PageProps<"/admin/content/reels/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const id = intId.safeParse((await params).id);
   const reel = id.success ? await getReel(id.data) : null;
   if (!reel) notFound();

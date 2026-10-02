@@ -48,7 +48,7 @@ async function guarded(run: () => Promise<ShipmentResult>): Promise<FormState> {
 }
 
 export async function createShipmentAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("orders");
   const orderId = orderIdSchema.safeParse(formData.get("orderId"));
   if (!orderId.success) return { status: "error", message: text.results.not_found };
   const state = await guarded(() => createShipment(user.id, orderId.data));
@@ -63,7 +63,7 @@ const stepSchema = z.object({
 });
 
 export async function simulateShipmentAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("orders");
   const parsed = stepSchema.safeParse({
     orderId: formData.get("orderId"),
     step: formData.get("step"),
@@ -86,7 +86,7 @@ const cancelSchema = z.object({
 });
 
 export async function cancelOrderAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("orders");
   const parsed = cancelSchema.safeParse({
     orderId: formData.get("orderId"),
     note: formData.get("note") ?? "",

@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth-client";
 import type { SignUpUserType } from "@/server/content/user-types";
 import { FormAlert } from "./form-alert";
+import { TwoFactorStep } from "./two-factor-step";
 import type { SignedIn } from "./phone-flow";
 import {
   emptyRegistration,
@@ -67,6 +68,8 @@ export function EmailFlow({ userTypes, onSignedIn }: EmailFlowProps) {
   const [formError, setFormError] = useState<string>();
   const [resetSentTo, setResetSentTo] = useState<string>();
   const [busy, setBusy] = useState(false);
+  // After the password step, an admin's sign-in asks for a second code.
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -150,10 +153,12 @@ export function EmailFlow({ userTypes, onSignedIn }: EmailFlowProps) {
             toRegistration(registration),
           );
     setBusy(false);
-    if (result.ok) {
-      onSignedIn({ name: result.data.user.name, isNew: mode === "register" });
-    } else {
+    if (!result.ok) {
       showFailure(result.error);
+    } else if (result.data.twoFactorRedirect) {
+      setNeedsTwoFactor(true);
+    } else {
+      onSignedIn({ name: result.data.user.name, isNew: mode === "register" });
     }
   };
 
@@ -162,6 +167,18 @@ export function EmailFlow({ userTypes, onSignedIn }: EmailFlowProps) {
     register: copy.email.registerHeading,
     forgot: copy.email.forgotHeading,
   }[mode];
+
+  if (needsTwoFactor) {
+    return (
+      <TwoFactorStep
+        onVerified={(name) => onSignedIn({ name, isNew: false })}
+        onBack={() => {
+          setNeedsTwoFactor(false);
+          setPassword("");
+        }}
+      />
+    );
+  }
 
   if (mode === "forgot" && resetSentTo) {
     return (

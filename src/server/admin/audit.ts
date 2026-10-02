@@ -44,7 +44,16 @@ export type AdminAction =
   | "home.create"
   | "home.update"
   | "home.delete"
-  | "home.sections.update";
+  | "home.sections.update"
+  | "admin.invite"
+  | "admin.invite.revoke"
+  | "admin.invite.accept"
+  | "admin.role.update"
+  | "admin.remove"
+  | "admin.2fa.enable"
+  | "admin.2fa.disable"
+  | "admin.2fa.reset"
+  | "admin.backup-codes.regenerate";
 
 export type AdminResource =
   | "User"
@@ -64,7 +73,9 @@ export type AdminResource =
   | "Category"
   | "Feedback"
   | "WhyStep"
-  | "HomeSection";
+  | "HomeSection"
+  | "Admin"
+  | "AdminInvite";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

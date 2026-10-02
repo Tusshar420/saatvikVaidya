@@ -13,7 +13,7 @@ import { formatNumber } from "@/lib/format";
 // checks the admin session itself and validates its input with Zod.
 
 export async function updateCoinRulesAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("orders");
   const values = formValues(formData);
   const parsed = coinRulesForm.safeParse(values);
   if (!parsed.success) {
@@ -43,7 +43,7 @@ const adjustSchema = z.object({
 });
 
 export async function adjustCoinsAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("orders");
   const values = formValues(formData);
   const parsed = adjustSchema.safeParse(values);
   if (!parsed.success) {

@@ -34,7 +34,7 @@ function afterChange() {
 }
 
 export async function createHomeAction(kind: string, _: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   if (!isKind(kind)) notFound();
   const values = formValues(formData);
   const key = keyOf(values.key);
@@ -62,7 +62,7 @@ export async function updateHomeAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   if (!isKind(kind)) notFound();
   const id = intId.safeParse(rawId);
   if (!id.success) notFound();
@@ -78,7 +78,7 @@ export async function updateHomeAction(
 }
 
 export async function deleteHomeAction(kind: string, formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   if (!isKind(kind)) notFound();
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
@@ -88,7 +88,7 @@ export async function deleteHomeAction(kind: string, formData: FormData): Promis
 }
 
 export async function saveSectionsAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const values = formValues(formData);
   const parsed = parseSectionsForm(values);
   if (!parsed.ok) {
@@ -104,7 +104,7 @@ export async function updateSectionHeadingAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const values = formValues(formData);
   const parsed = sectionHeadingSchema.safeParse(values);
   if (!parsed.success) {

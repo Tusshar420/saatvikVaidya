@@ -25,7 +25,7 @@ const text = copy.users;
 export default async function AdminUsersPage({
   searchParams,
 }: PageProps<"/admin/users">) {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("users");
   const params = await searchParams;
   const filters = userFiltersSchema.parse(params);
   const [list, types] = await Promise.all([

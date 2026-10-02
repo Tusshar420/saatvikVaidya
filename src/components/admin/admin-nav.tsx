@@ -23,51 +23,58 @@ import {
   ListChecks,
   Package,
   Pill,
+  KeyRound,
   Settings,
+  ShieldCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
+import { adminSecurity } from "@/content/admin-security";
 import { adminHome } from "@/content/admin-site";
+import { roleCanAccess, type AdminArea, type AdminRoleKey } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
 
 const home = adminHome.nav;
 
-type NavLink = { href: string; label: string; icon: LucideIcon };
+type NavLink = { href: string; label: string; icon: LucideIcon; area: AdminArea };
 
 const main: NavLink[] = [
-  { href: "/admin", label: copy.nav.dashboard, icon: LayoutDashboard },
-  { href: "/admin/users", label: copy.nav.users, icon: Users },
-  { href: "/admin/approvals", label: copy.nav.approvals, icon: BadgeCheck },
-  { href: "/admin/catalogue", label: copy.nav.catalogue, icon: Pill },
-  { href: "/admin/ebooks", label: copy.nav.ebooks, icon: BookOpen },
+  { href: "/admin", area: "dashboard", label: copy.nav.dashboard, icon: LayoutDashboard },
+  { href: "/admin/users", area: "users", label: copy.nav.users, icon: Users },
+  { href: "/admin/approvals", area: "approvals", label: copy.nav.approvals, icon: BadgeCheck },
+  { href: "/admin/catalogue", area: "catalogue", label: copy.nav.catalogue, icon: Pill },
+  { href: "/admin/ebooks", area: "catalogue", label: copy.nav.ebooks, icon: BookOpen },
 ];
 
 const content: NavLink[] = [
-  { href: "/admin/content/sections", label: home.sections, icon: LayoutList },
-  { href: "/admin/content/hero", label: home.hero, icon: GalleryHorizontal },
-  { href: "/admin/content/offers", label: home.offers, icon: Tag },
-  { href: "/admin/content/stats", label: home.stats, icon: BarChart3 },
-  { href: "/admin/content/quick-actions", label: home.quickActions, icon: Zap },
-  { href: "/admin/content/categories", label: home.categories, icon: Shapes },
-  { href: "/admin/content/feedback", label: home.feedback, icon: MessageSquareQuote },
-  { href: "/admin/content/why", label: home.why, icon: ListOrdered },
-  { href: "/admin/content/reels", label: copy.nav.reels, icon: Clapperboard },
-  { href: "/admin/content/brands", label: copy.nav.brands, icon: Building2 },
+  { href: "/admin/content/sections", area: "content", label: home.sections, icon: LayoutList },
+  { href: "/admin/content/hero", area: "content", label: home.hero, icon: GalleryHorizontal },
+  { href: "/admin/content/offers", area: "content", label: home.offers, icon: Tag },
+  { href: "/admin/content/stats", area: "content", label: home.stats, icon: BarChart3 },
+  { href: "/admin/content/quick-actions", area: "content", label: home.quickActions, icon: Zap },
+  { href: "/admin/content/categories", area: "content", label: home.categories, icon: Shapes },
+  { href: "/admin/content/feedback", area: "content", label: home.feedback, icon: MessageSquareQuote },
+  { href: "/admin/content/why", area: "content", label: home.why, icon: ListOrdered },
+  { href: "/admin/content/reels", area: "content", label: copy.nav.reels, icon: Clapperboard },
+  { href: "/admin/content/brands", area: "content", label: copy.nav.brands, icon: Building2 },
   {
     href: "/admin/content/courses",
+    area: "content",
     label: copy.nav.courses,
     icon: GraduationCap,
   },
-  { href: "/admin/content/quiz", label: copy.nav.quiz, icon: ListChecks },
+  { href: "/admin/content/quiz", area: "content", label: copy.nav.quiz, icon: ListChecks },
 ];
 
 const rest: NavLink[] = [
-  { href: "/admin/orders", label: copy.nav.orders, icon: Package },
-  { href: "/admin/reports", label: copy.nav.reports, icon: LineChart },
-  { href: "/admin/coins", label: copy.nav.coins, icon: Coins },
-  { href: "/admin/settings", label: copy.nav.settings, icon: Settings },
-  { href: "/admin/database", label: copy.nav.database, icon: Database },
+  { href: "/admin/orders", area: "orders", label: copy.nav.orders, icon: Package },
+  { href: "/admin/reports", area: "reports", label: copy.nav.reports, icon: LineChart },
+  { href: "/admin/coins", area: "orders", label: copy.nav.coins, icon: Coins },
+  { href: "/admin/settings", area: "settings", label: copy.nav.settings, icon: Settings },
+  { href: "/admin/database", area: "database", label: copy.nav.database, icon: Database },
+  { href: "/admin/admins", area: "admins", label: adminSecurity.admins.nav, icon: ShieldCheck },
+  { href: "/account/two-factor", area: "dashboard", label: adminSecurity.twoFactor.metaTitle, icon: KeyRound },
 ];
 
 function isCurrent(pathname: string, href: string): boolean {
@@ -82,8 +89,18 @@ function isCurrent(pathname: string, href: string): boolean {
  * Admin sections. From 1100 px a sidebar; below that a strip under the
  * header that scrolls sideways (the "Content" heading is hidden there).
  */
-export function AdminNav({ pendingCount }: { pendingCount: number }) {
+export function AdminNav({
+  pendingCount,
+  adminRole,
+}: {
+  pendingCount: number;
+  /** Only the sections this role may open are listed (the server refuses the rest). */
+  adminRole: AdminRoleKey | null;
+}) {
   const pathname = usePathname();
+  const allowed = (links: NavLink[]) =>
+    links.filter((link) => roleCanAccess(adminRole, link.area));
+  const contentLinks = allowed(content);
 
   const item = (link: NavLink) => {
     const current = isCurrent(pathname, link.href);
@@ -115,16 +132,18 @@ export function AdminNav({ pendingCount }: { pendingCount: number }) {
   return (
     <nav aria-label={copy.nav.label}>
       <ul className="scrollbar-none flex gap-1 overflow-x-auto px-3 py-2 lg:flex-col lg:overflow-visible lg:p-0">
-        {main.map(item)}
-        <li
-          aria-hidden
-          className="mt-4 mb-1 hidden px-3 text-label text-muted uppercase lg:block"
-        >
-          {copy.nav.contentGroup}
-        </li>
-        {content.map(item)}
+        {allowed(main).map(item)}
+        {contentLinks.length > 0 && (
+          <li
+            aria-hidden
+            className="mt-4 mb-1 hidden px-3 text-label text-muted uppercase lg:block"
+          >
+            {copy.nav.contentGroup}
+          </li>
+        )}
+        {contentLinks.map(item)}
         <li aria-hidden className="my-3 hidden border-t border-line lg:block" />
-        {rest.map(item)}
+        {allowed(rest).map(item)}
       </ul>
     </nav>
   );

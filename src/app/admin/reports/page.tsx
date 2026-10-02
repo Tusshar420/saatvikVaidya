@@ -40,7 +40,7 @@ function bucketLabel(key: string, by: Grouping): string {
 
 /** Sales, orders, products, new users, approvals and coins for a period. */
 export default async function AdminReportsPage({ searchParams }: PageProps<"/admin/reports">) {
-  await requireAdmin();
+  await requireAdmin("reports");
   const filters = reportFiltersSchema.parse(await searchParams);
   const range = resolveRange(filters);
   const reports = await readReports(range);

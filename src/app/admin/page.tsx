@@ -28,7 +28,7 @@ export const metadata: Metadata = { title: copy.dashboard.metaTitle };
 const text = copy.dashboard;
 
 export default async function AdminDashboardPage() {
-  await requireAdmin();
+  await requireAdmin("dashboard");
   const [summary, orders] = await Promise.all([readDashboard(), countOrdersToShip()]);
 
   return (

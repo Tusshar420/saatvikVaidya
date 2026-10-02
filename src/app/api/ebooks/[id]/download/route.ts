@@ -1,5 +1,5 @@
 import { intId } from "@/server/admin/form";
-import { getSession } from "@/server/auth/session";
+import { effectiveRole, getSession } from "@/server/auth/session";
 import { openEbookDownload } from "@/server/ebooks/ebooks";
 import { contentDisposition } from "@/server/storage/files";
 
@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/eboo
   const session = await getSession();
   const result = await openEbookDownload(
     id.data,
-    session ? { id: session.user.id, role: session.user.role ?? "user" } : null,
+    session ? { id: session.user.id, role: effectiveRole(session, "catalogue") } : null,
   );
   if (!result.ok) {
     if (result.error === "rate_limited") {

@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: copy.database.metaTitle };
 export default async function TableDetailPage({
   params,
 }: PageProps<"/admin/tables/[table]">) {
-  await requireAdmin();
+  await requireAdmin("database");
   const { table } = await params;
   // Only names that exist in the database reach the raw queries.
   if (!(await isTableName(table))) notFound();

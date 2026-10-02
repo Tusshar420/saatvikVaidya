@@ -9,7 +9,7 @@ import { createEbookAction } from "../actions";
 export const metadata: Metadata = { title: copy.ebooks.metaTitle };
 
 export default async function NewEbookPage() {
-  await requireAdmin();
+  await requireAdmin("catalogue");
   return (
     <>
       <AdminPageHeader

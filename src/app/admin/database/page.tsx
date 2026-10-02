@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: copy.database.metaTitle };
 
 /** Read-only list of every table with its row count. */
 export default async function AdminDatabasePage() {
-  await requireAdmin();
+  await requireAdmin("database");
   const tables = await getTableNames();
   const counts = await Promise.all(tables.map(getRowCount));
 

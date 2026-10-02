@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { exportCsv, exportKinds, type ExportKind } from "@/server/admin/export";
 import { reportFiltersSchema, resolveRange } from "@/server/admin/reports";
-import { getSession } from "@/server/auth/session";
+import { getAdminSession } from "@/server/auth/session";
 
 /**
- * GET /admin/reports/export/orders and /users: a CSV download for admins.
+ * GET /admin/reports/export/orders and /users: a CSV download for admins (orders: reports
+ * area; users: users area).
  * Anyone else (signed out, customers) gets the same 404 as an unknown kind,
  * so the route doesn't reveal itself. Each export is written to the admin
  * log. With `from` and `to` the file covers that period; without, everything.
@@ -13,12 +14,12 @@ export async function GET(
   request: NextRequest,
   { params }: RouteContext<"/admin/reports/export/[kind]">,
 ) {
-  const session = await getSession();
   const notFound = () => new NextResponse("Not found", { status: 404 });
-  if (session?.user.role !== "admin") return notFound();
-
   const { kind } = await params;
   if (!(exportKinds as readonly string[]).includes(kind)) return notFound();
+  // The orders export is a report; the customer list is the users area.
+  const session = await getAdminSession(kind === "users" ? "users" : "reports");
+  if (!session) return notFound();
 
   const query = Object.fromEntries(request.nextUrl.searchParams);
   const filters = reportFiltersSchema.parse(query);

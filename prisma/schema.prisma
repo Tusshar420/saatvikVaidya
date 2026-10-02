@@ -47,6 +47,16 @@ enum UserRole {
   admin
 }
 
+/// What an admin may work on (P1.11). Only set for role "admin". A super admin
+/// can do everything and manage admins; the others own one area each.
+enum AdminRole {
+  super
+  catalogue
+  orders
+  content
+  approvals
+}
+
 /// Professional document checks. `none` for types that need no check.
 enum VerificationStatus {
   none
@@ -70,6 +80,11 @@ model User {
   userTypeId              Int
   userType                UserType               @relation(fields: [userTypeId], references: [id], onDelete: Restrict)
   role                    UserRole               @default(user)
+  /// Which admin area this admin may use (null for non-admins).
+  adminRole               AdminRole?
+  /// Better Auth two-factor plugin: true once the authenticator app is set up.
+  /// Admin pages refuse a signed-in admin until it is.
+  twoFactorEnabled        Boolean                @default(false)
   verificationStatus      VerificationStatus     @default(none)
   /// When the professional last completed their set of required documents
   /// (see src/lib/verification.ts). Null until every required document is
@@ -98,8 +113,41 @@ model User {
   coinEntries             CoinLedger[]
   settingsChanged         Setting[]              @relation("SettingUpdatedBy")
   settingHistory          SettingHistory[]       @relation("SettingHistoryChangedBy")
+  twoFactors              TwoFactor[]
+  adminInvitesSent        AdminInvite[]          @relation("AdminInviteSender")
 
   @@index([userTypeId])
+}
+
+/// Authenticator-app secret and backup codes (Better Auth two-factor plugin;
+/// secret and codes are stored encrypted).
+model TwoFactor {
+  id                      String    @id @db.VarChar(64)
+  secret                  String    @db.Text
+  backupCodes             String    @db.Text
+  userId                  String    @db.VarChar(64)
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+
+  @@index([userId])
+}
+
+/// A super admin's invitation for someone to become an admin. Only the hash
+/// of the link's token is stored. Single use, and it expires.
+model AdminInvite {
+  id          Int       @id @default(autoincrement())
+  email       String    @db.VarChar(191)
+  adminRole   AdminRole
+  tokenHash   String    @unique @db.VarChar(64)
+  invitedById String?   @db.VarChar(64)
+  invitedBy   User?     @relation("AdminInviteSender", fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
 }
 
 model Session {

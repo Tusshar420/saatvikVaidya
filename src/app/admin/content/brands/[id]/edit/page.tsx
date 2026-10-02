@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: copy.brands.metaTitle };
 export default async function EditBrandPage({
   params,
 }: PageProps<"/admin/content/brands/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const id = intId.safeParse((await params).id);
   const brand = id.success ? await getBrand(id.data) : null;
   if (!brand) notFound();

@@ -8,7 +8,7 @@ import { createCourseAction } from "../../actions";
 export const metadata: Metadata = { title: copy.courses.newTitle };
 
 export default async function NewCoursePage() {
-  await requireAdmin();
+  await requireAdmin("content");
   return (
     <>
       <AdminPageHeader

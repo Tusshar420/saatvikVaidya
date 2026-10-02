@@ -72,7 +72,7 @@ export async function placeOrderAction(_: FormState, formData: FormData): Promis
     getSetting("site.maintenance"),
   ]);
   // The checkout switch, and maintenance mode (admins can still order).
-  if (!checkoutSwitch.enabled || (maintenance.enabled && user.role !== "admin")) {
+  if (!checkoutSwitch.enabled || (maintenance.enabled && (user.role !== "admin" || !user.twoFactorEnabled))) {
     return { status: "error", message: placeErrors.checkout_off };
   }
   const result = await placeOrder({ userId: user.id, viewer, shipping, coinRules, ...parsed.data });

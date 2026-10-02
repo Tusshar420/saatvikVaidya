@@ -10,7 +10,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { ebooks as copy } from "@/content/ebooks";
 import { formatPaise } from "@/lib/format";
 import { formatFileSize } from "@/lib/verification";
-import { getSession } from "@/server/auth/session";
+import { effectiveRole, getSession } from "@/server/auth/session";
 import { getEbookBySlug } from "@/server/ebooks/ebooks";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -18,7 +18,7 @@ const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 async function load(slug: string) {
   if (slug.length > 120 || !slugPattern.test(slug)) return null;
   const session = await getSession();
-  const viewer = session ? { id: session.user.id, role: session.user.role ?? "user" } : null;
+  const viewer = session ? { id: session.user.id, role: effectiveRole(session, "catalogue") } : null;
   return getEbookBySlug(slug, viewer);
 }
 

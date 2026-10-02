@@ -6,6 +6,7 @@ import { AdminSignOut } from "@/components/admin/admin-sign-out";
 import { Badge } from "@/components/ui/badge";
 import { admin as copy } from "@/content/admin";
 import { shell } from "@/content/shell";
+import { roleCanAccess } from "@/lib/admin-permissions";
 import { requireAdmin } from "@/server/auth/session";
 import { db } from "@/server/db";
 
@@ -27,12 +28,14 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const { user } = await requireAdmin();
-  const pendingCount = await db.user.count({
-    where: {
-      verificationStatus: "pending",
-      userType: { requiresVerification: true },
-    },
-  });
+  const pendingCount = roleCanAccess(user.adminRole, "approvals")
+    ? await db.user.count({
+        where: {
+          verificationStatus: "pending",
+          userType: { requiresVerification: true },
+        },
+      })
+    : 0;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-surface-alt">
@@ -74,13 +77,13 @@ export default async function AdminLayout({
           </div>
         </div>
         <div className="border-t border-line lg:hidden">
-          <AdminNav pendingCount={pendingCount} />
+          <AdminNav pendingCount={pendingCount} adminRole={user.adminRole ?? null} />
         </div>
       </header>
       <div className="flex flex-1">
         <aside className="hidden w-60 shrink-0 border-r border-line bg-surface p-3 lg:block">
           <div className="sticky top-19 max-h-[calc(100dvh-5.5rem)] overflow-y-auto">
-            <AdminNav pendingCount={pendingCount} />
+            <AdminNav pendingCount={pendingCount} adminRole={user.adminRole ?? null} />
           </div>
         </aside>
         <main

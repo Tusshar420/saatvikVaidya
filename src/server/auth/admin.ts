@@ -34,7 +34,9 @@ export function newId(): string {
 
 /**
  * Creates the admin account, or updates it if the email exists: sets role
- * "admin", the name and a new password, and signs out its other sessions.
+ * "admin" (super admin), the name and a new password, and signs out its
+ * other sessions. Two-factor is set up at the first sign-in (admin pages
+ * refuse an admin without it), so the new admin needs nothing else here.
  * The admin gets the "customer" user type (admin is a role, not a type).
  */
 export async function upsertAdmin(
@@ -65,7 +67,7 @@ export async function upsertAdmin(
     if (existing) {
       await tx.user.update({
         where: { id: existing.id },
-        data: { role: "admin", name, emailVerified: true },
+        data: { role: "admin", adminRole: "super", name, emailVerified: true },
       });
       const credential = await tx.account.findFirst({
         where: { userId: existing.id, providerId: "credential" },
@@ -99,6 +101,7 @@ export async function upsertAdmin(
         email,
         emailVerified: true,
         role: "admin",
+        adminRole: "super",
         verificationStatus: "none",
         userTypeId: customer.id,
         termsAcceptedAt: new Date(),

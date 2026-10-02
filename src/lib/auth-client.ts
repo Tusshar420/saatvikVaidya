@@ -121,11 +121,45 @@ export function verifyOtp(
   });
 }
 
+/** The reply to a password sign-in: signed in, or a second-factor step is next. */
+export type EmailSignInReply =
+  { user: { name: string }; twoFactorRedirect?: undefined } | { twoFactorRedirect: true };
+
 export function signInWithEmail(email: string, password: string) {
-  return post<{ user: { name: string } }>("/sign-in/email", {
-    email,
-    password,
-  });
+  return post<EmailSignInReply>("/sign-in/email", { email, password });
+}
+
+/**
+ * Finishes an admin sign-in with an authenticator code or a backup code. The
+ * server remembers the password step in a short-lived cookie, so this only
+ * works right after signInWithEmail asked for it.
+ */
+export async function verifyTwoFactor(
+  kind: "totp" | "backup",
+  code: string,
+): Promise<AuthResult<{ user: { name: string } }>> {
+  const path =
+    kind === "totp" ? "/two-factor/verify-totp" : "/two-factor/verify-backup-code";
+  try {
+    const { data, error } = await authClient.$fetch<{ user: { name: string } }>(path, {
+      method: "POST",
+      body: { code },
+    });
+    if (error) {
+      const code = (error as { code?: string }).code ?? "";
+      const kindOfFailure =
+        error.status === 429
+          ? "RATE_LIMITED"
+          : code.includes("COOKIE") || code.includes("TOO_MANY_ATTEMPTS")
+            ? "TWO_FACTOR_EXPIRED"
+            : "TWO_FACTOR_INVALID";
+      return { ok: false, error: authFailure(kindOfFailure) };
+    }
+    authClient.$store.notify("$sessionSignal");
+    return { ok: true, data: data as { user: { name: string } } };
+  } catch {
+    return { ok: false, error: authFailure("NETWORK") };
+  }
 }
 
 /**

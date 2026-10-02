@@ -10,7 +10,7 @@ import { createUserAction } from "../actions";
 export const metadata: Metadata = { title: copy.userForm.newMetaTitle };
 
 export default async function NewUserPage() {
-  await requireAdmin();
+  await requireAdmin("users");
   const types = (await listUserTypes()).filter((type) => type.active);
   return (
     <>

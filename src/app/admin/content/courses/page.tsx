@@ -27,7 +27,7 @@ const text = copy.courses;
 export default async function CoursesPage({
   searchParams,
 }: PageProps<"/admin/content/courses">) {
-  await requireAdmin();
+  await requireAdmin("content");
   const [courses, params] = await Promise.all([listCourses(), searchParams]);
 
   return (

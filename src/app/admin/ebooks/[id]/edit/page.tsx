@@ -22,7 +22,7 @@ export default async function EditEbookPage({
   params,
   searchParams,
 }: PageProps<"/admin/ebooks/[id]/edit">) {
-  await requireAdmin();
+  await requireAdmin("catalogue");
   const id = intId.safeParse((await params).id);
   const ebook = id.success ? await getAdminEbook(id.data) : null;
   if (!ebook) notFound();

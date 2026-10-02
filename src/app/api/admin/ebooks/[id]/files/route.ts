@@ -9,7 +9,7 @@ import {
   type EbookUploadError,
 } from "@/server/admin/ebooks";
 import { intId } from "@/server/admin/form";
-import { getSession } from "@/server/auth/session";
+import { getAdminSession } from "@/server/auth/session";
 import { isSameOrigin } from "@/server/request-origin";
 import { readBodyWithLimit } from "@/server/storage/files";
 
@@ -46,8 +46,8 @@ export async function POST(request: Request, { params }: RouteContext<"/api/admi
   if (!isSameOrigin(request)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
-  const session = await getSession();
-  if (session?.user.role !== "admin") return notFound();
+  const session = await getAdminSession("catalogue");
+  if (!session) return notFound();
   const ebookId = intId.safeParse((await params).id);
   if (!ebookId.success) return notFound();
 

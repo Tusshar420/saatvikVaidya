@@ -56,7 +56,7 @@ async function create(
   kind: ContentKind,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const values = formValues(formData);
   const key = keySchema.safeParse(values.key);
   const parsed = schemas[kind].safeParse(values);
@@ -89,7 +89,7 @@ async function update(
   rawId: number,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const id = intId.safeParse(rawId);
   if (!id.success) notFound();
   const values = formValues(formData);
@@ -117,7 +117,7 @@ async function update(
 }
 
 async function remove(kind: ContentKind, formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
   await deleteContent(kind, id.data, user.id);
@@ -180,7 +180,7 @@ export async function createQuizAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const { values, parsed } = parseQuiz(formData);
   if (!parsed.success) {
     return {
@@ -199,7 +199,7 @@ export async function updateQuizAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const id = intId.safeParse(rawId);
   if (!id.success) notFound();
   const { values, parsed } = parseQuiz(formData);
@@ -218,7 +218,7 @@ export async function updateQuizAction(
 }
 
 export async function deleteQuizAction(formData: FormData): Promise<void> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdmin("content");
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
   await deleteQuiz(id.data, user.id);

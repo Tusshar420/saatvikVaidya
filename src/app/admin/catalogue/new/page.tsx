@@ -12,7 +12,7 @@ import { createProductAction } from "../actions";
 export const metadata: Metadata = { title: copy.catalogue.metaTitle };
 
 export default async function NewProductPage() {
-  await requireAdmin();
+  await requireAdmin("catalogue");
   const options = await readProductFormOptions();
   return (
     <>

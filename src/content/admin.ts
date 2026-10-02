@@ -323,6 +323,7 @@ export const admin = {
       adminPassword: (min: number) =>
         `Admins need a password of at least ${min} characters that isn't common.`,
       selfRole: "You can't remove your own admin role.",
+      adminByInvite: "Admins are invited from the Admins page.",
     },
   },
 

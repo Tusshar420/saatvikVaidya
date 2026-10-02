@@ -32,7 +32,7 @@ export default async function UserDetailPage({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]">) {
-  const session = await requireAdmin();
+  const session = await requireAdmin("users");
   const { id } = await params;
   const [user, verification, coins, coinRows] = await Promise.all([
     getUserDetail(id),
