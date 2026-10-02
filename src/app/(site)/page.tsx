@@ -14,15 +14,17 @@ import { PartnerSection } from "@/components/site/partner-section";
 import { WhySection } from "@/components/site/why-section";
 import { getHomeContent } from "@/server/content/home";
 import { getSession } from "@/server/auth/session";
+import { getHomeQuiz } from "@/server/quiz/view";
 
 export const metadata = {
   title: "Saatvik Vaidya",
 };
 
 export default async function HomePage() {
-  const [homeContent, session] = await Promise.all([
+  const [homeContent, session, homeQuiz] = await Promise.all([
     getHomeContent(),
     getSession(),
+    getHomeQuiz(),
   ]);
 
   return (
@@ -117,9 +119,9 @@ export default async function HomePage() {
               <QuizSection
                 key="quiz"
                 heading={section.heading}
-                question={section.question}
                 badge={section.badge}
                 note={section.note}
+                live={homeQuiz}
               />
             );
 

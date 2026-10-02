@@ -302,7 +302,7 @@ export const heroSlideSeed: Seed<Prisma.HeroSlideCreateInput>[] = [
     primaryLabel: "Explore Courses",
     primaryHref: "/#courses",
     secondaryLabel: "Play this week’s quiz",
-    secondaryHref: "/#quiz",
+    secondaryHref: "/quiz",
     panelKind: "LEARNING_BOARD",
     panel: {
       badge: "SAATVIK LIVE",
@@ -456,7 +456,7 @@ export const offerSeed: Seed<Prisma.OfferCreateInput>[] = [
     title: "Learn Ayurveda. Earn rewards.",
     body: "10 questions • 5 minutes • Weekly leaderboard",
     linkLabel: "Play Quiz and Win",
-    linkHref: "/#quiz",
+    linkHref: "/quiz",
   },
 ];
 

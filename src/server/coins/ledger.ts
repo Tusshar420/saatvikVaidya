@@ -237,6 +237,29 @@ export async function awardProfileReward(userId: string, kind: ProfileReward): P
   });
 }
 
+/**
+ * The coins for a qualifying quiz score, inside the transaction that closes
+ * the attempt (which must hold the user's lock). Once per attempt: the
+ * reference is the attempt's id, so a repeat writes nothing. Returns the coins
+ * credited.
+ */
+export async function creditQuizReward(
+  tx: Client,
+  userId: string,
+  attemptId: number,
+  rules: CoinRules,
+): Promise<number> {
+  if (!rules.enabled || rules.quizReward <= 0) return 0;
+  const written = await write(tx, {
+    userId,
+    amount: rules.quizReward,
+    reason: "earn_quiz",
+    reference: `quiz-attempt:${attemptId}`,
+    expiresAt: expiryFrom(new Date(), rules),
+  });
+  return written ? rules.quizReward : 0;
+}
+
 // ─── Admin adjustments ──────────────────────────────────────────────────────
 
 export type AdjustResult =

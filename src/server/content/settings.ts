@@ -42,6 +42,8 @@ export const settingSchemas = {
     earnAfterDelivery: z.boolean(),
     interestsReward: z.number().int().min(0).max(1_000_000),
     detailsReward: z.number().int().min(0).max(1_000_000),
+    // Added in P2.3: rows saved before then don't have it.
+    quizReward: z.number().int().min(0).max(1_000_000).default(100),
     coinsPerRupee: z.number().int().min(1).max(1_000),
     maxRedeemPercent: z.number().int().min(0).max(100),
     maxRedeemCoins: z.number().int().min(0).max(100_000_000),

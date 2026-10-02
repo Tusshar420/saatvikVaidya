@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { QuizBuilder } from "@/components/admin/quiz-builder";
 import { admin as copy } from "@/content/admin";
+import { formatIstLocal } from "@/lib/quiz";
 import { intId } from "@/server/admin/form";
 import { getQuiz } from "@/server/admin/quiz";
 import { requireAdmin } from "@/server/auth/session";
@@ -30,8 +31,12 @@ export default async function EditQuizPage({
           title: quiz.title,
           description: quiz.description,
           active: quiz.active,
+          startsAt: quiz.startsAt ? formatIstLocal(quiz.startsAt) : "",
+          endsAt: quiz.endsAt ? formatIstLocal(quiz.endsAt) : "",
+          passPercent: quiz.passPercent,
         }}
-        initialQuestions={quiz.questions}
+        initialQuestions={quiz.questions.map((question) => ({ ...question, explanation: question.explanation ?? "" }))}
+        lockedAttempts={quiz.attempts}
       />
     </>
   );

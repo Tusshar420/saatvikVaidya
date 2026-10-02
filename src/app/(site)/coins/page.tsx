@@ -92,6 +92,7 @@ export default async function CoinsPage({ searchParams }: PageProps<"/coins">) {
                 {copy.earn.order(rules.earnPerThousandRupees, formatINR(1_000), rules.earnAfterDelivery)}
               </li>
               {rules.interestsReward > 0 && <li>{copy.earn.interests(rules.interestsReward)}</li>}
+              {rules.quizReward > 0 && <li>{copy.earn.quiz(rules.quizReward)}</li>}
               {rules.detailsReward > 0 && <li>{copy.earn.details(rules.detailsReward)}</li>}
               <li>{copy.earn.expiry(rules.expiryMonths)}</li>
             </ul>

@@ -4,6 +4,9 @@ const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;
 
 const exclusive = /\.exclusive\.spec\.ts$/;
+// Quiz & Win: one open quiz shows on the homepage, so this spec runs alone,
+// after the exclusive ones (they change site-wide settings at the same time).
+const last = /\.last\.spec\.ts$/;
 
 const phone = {
   ...devices["Pixel 7"],
@@ -39,12 +42,12 @@ export default defineConfig({
   projects: [
     {
       name: "phone",
-      testIgnore: exclusive,
+      testIgnore: [exclusive, last],
       use: phone,
     },
     {
       name: "desktop",
-      testIgnore: exclusive,
+      testIgnore: [exclusive, last],
       use: desktop,
     },
     // Specs that change site-wide settings (maintenance mode, checkout off,
@@ -60,6 +63,18 @@ export default defineConfig({
       name: "desktop-exclusive",
       testMatch: exclusive,
       dependencies: ["phone-exclusive"],
+      use: desktop,
+    },
+    {
+      name: "phone-last",
+      testMatch: last,
+      dependencies: ["desktop-exclusive"],
+      use: phone,
+    },
+    {
+      name: "desktop-last",
+      testMatch: last,
+      dependencies: ["phone-last"],
       use: desktop,
     },
   ],

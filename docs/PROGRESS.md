@@ -2851,61 +2851,72 @@ Replaces the earlier BLOCKED entry: Phase 1 and P2.1 are committed and green.
 
 **Checks:** typecheck, lint, test (662), test:e2e (236 passed, 6 skipped by design) and build (run by the e2e web server) pass.
 
-## P2.3. Quiz & Win (BLOCKED, 2026-10-01)
+## P2.3. Quiz & Win (2026-10-02)
 
-Not started. P2.3 credits quiz coins "through the P1.7 `CoinLedger`" using "a
-new coin rule", and P1.7 is not built. So this chunk stops here instead of
-building P1.7 (or finishing P1.3) itself.
+Replaces the earlier BLOCKED entry: P1.7 and P2.1/P2.2 are committed and green.
 
-**What's blocking (checked in code, schema and git on 2026-10-01)**
-- **P1.7 (Super Coins) is not built** (its entry above is BLOCKED). There is
-  no `CoinLedger` model and no coin rules in `prisma/schema.prisma`, and no
-  `/admin/coins`. `/coins` is still a coming-soon page and the header pill
-  still shows a hard-coded `0`. P2.3's coin credit, its admin-set amount and
-  its "once per attempt" test all need P1.7's ledger and rules.
-- **P1.1's part is there:** `Quiz`, `QuizQuestion` and `QuizOption` exist, and
-  quizzes can be authored at `/admin/content/quiz`. P2.3 would add the
-  weekly schedule (start/end), the pass threshold and attempts on top of these.
-- **The root cause is still P1.3:** its work is uncommitted on `dev` (latest
-  commit `dfe0c5e`, no `P1.3` commit; still 38 changed or new paths). A P2.3
-  migration (`QuizAttempt`, schedule fields) would stack on P1.3's uncommitted
-  migration `20260930234005_p1_3_catalogue`, as noted for P1.7. Nothing under
-  `src/`, `prisma/` or `tests/` has changed since the P2.2 entry, so the
-  checks weren't re-run.
+**Built**
+- **Database** (migration `p2_3_quiz`): `Quiz.startsAt/endsAt/passPercent`,
+  `QuizQuestion.explanation`, `QuizAttempt` (unique per user + quiz; start time,
+  answers JSON, score, time taken, coins awarded), `CoinReason.earn_quiz`. The
+  migration also repoints the seeded homepage "/#quiz" links (hero, offer) to
+  `/quiz`.
+- **Admin** (`/admin/content/quiz`): schedule (opens/closes, entered as India
+  time), pass mark %, an explanation per question, schedule and attempt count
+  in the list. A scheduled quiz needs exactly 10 questions. Once anyone has
+  played, the questions are locked (server-side, under a row lock); the
+  schedule and pass mark can still change.
+- **Coin rule:** `coins.rules.quizReward` (default 100, editable at
+  `/admin/coins`; older stored rules fall back to 100). The pass mark is per quiz.
+- **Playing `/quiz`:** public page; sign-in needed to start. The server sets the
+  start time and owns the 5-minute clock; each choice is saved at once (refresh
+  resumes); an answer after the deadline is refused and closes the attempt.
+  Questions are read without `isCorrect` and explanations; those are read only
+  once the attempt is closed. Results page shows score, time, coins and the
+  review with explanations.
+- **Coins:** the attempt is closed under the user's lock; coins are credited
+  through `CoinLedger` (`earn_quiz`, reference `quiz-attempt:<id>`, unique), so
+  a double submit or race credits once.
+- **Leaderboards `/quiz/leaderboard`:** this India-time week / month, points
+  then time, equal scores share a rank; top 20 plus the signed-in user's own
+  rank. Names are first name + last initial made on the server; no ids sent.
+- **Homepage:** Quiz & Win section shows the open quiz (link to `/quiz`), or
+  "Next quiz starts ...", or "will be announced soon". The seeded sample
+  question in the section content is no longer shown.
 
-**Why it can't go ahead partially:** the quiz itself (schedule, play, server
-timer, leaderboards) doesn't strictly need coins. But the chunk's coin credit,
-its tests and its done all depend on the ledger. Building the quiz now would
-also mean adding a migration on top of P1.3's uncommitted one. Shipping a quiz
-called "Quiz & Win" with no prize would need a product decision. That isn't
-for an unattended run to make.
+**Decisions**
+- Unfinished attempts are closed lazily (on the player's next visit, a late
+  answer, or when a leaderboard is read), scored at the full 5 minutes.
+- Weekly/monthly boards sum a user's finished attempts that started in the
+  period (one quiz a week, so weekly = that quiz's score).
+- The e2e spec is `quiz.last.spec.ts`, run in new `phone-last`/`desktop-last`
+  projects after the exclusive ones: an open quiz shows on the homepage, and
+  the exclusive specs (maintenance mode) clash if run alongside.
 
-**For the run that builds P2.3**
-- Serve questions through a separate select that never includes
-  `QuizOption.isCorrect`. Return answers and explanations only after the
-  attempt is submitted or expired. `QuizQuestion` has no explanation field
-  yet; add one.
-- Put a unique key on (`userId`, `quizId`) on the attempt for the
-  one-attempt rule. Keep `startedAt` on the attempt and check each answer
-  against `startedAt + 5 min` on the server. Store answers as they come in so
-  a refresh resumes the attempt.
-- Credit coins in the same transaction that finalises the attempt. Use a
-  unique ledger reference (e.g. `quiz-attempt:<id>`) so a retry or a double
-  submit can't credit twice.
-- Leaderboard names: first name + last initial, worked out on the server.
-  Never send full names or ids to the client.
-- Homepage: the Quiz & Win section (A8) and the "Play this week's quiz" links
-  show seeded homepage content
-  (`quiz-section.tsx`), not a real quiz. Switch them to the live quiz or "next
-  quiz starts ...".
+**Tests**
+- Vitest: `src/lib/quiz.test.ts`, `src/server/quiz/attempts.test.ts` (open
+  quiz, one attempt, concurrent starts, the timer at the boundary, option
+  checks, scoring, coin credit once incl. concurrent submits and rule changes,
+  no answer leakage in the play view, leaderboards), and updated
+  `admin/quiz.test.ts` (schedule validation, question lock).
+- Playwright `tests/e2e/quiz.last.spec.ts` (phone and desktop): play-through
+  with coins and explanations, resume after refresh and a late answer, time
+  running out, signed-out and "next quiz", leaderboard, admin form. axe and
+  sideways scroll checked on each screen.
 
-**Next steps (in order)**
-1. Finish and commit P1.3 (steps in the P1.4 entry).
-2. Build P1.4 and P1.5, then P1.7.
-3. Re-queue P2.3 once P1.7 is committed and green.
+**Checks:** typecheck, lint, test (704), test:e2e (248 passed, 6 skipped by
+design) and build (run by the e2e web server) pass. One earlier e2e run had a
+one-off failure in `admin.spec.ts` ("users: add, view, edit and find a user",
+phone) that passed alone and on the rerun. I did not look at the new screens by
+eye at 375/1280 px; layout was checked with the overflow and axe assertions only.
 
-Nothing was changed apart from this entry. No P2.3 code was written and no
-checks were run. The tree still holds P1.3's uncommitted work.
+**Known gaps / Later**
+- After a quiz's week ends, a player can't reopen their review on `/quiz`
+  (the leaderboard still shows them). A "my past quizzes" list would fix this.
+- Leaderboards total attempts in application code; fine for now, move to SQL
+  grouping if attempts grow into the tens of thousands.
+- No admin view of a quiz's attempts or results yet.
+- Quiz window overlap isn't blocked: with two open, the latest start wins.
 
 ## P2.4. Phase 2 quality and security pass (BLOCKED, 2026-10-01)
 

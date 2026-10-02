@@ -19,7 +19,7 @@ export default async function NewQuizPage() {
       <QuizBuilder
         mode="new"
         action={createQuizAction}
-        initial={{ active: false }}
+        initial={{ active: false, passPercent: 60 }}
         initialQuestions={[]}
       />
     </>

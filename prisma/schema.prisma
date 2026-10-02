@@ -111,6 +111,7 @@ model User {
   addresses               Address[]
   orders                  Order[]
   coinEntries             CoinLedger[]
+  quizAttempts            QuizAttempt[]
   settingsChanged         Setting[]              @relation("SettingUpdatedBy")
   settingHistory          SettingHistory[]       @relation("SettingHistoryChangedBy")
   twoFactors              TwoFactor[]
@@ -595,8 +596,10 @@ model WhyStep {
 }
 
 // ─── Learning ───────────────────────────────────────────────────────────────
-// Managed in the admin panel. Quiz & Win itself (attempts, coins,
-// leaderboards) is Phase 2; until then quizzes are only authored.
+// Managed in the admin panel. Quiz & Win (P2.3): a scheduled quiz is open to
+// play between startsAt and endsAt; one QuizAttempt per user per quiz. Code is
+// in src/server/quiz. Correct answers are never selected for a question that
+// is being played; they are read only once the attempt is finished.
 
 model Quiz {
   id          Int            @id @default(autoincrement())
@@ -604,19 +607,30 @@ model Quiz {
   description String?        @db.VarChar(600)
   /// Finished and ready to publish once Quiz & Win launches.
   active      Boolean        @default(false)
+  /// The week it can be played (an instant). Null: not scheduled, so not
+  /// playable. Scheduled quizzes have exactly 10 questions.
+  startsAt    DateTime?
+  endsAt      DateTime?
+  /// Share of the points (0-100) needed to earn the quiz coins.
+  passPercent Int            @default(60)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   questions   QuizQuestion[]
+  attempts    QuizAttempt[]
+
+  @@index([active, startsAt])
 }
 
 model QuizQuestion {
-  id        Int          @id @default(autoincrement())
-  quizId    Int
-  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  sortOrder Int          @default(0)
-  prompt    String       @db.VarChar(400)
-  points    Int          @default(10)
-  options   QuizOption[]
+  id          Int          @id @default(autoincrement())
+  quizId      Int
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  sortOrder   Int          @default(0)
+  prompt      String       @db.VarChar(400)
+  points      Int          @default(10)
+  /// Shown with the answer once the attempt is finished.
+  explanation String?      @db.VarChar(400)
+  options     QuizOption[]
 
   @@index([quizId, sortOrder])
 }
@@ -631,6 +645,30 @@ model QuizOption {
   isCorrect  Boolean      @default(false)
 
   @@index([questionId, sortOrder])
+}
+
+/// A user's one go at a quiz. `startedAt` is set by the server; the 5 minutes
+/// run from it. `answers` maps question id to chosen option id and only holds
+/// answers saved before the deadline. `submittedAt` null: still open (or
+/// expired and not yet closed; closing happens on the next read).
+model QuizAttempt {
+  id               Int       @id @default(autoincrement())
+  userId           String    @db.VarChar(64)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId           Int
+  quiz             Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  startedAt        DateTime  @default(now())
+  answers          Json
+  submittedAt      DateTime?
+  score            Int       @default(0)
+  maxScore         Int       @default(0)
+  correctCount     Int       @default(0)
+  timeTakenSeconds Int       @default(0)
+  coinsAwarded     Int       @default(0)
+
+  @@unique([userId, quizId])
+  @@index([quizId, submittedAt])
+  @@index([startedAt])
 }
 
 // ─── Catalogue ──────────────────────────────────────────────────────────────
@@ -877,25 +915,25 @@ model Order {
 /// buyer's BrandDraft when the order is placed. The logo file is private
 /// (Storage) and served only to the buyer and admins.
 model BrandOrderDetails {
-  orderId           String   @id @db.VarChar(32)
-  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  brandName         String   @db.VarChar(80)
-  tagline           String?  @db.VarChar(120)
-  marketedByName    String?  @db.VarChar(120)
-  marketedByAddress String?  @db.VarChar(300)
-  contactPhone      String?  @db.VarChar(20)
-  notes             String?  @db.VarChar(1000)
+  orderId           String            @id @db.VarChar(32)
+  order             Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  brandName         String            @db.VarChar(80)
+  tagline           String?           @db.VarChar(120)
+  marketedByName    String?           @db.VarChar(120)
+  marketedByAddress String?           @db.VarChar(300)
+  contactPhone      String?           @db.VarChar(20)
+  notes             String?           @db.VarChar(1000)
   /// The logo's key in Storage (not a URL).
-  logoKey           String   @unique @db.VarChar(191)
+  logoKey           String            @unique @db.VarChar(191)
   /// The name the logo had on the buyer's device (cleaned), for display.
-  logoName          String   @db.VarChar(191)
+  logoName          String            @db.VarChar(191)
   /// Checked from the file's bytes on upload: PNG, JPEG or PDF.
-  logoContentType   String   @db.VarChar(64)
+  logoContentType   String            @db.VarChar(64)
   logoSizeBytes     Int
   /// Where the order is in proof and production (P2.2). Only moves through
   /// src/server/brand/stages.ts, which follows src/lib/brand-stage.ts.
-  stage             BrandStage @default(awaiting_proof)
-  createdAt         DateTime @default(now())
+  stage             BrandStage        @default(awaiting_proof)
+  createdAt         DateTime          @default(now())
   proofs            BrandProof[]
   stageEvents       BrandStageEvent[]
 }
@@ -924,24 +962,24 @@ enum BrandProofStatus {
 
 /// One version of the packaging proof the team sent. Every version is kept.
 model BrandProof {
-  id            Int               @id @default(autoincrement())
-  orderId       String            @db.VarChar(32)
-  details       BrandOrderDetails @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  id           Int               @id @default(autoincrement())
+  orderId      String            @db.VarChar(32)
+  details      BrandOrderDetails @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
   /// 1, 2, 3... per order.
-  version       Int
+  version      Int
   /// The file's key in Storage (private).
-  fileKey       String            @unique @db.VarChar(191)
-  fileName      String            @db.VarChar(191)
-  contentType   String            @db.VarChar(64)
-  sizeBytes     Int
+  fileKey      String            @unique @db.VarChar(191)
+  fileName     String            @db.VarChar(191)
+  contentType  String            @db.VarChar(64)
+  sizeBytes    Int
   /// The team's note shown with the proof.
-  note          String?           @db.VarChar(500)
-  status        BrandProofStatus  @default(pending)
+  note         String?           @db.VarChar(500)
+  status       BrandProofStatus  @default(pending)
   /// What the customer asked to change.
-  comment       String?           @db.VarChar(1000)
-  uploadedById  String?           @db.VarChar(64)
-  decidedAt     DateTime?
-  createdAt     DateTime          @default(now())
+  comment      String?           @db.VarChar(1000)
+  uploadedById String?           @db.VarChar(64)
+  decidedAt    DateTime?
+  createdAt    DateTime          @default(now())
 
   @@unique([orderId, version])
 }
@@ -1044,25 +1082,25 @@ enum PaymentStatus {
 /// One attempt to pay for an order. A failed attempt stays; "Try again"
 /// starts the next attempt on the same order.
 model Payment {
-  id            Int           @id @default(autoincrement())
-  orderId       String        @db.VarChar(32)
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id              Int           @id @default(autoincrement())
+  orderId         String        @db.VarChar(32)
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   /// PAYMENT_PROVIDER that handled it, e.g. "test" (Razorpay later).
-  provider      String        @db.VarChar(20)
+  provider        String        @db.VarChar(20)
   /// The provider's id for this attempt.
-  reference     String        @unique @db.VarChar(64)
-  amountPaise   Int
-  status        PaymentStatus @default(created)
+  reference       String        @unique @db.VarChar(64)
+  amountPaise     Int
+  status          PaymentStatus @default(created)
   /// 1 for the first attempt on the order, then 2, 3...
-  attempt       Int
+  attempt         Int
   /// Why it failed, e.g. "declined" or "out_of_stock".
-  failureReason String?       @db.VarChar(40)
+  failureReason   String?       @db.VarChar(40)
   /// Set when the payment was refunded (a cancelled brand order, P2.2).
-  refundReference String?     @db.VarChar(64)
-  refundedAt    DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  refundReference String?       @db.VarChar(64)
+  refundedAt      DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@unique([orderId, attempt])
 }
@@ -1220,6 +1258,8 @@ enum CoinReason {
   earn_order
   /// Taken back when an order that earned coins is cancelled.
   earn_reversal
+  /// Earned for a qualifying quiz score; reference "quiz-attempt:<id>".
+  earn_quiz
   /// A profile-completion reward ("interests" or "details").
   earn_profile
   /// Used at checkout.

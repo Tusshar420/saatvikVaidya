@@ -46,6 +46,7 @@ export function CoinRulesForm({ rules }: { rules: CoinRules }) {
         />
         {number("interestsReward", fields.interestsReward, fields.interestsRewardHelp)}
         {number("detailsReward", fields.detailsReward, fields.detailsRewardHelp)}
+        {number("quizReward", fields.quizReward, fields.quizRewardHelp)}
         {number("coinsPerRupee", fields.coinsPerRupee, fields.coinsPerRupeeHelp)}
         {number("maxRedeemPercent", fields.maxRedeemPercent, fields.maxRedeemPercentHelp)}
         {number("maxRedeemCoins", fields.maxRedeemCoins, fields.maxRedeemCoinsHelp)}

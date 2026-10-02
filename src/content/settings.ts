@@ -36,6 +36,8 @@ export type SettingValues = {
    *   coins used, without delivery).
    * - `earnAfterDelivery`: earn when delivered; otherwise when paid.
    * - `interestsReward` / `detailsReward`: profile-completion rewards.
+   * - `quizReward`: coins for a qualifying Quiz & Win score (P2.3), once
+   *   per attempt. The pass mark is set on each quiz.
    * - `coinsPerRupee`: how many coins are worth ₹1.
    * - `maxRedeemPercent` / `maxRedeemCoins`: most of an order's items total
    *   (and most coins) that can be paid with coins.
@@ -47,6 +49,7 @@ export type SettingValues = {
     earnAfterDelivery: boolean;
     interestsReward: number;
     detailsReward: number;
+    quizReward: number;
     coinsPerRupee: number;
     maxRedeemPercent: number;
     maxRedeemCoins: number;
@@ -105,6 +108,7 @@ export const settingDefaults: SettingValues = {
     earnAfterDelivery: true,
     interestsReward: 250,
     detailsReward: 750,
+    quizReward: 100,
     coinsPerRupee: 10,
     maxRedeemPercent: 20,
     maxRedeemCoins: 5_000,

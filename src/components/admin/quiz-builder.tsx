@@ -32,6 +32,7 @@ export type QuestionDraft = {
   points: number;
   options: string[];
   correct: number;
+  explanation: string;
 };
 
 const blankQuestion = (): QuestionDraft => ({
@@ -39,6 +40,7 @@ const blankQuestion = (): QuestionDraft => ({
   points: 10,
   options: ["", ""],
   correct: 0,
+  explanation: "",
 });
 
 export type QuizBuilderProps = {
@@ -46,6 +48,8 @@ export type QuizBuilderProps = {
   initial: FieldValues;
   initialQuestions: QuestionDraft[];
   mode: "new" | "edit";
+  /** People who have played: the questions are read-only. */
+  lockedAttempts?: number;
 };
 
 /**
@@ -58,7 +62,9 @@ export function QuizBuilder({
   initial,
   initialQuestions,
   mode,
+  lockedAttempts = 0,
 }: QuizBuilderProps) {
+  const locked = lockedAttempts > 0;
   const [state, formAction, pending] = useActionState(action, idleForm);
   const values = useFormValues(initial, state);
   const [questions, setQuestions] = useState<QuestionDraft[]>(
@@ -114,7 +120,33 @@ export function QuizBuilder({
         />
       </FormSection>
 
-      <section aria-labelledby="quiz-questions" className="flex flex-col gap-4">
+      <FormSection title={form.scheduleTitle}>
+        <TextField
+          name="startsAt"
+          label={form.startsAt}
+          help={form.scheduleHelp}
+          values={values}
+          type="datetime-local"
+          optional
+          className="sm:col-span-2"
+        />
+        <TextField name="endsAt" label={form.endsAt} values={values} type="datetime-local" optional />
+        <TextField
+          name="passPercent"
+          label={form.passPercent}
+          help={form.passPercentHelp}
+          values={values}
+          inputMode="numeric"
+          maxLength={3}
+          required
+        />
+      </FormSection>
+
+      <fieldset
+        disabled={locked}
+        aria-labelledby="quiz-questions"
+        className="flex min-w-0 flex-col gap-4"
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="quiz-questions" className="text-h3 text-ink">
             {form.questionsTitle}
@@ -123,6 +155,11 @@ export function QuizBuilder({
             {form.totalPoints(total)}
           </p>
         </div>
+        {locked && (
+          <p role="note" className="rounded-lg bg-gold-soft p-3 text-sm font-semibold text-gold-ink">
+            {form.lockedNote(lockedAttempts)}
+          </p>
+        )}
         {questionsError && (
           <p role="alert" className="text-small font-medium text-danger">
             {questionsError}
@@ -153,7 +190,7 @@ export function QuizBuilder({
         >
           {form.addQuestion}
         </Button>
-      </section>
+      </fieldset>
 
       <FormActions
         submitLabel={mode === "new" ? text.add : copy.common.save}
@@ -291,6 +328,20 @@ function QuestionCard({
             className={inputClasses}
           />
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-col">
+        <label htmlFor={`${id}-explanation`} className="mb-1.5 text-xs font-extrabold text-ink">
+          {form.explanation}
+        </label>
+        <textarea
+          id={`${id}-explanation`}
+          value={question.explanation}
+          onChange={(event) => onChange({ explanation: event.target.value })}
+          maxLength={400}
+          rows={2}
+          className={cn(inputClasses, "h-auto py-3 leading-normal")}
+        />
       </div>
 
       <fieldset className="mt-4">

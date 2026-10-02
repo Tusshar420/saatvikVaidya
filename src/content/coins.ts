@@ -25,6 +25,7 @@ export const coins = {
     order: (per: number, rupees: string, afterDelivery: boolean) =>
       `${count(per)} coins for every ${rupees} of products${afterDelivery ? ", added once your order is delivered" : ", added when your order is paid"}.`,
     interests: (n: number) => `${count(n)} coins for adding your practice interests.`,
+    quiz: (n: number) => `${count(n)} coins for a qualifying score in the weekly Quiz & Win.`,
     details: (n: number) => `${count(n)} coins once your professional details are approved.`,
     expiry: (months: number) =>
       months > 0 ? `Coins are valid for ${count(months)} months.` : "Coins never expire.",
@@ -51,6 +52,7 @@ export const coins = {
       redeem: (number: string | null) => (number ? `Used on order ${number}` : "Used on an order"),
       redeem_return: (number: string | null) =>
         number ? `Returned: order ${number}` : "Returned from an order",
+      earn_quiz: () => "Quiz & Win reward",
       admin_adjust: (note: string | null) => (note ? `Adjustment: ${note}` : "Adjustment by Saatvik Vaidya"),
     } satisfies Record<CoinReason, (detail: string | null) => string>,
     pageOf: (page: number, pages: number) => `Page ${count(page)} of ${count(pages)}`,

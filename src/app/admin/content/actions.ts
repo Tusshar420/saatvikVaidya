@@ -47,7 +47,7 @@ const schemas: Record<ContentKind, z.ZodType> = {
 };
 
 function afterChange(kind: ContentKind | "quiz") {
-  // Quizzes aren't on the homepage yet (Quiz & Win is Phase 2).
+  // The homepage reads the quiz schedule on every visit, so there is nothing to refresh.
   if (kind !== "quiz") updateTag(contentTags.home);
   revalidatePath("/admin", "layout");
 }
@@ -210,9 +210,11 @@ export async function updateQuizAction(
       values,
     };
   }
-  if (!(await updateQuiz(id.data, parsed.data, user.id))) {
-    return { status: "error", message: copy.common.notFound };
+  const saved = await updateQuiz(id.data, parsed.data, user.id);
+  if (saved === "locked") {
+    return { status: "error", fieldErrors: { questions: copy.quiz.errors.locked }, values };
   }
+  if (!saved) return { status: "error", message: copy.common.notFound };
   afterChange("quiz");
   redirect(`${listPath.quiz}?notice=saved`);
 }

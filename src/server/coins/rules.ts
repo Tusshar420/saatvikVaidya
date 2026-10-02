@@ -23,6 +23,7 @@ export const coinRulesForm = z.object({
   earnAfterDelivery: checked,
   interestsReward: whole(0, 1_000_000),
   detailsReward: whole(0, 1_000_000),
+  quizReward: whole(0, 1_000_000),
   coinsPerRupee: whole(1, 1_000),
   maxRedeemPercent: whole(0, 100),
   maxRedeemCoins: whole(0, 100_000_000),

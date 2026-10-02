@@ -24,6 +24,7 @@ function form(overrides: Record<string, unknown> = {}) {
     title: "Dosha basics",
     description: "",
     active: "on",
+    passPercent: "60",
     questions: JSON.stringify(questions),
     ...overrides,
   });
@@ -53,12 +54,37 @@ describe("quiz input", () => {
   it("parses the builder's JSON questions", () => {
     const quiz = form();
     expect(quiz).toMatchObject({ title: "Dosha basics", description: null, active: true });
-    expect(quiz.questions).toEqual(questions);
+    expect(quiz.questions).toEqual(questions.map((q) => ({ ...q, explanation: null })));
+  });
+
+  it("reads the week as India time and needs both ends and ten questions", () => {
+    const ten = Array.from({ length: 10 }, (_, i) => ({ ...questions[0], prompt: `Q${i + 1}` }));
+    const ok = form({
+      startsAt: "2026-10-05T09:00",
+      endsAt: "2026-10-12T09:00",
+      questions: JSON.stringify(ten),
+    });
+    expect(ok.startsAt?.toISOString()).toBe("2026-10-05T03:30:00.000Z");
+    expect(ok.endsAt?.toISOString()).toBe("2026-10-12T03:30:00.000Z");
+    const base = { title: "T", passPercent: "60", questions: JSON.stringify(ten) };
+    const issues = (extra: Record<string, unknown>, q = base.questions) => {
+      const result = quizInputSchema.safeParse({ ...base, questions: q, ...extra });
+      return result.success ? [] : Object.keys(fieldErrorsOf(result.error));
+    };
+    expect(issues({ startsAt: "2026-10-05T09:00" })).toContain("endsAt");
+    expect(issues({ startsAt: "2026-10-12T09:00", endsAt: "2026-10-05T09:00" })).toContain("endsAt");
+    expect(issues({ startsAt: "nonsense", endsAt: "2026-10-05T09:00" })).toContain("startsAt");
+    expect(issues({ startsAt: "2026-10-05T09:00", endsAt: "2026-10-12T09:00" }, JSON.stringify(questions))).toContain(
+      "questions",
+    );
+    expect(issues({ passPercent: "0" })).toContain("passPercent");
+    expect(issues({ passPercent: "101" })).toContain("passPercent");
   });
 
   it("points each problem at its question", () => {
     const bad = quizInputSchema.safeParse({
       title: "Broken",
+      passPercent: "60",
       questions: JSON.stringify([
         questions[0],
         { prompt: "", points: 5, options: ["Only one"], correct: 3 },
@@ -86,7 +112,7 @@ describe("quiz input", () => {
     ];
     for (const value of tries) {
       expect(
-        quizInputSchema.safeParse({ title: "T", questions: value }).success,
+        quizInputSchema.safeParse({ title: "T", passPercent: "60", questions: value }).success,
         value,
       ).toBe(false);
     }
@@ -99,7 +125,8 @@ describe("quiz storage", () => {
     expect(await getQuiz(id)).toMatchObject({
       title: "Dosha basics",
       active: true,
-      questions,
+      passPercent: 60,
+      questions: questions.map((q) => ({ ...q, explanation: null })),
     });
     expect(await listQuizzes()).toEqual([
       expect.objectContaining({ id, questionCount: 2, totalPoints: 15 }),
@@ -113,8 +140,8 @@ describe("quiz storage", () => {
     const edited = [
       questions[1],
       questions[0],
-      { prompt: "Ashwagandha is a…", points: 20, options: ["Root", "Leaf"], correct: 0 },
-    ];
+      { prompt: "Ashwagandha is a…", points: 20, options: ["Root", "Leaf"], correct: 0, explanation: "A root." },
+    ].map((q) => ({ explanation: null, ...q }));
     expect(
       await updateQuiz(id, form({ questions: JSON.stringify(edited) }), adminId),
     ).toBe(true);
@@ -127,6 +154,22 @@ describe("quiz storage", () => {
       questionsEdited: { from: false, to: true },
     });
     expect(JSON.stringify(log.changes)).not.toContain("Ashwagandha");
+  });
+
+  it("locks the questions once someone has played, but not the schedule", async () => {
+    const id = await createQuiz(form(), adminId);
+    const quiz = await db.quiz.findUniqueOrThrow({ where: { id } });
+    await db.quizAttempt.create({ data: { userId: adminId, quizId: quiz.id, answers: {} } });
+    const edited = [{ ...questions[0], prompt: "Changed?" }];
+    expect(await updateQuiz(id, form({ questions: JSON.stringify(edited) }), adminId)).toBe("locked");
+    expect(await db.quizQuestion.count()).toBe(2);
+    // Same questions, new pass mark and week: fine, and the question rows are kept.
+    const before = await db.quizQuestion.findMany({ select: { id: true } });
+    expect(
+      await updateQuiz(id, form({ passPercent: "80", startsAt: "", endsAt: "" }), adminId),
+    ).toBe(true);
+    expect((await getQuiz(id))?.passPercent).toBe(80);
+    expect(await db.quizQuestion.findMany({ select: { id: true } })).toEqual(before);
   });
 
   it("deletes a quiz with its questions and options", async () => {
