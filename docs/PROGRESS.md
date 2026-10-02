@@ -3551,3 +3551,34 @@ in a super-admin-only **Error log** (`/admin/errors`).
   confirm brand; Lawan Bhaskar and Pusnadi Churna are hidden (sheet incomplete);
   decide whether to retire the 12 sample products. Not run: full e2e/build
   (data-only change; typecheck, lint and the new unit test pass).
+
+## Launch: product mockup preview with the user's branding (BLOCKED, 2026-10-03)
+
+Not started. This preview draws the brand's logo, name, colours and each cart
+line's label text onto the product's printable area from its label spec.
+None of those exist yet (checked in git, the schema and the working tree on
+2026-10-03, latest commit `6f46241`):
+
+- **The Launch cart is unfinished.** The bulk-order cart (`BrandCartItem`,
+  `src/server/brand/cart.ts`, migration `20261003120000_launch_cart`) was
+  being built by another run at the same time and was not committed. The
+  preview sits on its cart lines, so it waits for that entry and commit.
+- **Saved brand profiles with per-product label details are missing.** That
+  request (queued, not started) adds the label spec per product or packaging
+  type: printable area, which fields fit, character limits, logo size and
+  placement. It also adds brand colours on the brand profile and each line's
+  own label details. Today `BrandDraft` holds one set of packaging fields
+  (logo, brand name, tagline, marketed-by, contact, notes) with no colours,
+  no packaging type and no printable area.
+
+Nothing was built, so the checks were not run. The other run's uncommitted
+cart changes were left as they were.
+
+**For the run that builds this:** first the Launch cart, then saved brand
+profiles with per-product label details must be committed with entries
+here. Then replace this entry with the real one. Plan: one 2D template per
+packaging type (tube, syrup bottle, jar, etc.) as SVG, with the label area
+in the same units as the label spec; draw the brand elements live in the
+browser from the line's label details; download as PNG; attach the image to
+the launch order next to the per-line label details so proofs and the admin
+brand-order page show what the customer expects.
