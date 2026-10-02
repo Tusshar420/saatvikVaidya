@@ -3136,3 +3136,28 @@ open), then replace this entry with the real one. Follow the P2.4 pattern:
 screenshots in English and Hindi at 375 and 1280 px, axe, a security review
 of community content and uploads, course access and the YouTube CSP, and a
 Phase 3 summary. Do not deploy.
+
+## G.1. Razorpay payments (BLOCKED, 2026-10-02)
+
+Not started. The Go-live gate in `docs/CHUNKS.md` isn't met (checked on
+2026-10-02, latest commit `42cce8c`):
+
+- **CLAUDE.md still forbids it.** The "No real integrations yet" rule still
+  lists Razorpay, and the chunk may only start once that rule is updated.
+- **No client keys.** `.env.local` has only `PAYMENT_PROVIDER` and
+  `TEST_PAYMENTS_IN_LOCAL_BUILD`; there are no Razorpay key id, key secret
+  or webhook secret values, not even test-mode ones.
+- **The run instructions park it.** The standing chunk-run notes say Razorpay
+  is parked for a later ticket and must not be added.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+The only Razorpay mentions in `src/` are comments in `src/server/payments/`
+saying the provider comes later.
+
+**To unblock (a person decides):** add the client's Razorpay test-mode keys
+to `.env.local` (names in `.env.example`), update CLAUDE.md's "No real
+integrations yet" rule to allow Razorpay, and drop the "parked" line from the
+run notes. Then rerun G.1 and replace this entry with the real one. The
+provider plugs in behind `PaymentProvider` in `src/server/payments/types.ts`
+next to the test provider. It also needs the CSP/Permissions-Policy changes and
+the refund in `cancelOrder()` noted under "Later" and in the P1.5 entry.
