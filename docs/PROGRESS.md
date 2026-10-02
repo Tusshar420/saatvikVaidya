@@ -3113,3 +3113,26 @@ open), then replace this entry with the real one. All user-facing text
 already lives in `src/content/` (23 files), so the Hindi drafts can sit
 beside them. Admin-editable content will need optional Hindi columns (a
 migration) that fall back to English when empty.
+
+## P3.5. Phase 3 quality and security pass (BLOCKED, 2026-10-02)
+
+Not started. Two things stop it (checked in git, `src/`, schema and docs on
+2026-10-02, latest commit `4e830fb`):
+
+- **P3.1 to P3.4 aren't built.** P3.1 has no entry or commit, and P3.2, P3.3
+  and P3.4 have only BLOCKED entries. There is no `/courses` or `/community`
+  route, no community uploads, no course access rules, no YouTube embed or CSP
+  change and no Hindi. The only course code is the A4 homepage `CourseTeaser`
+  model and its admin editor. A quality and security pass over P3.1 to P3.4
+  has nothing to review yet.
+- **Phase 3 hasn't started.** The current phase is Go-live (G.1 to G.6),
+  which runs before Phase 3. It has no commits yet and is waiting for the
+  client's keys.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+
+**For the run that builds P3.5:** first run P3.1 to P3.4 (once Phase 3 is
+open), then replace this entry with the real one. Follow the P2.4 pattern:
+screenshots in English and Hindi at 375 and 1280 px, axe, a security review
+of community content and uploads, course access and the YouTube CSP, and a
+Phase 3 summary. Do not deploy.
