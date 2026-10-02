@@ -3067,3 +3067,25 @@ Nothing was built, so the checks were not run. The tree had no other changes.
 **For the run that builds P3.2:** first run P3.1 (once Phase 3 is open).
 Then replace this entry with the real one. Community coin rewards should
 credit through `CoinLedger` with a unique reference (see the P1.7 entry).
+
+## P3.3. WhatsApp chat button (BLOCKED, 2026-10-02)
+
+Not started. Two things stop it (checked in git, `src/` and docs on
+2026-10-02, latest commit `0388467`):
+
+- **P3.1 and P3.2 aren't built.** P3.1 has no entry or commit, and P3.2 has
+  only a BLOCKED entry. Phase 3 chunks run in order, so P3.3 waits for both.
+- **Phase 3 hasn't started.** The current phase is Go-live (G.1 to G.6),
+  which runs before Phase 3. It has no commits yet and is waiting for the
+  client's keys.
+
+Nothing was built, so the checks were not run. The tree had no other changes.
+There is no WhatsApp code or setting yet (`grep -ri whatsapp src prisma`
+finds nothing).
+
+**For the run that builds P3.3:** first run P3.1 and P3.2 (once Phase 3 is
+open), then replace this entry with the real one. The button needs no keys
+(it's a `wa.me` link plus a dev-log notify channel). If the client wants it
+sooner, the plan could move it ahead of Phase 3; that decision belongs to a
+person, not to a chunk run. G.5 later swaps in the real channel behind the
+same `src/server/notify/` interface.
