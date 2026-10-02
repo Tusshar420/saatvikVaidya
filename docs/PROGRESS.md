@@ -3535,3 +3535,19 @@ in a super-admin-only **Error log** (`/admin/errors`).
   goes through the notifier once a provider exists. An error count badge in the
   admin nav, and linking `logError` into the payment/webhook code once those
   integrations exist.
+
+## Catalogue: client product list loaded
+
+- Added `pnpm db:seed:catalogue` (`scripts/seed-catalogue.ts`), which loads the
+  client's 159-row product list (`src/server/seed/catalogue-list.ts`) into the
+  catalogue. Idempotent by slug, so admin edits are kept; the 12 samples stay.
+- Mapping: Your MRP → MRP; Price for you → professional price and Launch Your
+  Brand unit price; Min. order → brand minimum; retail MOQ 1; brand
+  Sabka Vaidya; placeholder GST 5% / HSN 30049011; stock 0.
+- Added forms (Kwath, Bhasma & Pishti, Single herb tablets, Tea/Shilajit/
+  Prashan, Gold & Kupipakwa) and practice areas (Immunity, Diabetes, Heart,
+  Brain & mind, Sexual wellness). Practice areas are guessed from the "uses".
+- Later: set stock, GST/HSN, photos and descriptions per product in the admin;
+  confirm brand; Lawan Bhaskar and Pusnadi Churna are hidden (sheet incomplete);
+  decide whether to retire the 12 sample products. Not run: full e2e/build
+  (data-only change; typecheck, lint and the new unit test pass).
