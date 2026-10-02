@@ -3366,3 +3366,30 @@ Notes for that run (what the checklist must cover, from today's code):
   `SMOKE_BASE_URL`, read-only: homepage, a product page, sign-in page,
   security headers (CSP, HSTS), `/design` hidden, and no test-provider screens
   reachable. It must never place orders or create accounts on the live site.
+
+## Add to cart from listings (2026-10-03)
+
+A small request outside the chunk list: product cards on `/products` and
+`/search` now have an "Add to cart" button, so shoppers can add without
+opening the product page.
+
+- **Built:** `src/components/site/catalogue/quick-add.tsx`, shown under each
+  card in `ProductCard`. One click adds the product's minimum order quantity
+  through the existing `addToCartAction` (the server checks MOQ and stock
+  again). After adding, the button reads "Added" with a "View cart" link and
+  the header bag count updates; out-of-stock products get a disabled "Out of
+  stock" button; server refusals show under the button. Copy is in
+  `cart.quickAdd` (`src/content/cart.ts`). `ProductCard` data now carries the
+  product `id`.
+- **Decisions:** the card is no longer one big link: the picture and details
+  link to the product page and the button sits below, outside the link (a
+  button can't go inside a link). Quantity is not picked on the card; the
+  product page still has the stepper.
+- **Tests:** a new e2e test in `tests/e2e/catalogue.spec.ts` adds a product
+  with MOQ 3 from search results and checks the cart has 3, plus the disabled
+  out-of-stock button, at 375 and 1280 px. Typecheck, lint, test (705),
+  test:e2e (255 passed) and build pass.
+- **Later:** "admin catalogue pages: no axe issues or sideways scroll" [phone]
+  failed once in a full run (`target-size` on a product link) and passed on
+  its own; it seems to depend on which test products are listed at the time.
+  Worth making stable.
