@@ -97,11 +97,22 @@ export async function removeFromBrandCartAction(input: unknown): Promise<BrandCa
 
 // ─── Saved brands (step 3) ──────────────────────────────────────────────────
 
+/** Both places that list the saved brands. */
+function revalidateBrands() {
+  revalidatePath("/launch");
+  revalidatePath("/account/brands");
+}
+
+/** Brands are also managed on the account page, which has no order to use them in. */
+function fromAccount(values: Record<string, string>): boolean {
+  return values.context === "account";
+}
+
 const profileIdSchema = z.coerce.number().int().positive().max(2_147_483_647);
 
 /** Success carries the brand's id in `values.id`, so the form can go on to its logo. */
 function savedProfile(id: number): FormState {
-  revalidatePath("/launch");
+  revalidateBrands();
   return { status: "success", message: copy.profiles.messages.saved, values: { id: String(id) } };
 }
 
@@ -126,8 +137,8 @@ function profileFailure(result: Extract<ProfileResult, { ok: false }>, values: R
  * `id`, changes of a saved one. `makeDefault` ("on") makes it the default.
  */
 export async function saveBrandProfileAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireUser("/launch?step=3");
   const values = formValues(formData);
+  const { user } = await requireUser(fromAccount(values) ? "/account/brands" : "/launch?step=3");
   const id = values.id ? profileIdSchema.safeParse(values.id) : null;
   if (id && !id.success) return { status: "error", message: copy.profiles.errors.notFound, values };
   if (id?.success) {
@@ -139,7 +150,7 @@ export async function saveBrandProfileAction(_: FormState, formData: FormData): 
   const result = await createProfile(user.id, values, { makeDefault: values.makeDefault === "on" });
   if (!result.ok) return profileFailure(result, values);
   // A new brand is the one this order uses (when there's a cart to order).
-  if ((await brandCartCount(user.id)) > 0) await chooseProfile(user.id, result.id);
+  if (!fromAccount(values) && (await brandCartCount(user.id)) > 0) await chooseProfile(user.id, result.id);
   return savedProfile(result.id);
 }
 
@@ -153,11 +164,12 @@ async function changeProfile(
   change: (userId: string, profileId: number) => Promise<boolean>,
   message: string,
 ): Promise<ProfileChangeResult> {
-  const { user } = await requireUser("/launch?step=3");
-  const parsed = profileActionSchema.safeParse(formValues(formData));
+  const values = formValues(formData);
+  const { user } = await requireUser(fromAccount(values) ? "/account/brands" : "/launch?step=3");
+  const parsed = profileActionSchema.safeParse(values);
   if (!parsed.success) return { ok: false, message: copy.profiles.errors.notFound };
   if (!(await change(user.id, parsed.data.id))) return { ok: false, message: copy.profiles.errors.notFound };
-  revalidatePath("/launch");
+  revalidateBrands();
   return { ok: true, message };
 }
 

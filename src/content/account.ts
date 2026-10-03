@@ -42,6 +42,7 @@ export const account = {
     coins: { label: "Super Coins", help: "Your balance and history." },
     ebooks: { label: "My ebooks", help: "Download what you've bought." },
     addresses: { label: "Saved addresses", help: "Where we deliver." },
+    brands: { label: "Brand details", help: "Brands you launch products under." },
     verification: { label: "Verification", help: "Documents and approval status." },
   },
 
@@ -101,6 +102,16 @@ export const account = {
     removed: "Address deleted.",
     saved: "Address saved.",
     notFound: "That address was already removed.",
+    count: (n: number, max: number) => `${n} of ${max} saved`,
+  },
+
+  brands: {
+    metaTitle: "Brand details",
+    eyebrow: "My account",
+    title: "Brand details",
+    back: "Back to my account",
+    intro:
+      "Your saved brands are the ones you choose from on Launch Your Brand. Changes here show up the next time you pick a brand there. Orders already placed keep the details they were placed with.",
     count: (n: number, max: number) => `${n} of ${max} saved`,
   },
 

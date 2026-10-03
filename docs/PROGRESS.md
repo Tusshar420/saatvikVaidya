@@ -3757,3 +3757,14 @@ The disk was nearly full; `.next/cache` was deleted to build.
 - The mockup preview (BLOCKED entry above) can now build on the label spec and
   line label details.
 - Brand profiles on My Brand, outside an order.
+
+## Profile: brand details section
+
+**Built**
+- `/account/brands` ("Brand details", linked from the My account quick links): the user's saved brand profiles, the same rows the Launch page uses. View, add (with logo), edit, make default and delete (with confirm), up to the same limit of 10.
+- It reuses `BrandProfiles` / `BrandProfileForm` with a `context="account"` prop: no "use for this order" button or badge, and saving a new brand doesn't pick it for a cart. The brand actions take a hidden `context` field, sign-in returns to the right page, and they revalidate both `/launch` and `/account/brands`.
+- Launch reads the profiles on every visit, so edits, a new default or a deletion show the next time a brand is chosen there. Orders keep their own copy (unchanged from the label work).
+
+**Tests:** Playwright `account-brands.spec.ts` (shortcut link, add, default, edit, delete, then Launch step 3 shows the same brands); axe and overflow checked at 375 and 1280 px. typecheck, lint, test (792), build, brand and account e2e pass. Full e2e suite not re-run for this small change.
+
+**Later:** none new.

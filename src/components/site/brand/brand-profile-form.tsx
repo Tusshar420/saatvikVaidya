@@ -24,8 +24,10 @@ export function BrandProfileForm({
   profile,
   onSaved,
   onCancel,
+  context = "order",
 }: {
   profile: BrandProfileView | null;
+  context?: "order" | "account";
   /** Called after each successful save, with the brand's id. */
   onSaved: (id: number, created: boolean) => void;
   onCancel: () => void;
@@ -69,6 +71,7 @@ export function BrandProfileForm({
       )}
       <form action={action} noValidate aria-labelledby="brand-form-title" className="flex flex-col gap-5">
         {profile && <input type="hidden" name="id" value={profile.id} />}
+        <input type="hidden" name="context" value={context} />
         {state.status === "error" && state.message && <FormAlert>{state.message}</FormAlert>}
 
         <fieldset className={groupClasses}>

@@ -27,11 +27,14 @@ export function BrandProfiles({
   profiles,
   selectedId,
   max,
+  context = "order",
 }: {
   profiles: BrandProfileView[];
   /** The brand this order uses. */
   selectedId: number | null;
   max: number;
+  /** On the account page there is no order, so no "use for this order". */
+  context?: "order" | "account";
 }) {
   const [editing, setEditing] = useState<"new" | number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -63,7 +66,8 @@ export function BrandProfiles({
             <ProfileItem
               key={profile.id}
               profile={profile}
-              selected={profile.id === selectedId}
+              selected={context === "order" && profile.id === selectedId}
+              context={context}
               onEdit={() => {
                 setNotice(null);
                 setEditing(profile.id);
@@ -77,6 +81,7 @@ export function BrandProfiles({
         <BrandProfileForm
           key="new"
           profile={null}
+          context={context}
           onSaved={saved}
           onCancel={() => setEditing(null)}
         />
@@ -85,6 +90,7 @@ export function BrandProfiles({
         <BrandProfileForm
           key={editingProfile.id}
           profile={editingProfile}
+          context={context}
           onSaved={saved}
           onCancel={() => setEditing(null)}
         />
@@ -109,11 +115,13 @@ export function BrandProfiles({
 function ProfileItem({
   profile,
   selected,
+  context,
   onEdit,
   onDone,
 }: {
   profile: BrandProfileView;
   selected: boolean;
+  context: "order" | "account";
   onEdit: () => void;
   onDone: (message: string | null) => void;
 }) {
@@ -166,13 +174,14 @@ function ProfileItem({
       </div>
       {!profile.logo && <p className="text-small text-muted">{text.logoNeeded}</p>}
       {confirming ? (
-        <DeleteConfirm profile={profile} onCancel={() => setConfirming(false)} onDone={onDone} />
+        <DeleteConfirm profile={profile} context={context} onCancel={() => setConfirming(false)} onDone={onDone} />
       ) : (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {!selected && profile.logo && (
+          {context === "order" && !selected && profile.logo && (
             <ProfileAction
               action={chooseBrandProfileAction}
               id={profile.id}
+              context={context}
               label={text.use}
               ariaLabel={text.useLabel(profile.profileName)}
               onDone={onDone}
@@ -183,6 +192,7 @@ function ProfileItem({
             <ProfileAction
               action={setDefaultBrandProfileAction}
               id={profile.id}
+              context={context}
               label={text.makeDefault}
               ariaLabel={text.makeDefaultLabel(profile.profileName)}
               onDone={onDone}
@@ -211,6 +221,7 @@ type ProfileAction = (state: ProfileChangeResult | null, formData: FormData) => 
 function ProfileAction({
   action,
   id,
+  context,
   label,
   ariaLabel,
   onDone,
@@ -218,6 +229,7 @@ function ProfileAction({
 }: {
   action: ProfileAction;
   id: number;
+  context: "order" | "account";
   label: string;
   ariaLabel: string;
   onDone: (message: string | null) => void;
@@ -231,6 +243,7 @@ function ProfileAction({
   return (
     <form action={formAction}>
       <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="context" value={context} />
       <Button type="submit" size="sm" variant={primary ? "primary" : "secondary"} loading={pending} aria-label={ariaLabel}>
         {label}
       </Button>
@@ -240,10 +253,12 @@ function ProfileAction({
 
 function DeleteConfirm({
   profile,
+  context,
   onCancel,
   onDone,
 }: {
   profile: BrandProfileView;
+  context: "order" | "account";
   onCancel: () => void;
   onDone: (message: string | null) => void;
 }) {
@@ -255,6 +270,7 @@ function DeleteConfirm({
   return (
     <form action={formAction} role="group" aria-label={text.removeConfirm(profile.profileName)} className="flex flex-col gap-2">
       <input type="hidden" name="id" value={profile.id} />
+      <input type="hidden" name="context" value={context} />
       <p className="text-sm font-bold text-ink">{text.removeConfirm(profile.profileName)}</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" loading={pending}>
