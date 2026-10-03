@@ -57,7 +57,10 @@ export type AdminAction =
   | "admin.2fa.disable"
   | "admin.2fa.reset"
   | "admin.backup-codes.regenerate"
-  | "error.status";
+  | "error.status"
+  | "report.update"
+  | "report.link"
+  | "report.unlink";
 
 export type AdminResource =
   | "User"
@@ -80,7 +83,8 @@ export type AdminResource =
   | "HomeSection"
   | "Admin"
   | "AdminInvite"
-  | "ErrorGroup";
+  | "ErrorGroup"
+  | "BugReport";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

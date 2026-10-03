@@ -10,6 +10,7 @@ import {
   Th,
   Tr,
 } from "@/components/admin/data-table";
+import { ErrorLogTabs } from "@/components/admin/error-log-tabs";
 import { ErrorStatusBadge } from "@/components/admin/error-status-badge";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Pagination } from "@/components/admin/pagination";
@@ -28,6 +29,7 @@ import {
   errorStatuses,
   listErrors,
 } from "@/server/admin/errors";
+import { countNewReports } from "@/server/admin/bug-reports";
 import { requireAdmin } from "@/server/auth/session";
 import { deleteOldErrors } from "@/server/errors/record";
 
@@ -42,7 +44,10 @@ export default async function AdminErrorsPage({ searchParams }: PageProps<"/admi
   // No scheduler on the host: opening the log also applies the retention rule.
   await deleteOldErrors();
   const badRange = Boolean(filters.from && filters.to && filters.from > filters.to);
-  const { errors, total, page, pageCount } = await listErrors(filters);
+  const [{ errors, total, page, pageCount }, newReports] = await Promise.all([
+    listErrors(filters),
+    countNewReports(),
+  ]);
   const filtered = Boolean(
     filters.q || filters.source || filters.status || filters.route || filters.from || filters.to,
   );
@@ -50,12 +55,13 @@ export default async function AdminErrorsPage({ searchParams }: PageProps<"/admi
   return (
     <>
       <AdminPageHeader eyebrow={text.eyebrow} title={text.title} description={text.description} />
+      <ErrorLogTabs active="errors" newReports={newReports} />
 
       <form
         method="get"
         role="search"
         aria-label={text.filterLabel}
-        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-5 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-4"
       >
         <div className="flex flex-col sm:col-span-2">
           <label htmlFor="filter-q" className={label}>

@@ -27,8 +27,9 @@ import type { SignUpUserType } from "@/server/content/user-types";
 import type { SignedIn } from "./auth/phone-flow";
 import { SignInModal } from "./auth/sign-in-modal";
 import { TrackOrderForm } from "./orders/track-order-form";
+import { ReportProblemModal } from "./report-problem";
 
-export type SiteModal = "signIn" | "trackOrder";
+export type SiteModal = "signIn" | "trackOrder" | "reportProblem";
 
 type OpenModal = (modal: SiteModal, trigger?: HTMLElement | null) => void;
 
@@ -43,7 +44,7 @@ type SiteModalsApi = {
 const SiteModalsContext = createContext<SiteModalsApi | null>(null);
 
 /**
- * Holds the site-wide modals (sign-in, track order) once, so any button in
+ * Holds the site-wide modals (sign-in, track order, report a problem) once, so any button in
  * the header, footer, dock or page can open them with `useSiteModal()`.
  * Focus returns to whichever button opened the modal.
  *
@@ -179,6 +180,10 @@ export function SiteModalsProvider({
       </Modal>
       <Modal open={open === "trackOrder"} onOpenChange={onOpenChange}>
         <TrackOrderModal phone={phone} onCloseAutoFocus={restoreFocus} />
+      </Modal>
+      <Modal open={open === "reportProblem"} onOpenChange={onOpenChange}>
+        {/* Mounted only while open, so each opening starts a fresh form. */}
+        {open === "reportProblem" && <ReportProblemModal onCloseAutoFocus={restoreFocus} />}
       </Modal>
     </SiteModalsContext>
   );

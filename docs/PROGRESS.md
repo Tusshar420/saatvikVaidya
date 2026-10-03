@@ -3768,3 +3768,106 @@ The disk was nearly full; `.next/cache` was deleted to build.
 **Tests:** Playwright `account-brands.spec.ts` (shortcut link, add, default, edit, delete, then Launch step 3 shows the same brands); axe and overflow checked at 375 and 1280 px. typecheck, lint, test (792), build, brand and account e2e pass. Full e2e suite not re-run for this small change.
 
 **Later:** none new.
+
+## Bug reports: "Report a problem" (Phase 4, 2026-10-03)
+
+A request outside the chunk list, building on the Error log. Visitors report a
+problem from the site; reports land in the admin Error log's new **Reports**
+tab.
+
+**Built**
+- **Entry points:** "Report a problem" in the footer (Support column), in the
+  signed-in account menu, and on the error screens (`app/error.tsx` and
+  `global-error.tsx`, through a self-contained `ReportProblemButton`, since
+  those sit outside the site layout's modals). The footer and menu open a new
+  `reportProblem` site modal. The form (`components/site/report-problem.tsx`)
+  asks what went wrong (10 to 2,000 characters), an optional screenshot (PNG,
+  JPEG or WebP up to 5 MB) and, for guests only, an optional email, and says
+  what is attached. A thank-you replaces the form; signed-in users get "See
+  my reports".
+- **Attached automatically:** page URL (scrubbed), user agent with device and
+  browser ("Chrome 141 on Android", `browserOf` in `lib/bug-report.ts`), screen
+  and window size and pixel ratio, app version, the time, the signed-in user
+  (from the session, never the form), and the visit's browser errors. The
+  browser reporter (`lib/report-client-error.ts`) now remembers each error it
+  sends in sessionStorage (the latest 10 for the tab). The server links the
+  report to the matching Error log entries by working out the same fingerprint
+  the log uses, and for an error screen also finds the server error by Next's
+  digest (within 2 days).
+- **Endpoint:** `POST /api/bug-reports` (multipart; same-origin only, body
+  capped, Zod, the screenshot's type checked from its bytes) calls
+  `server/bug-reports/submit.ts`. Spam protection: a hidden honeypot field and
+  bot user agents get a quiet "thank you" and nothing is stored; guests may
+  include at most 3 links; rate limits 5 an hour per IP, 10 a day per account
+  and 60 guest reports an hour overall. Description and URL are scrubbed with
+  the Error log's rules. Screenshots go to Storage (`bug-reports/…`) and are
+  served only by `GET /api/bug-reports/[id]/screenshot` to the reporter or an
+  admin with the error-log area (anyone else gets 404).
+- **Schema** (migration `20261003210000_p4_bug_reports`): `BugReport` (uses
+  the Error log's `ErrorStatus`, so both tabs share one status set) and
+  `BugReportError` (report ↔ error group, `auto` true when linked from the
+  visit).
+- **Admin:** Errors | Reports tabs at the top of the Error log (Reports shows
+  how many are new). `/admin/errors/reports` lists reports with search,
+  status and received-date filters, 25 a page. The detail page shows what
+  went wrong, reporter (or guest with contact email), page, device and
+  browser, screen and window, version, screenshot, linked errors (unlink),
+  "Link an error" by number or pasted link, and the visit's errors. One form
+  sets the status and an internal note (admins only). Changes go to the admin
+  log as `report.update`, `report.link` and `report.unlink`. An error's
+  detail page lists the reports linked to it. Super admins only, like the
+  Error log.
+- **My account:** `/account/reports` ("Problem reports", also a quick link
+  on My account) lists the user's latest 50 reports with a status for people
+  (Received, In progress, Fixed, Won't fix), the page and the screenshot link.
+  The admin note and the linked errors are never shown.
+
+**Decisions**
+- The statuses asked for (New → In progress → Fixed / Won't fix) are the
+  Error log's statuses with new labels: "Investigating" now reads "In
+  progress" and "Ignored" reads "Won't fix", on both tabs. The stored values
+  are unchanged, and Won't fix errors still send no emails.
+- Linking is worked out on the server from the visit's errors rather than by
+  making `/api/errors` return ids, so that endpoint still tells the page
+  nothing.
+- Everything for this feature is named `bug-reports` (API, server, content),
+  because `/admin/reports` and `server/admin/reports.ts` are the sales reports.
+
+**Tests:** Vitest `lib/bug-report.test.ts`, `server/bug-reports/submit.test.ts`
+(scrubbing, session user, honeypot and bots, link limit, rate limits,
+screenshot storage and access, auto-linking by fingerprint and digest, own
+list without the note) and `server/admin/bug-reports.test.ts` (status and
+note, link and unlink, references, filters). Playwright `bug-reports.spec.ts`
+at 375 and 1280 px with axe and overflow checks: a guest reports from the
+footer with a screenshot and email after a page error, and the report is
+linked to it; a signed-in user reports from the account menu and sees the
+status (not the note) in My account; an admin filters, opens, sets the status
+and note, links and unlinks errors; other admins get 404. Screens checked by
+eye at both widths.
+
+**Checks:** this ran while an interrupted Inventory run (task 708) had left
+uncommitted changes in the tree, which don't typecheck yet and had dropped
+`Product.stock` from the dev database. So the checks ran in a separate
+worktree holding the last commit plus this change only, with its own databases
+(`saatvik_vaidya_wt`, `saatvik_vaidya_wt_test`), now removed. typecheck, lint
+and build pass. Unit tests: 811 of 813 pass; the two failures are
+`db.test.ts` (it expects the database to be named `saatvik_vaidya_test`, so
+it fails only because of the separate name) and
+`server/admin/orders.test.ts` "filters by status, search and date", which
+fails 2 runs in 3 on the last commit too (untouched code, see Later). Full e2e:
+everything passes except the two admin catalogue tests that pass alone (as
+before) and one public catalogue page test that logged a 404 once under load
+and passed on every re-run. Only this feature's files were committed; the
+Inventory changes are still uncommitted in the tree.
+
+**Later**
+- Email admins about new reports (through the notifier, rate-limited like
+  error emails) and show the new-report count in the admin nav.
+- Retention for reports, guest emails and screenshots (none yet; errors keep
+  90 days).
+- `x-forwarded-for` is trusted for the IP limit (same open item as auth).
+- `server/admin/orders.test.ts` "filters by status, search and date" is
+  flaky on the last commit (an order-number search sometimes matches both
+  orders); fix the test data.
+- Starting `pnpm dev` will be slow once: `.next/dev/cache` (7.1 GB) was
+  deleted to free disk for this run.

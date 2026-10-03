@@ -73,6 +73,14 @@ export function Footer({
               {shell.footer.trackOrder}
             </SiteModalButton>
           </li>
+          <li>
+            <SiteModalButton
+              modal="reportProblem"
+              className={cn(linkClasses, "cursor-pointer")}
+            >
+              {shell.footer.reportProblem}
+            </SiteModalButton>
+          </li>
           {shell.footer.supportLinks.map((id) => (
             <li key={id}>
               <Link href={sectionHref(id)} className={linkClasses}>

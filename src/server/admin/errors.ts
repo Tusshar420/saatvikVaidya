@@ -13,17 +13,17 @@ export const errorSources = ["server", "browser"] as const;
 export const errorSorts = ["newest", "frequent"] as const;
 export const errorPageSize = 25;
 
-const optionalText = (max: number) =>
+export const optionalText = (max: number) =>
   z.preprocess(
     (v) => (typeof v === "string" && v.trim() !== "" ? v.trim() : undefined),
     z.string().max(max).optional(),
   );
-const optionalDate = z.preprocess(
+export const optionalDate = z.preprocess(
   (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined),
   z.string().optional(),
 );
 // An invalid value in the URL means "no filter" instead of an error page.
-const lenient = <T extends z.ZodType>(schema: T) => schema.optional().catch(undefined);
+export const lenient = <T extends z.ZodType>(schema: T) => schema.optional().catch(undefined);
 
 export const errorFiltersSchema = z.object({
   q: optionalText(100),
@@ -38,8 +38,8 @@ export const errorFiltersSchema = z.object({
 export type ErrorFilters = z.infer<typeof errorFiltersSchema>;
 
 /** Midnight at the start of a day in India, as a Date (the site's day boundary). */
-const dayStart = (day: string) => new Date(`${day}T00:00:00+05:30`);
-const dayEnd = (day: string) => new Date(`${day}T23:59:59.999+05:30`);
+export const dayStart = (day: string) => new Date(`${day}T00:00:00+05:30`);
+export const dayEnd = (day: string) => new Date(`${day}T23:59:59.999+05:30`);
 
 export function errorWhere(filters: ErrorFilters): Prisma.ErrorGroupWhereInput {
   const lastSeen: Prisma.DateTimeFilter = {};

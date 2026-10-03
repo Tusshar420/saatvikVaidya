@@ -77,4 +77,10 @@ export const rateLimitRules = {
   errorNewGroupsPerHour: { name: "error-report:new-groups", windowSeconds: 60 * 60, max: 200 },
   /** "New error" emails to admins, all errors together: 10 per hour. */
   errorEmailsPerHour: { name: "error-email:all", windowSeconds: 60 * 60, max: 10 },
+  /** "Report a problem" from one IP: 5 per hour. */
+  bugReportPerIp: { name: "bug-report:ip", windowSeconds: 60 * 60, max: 5 },
+  /** "Report a problem" from one signed-in account: 10 per day. */
+  bugReportPerUser: { name: "bug-report:user", windowSeconds: 24 * 60 * 60, max: 10 },
+  /** Guest reports from everyone together: 60 per hour, so a flood can't bury real ones. */
+  bugReportGuestsPerHour: { name: "bug-report:guests", windowSeconds: 60 * 60, max: 60 },
 } as const satisfies Record<string, RateLimitRule>;

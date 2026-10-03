@@ -8,9 +8,11 @@ import { FormAlert } from "@/components/site/auth/form-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
+import { bugReportsAdmin } from "@/content/bug-reports";
 import { errorLog as text } from "@/content/errors";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
+import { reportsForError } from "@/server/admin/bug-reports";
 import { errorStatuses, getError } from "@/server/admin/errors";
 import { requireAdmin } from "@/server/auth/session";
 import { occurrencesKept, retentionDays } from "@/server/errors/record";
@@ -40,6 +42,7 @@ export default async function AdminErrorDetailPage({
   const found = await getError(Number(id));
   if (!found) notFound();
   const { group, affectedUsers } = found;
+  const reports = await reportsForError(group.id);
   const saved = (await searchParams).saved === "1";
 
   return (
@@ -118,6 +121,35 @@ export default async function AdminErrorDetailPage({
           )}
         </Fact>
       </dl>
+
+      <section aria-labelledby="error-reports" className="mt-8">
+        <h2 id="error-reports" className="text-h3 text-ink">
+          {bugReportsAdmin.forError.heading}
+        </h2>
+        <p className="mt-1 text-small text-muted">{bugReportsAdmin.forError.help}</p>
+        {reports.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">{bugReportsAdmin.forError.none}</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-surface">
+            {reports.map((report) => (
+              <li key={report.id} data-testid="error-report" className="flex flex-col gap-1 p-4 text-sm">
+                <Link
+                  href={`/admin/errors/reports/${report.id}`}
+                  className="line-clamp-2 font-bold break-words text-ink hover:text-teal"
+                >
+                  {report.description}
+                </Link>
+                <span className="flex flex-wrap items-center gap-2 text-small text-muted">
+                  <ErrorStatusBadge status={report.status} />
+                  {report.user ? report.user.name : bugReportsAdmin.guest}
+                  {" · "}
+                  {formatDateTime(report.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section aria-labelledby="error-stack" className="mt-8">
         <h2 id="error-stack" className="text-h3 text-ink">

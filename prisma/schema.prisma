@@ -103,6 +103,7 @@ model User {
   accounts                Account[]
   adminLogs               AdminLog[]
   errorOccurrences        ErrorOccurrence[]
+  bugReports              BugReport[]
   documents               ProfessionalDocument[]
   /// Decisions about this user's verification.
   verificationComments    VerificationComment[]  @relation("VerificationSubject")
@@ -281,6 +282,7 @@ model ErrorGroup {
   /// App version (commit) of the latest occurrence.
   appVersion     String?           @db.VarChar(40)
   occurrences    ErrorOccurrence[]
+  reports        BugReportError[]
 
   @@index([status, lastSeenAt])
   @@index([source, lastSeenAt])
@@ -314,6 +316,61 @@ model ErrorOccurrence {
   @@index([groupId, createdAt])
   @@index([createdAt])
   @@index([userId])
+}
+
+/// A problem a visitor sent with "Report a problem" (Phase 4). Shown in the
+/// admin Error log's Reports tab, with the same statuses as errors.
+model BugReport {
+  id             Int              @id @default(autoincrement())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  status         ErrorStatus      @default(new)
+  /// What went wrong, in the reporter's words (plain text, scrubbed).
+  description    String           @db.Text
+  /// The signed-in reporter; null for guests and once the account is deleted.
+  userId         String?          @db.VarChar(64)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Optional reply address, asked of guests only.
+  contactEmail   String?          @db.VarChar(191)
+  /// The page they were on, scrubbed.
+  pageUrl        String?          @db.VarChar(500)
+  userAgent      String?          @db.VarChar(255)
+  /// mobile, tablet, desktop or unknown.
+  device         String?          @db.VarChar(12)
+  screenWidth    Int?
+  screenHeight   Int?
+  viewportWidth  Int?
+  viewportHeight Int?
+  pixelRatio     Float?
+  appVersion     String?          @db.VarChar(40)
+  /// Browser errors from the reporter's tab before they reported, scrubbed:
+  /// [{ message, url, kind, at, digest? }].
+  sessionErrors  Json?
+  /// Screenshot in Storage; never public, served by /api/bug-reports/[id]/screenshot.
+  screenshotKey  String?          @unique @db.VarChar(191)
+  screenshotType String?          @db.VarChar(32)
+  /// For admins only; never shown to the reporter.
+  adminNote      String?          @db.Text
+  errors         BugReportError[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+/// A report linked to an error in the log: automatically, from the browser
+/// errors of the reporter's visit, or by an admin.
+model BugReportError {
+  reportId  Int
+  report    BugReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  groupId   Int
+  group     ErrorGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// True when linked from the reporter's visit, false when an admin linked it.
+  auto      Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  @@id([reportId, groupId])
+  @@index([groupId])
 }
 
 // ─── Professional verification ──────────────────────────────────────────────

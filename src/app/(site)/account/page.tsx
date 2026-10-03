@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, BookOpen, ChevronRight, Coins, LayoutDashboard, MapPin, Package, Tag, Phone, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BadgeCheck, BookOpen, ChevronRight, Coins, LayoutDashboard, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, type LucideIcon } from "lucide-react";
 import { NameForm, NotificationsForm, PasswordForm, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { DocumentUpload } from "@/components/site/account/document-upload";
@@ -178,6 +178,7 @@ const shortcutLinks: ShortcutLink[] = [
   { href: "/account/addresses", icon: MapPin, text: copy.shortcuts.addresses },
   { href: "/account/brands", icon: Tag, text: copy.shortcuts.brands },
   { href: "/account#account-status", icon: ShieldCheck, text: copy.shortcuts.verification },
+  { href: "/account/reports", icon: LifeBuoy, text: copy.shortcuts.reports },
 ];
 
 const adminLink: ShortcutLink = { href: "/admin", icon: LayoutDashboard, text: copy.shortcuts.admin };

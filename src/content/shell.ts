@@ -70,6 +70,7 @@ export const shell = {
     ebooks: "Ebooks",
     supportTitle: "Support",
     trackOrder: "Track Order",
+    reportProblem: "Report a problem",
     supportLinks: ["feedback", "partner", "why"],
     assistanceTitle: "Need assistance?",
     call: (phone: string) => `Call ${phone}`,

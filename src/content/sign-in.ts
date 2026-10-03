@@ -98,6 +98,7 @@ export const signIn = {
     account: "My account",
     orders: "My orders",
     admin: "Admin panel",
+    reportProblem: "Report a problem",
     signOut: "Sign out",
     signingOut: "Signing out…",
     signedOut: "You're signed out.",

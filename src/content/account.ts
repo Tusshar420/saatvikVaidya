@@ -43,6 +43,7 @@ export const account = {
     ebooks: { label: "My ebooks", help: "Download what you've bought." },
     addresses: { label: "Saved addresses", help: "Where we deliver." },
     brands: { label: "Brand details", help: "Brands you launch products under." },
+    reports: { label: "Problem reports", help: "Problems you've reported and their status." },
     verification: { label: "Verification", help: "Documents and approval status." },
   },
 

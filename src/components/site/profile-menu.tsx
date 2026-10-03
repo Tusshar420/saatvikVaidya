@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, LayoutDashboard, LogOut, Package, UserRound } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LifeBuoy, LogOut, Package, UserRound } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { shell } from "@/content/shell";
 import { signIn as copy } from "@/content/sign-in";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 import { formatIndianPhone } from "@/lib/phone";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { useSignOut } from "./auth/use-sign-out";
-import { SiteModalButton, useClaimFocus } from "./site-modals";
+import { SiteModalButton, useClaimFocus, useSiteModal } from "./site-modals";
 
 const focusKey = "profile-header";
 
@@ -28,15 +28,18 @@ const itemClasses =
 /**
  * The header's profile button. Signed out it opens sign-in ("My Profile /
  * Sign in / Register"); signed in it shows the avatar and opens a menu with
- * My account and Sign out, plus the admin panel for admins (which checks
- * the role and two-factor itself). While the session is loading it shows the
- * signed-out look.
+ * My account, Report a problem and Sign out, plus the admin panel for
+ * admins (which checks the role and two-factor itself). While the session is
+ * loading it shows the signed-out look.
  */
 export function ProfileMenu({ className }: { className?: string }) {
   const { data } = useAuthSession();
   const user = data?.user;
   const ref = useRef<HTMLButtonElement>(null);
   const signOut = useSignOut();
+  const openModal = useSiteModal();
+  /** Set while a menu item opens a modal, so the menu doesn't pull focus back to its button. */
+  const openingModal = useRef(false);
   useClaimFocus(focusKey, ref, Boolean(user));
 
   if (!user) {
@@ -105,6 +108,11 @@ export function ProfileMenu({ className }: { className?: string }) {
           align="end"
           sideOffset={8}
           collisionPadding={12}
+          onCloseAutoFocus={(event) => {
+            if (!openingModal.current) return;
+            openingModal.current = false;
+            event.preventDefault();
+          }}
           className="z-200 w-64 max-w-[calc(100vw-24px)] rounded-lg border border-line bg-surface p-1.5 shadow-raised data-[state=open]:animate-fade-in"
         >
           <div className="flex items-center gap-3 px-3 pt-2 pb-3">
@@ -139,6 +147,16 @@ export function ProfileMenu({ className }: { className?: string }) {
               </Link>
             </Menu.Item>
           )}
+          <Menu.Item
+            className={itemClasses}
+            onSelect={() => {
+              openingModal.current = true;
+              openModal("reportProblem", ref.current);
+            }}
+          >
+            <LifeBuoy aria-hidden />
+            {copy.menu.reportProblem}
+          </Menu.Item>
           <Menu.Item
             className={itemClasses}
             onSelect={() => void signOut(focusKey)}

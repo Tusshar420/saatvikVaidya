@@ -7,8 +7,12 @@ import { Button, buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { errorScreen as copy } from "@/content/errors";
 import { reportClientError } from "@/lib/report-client-error";
+import { ReportProblemButton } from "./site/report-problem";
 
-/** The "something went wrong" screen for error boundaries; also reports the error. */
+/**
+ * The "something went wrong" screen for error boundaries; also reports the
+ * error, and offers "Report a problem" (which links to it in the Error log).
+ */
 export function ErrorScreen({
   error,
   reset,
@@ -40,6 +44,9 @@ export function ErrorScreen({
       {error.digest && (
         <p className="mt-3 text-center text-small text-muted">{copy.reference(error.digest)}</p>
       )}
+      <p className="mt-4 flex flex-wrap items-center justify-center gap-x-1 text-center text-sm text-muted">
+        {copy.reportLead} <ReportProblemButton />
+      </p>
     </main>
   );
 }

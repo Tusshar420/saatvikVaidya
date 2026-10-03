@@ -25,9 +25,9 @@ export const errorLog = {
   sources: { server: "Server", browser: "Browser" },
   statuses: {
     new: "New",
-    investigating: "Investigating",
+    investigating: "In progress",
     fixed: "Fixed",
-    ignored: "Ignored",
+    ignored: "Won't fix",
   },
   columns: {
     error: "Error",
@@ -63,7 +63,7 @@ export const errorLog = {
     context: "Extra details",
     statusHeading: "Status",
     statusHelp:
-      "New → Investigating → Fixed or Ignored. If a Fixed error happens again it is reopened as New.",
+      "New → In progress → Fixed or Won't fix. If a Fixed error happens again it is reopened as New. Won't fix errors send no emails.",
     save: "Save status",
     saved: "Status updated.",
     reopenedNote: "Reopened automatically after it happened again.",
@@ -83,5 +83,6 @@ export const errorScreen = {
     "We hit a problem showing this page and have been told about it. Please try again.",
   retry: "Try again",
   home: "Go to the homepage",
+  reportLead: "Still not working?",
   reference: (digest: string) => `Reference: ${digest}`,
 } as const;
