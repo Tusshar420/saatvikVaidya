@@ -1,3 +1,4 @@
+import { stockCreate } from "../setup/stock-create";
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -37,7 +38,7 @@ export async function makePaidBrandOrder(userId: string) {
       professionalPricePaise: 24_000,
       gstRate: 5,
       hsnCode: "30049011",
-      stock: 2,
+      stockItem: stockCreate("E2E Proof Avaleha", 2),
       brandEligible: true,
       brandMinQty: 4,
       brandUnitPricePaise: 26_000,

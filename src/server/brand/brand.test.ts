@@ -523,6 +523,32 @@ describe("paying for a brand order", () => {
     expect(await stockOf(db, who.product.id)).toBe(3);
   });
 
+  it("holds the recipe's components when paid, and gives them back when cancelled", async () => {
+    const who = await readyDraft();
+    const bottle = await db.stockItem.create({ data: { kind: "packaging", name: "Test bottle", onHand: 100 } });
+    await db.recipeLine.create({ data: { productId: who.product.id, componentId: bottle.id, quantity: 2 } });
+    const admin = await makeAdmin(db);
+    await db.user.update({ where: { id: admin }, data: { adminRole: "orders" } });
+    const placed = await place(who);
+    if (!placed.ok) throw new Error("not placed");
+    // Nothing is held until the order is paid.
+    expect(await db.stockItem.findUniqueOrThrow({ where: { id: bottle.id } })).toMatchObject({ onHand: 100, reserved: 0 });
+    await pay(placed.orderId, who.userId);
+    // 8 units x 2 bottles.
+    expect(await db.stockItem.findUniqueOrThrow({ where: { id: bottle.id } })).toMatchObject({ onHand: 100, reserved: 16 });
+    await cancelOrder(admin, placed.orderId);
+    expect(await db.stockItem.findUniqueOrThrow({ where: { id: bottle.id } })).toMatchObject({ onHand: 100, reserved: 0 });
+  });
+
+  it("refuses to order more than the components can make", async () => {
+    const who = await readyDraft();
+    const bottle = await db.stockItem.create({ data: { kind: "packaging", name: "Scarce bottle", onHand: 6 } });
+    await db.recipeLine.create({ data: { productId: who.product.id, componentId: bottle.id, quantity: 1 } });
+    // 6 bottles make 4 (steps of 4); the cart asks for 8.
+    expect(await place(who)).toMatchObject({ ok: false });
+    expect(await setBrandCartQuantity(who.userId, who.product.id, 12)).toMatchObject({ ok: false, error: { kind: "above_stock", available: 4 } });
+  });
+
   it("can fail and be paid on a retry", async () => {
     const who = await readyDraft();
     const placed = await place(who);

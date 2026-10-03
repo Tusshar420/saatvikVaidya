@@ -3,6 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { cart } from "../../src/content/cart";
 import { checkout } from "../../src/content/checkout";
 import { shell } from "../../src/content/shell";
+import { stockCreate } from "../setup/stock-create";
 import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
@@ -37,7 +38,7 @@ async function makeProduct(options: { stock?: number; moq?: number } = {}) {
       professionalPricePaise: 24_000,
       gstRate: 5,
       hsnCode: "30049011",
-      stock: options.stock ?? 20,
+      stockItem: stockCreate(`E2E Cart Vati ${token}`, options.stock ?? 20),
       moq: options.moq ?? 1,
     },
     select: { id: true, slug: true, name: true },
@@ -45,7 +46,15 @@ async function makeProduct(options: { stock?: number; moq?: number } = {}) {
 }
 
 const stockOf = async (id: number) =>
-  (await e2eDb().product.findUniqueOrThrow({ where: { id }, select: { stock: true } })).stock;
+  (await e2eDb().stockItem.findUniqueOrThrow({ where: { productId: id }, select: { onHand: true } })).onHand;
+
+/** Sets the product's one batch to exactly `quantity` units. */
+async function setStock(productId: number, quantity: number) {
+  const db = e2eDb();
+  const item = await db.stockItem.findUniqueOrThrow({ where: { productId }, select: { id: true } });
+  await db.stockItem.update({ where: { id: item.id }, data: { onHand: quantity, reserved: 0 } });
+  await db.stockBatch.updateMany({ where: { itemId: item.id }, data: { qtyOnHand: quantity, qtyReserved: 0 } });
+}
 
 /** The header bag's label (the link itself is hidden on phones, under the dock). */
 const bag = (page: Page) => page.getByRole("banner").locator('a[href="/cart"]');
@@ -97,11 +106,11 @@ test("a guest's cart moves into their account, and checkout ends in a paid order
   await expect(summary).toContainText("₹720");
   await checkPage(page, errors);
 
-  await e2eDb().product.update({ where: { id: product.id }, data: { stock: 1 } });
+  await setStock(product.id, 1);
   await page.reload();
   await expect(page.getByText(cart.issues.aboveStock(1))).toBeVisible();
   await expect(summary.getByRole("button", { name: cart.summary.checkout })).toBeDisabled();
-  await e2eDb().product.update({ where: { id: product.id }, data: { stock: 20 } });
+  await setStock(product.id, 20);
   await page.reload();
 
   // Guests are asked to sign in first, coming back to checkout.

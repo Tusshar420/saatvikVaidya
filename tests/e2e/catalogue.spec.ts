@@ -1,3 +1,4 @@
+import { stockCreate } from "../setup/stock-create";
 import { readFileSync } from "node:fs";
 import { randomInt } from "node:crypto";
 import { test, expect, type Browser, type Page } from "@playwright/test";
@@ -137,7 +138,7 @@ test("a listing card adds the minimum order to the cart", async ({ page }) => {
         professionalPricePaise: 24_000,
         gstRate: 5,
         hsnCode: "30049011",
-        stock,
+        stockItem: stockCreate(`${word} ${suffix}`, stock),
         moq: 3,
       },
       select: { name: true },
@@ -306,7 +307,6 @@ test.describe("admin catalogue", () => {
     await main(page).getByLabel(form.professionalPrice).fill("1200");
     await main(page).getByLabel(form.tierMin(1)).fill("10");
     await main(page).getByLabel(form.tierPrice(1)).fill("700");
-    await main(page).getByLabel(form.stock).fill("50");
     await main(page).getByRole("button", { name: text.add }).click();
     await expect(main(page).getByText(text.errors.professionalPrice)).toBeVisible();
     await expect(main(page).getByLabel(form.name)).toHaveValue(name);

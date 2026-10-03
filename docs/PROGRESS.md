@@ -3871,3 +3871,69 @@ Inventory changes are still uncommitted in the tree.
   orders); fix the test data.
 - Starting `pnpm dev` will be slow once: `.next/dev/cache` (7.1 GB) was
   deleted to free disk for this run.
+
+## Inventory: one stock engine, B2C finished goods and B2B components (2026-10-03)
+
+**Built**
+- **Engine** (`src/server/inventory/engine.ts`, `src/lib/inventory.ts`): stock
+  items with a unit (pcs, ml, g; litres and kilograms are only typed or
+  shown), on hand, reserved and available (= on hand − reserved). Every change
+  is a `StockMovement` (receipt, sale, reservation, release, consumption,
+  return, adjustment, expiry write-off) with the admin who did it; items lock
+  in id order so the last unit goes to one order. Low-stock level per item.
+- **B2C:** each product has a finished-goods item stocked in batches (number,
+  quantity, mfg and expiry). Reservations take first-expiry-first-out
+  (undated last) and never from expired batches. Store checkout reserves at
+  payment start (30 min hold, lapsed holds are given back), the payment turns
+  the hold into a sale, a failed payment or unpaid cancel releases it, and a
+  paid cancel returns the stock to the same batches once. The shop, cart and
+  catalogue read availability from batches. `Brand.isPartner` marks partner
+  brands (checkbox in the brand admin) for filters and reports.
+- **B2B:** component items (packaging, product base, made-to-order flag) and a
+  recipe per Launch product (`RecipeLine`). Available-to-order = the smallest
+  available ÷ per-unit over the recipe, in steps of the minimum order; the
+  Launch catalogue and cart show "can make up to N" or out of stock, and the
+  cart and checkout refuse more than can be made (shared components are added
+  up across lines). Paid Launch order reserves components (may go past stock:
+  a paid order must be made, shown as Short), production start consumes them,
+  cancelling releases them. No recipe, or only made-to-order bases: no limit.
+- **Admin** (`/admin/inventory`, area `inventory` for super and catalogue
+  roles): B2C tab (stats, filters by brand, partner and low / out / expiring /
+  expired, item page with batches, receive, adjust with reason, write off
+  expired, alert level and cost, history) and B2B tab (components, receive,
+  adjust, details, new component, "what we can make" with the limiting
+  component, recipe editor, history). Catalogue table shows "Shop: N on sale"
+  and "Launch: can make N" per product type; the product form lost its stock
+  field. Dashboard card "Stock alerts" (low products, components below the
+  reorder level, batches expiring in 60 days or expired).
+- **Migration** `20261003200000_inventory`: new tables, then every product
+  becomes a finished item and its old `stock` becomes an `OPENING` batch with a
+  receipt movement, then `Product.stock` is dropped. Checked on a scratch
+  database with the old schema and data. Seeds: sample products get opening
+  batches; sample components and recipes are made when none exist.
+
+**Decisions**
+- Quantities are whole base units; recipes are typed in the component's base
+  unit (ml, g, pcs).
+- Real-catalogue products start with 0 stock and no recipe (the client's
+  stock and bill of materials are not known): they show out of stock in the
+  shop and no limit on Launch.
+- The seed writes rows directly (the engine imports `server-only`).
+
+**Tests:** Vitest `lib/inventory.test.ts`, `server/inventory/engine.test.ts`
+(FEFO, expired stock, hold / sale / release, lapse, all-or-nothing, last unit
+in parallel, return into the same batches, receive / adjust / write-off,
+component reservation and consumption, recipe availability, shared
+components), `server/admin/inventory.test.ts`, plus new cases in
+`brand.test.ts` and updated checkout, cart and permission tests. Playwright
+`inventory.spec.ts` at 375 and 1280 px with axe and overflow checks. Full
+e2e: all pass except the known environmental catalogue listing tests (real
+159-product list in the dev DB) and the two admin catalogue tests that pass
+alone. Unit: 864 of 864 (the known flaky `orders.test.ts` filter test passed).
+
+**Later**
+- Per-batch purchase cost reports by partner; stock CSV export.
+- Enter the real opening stock and recipes for the client's products.
+- Production steps that consume only part of an order's components.
+- A scheduled job to write off expired batches (admins do it by hand now).
+- Hindi copy for `src/content/inventory.ts`.

@@ -10,7 +10,7 @@ import {
 
 const expected: Record<AdminRoleKey, AdminArea[]> = {
   super: [...adminAreas],
-  catalogue: ["dashboard", "catalogue"],
+  catalogue: ["dashboard", "catalogue", "inventory"],
   orders: ["dashboard", "orders", "reports"],
   content: ["dashboard", "content"],
   approvals: ["dashboard", "approvals"],

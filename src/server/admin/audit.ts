@@ -60,7 +60,10 @@ export type AdminAction =
   | "error.status"
   | "report.update"
   | "report.link"
-  | "report.unlink";
+  | "report.unlink"
+  | "inventory.item.create"
+  | "inventory.item.update"
+  | "inventory.recipe.update";
 
 export type AdminResource =
   | "User"
@@ -84,7 +87,8 @@ export type AdminResource =
   | "Admin"
   | "AdminInvite"
   | "ErrorGroup"
-  | "BugReport";
+  | "BugReport"
+  | "StockItem";
 
 /** `{ field: { from, to } }` for the fields that changed. */
 export type FieldChanges = Record<string, { from: unknown; to: unknown }>;

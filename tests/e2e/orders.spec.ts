@@ -240,7 +240,7 @@ test("the admin cancels a paid order and its stock goes back", async ({ page, ba
   const buyer = await makeE2eCustomer();
   const order = await makeE2eOrder({ userId: buyer.id, product, quantity: 3 });
   const stock = async () =>
-    (await e2eDb().product.findUniqueOrThrow({ where: { id: product.id } })).stock;
+    (await e2eDb().stockItem.findUniqueOrThrow({ where: { productId: product.id } })).onHand;
   expect(await stock()).toBe(17);
   await signInAs(page, baseURL!, { role: "admin" });
 

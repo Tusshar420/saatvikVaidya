@@ -15,7 +15,6 @@ export type BuiltProduct = {
   packSize: string;
   mrpPaise: number;
   professionalPricePaise: number;
-  stock: number;
   moq: number;
   active: boolean;
   sortOrder: number;
@@ -51,7 +50,6 @@ export function buildProducts(): BuiltProduct[] {
         packSize,
         mrpPaise: mrp * 100,
         professionalPricePaise: price * 100,
-        stock: 0,
         moq: 1,
         active: !hiddenNames.includes(name),
         sortOrder: 1000 + index * 10,

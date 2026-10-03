@@ -42,7 +42,6 @@ function form(overrides: Record<string, string | undefined> = {}): Record<string
     professionalPrice: "900",
     gstRate: "5",
     hsnCode: "3004",
-    stock: "40",
     moq: "2",
     "tiers.0.minQuantity": "10",
     "tiers.0.price": "850",
@@ -107,7 +106,6 @@ describe("parseProductForm", () => {
       mrpPaise: 125_050,
       professionalPricePaise: 90_000,
       gstRate: 5,
-      stock: 40,
       moq: 2,
       dosage: null,
       active: true,
@@ -140,9 +138,9 @@ describe("parseProductForm", () => {
 
   it("checks the slug, HSN code, GST rate and whole numbers", () => {
     const errors = errorsOf(
-      form({ slug: "Not a slug!", hsnCode: "30a4", gstRate: "7", stock: "-1", moq: "1.5" }),
+      form({ slug: "Not a slug!", hsnCode: "30a4", gstRate: "7", moq: "1.5" }),
     );
-    expect(Object.keys(errors).sort()).toEqual(["gstRate", "hsnCode", "moq", "slug", "stock"]);
+    expect(Object.keys(errors).sort()).toEqual(["gstRate", "hsnCode", "moq", "slug"]);
     expect(errorsOf(form({ name: "", brandId: "", formId: "x" }))).toMatchObject({
       name: expect.any(String),
       brandId: expect.any(String),

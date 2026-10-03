@@ -205,14 +205,6 @@ export function ProductForm({ action, initial, mode, options }: ProductFormProps
 
       <FormSection title={form.sections.stock}>
         <TextField
-          name="stock"
-          label={form.stock}
-          values={values}
-          inputMode="numeric"
-          maxLength={7}
-          required
-        />
-        <TextField
           name="moq"
           label={form.moq}
           help={form.moqHelp}

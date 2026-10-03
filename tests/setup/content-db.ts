@@ -53,6 +53,9 @@ export async function clearContentTables(db: PrismaClient): Promise<void> {
   await db.$transaction([
     // Products first: they point at brands and categories. Images, tiers and
     // practice-area links go with them (onDelete: Cascade).
+    // Stock items (with their batches, movements and holds) and recipes.
+    db.recipeLine.deleteMany(),
+    db.stockItem.deleteMany(),
     db.product.deleteMany(),
     db.ebook.deleteMany(),
     db.settingHistory.deleteMany(),

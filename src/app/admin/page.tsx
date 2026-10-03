@@ -21,6 +21,10 @@ import { admin as copy } from "@/content/admin";
 import { formatNumber } from "@/lib/format";
 import { readDashboard } from "@/server/admin/dashboard";
 import { countOrdersToShip } from "@/server/admin/orders";
+import { roleCanAccess } from "@/lib/admin-permissions";
+import { inventory as inventoryCopy } from "@/content/inventory";
+import { EXPIRY_WARN_DAYS, formatQuantity } from "@/lib/inventory";
+import { readStockAlerts } from "@/server/admin/inventory";
 import { requireAdmin } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: copy.dashboard.metaTitle };
@@ -28,8 +32,12 @@ export const metadata: Metadata = { title: copy.dashboard.metaTitle };
 const text = copy.dashboard;
 
 export default async function AdminDashboardPage() {
-  await requireAdmin("dashboard");
-  const [summary, orders] = await Promise.all([readDashboard(), countOrdersToShip()]);
+  const { user } = await requireAdmin("dashboard");
+  const [summary, orders, alerts] = await Promise.all([
+    readDashboard(),
+    countOrdersToShip(),
+    roleCanAccess(user.adminRole, "inventory") ? readStockAlerts() : null,
+  ]);
 
   return (
     <>
@@ -82,6 +90,8 @@ export default async function AdminDashboardPage() {
           {text.reviewPending}
         </Link>
       )}
+
+      {alerts && <StockAlertsCard alerts={alerts} />}
 
       <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
         <Card as="section" aria-labelledby="dashboard-content">
@@ -201,5 +211,62 @@ function ContentRow({
         </span>
       </Link>
     </li>
+  );
+}
+
+/** Items at or below their reorder level, and batches near or past expiry. */
+function StockAlertsCard({ alerts }: { alerts: Awaited<ReturnType<typeof readStockAlerts>> }) {
+  const text = inventoryCopy.alerts;
+  const empty =
+    alerts.lowFinished.length + alerts.lowComponents.length + alerts.expiringBatches + alerts.expiredBatches === 0;
+  return (
+    <Card as="section" aria-labelledby="dashboard-stock" className="mt-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="dashboard-stock" className="text-h3 text-ink">
+          {text.title}
+        </h2>
+        <Link href="/admin/inventory" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          {text.view}
+        </Link>
+      </div>
+      {empty ? (
+        <p className="mt-3 text-sm text-muted">{text.none}</p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-2 text-sm">
+          {alerts.lowFinished.length > 0 && (
+            <li>
+              <Link href="/admin/inventory/b2c?view=low" className="font-bold text-orange-ink underline-offset-2 hover:underline">
+                {text.lowFinished(alerts.lowFinished.length)}
+              </Link>
+              <span className="text-muted"> ({alerts.lowFinished.slice(0, 3).map((item) => `${item.name}: ${text.left(formatNumber(item.available))}`).join(", ")}
+              {alerts.lowFinished.length > 3 ? ", …" : ""})</span>
+            </li>
+          )}
+          {alerts.lowComponents.length > 0 && (
+            <li>
+              <Link href="/admin/inventory/b2b" className="font-bold text-orange-ink underline-offset-2 hover:underline">
+                {text.lowComponents(alerts.lowComponents.length)}
+              </Link>
+              <span className="text-muted"> ({alerts.lowComponents.slice(0, 3).map((item) => `${item.name}: ${text.left(formatQuantity(item.available, item.unit))}`).join(", ")}
+              {alerts.lowComponents.length > 3 ? ", …" : ""})</span>
+            </li>
+          )}
+          {alerts.expiringBatches > 0 && (
+            <li>
+              <Link href="/admin/inventory/b2c?view=expiring" className="font-bold text-orange-ink underline-offset-2 hover:underline">
+                {text.expiring(alerts.expiringBatches, EXPIRY_WARN_DAYS)}
+              </Link>
+            </li>
+          )}
+          {alerts.expiredBatches > 0 && (
+            <li>
+              <Link href="/admin/inventory/b2c?view=expired" className="font-bold text-danger underline-offset-2 hover:underline">
+                {text.expired(alerts.expiredBatches)}
+              </Link>
+            </li>
+          )}
+        </ul>
+      )}
+    </Card>
   );
 }

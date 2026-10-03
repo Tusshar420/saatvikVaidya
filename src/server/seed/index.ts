@@ -1,3 +1,4 @@
+import { seedInventoryComponents, seedProductStock } from "@/server/inventory/seed";
 import { settingDefaults, type SettingKey } from "@/content/settings";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import {
@@ -70,6 +71,8 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
       await createMissing(whyStepSeed, (args) => tx.whyStep.upsert(args));
       const productsCreated = await createMissingProducts(tx);
       await addBrandSamples(tx);
+      await ensureStockItems(tx);
+      await seedInventoryComponents(tx);
       await seedLabelSpecs(tx);
       await assignLabelSpecs(tx);
 
@@ -176,10 +179,10 @@ async function createMissingProducts(
 
   let created = 0;
   for (const product of productSeed) {
-    const { brandKey, formKey, practiceAreaKeys, bulkTiers, brand, ...fields } = product;
+    const { brandKey, formKey, practiceAreaKeys, bulkTiers, brand, stock, ...fields } = product;
     const form = formId.get(formKey);
     if (existing.has(product.slug) || form === undefined) continue;
-    await tx.product.create({
+    const row = await tx.product.create({
       data: {
         ...fields,
         ...(brand && brandFields(brand)),
@@ -197,7 +200,10 @@ async function createMissingProducts(
         bulkTiers: { create: bulkTiers },
         brandTiers: { create: brand?.tiers ?? [] },
       },
+      select: { id: true, name: true },
     });
+    // The sample stock figure becomes an opening batch of finished goods.
+    await seedProductStock(tx, row, stock);
     created += 1;
   }
   return created;
@@ -335,4 +341,13 @@ function validateSeed(): void {
   if (problems.length > 0) {
     throw new Error(`Invalid seed data:\n- ${problems.join("\n- ")}`);
   }
+}
+
+/** Products made before inventory (or by hand) get an empty stock item. */
+async function ensureStockItems(tx: Prisma.TransactionClient): Promise<void> {
+  const missing = await tx.product.findMany({
+    where: { stockItem: null },
+    select: { id: true, name: true },
+  });
+  for (const product of missing) await seedProductStock(tx, product, 0);
 }

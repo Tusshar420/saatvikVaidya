@@ -79,6 +79,10 @@ export const brand = {
     addLabel: (name: string) => `Add ${name} to your launch cart`,
     addMore: (n: number) => `Add ${count(n)} more`,
     addMoreLabel: (name: string, n: number) => `Add ${count(n)} more ${name} to your launch cart`,
+    /** From the stock of the components the product is made of. */
+    available: (n: number, unit: string) => `Can make up to ${count(n)} ${unit} now`,
+    outOfStock: "Out of stock for now",
+    outOfStockLine: "We're restocking the packaging for this product. Please check back soon, or call us.",
     inCart: "In cart",
     inCartLine: (n: number, unit: string) => `${count(n)} ${unit} in your cart`,
     added: "Added to your launch cart",
@@ -119,6 +123,10 @@ export const brand = {
     removeLabel: (name: string) => `Remove ${name} from your launch cart`,
     removed: "Removed from your launch cart",
     unavailable: "This product isn't available for branded orders now. Remove it to continue.",
+    overStock: (n: number, unit: string) =>
+      n > 0
+        ? `We can make up to ${count(n)} ${unit} of this right now. Lower the quantity to continue.`
+        : "This product is out of stock for now. Remove it to continue, or call us.",
     invalid: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
     overLimit:
       "This order is above ₹1 crore, the most we take online. Lower some quantities, or call us for larger orders.",
@@ -131,6 +139,10 @@ export const brand = {
       unavailable: "That product isn't available for branded orders now.",
       notInCart: "That product is no longer in your launch cart. The page has been refreshed.",
       quantity: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
+      aboveStock: (n: number) =>
+        n > 0
+          ? `We can make up to ${count(n)} of this right now.`
+          : "This product is out of stock for now.",
       tooLarge:
         "That would take the order above ₹1 crore, the most we take online. Call us for larger orders.",
       tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products.`,

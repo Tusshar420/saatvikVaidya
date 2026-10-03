@@ -15,6 +15,7 @@ import {
 import { isOrderId } from "@/lib/orders";
 import { logAdminAction } from "@/server/admin/audit";
 import { db } from "@/server/db";
+import { consumeBrandOrder } from "@/server/inventory/orders";
 import {
   sendProofDecision,
   sendProofSent,
@@ -366,6 +367,8 @@ export async function advanceProduction(options: {
         if (approved === 0) throw new Refused("no_proof");
       }
       await moveStage(tx, { orderId, from, to, actor: "admin", actorId, note });
+      // Production uses up the components held for the order.
+      if (to === "in_production") await consumeBrandOrder(tx, orderId);
       if (to === "dispatched" && booked) {
         await tx.shipment.create({
           data: {

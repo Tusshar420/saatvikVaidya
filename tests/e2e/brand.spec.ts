@@ -1,3 +1,4 @@
+import { stockCreate } from "../setup/stock-create";
 import { randomBytes, randomInt } from "node:crypto";
 import { test, expect, type Page } from "@playwright/test";
 import { brand } from "../../src/content/brand";
@@ -58,7 +59,7 @@ async function makeBrandProduct(
       professionalPricePaise: 24_000,
       gstRate: 5,
       hsnCode: "30049011",
-      stock: 2,
+      stockItem: stockCreate("E2E Brand", 2),
       brandEligible: true,
       brandMinQty: overrides.brandMinQty ?? 4,
       brandUnitPricePaise: overrides.brandUnitPricePaise ?? 26_000,
@@ -342,7 +343,7 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(ordered).toContainText(brand.labels.area("General pack", 80, 50));
   await checkPage(page, errors);
   // Made to order: the store's stock (2) didn't change.
-  expect((await e2eDb().product.findUniqueOrThrow({ where: { id: product.id } })).stock).toBe(2);
+  expect((await e2eDb().stockItem.findUniqueOrThrow({ where: { productId: product.id } })).onHand).toBe(2);
   expect((await e2eDb().order.findUniqueOrThrow({ where: { id: orderId } })).status).toBe("paid");
 
   // My Brand lists it; on phones the dock leads there.

@@ -353,7 +353,10 @@ export async function cleanUpE2eData() {
       },
     }),
     // Images, tiers and area links go with the product (onDelete: Cascade).
+    db.stockItem.deleteMany({ where: { product: { slug: { startsWith: E2E_CONTENT_PREFIX } } } }),
     db.product.deleteMany({ where: { slug: { startsWith: E2E_CONTENT_PREFIX } } }),
+    // Components the inventory tests made (their recipes went with the products).
+    db.stockItem.deleteMany({ where: { name: { startsWith: "E2E " }, kind: { in: ["packaging", "base"] } } }),
     db.adminLog.deleteMany({
       where: { resource: "Ebook", resourceId: { in: ebooks.map((ebook) => String(ebook.id)) } },
     }),

@@ -12,6 +12,7 @@ import type { LabelProblem, LabelValues } from "@/lib/label";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
 import { searchWhere } from "@/server/catalogue/products";
 import { db } from "@/server/db";
+import { makeableByProduct } from "@/server/inventory/availability";
 import { saveLabelDetails } from "./labels";
 import { orderNotesSchema } from "./packaging";
 import { chosenProfile, listProfiles } from "./profiles";
@@ -70,9 +71,14 @@ export type BrandProduct = {
   makerName: string | null;
   image: { src: string; alt: string } | null;
   terms: BrandTerms;
+  /**
+   * Units that can be made from the components in stock (a multiple of the
+   * minimum), or null when nothing limits it (no recipe yet).
+   */
+  makeable: number | null;
 };
 
-export function toBrandProduct(row: BrandProductRow): BrandProduct | null {
+export function toBrandProduct(row: BrandProductRow, makeable: number | null = null): BrandProduct | null {
   const terms = row.active ? brandTermsOf(row) : null;
   if (!terms) return null;
   const image = row.images[0];
@@ -88,6 +94,7 @@ export function toBrandProduct(row: BrandProductRow): BrandProduct | null {
     makerName: row.brand?.name ?? null,
     image: image ? { src: productImageSrc(image.id), alt: image.alt } : null,
     terms,
+    makeable,
   };
 }
 
@@ -244,9 +251,10 @@ export async function listBrandProducts(
     take: BRAND_PRODUCTS_PAGE_SIZE,
     select: brandProductSelect,
   });
+  const makeable = await makeableByProduct(rows.map((row) => row.id));
   return {
     filters: { ...used, page },
-    products: rows.flatMap((row) => toBrandProduct(row) ?? []),
+    products: rows.flatMap((row) => toBrandProduct(row, makeable.get(row.id) ?? null) ?? []),
     total,
     page,
     pageCount,
@@ -267,7 +275,8 @@ export async function findBrandProduct(
     where: { id: productId },
     select: brandProductSelect,
   });
-  return row ? toBrandProduct(row) : null;
+  if (!row) return null;
+  return toBrandProduct(row, (await makeableByProduct([productId], client)).get(productId) ?? null);
 }
 
 // ─── Drafts ─────────────────────────────────────────────────────────────────

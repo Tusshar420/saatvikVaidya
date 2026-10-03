@@ -164,7 +164,16 @@ export default async function CataloguePage({
               <Td label={text.columns.prices} className="whitespace-nowrap">
                 {formatPaise(product.mrpPaise)} / {formatPaise(product.professionalPricePaise)}
               </Td>
-              <Td label={text.columns.stock}>{formatNumber(product.stock)}</Td>
+              <Td label={text.columns.stock}>
+                <span className="block">{text.stockShop(formatNumber(product.shopStock))}</span>
+                {product.launchMakeable !== undefined && (
+                  <span className="block text-small text-muted">
+                    {product.launchMakeable === null
+                      ? text.stockLaunchUnlimited
+                      : text.stockLaunch(formatNumber(product.launchMakeable))}
+                  </span>
+                )}
+              </Td>
               <Td label={text.columns.status}>
                 <ActiveBadge active={product.active} />
               </Td>

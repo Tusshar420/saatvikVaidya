@@ -14,6 +14,8 @@ import {
 } from "@/lib/catalogue";
 import { paiseToRupeeInput, rupeesToPaise } from "@/lib/format";
 import { db } from "@/server/db";
+import { makeableByProduct, sellableByProduct } from "@/server/inventory/availability";
+import { ensureProductItem } from "@/server/inventory/engine";
 import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
 import { checkUpload } from "@/server/storage/files";
 import { createdFields, diffFields, logAdminAction } from "./audit";
@@ -98,7 +100,6 @@ const productFormSchema = z
       .string({ error: errors.hsnCode })
       .trim()
       .regex(/^(?:\d{4}|\d{6}|\d{8})$/, errors.hsnCode),
-    stock: wholeNumber(0, 1_000_000, errors.stock),
     moq: wholeNumber(1, 10_000, errors.moq),
     tiers: z.array(tierRowSchema).max(MAX_BULK_TIERS),
     brandTiers: z.array(tierRowSchema).max(MAX_BRAND_TIERS),
@@ -239,7 +240,6 @@ const productFormSchema = z
       professionalPricePaise: data.professionalPrice,
       gstRate: data.gstRate,
       hsnCode: data.hsnCode,
-      stock: data.stock,
       moq: data.moq,
       active: data.active,
       featured: data.featured,
@@ -317,7 +317,6 @@ export async function listAdminProducts(filters: ProductFilters) {
       name: true,
       mrpPaise: true,
       professionalPricePaise: true,
-      stock: true,
       active: true,
       featured: true,
       isSample: true,
@@ -330,7 +329,21 @@ export async function listAdminProducts(filters: ProductFilters) {
       },
     },
   });
-  return { products, total, page, pageCount };
+  // The right figure per product type: units on sale for the shop, units
+  // that can be made from components for a Launch product.
+  const ids = products.map((product) => product.id);
+  const sellable = await sellableByProduct(ids);
+  const makeable = await makeableByProduct(products.filter((product) => product.brandEligible).map((product) => product.id));
+  return {
+    products: products.map((product) => ({
+      ...product,
+      shopStock: sellable.get(product.id) ?? 0,
+      launchMakeable: product.brandEligible ? (makeable.get(product.id) ?? null) : undefined,
+    })),
+    total,
+    page,
+    pageCount,
+  };
 }
 
 export async function getAdminProduct(id: number) {
@@ -387,7 +400,6 @@ export function productFormValues(
     professionalPrice: paiseToRupeeInput(product.professionalPricePaise),
     gstRate: product.gstRate,
     hsnCode: product.hsnCode,
-    stock: product.stock,
     moq: product.moq,
     active: product.active,
     featured: product.featured,
@@ -416,7 +428,6 @@ export function productFormValues(
 export const newProductValues = {
   gstRate: 5,
   hsnCode: "3004",
-  stock: 0,
   moq: 1,
   active: true,
   sortOrder: 0,
@@ -500,8 +511,10 @@ export async function createProduct(
           bulkTiers: { create: bulkTiers },
           brandTiers: { create: brandTiers },
         },
-        select: { id: true },
+        select: { id: true, name: true },
       });
+      // Every product is a finished-goods stock item (stocked in Inventory).
+      await ensureProductItem(tx, product);
       await logAdminAction(tx, {
         actorId,
         action: "product.create",

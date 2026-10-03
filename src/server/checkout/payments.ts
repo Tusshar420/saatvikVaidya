@@ -4,6 +4,8 @@ import { db } from "@/server/db";
 import { earnForOrder, ledgerTransaction, releaseCoins } from "@/server/coins/ledger";
 import { issueInvoice, issueQuietly } from "@/server/invoices/invoices";
 import { recordFirstStage } from "@/server/brand/stages";
+import { StockError } from "@/server/inventory/engine";
+import { releaseOrderStock, reserveBrandOrder, takeOrderStock } from "@/server/inventory/orders";
 import { sendBrandOrderPaid } from "@/server/notify/brand";
 import { sendOrderConfirmation } from "@/server/notify/orders";
 import type { VerifiedPayment } from "@/server/payments";
@@ -14,14 +16,16 @@ import type { VerifiedPayment } from "@/server/payments";
 // so a double click, a replayed request or a late webhook finds nothing to
 // change and counts nothing twice.
 //
-// - Success: the order becomes paid, stock goes down, the ordered products
+// - Success: the order becomes paid, the stock held for it is sold, the ordered products
 //   leave the cart, the GST invoice is issued (P1.6) and a confirmation is
 //   sent (dev log).
-// - Failure: the order becomes payment_failed; stock and cart don't change.
+// - Failure: the order becomes payment_failed; the stock held for it is
+//   released ("Try again" holds it again) and the cart doesn't change.
 // - Success when an item no longer has the stock: recorded as a failure
 //   ("out_of_stock"), with nothing taken. With a real provider this is where
 //   a refund would start (see "Later" in docs/PROGRESS.md).
-// - Brand orders (P2.1) are made to order: no stock is taken, there is no
+// - Brand orders (P2.1) are made to order: no finished stock is taken (the
+//   components their recipes need are reserved instead), there is no
 //   cart to clear and no coins are earned; the customer and the admins get
 //   the brand messages instead of the store confirmation.
 
@@ -55,6 +59,7 @@ async function fail(
   if (failed.count > 0) {
     const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, select: { userId: true } });
     if (order.userId) await releaseCoins(tx, order.userId, orderId);
+    await releaseOrderStock(tx, orderId, "Payment failed");
   }
   return true;
 }
@@ -106,6 +111,8 @@ export async function completePayment(
       if (order.count === 0) throw new NotPending();
       if (isBrand) {
         await recordFirstStage(tx, orderId);
+        // Confirmed: the components its recipes need are held for production.
+        await reserveBrandOrder(tx, orderId);
         return true;
       }
 
@@ -113,16 +120,21 @@ export async function completePayment(
         where: { orderId },
         select: { productId: true, ebookId: true, kind: true, quantity: true },
       });
+      const lines: { productId: number; quantity: number }[] = [];
       for (const item of items) {
         // Ebooks (P1.8) have no stock to take.
         if (item.kind === "ebook") continue;
         if (item.productId === null) throw new OutOfStock();
-        // Takes the stock only if there's enough; the row lock it holds
-        // makes concurrent orders for the last units queue up.
-        const taken = await tx.$executeRaw`
-          UPDATE Product SET stock = stock - ${item.quantity}, updatedAt = NOW(3)
-          WHERE id = ${item.productId} AND stock >= ${item.quantity}`;
-        if (taken === 0) throw new OutOfStock();
+        lines.push({ productId: item.productId, quantity: item.quantity });
+      }
+      // The held stock becomes a sale (or is taken now if the hold lapsed and
+      // there is still enough); the locks on the stock rows make concurrent
+      // orders for the last units queue up.
+      try {
+        await takeOrderStock(tx, orderId, lines);
+      } catch (error) {
+        if (error instanceof StockError && error.code === "insufficient") throw new OutOfStock();
+        throw error;
       }
 
       const owner = await tx.order.findUniqueOrThrow({

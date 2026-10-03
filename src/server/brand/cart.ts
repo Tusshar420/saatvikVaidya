@@ -10,6 +10,7 @@ import {
 } from "@/lib/brand";
 import { computeTotals, type OrderTotals, type ShippingRule } from "@/server/checkout/totals";
 import { db } from "@/server/db";
+import { makeableByProduct } from "@/server/inventory/availability";
 import { brandProductSelect, findBrandProduct, toBrandProduct, type BrandProduct } from "./drafts";
 
 // The Launch cart (/launch, step 2): the products of one bulk branded order,
@@ -26,8 +27,10 @@ export type BrandCartLine = {
   quantity: number;
   /** Null when the product was taken off Launch Your Brand or hidden. */
   product: BrandProduct | null;
-  /** The quantity is allowed for the product's current terms. */
+  /** The quantity is allowed for the product's current terms and what can be made. */
   valid: boolean;
+  /** Fewer can be made than the line asks for (or none): the line must be changed. */
+  overStock: boolean;
   /** The price each at this quantity (its bulk tier), 0 when unavailable. */
   unitPricePaise: number;
   lineTotalPaise: number;
@@ -60,9 +63,11 @@ export async function readBrandCart(
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: cartSelect,
   });
+  const makeable = await makeableByProduct(rows.map((row) => row.productId), client);
   const lines = rows.map((row): BrandCartLine => {
-    const product = toBrandProduct(row.product);
-    const valid = product !== null && isValidBrandQuantity(row.quantity, product.terms);
+    const product = toBrandProduct(row.product, makeable.get(row.productId) ?? null);
+    const overStock = product !== null && product.makeable !== null && row.quantity > product.makeable;
+    const valid = product !== null && !overStock && isValidBrandQuantity(row.quantity, product.terms);
     const unitPricePaise = product ? brandUnitPriceFor(product.terms, row.quantity) : 0;
     return {
       productId: row.productId,
@@ -70,6 +75,7 @@ export async function readBrandCart(
       quantity: row.quantity,
       product,
       valid,
+      overStock,
       unitPricePaise,
       lineTotalPaise: product ? brandLineTotal(product.terms, row.quantity) : 0,
     };
@@ -110,6 +116,8 @@ export type BrandCartError =
   | { kind: "not_in_cart" }
   /** Not a positive multiple of the minimum (or above the per-product cap). */
   | { kind: "quantity"; minQty: number }
+  /** Not enough components in stock to make this many (0: not even the minimum). */
+  | { kind: "above_stock"; available: number }
   | { kind: "too_many_lines"; max: number }
   /** The cart would cost more than the online limit. */
   | { kind: "too_large" };
@@ -146,6 +154,9 @@ export async function addToBrandCart(userId: string, productId: number): Promise
   if (!isValidBrandQuantity(quantity, terms) || (existing && quantity === existing.quantity)) {
     return { ok: false, error: { kind: "quantity", minQty: terms.minQty } };
   }
+  if (product.makeable !== null && quantity > product.makeable) {
+    return { ok: false, error: { kind: "above_stock", available: product.makeable } };
+  }
   if ((await totalWith(userId, productId, brandLineTotal(terms, quantity))) > MAX_BRAND_ORDER_PAISE) {
     return { ok: false, error: { kind: "too_large" } };
   }
@@ -172,6 +183,9 @@ export async function setBrandCartQuantity(
   if (!product) return { ok: false, error: { kind: "unavailable" } };
   if (!isValidBrandQuantity(quantity, product.terms)) {
     return { ok: false, error: { kind: "quantity", minQty: product.terms.minQty } };
+  }
+  if (product.makeable !== null && quantity > product.makeable) {
+    return { ok: false, error: { kind: "above_stock", available: product.makeable } };
   }
   if ((await totalWith(userId, productId, brandLineTotal(product.terms, quantity))) > MAX_BRAND_ORDER_PAISE) {
     return { ok: false, error: { kind: "too_large" } };

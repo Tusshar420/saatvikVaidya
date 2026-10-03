@@ -4,6 +4,7 @@ import { productImageSrc } from "@/lib/catalogue";
 import { ebookCoverSrc } from "@/lib/ebooks";
 import { MAX_QUANTITY_INPUT } from "@/lib/orders";
 import { db } from "@/server/db";
+import { sellableByProduct, sellableOf, sweepLapsedHolds } from "@/server/inventory/availability";
 import {
   computeTotals,
   type OrderTotals,
@@ -127,11 +128,13 @@ export async function addToCart(
   quantity: number,
 ): Promise<CartChange> {
   if (!validQuantity(quantity)) return { ok: false, error: { kind: "invalid_quantity" } };
-  const product = await db.product.findUnique({
+  const row = await db.product.findUnique({
     where: { id: productId },
-    select: { active: true, stock: true, moq: true },
+    select: { active: true, moq: true },
   });
-  if (!product) return { ok: false, error: { kind: "unavailable" } };
+  if (!row) return { ok: false, error: { kind: "unavailable" } };
+  await sweepLapsedHolds();
+  const product = { ...row, stock: await sellableOf(productId) };
   const stockIssue = lineIssue(product, Math.max(1, product.moq));
   if (stockIssue) return { ok: false, error: stockIssue };
 
@@ -170,10 +173,11 @@ export async function setCartQuantity(
   if (!validQuantity(quantity)) return { ok: false, error: { kind: "invalid_quantity" } };
   const item = await db.cartItem.findFirst({
     where: { productId, cart: cartWhere(owner) },
-    select: { id: true, cartId: true, product: { select: { active: true, stock: true, moq: true } } },
+    select: { id: true, cartId: true, product: { select: { active: true, moq: true } } },
   });
   if (!item?.product) return { ok: false, error: { kind: "not_in_cart" } };
-  const issue = lineIssue(item.product, quantity);
+  await sweepLapsedHolds();
+  const issue = lineIssue({ ...item.product, stock: await sellableOf(productId) }, quantity);
   if (issue) return { ok: false, error: issue };
   await db.cartItem.update({ where: { id: item.id }, data: { quantity } });
   return { ok: true, count: await touch(item.cartId) };
@@ -253,7 +257,6 @@ export const cartProductSelect = {
   packSize: true,
   isSample: true,
   active: true,
-  stock: true,
   moq: true,
   gstRate: true,
   hsnCode: true,
@@ -352,8 +355,10 @@ export function priceLine(
   product: CartProductRow,
   quantity: number,
   viewer: PricingViewer,
+  /** Units on sale now (see sellableByProduct). */
+  stock: number,
 ): CartLine {
-  const issue = lineIssue(product, quantity);
+  const issue = lineIssue({ ...product, stock }, quantity);
   const price = priceFor(product, viewer, Math.max(1, quantity));
   const image = product.images[0];
   return {
@@ -368,7 +373,7 @@ export function priceLine(
     image: image ? { src: productImageSrc(image.id), alt: image.alt } : null,
     quantity,
     moq: Math.max(1, product.moq),
-    available: Math.max(0, product.stock),
+    available: Math.max(0, stock),
     gstRate: product.gstRate,
     unitPaise: price.unitPaise,
     mrpPaise: price.mrpPaise,
@@ -423,8 +428,10 @@ export async function readCart(
       })
     : null;
   const items = cart?.items ?? [];
+  await sweepLapsedHolds();
+  const sellable = await sellableByProduct(items.flatMap((item) => (item.product ? [item.product.id] : [])));
   const lines = items.flatMap((item) =>
-    item.product ? [priceLine(item.product, item.quantity, viewer)] : [],
+    item.product ? [priceLine(item.product, item.quantity, viewer, sellable.get(item.product.id) ?? 0)] : [],
   );
   const ebookRows = items.flatMap((item) => (item.ebook ? [item.ebook] : []));
   const owned =

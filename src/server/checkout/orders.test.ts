@@ -7,7 +7,7 @@ import type { PricingViewer } from "@/server/pricing/rules";
 import { seedDatabase } from "@/server/seed";
 import { captureMessages } from "../../../tests/setup/auth";
 import { clearAuthTables, clearContentTables } from "../../../tests/setup/content-db";
-import { makeProduct, makeUser, stockOf, validAddress } from "../../../tests/setup/shop";
+import { makeProduct, makeUser, setStock, stockOf, validAddress } from "../../../tests/setup/shop";
 import { createAddress, parseAddress } from "./addresses";
 import { placeOrder, readOrderForUser, retryPayment, startPaymentAttempt } from "./orders";
 import { completePayment } from "./payments";
@@ -188,9 +188,10 @@ describe("placeOrder", () => {
       error: "cart_changed",
     });
     // Stock fell below the cart's quantity.
-    await db.product.update({ where: { id: product.id }, data: { stock: 2 } });
+    await setStock(db, product.id, 2);
     expect(await place(who)).toEqual({ ok: false, error: "cart_changed" });
-    await db.product.update({ where: { id: product.id }, data: { stock: 5, active: false } });
+    await setStock(db, product.id, 5);
+    await db.product.update({ where: { id: product.id }, data: { active: false } });
     expect(await place(who)).toEqual({ ok: false, error: "cart_changed" });
     expect(await db.order.count()).toBe(0);
   });
@@ -308,6 +309,14 @@ describe("completePayment", () => {
     ]);
     const second = await shopper([{ productId: scarce.id, quantity: 2 }]);
     const firstOrder = await placed(first);
+    // While the first order holds its units the second can't be placed.
+    expect(await place(second)).toEqual({ ok: false, error: "cart_changed" });
+    // The first customer's hold lapses (they were slow to pay); the second
+    // order is placed and paid, then the first payment arrives too late.
+    await db.stockReservation.updateMany({
+      where: { refType: "order", refId: firstOrder },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
     const secondOrder = await placed(second);
 
     expect(await succeed(secondOrder)).toMatchObject({ status: "paid" });

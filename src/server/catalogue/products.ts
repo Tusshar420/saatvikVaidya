@@ -9,6 +9,7 @@ import {
   type CatalogueSort,
 } from "@/lib/catalogue";
 import { db } from "@/server/db";
+import { sellableByProduct, sellableOf, sweepLapsedHolds } from "@/server/inventory/availability";
 import {
   basePriceColumn,
   priceFor,
@@ -183,7 +184,6 @@ const cardSelect = {
   name: true,
   packSize: true,
   isSample: true,
-  stock: true,
   moq: true,
   mrpPaise: true,
   professionalPricePaise: true,
@@ -199,7 +199,7 @@ const cardSelect = {
 
 type CardRow = Prisma.ProductGetPayload<{ select: typeof cardSelect }>;
 
-function toCard(row: CardRow, viewer: PricingViewer): ProductCard {
+function toCard(row: CardRow, stock: number, viewer: PricingViewer): ProductCard {
   const { unitPaise, mrpPaise, tier } = priceFor(row, viewer);
   const image = row.images[0];
   return {
@@ -211,7 +211,7 @@ function toCard(row: CardRow, viewer: PricingViewer): ProductCard {
     glyph: row.form.glyph,
     packSize: row.packSize,
     isSample: row.isSample,
-    inStock: row.stock >= Math.max(1, row.moq),
+    inStock: stock >= Math.max(1, row.moq),
     moq: row.moq,
     image: image ? { src: productImageSrc(image.id), alt: image.alt } : null,
     price: { unitPaise, mrpPaise, tier },
@@ -256,9 +256,11 @@ export async function listCatalogue(
     select: cardSelect,
   });
 
+  await sweepLapsedHolds();
+  const sellable = await sellableByProduct(rows.map((row) => row.id));
   return {
     filters: { ...filters, page },
-    products: rows.map((row) => toCard(row, viewer)),
+    products: rows.map((row) => toCard(row, sellable.get(row.id) ?? 0, viewer)),
     total,
     page,
     pageCount,
@@ -296,6 +298,8 @@ export async function readProductPage(
     },
   });
   if (!row) return null;
+  await sweepLapsedHolds();
+  const stock = await sellableOf(row.id);
 
   return {
     id: row.id,
@@ -311,7 +315,7 @@ export async function readProductPage(
     gstRate: row.gstRate,
     hsnCode: row.hsnCode,
     moq: row.moq,
-    stock: stockStatus(row.stock, row.moq),
+    stock: stockStatus(stock, row.moq),
     isSample: row.isSample,
     images: row.images.map((image) => ({
       src: productImageSrc(image.id),

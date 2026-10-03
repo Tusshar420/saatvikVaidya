@@ -1,3 +1,4 @@
+import { stockCreate } from "../setup/stock-create";
 import { randomBytes } from "node:crypto";
 import { test, expect } from "@playwright/test";
 import { account } from "../../src/content/account";
@@ -28,7 +29,7 @@ test("brand details on the account page: add, edit, set the default and delete s
       professionalPricePaise: 24_000,
       gstRate: 5,
       hsnCode: "30049011",
-      stock: 2,
+      stockItem: stockCreate("E2E Brand", 2),
       brandEligible: true,
       brandMinQty: 4,
       brandUnitPricePaise: 26_000,

@@ -1,5 +1,6 @@
 import { randomBytes, randomInt } from "node:crypto";
 import { ORDER_NUMBER_ALPHABET } from "../../src/lib/orders";
+import { stockCreate } from "../setup/stock-create";
 import { E2E_CONTENT_PREFIX, e2eDb, freshEmail } from "./auth-helpers";
 
 // Orders for the P1.5 e2e tests, written straight into the dev database
@@ -26,7 +27,7 @@ export async function makeE2eProduct(stock = 20) {
       professionalPricePaise: 24_000,
       gstRate: 5,
       hsnCode: "30049011",
-      stock,
+      stockItem: stockCreate(`E2E Order Vati ${token}`, stock),
     },
     select: { id: true, name: true, slug: true },
   });
@@ -124,9 +125,29 @@ export async function makeE2eOrder(options: {
       },
     });
     if (paid) {
-      await tx.product.update({
-        where: { id: options.product.id },
-        data: { stock: { decrement: quantity } },
+      // The payment's sale, taken from the product's batch.
+      const item = await tx.stockItem.findUniqueOrThrow({
+        where: { productId: options.product.id },
+        select: { id: true, batches: { select: { id: true }, take: 1 } },
+      });
+      const updated = await tx.stockItem.update({
+        where: { id: item.id },
+        data: { onHand: { decrement: quantity } },
+        select: { onHand: true },
+      });
+      await tx.stockBatch.update({ where: { id: item.batches[0].id }, data: { qtyOnHand: { decrement: quantity } } });
+      await tx.stockMovement.create({
+        data: {
+          itemId: item.id,
+          batchId: item.batches[0].id,
+          type: "sale",
+          quantity,
+          onHandDelta: -quantity,
+          reservedDelta: 0,
+          onHandAfter: updated.onHand,
+          refType: "order",
+          refId: id,
+        },
       });
     }
   });

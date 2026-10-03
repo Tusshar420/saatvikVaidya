@@ -7,6 +7,7 @@ import { cancelStageInTx } from "@/server/brand/stages";
 import { refundOrderPayment } from "@/server/checkout/refunds";
 import { ledgerTransaction, releaseCoins, reverseOrderEarnings } from "@/server/coins/ledger";
 import { db } from "@/server/db";
+import { releaseBrandOrder, releaseOrderStock, returnOrderStock } from "@/server/inventory/orders";
 import { issueCreditNote, issueQuietly } from "@/server/invoices/invoices";
 import { sendOrderCancelled } from "@/server/notify/orders";
 import { getShippingProvider } from "@/server/shipping";
@@ -232,21 +233,17 @@ export async function cancelOrder(
     }
 
     // Paid (or being prepared): the payment took the stock, so put it back.
-    // Brand orders (P2.1) are made to order and never took stock.
+    // Brand orders (P2.1) are made to order and took no finished stock.
     const restocked =
       order.type === "store" && (order.status === "paid" || order.status === "processing");
     if (restocked) {
-      const items = await tx.orderItem.findMany({
-        where: { orderId },
-        select: { productId: true, quantity: true },
-      });
-      for (const item of items) {
-        if (item.productId === null) continue;
-        await tx.$executeRaw`
-          UPDATE Product SET stock = stock + ${item.quantity}, updatedAt = NOW(3)
-          WHERE id = ${item.productId}`;
-      }
+      // Back into the batches the sale came from.
+      await returnOrderStock(tx, orderId, actorId, "Order cancelled");
     }
+    // Stock still held (an unpaid order's hold, or a Launch order's
+    // components that production hasn't used yet) is released.
+    await releaseOrderStock(tx, orderId, "Order cancelled");
+    if (order.type === "brand") await releaseBrandOrder(tx, orderId);
     // Coins held for the order go back; coins it earned are taken back.
     if (order.userId) {
       await releaseCoins(tx, order.userId, orderId);

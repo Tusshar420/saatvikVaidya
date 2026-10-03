@@ -115,6 +115,8 @@ export const brandInputSchema = z.object({
   linkLabel: requiredText(80, check),
   linkHref: optionalLinkTarget(brandErrors.link),
   featured: checkbox,
+  /** A partner brand sold alongside our own: Inventory reports split by it. */
+  isPartner: checkbox,
   ...placement,
 });
 

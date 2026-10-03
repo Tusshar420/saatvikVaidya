@@ -102,6 +102,7 @@ model User {
   sessions                Session[]
   accounts                Account[]
   adminLogs               AdminLog[]
+  stockMovements          StockMovement[]
   errorOccurrences        ErrorOccurrence[]
   bugReports              BugReport[]
   documents               ProfessionalDocument[]
@@ -655,6 +656,8 @@ model Brand {
   linkLabel   String    @db.VarChar(80)
   /// Null links to this brand's products in the catalogue.
   linkHref    String?   @db.VarChar(200)
+  /// A partner brand sold alongside our own: inventory reports split by this.
+  isPartner   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]
@@ -814,24 +817,24 @@ model QuizAttempt {
 // themselves.
 
 model Product {
-  id                     Int             @id @default(autoincrement())
+  id                     Int              @id @default(autoincrement())
   /// URL segment: /products/<slug>. Lowercase words joined by dashes.
-  slug                   String          @unique @db.VarChar(120)
-  name                   String          @db.VarChar(160)
+  slug                   String           @unique @db.VarChar(120)
+  name                   String           @db.VarChar(160)
   /// Null only if the brand was deleted; the admin form requires one.
   brandId                Int?
-  brand                  Brand?          @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  brand                  Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
   /// The product's form (a Category of kind FORM), e.g. Churna.
   formId                 Int
-  form                   Category        @relation("ProductForm", fields: [formId], references: [id], onDelete: Restrict)
+  form                   Category         @relation("ProductForm", fields: [formId], references: [id], onDelete: Restrict)
   /// Practice areas (Categories of kind PRACTICE_AREA).
-  practiceAreas          Category[]      @relation("ProductPracticeAreas")
+  practiceAreas          Category[]       @relation("ProductPracticeAreas")
   /// Plain text; line breaks are kept when shown.
-  description            String          @db.Text
-  ingredients            String?         @db.Text
-  dosage                 String?         @db.Text
+  description            String           @db.Text
+  ingredients            String?          @db.Text
+  dosage                 String?          @db.Text
   /// Display text, e.g. "60 tablets" or "200 ml".
-  packSize               String          @db.VarChar(60)
+  packSize               String           @db.VarChar(60)
   /// Retail price (MRP), including GST, in paise.
   mrpPaise               Int
   /// Price for approved professionals, including GST, in paise. At most MRP.
@@ -839,26 +842,24 @@ model Product {
   /// GST percentage included in the prices, e.g. 5 or 12.
   gstRate                Int
   /// HSN code for GST invoices (4, 6 or 8 digits).
-  hsnCode                String          @db.VarChar(8)
-  /// Units in stock. Checkout (P1.4) reduces it.
-  stock                  Int             @default(0)
+  hsnCode                String           @db.VarChar(8)
   /// Minimum order quantity.
-  moq                    Int             @default(1)
-  active                 Boolean         @default(true)
-  featured               Boolean         @default(false)
-  sortOrder              Int             @default(0)
+  moq                    Int              @default(1)
+  active                 Boolean          @default(true)
+  featured               Boolean          @default(false)
+  sortOrder              Int              @default(0)
   /// Seeded example, not a real product: the site labels it "Sample".
-  isSample               Boolean         @default(false)
+  isSample               Boolean          @default(false)
   /// Launch Your Brand (P2.1): can be ordered in the buyer's own packaging.
-  brandEligible          Boolean         @default(false)
+  brandEligible          Boolean          @default(false)
   /// Smallest branded order, which is also the step: 4 allows 4, 8, 12...
   brandMinQty            Int?
   /// Branded price per unit, including GST, in paise (one price for everyone).
   brandUnitPricePaise    Int?
   /// What one unit is called on Launch Your Brand, e.g. "bottles".
-  brandUnitLabel         String?         @db.VarChar(30)
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  brandUnitLabel         String?          @db.VarChar(30)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
   images                 ProductImage[]
   bulkTiers              BulkPriceTier[]
   cartItems              CartItem[]
@@ -867,7 +868,11 @@ model Product {
   brandTiers             BrandPriceTier[]
   /// What the label of this product can print (null: the general spec).
   labelSpecId            Int?
-  labelSpec              LabelSpec?      @relation(fields: [labelSpecId], references: [id], onDelete: SetNull)
+  labelSpec              LabelSpec?       @relation(fields: [labelSpecId], references: [id], onDelete: SetNull)
+  /// B2C finished-goods stock of this product (src/server/inventory).
+  stockItem              StockItem?
+  /// What one Launch unit is made of (B2B inventory).
+  recipeLines            RecipeLine[]
 
   @@index([active, sortOrder])
   @@index([brandId])
@@ -1174,17 +1179,17 @@ model BrandDraft {
 /// here; every view and the order price the lines again. The quantity is a
 /// multiple of the product's brand minimum (checked again at checkout).
 model BrandCartItem {
-  id        Int      @id @default(autoincrement())
-  userId    String   @db.VarChar(64)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity  Int
+  id             Int      @id @default(autoincrement())
+  userId         String   @db.VarChar(64)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity       Int
   /// Label fields the user changed for this product (field -> text); the
   /// rest follow the brand profile. See src/lib/label.ts.
   labelOverrides Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([userId, productId])
   @@index([productId])
@@ -1578,4 +1583,152 @@ model LabelSpec {
   /// { fieldName: maxCharacters } for the fields on this label.
   limits            Json
   products          Product[]
+}
+
+// ─── Inventory ──────────────────────────────────────────────────────────────
+// One stock engine, two inventories (src/server/inventory). B2C: each shop
+// product is a "finished" item, stocked in batches and sold first-expiry-
+// first-out. B2B (Launch Your Brand): "packaging" and "base" components, with
+// a recipe per Launch product. Every change is a StockMovement.
+
+enum StockKind {
+  finished
+  packaging
+  base
+}
+
+/// Quantities are whole numbers of the base unit: pieces, millilitres or
+/// grams. Litres and kilograms are only for typing and showing.
+enum StockUnit {
+  pcs
+  ml
+  g
+}
+
+enum StockMovementType {
+  receipt
+  sale
+  reservation
+  release
+  consumption
+  return
+  adjustment
+  expiry_write_off
+}
+
+enum ReservationStatus {
+  active
+  consumed
+  released
+}
+
+model StockItem {
+  id                Int                @id @default(autoincrement())
+  kind              StockKind
+  name              String             @db.VarChar(160)
+  sku               String?            @unique @db.VarChar(60)
+  unit              StockUnit          @default(pcs)
+  /// For components: bottle, tube, jar, cap, box, label, base, other.
+  componentType     String?            @db.VarChar(30)
+  /// The shop product a finished item is the stock of.
+  productId         Int?               @unique
+  product           Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  onHand            Int                @default(0)
+  reserved          Int                @default(0)
+  /// Alert when available is at or below this (0 = no alert).
+  lowThreshold      Int                @default(0)
+  /// A product base made to order doesn't limit what can be ordered.
+  madeToOrder       Boolean            @default(false)
+  /// Cost per unit in paise, mostly for partner products.
+  purchaseCostPaise Int?
+  active            Boolean            @default(true)
+  notes             String?            @db.VarChar(300)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  batches           StockBatch[]
+  movements         StockMovement[]
+  reservations      StockReservation[]
+  recipeLines       RecipeLine[]
+
+  @@index([kind, active])
+}
+
+model StockBatch {
+  id            Int                @id @default(autoincrement())
+  itemId        Int
+  item          StockItem          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchNo       String             @db.VarChar(60)
+  mfgDate       DateTime?          @db.Date
+  expiryDate    DateTime?          @db.Date
+  qtyOnHand     Int                @default(0)
+  qtyReserved   Int                @default(0)
+  unitCostPaise Int?
+  receivedAt    DateTime           @default(now())
+  movements     StockMovement[]
+  reservations  StockReservation[]
+
+  @@unique([itemId, batchNo])
+  @@index([itemId, expiryDate])
+}
+
+model StockMovement {
+  id            Int               @id @default(autoincrement())
+  itemId        Int
+  item          StockItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchId       Int?
+  batch         StockBatch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  type          StockMovementType
+  /// Always positive: how much moved. The deltas say which way.
+  quantity      Int
+  onHandDelta   Int
+  reservedDelta Int
+  /// The item's on-hand after this movement.
+  onHandAfter   Int
+  /// Required for manual adjustments and write-offs.
+  reason        String?           @db.VarChar(300)
+  /// What caused it: "order", "brand_order", or null for stock-room work.
+  refType       String?           @db.VarChar(30)
+  refId         String?           @db.VarChar(40)
+  /// The admin who did it (null for customer-driven movements).
+  userId        String?           @db.VarChar(64)
+  user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt     DateTime          @default(now())
+
+  @@index([itemId, createdAt])
+  @@index([refType, refId])
+  @@index([batchId])
+}
+
+model StockReservation {
+  id        Int               @id @default(autoincrement())
+  itemId    Int
+  item      StockItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchId   Int?
+  batch     StockBatch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  quantity  Int
+  refType   String            @db.VarChar(30)
+  refId     String            @db.VarChar(40)
+  status    ReservationStatus @default(active)
+  /// A store order's hold lapses if payment never completes.
+  expiresAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([refType, refId, status])
+  @@index([status, expiresAt])
+  @@index([itemId, status])
+}
+
+/// One line of a Launch product's bill of materials: how much of a component
+/// one unit of the product uses (in the component's base unit).
+model RecipeLine {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  componentId Int
+  component   StockItem @relation(fields: [componentId], references: [id], onDelete: Restrict)
+  quantity    Int
+
+  @@unique([productId, componentId])
+  @@index([componentId])
 }

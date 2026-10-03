@@ -1,3 +1,4 @@
+import { stockCreate } from "../setup/stock-create";
 import { randomInt } from "node:crypto";
 import { test, expect, type Page } from "@playwright/test";
 import { admin } from "../../src/content/admin";
@@ -34,7 +35,7 @@ async function makeProduct() {
       professionalPricePaise: 24_000,
       gstRate: 5,
       hsnCode: "30049011",
-      stock: 20,
+      stockItem: stockCreate("E2E Coins Vati", 20),
     },
     select: { id: true, slug: true, name: true },
   });

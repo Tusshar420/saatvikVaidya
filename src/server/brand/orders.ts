@@ -9,6 +9,7 @@ import { gstIncluded, type ShippingRule } from "@/server/checkout/totals";
 import { brandLogoUpload, type BrandLogoType } from "@/lib/brand";
 import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
 import { db } from "@/server/db";
+import { componentShortfalls } from "@/server/inventory/availability";
 import { getPaymentProvider } from "@/server/payments";
 import { brandCartTotals, readBrandCart } from "./cart";
 import type { LabelSnapshot } from "@/lib/label";
@@ -140,6 +141,9 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
         const cart = await readBrandCart(userId, tx);
         if (cart.lines.length === 0) throw new Refused("draft");
         if (!cart.ready) throw new Refused("changed");
+        // Lines may share components (a bottle used by two products): the
+        // whole order must be makeable from what is in stock.
+        if ((await componentShortfalls(cart.lines, tx)).length > 0) throw new Refused("changed");
         // Every label is checked against its product's spec once more, and
         // what is approved is saved with the line.
         const labels = new Map((await readLabelLines(userId, profile, tx)).map((line) => [line.productId, line]));

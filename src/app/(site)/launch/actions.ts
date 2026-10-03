@@ -55,6 +55,8 @@ function cartMessage(error: BrandCartError): string {
       return errors.notInCart;
     case "quantity":
       return errors.quantity(error.minQty);
+    case "above_stock":
+      return errors.aboveStock(error.available);
     case "too_many_lines":
       return errors.tooManyLines(error.max);
     case "too_large":

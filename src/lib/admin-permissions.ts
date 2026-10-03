@@ -24,6 +24,7 @@ export type AdminRoleKey = (typeof adminRoles)[number];
  * - admins: admin accounts, roles and invites.
  * - database: the read-only database browser.
  * - errors: the error log (Phase 4).
+ * - inventory: stock of finished goods and Launch components, and recipes.
  */
 export const adminAreas = [
   "dashboard",
@@ -37,12 +38,13 @@ export const adminAreas = [
   "admins",
   "database",
   "errors",
+  "inventory",
 ] as const;
 export type AdminArea = (typeof adminAreas)[number];
 
 const roleAreas: Record<AdminRoleKey, readonly AdminArea[]> = {
   super: adminAreas,
-  catalogue: ["dashboard", "catalogue"],
+  catalogue: ["dashboard", "catalogue", "inventory"],
   orders: ["dashboard", "orders", "reports"],
   content: ["dashboard", "content"],
   approvals: ["dashboard", "approvals"],

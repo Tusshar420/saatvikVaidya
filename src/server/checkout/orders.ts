@@ -14,6 +14,9 @@ import { checkout as checkoutCopy } from "@/content/checkout";
 import { EBOOK_SAC_CODE } from "@/lib/ebooks";
 import { ownedEbookIds } from "@/server/ebooks/ebooks";
 import { db } from "@/server/db";
+import { sellableByProduct } from "@/server/inventory/availability";
+import { StockError } from "@/server/inventory/engine";
+import { reserveOrderStock } from "@/server/inventory/orders";
 import { getPaymentProvider } from "@/server/payments";
 import type { PricingViewer } from "@/server/pricing/rules";
 import { holdCoins, ledgerTransaction, lockedSummary, lockUser } from "@/server/coins/ledger";
@@ -124,9 +127,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         });
         const items = cart?.items ?? [];
         if (items.length === 0) throw new CheckoutRefused("empty");
+        const sellable = await sellableByProduct(
+          items.flatMap((item) => (item.product ? [item.product.id] : [])),
+          tx,
+        );
         const lines = items.flatMap((item) =>
           item.product
-            ? [{ line: priceLine(item.product, item.quantity, viewer), product: item.product }]
+            ? [
+                {
+                  line: priceLine(item.product, item.quantity, viewer, sellable.get(item.product.id) ?? 0),
+                  product: item.product,
+                },
+              ]
             : [],
         );
         // Paid ebooks (P1.8) come after the products, as on the cart page.
@@ -222,6 +234,20 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         if (coinsUsed > 0 && !(await holdCoins(tx, userId, id, coinsUsed))) {
           throw new CheckoutRefused("coins");
         }
+        // The stock is held while payment is under way (and given back if it
+        // fails, or the hold lapses).
+        try {
+          await reserveOrderStock(
+            tx,
+            id,
+            lines.map(({ line }) => ({ productId: line.productId, quantity: line.quantity })),
+          );
+        } catch (error) {
+          if (error instanceof StockError && error.code === "insufficient") {
+            throw new CheckoutRefused("cart_changed");
+          }
+          throw error;
+        }
         await tx.address.update({
           where: { id: address.id },
           data: { lastUsedAt: new Date() },
@@ -306,7 +332,7 @@ export async function retryPayment(userId: string, orderId: string): Promise<Liv
   if (!getPaymentProvider().isAvailable()) return null;
   const order = await db.order.findFirst({
     where: { id: orderId, userId },
-    select: { status: true, coinsRedeemed: true },
+    select: { status: true, type: true, coinsRedeemed: true },
   });
   if (!order) return null;
   if (order.status === "payment_failed") {
@@ -314,7 +340,7 @@ export async function retryPayment(userId: string, orderId: string): Promise<Liv
     // attempt, or leave the order as it is if they have been spent since.
     // The order is claimed first, then the coins (the order every other
     // path locks in); if the coins are gone the claim is rolled back.
-    class CoinsGone extends Error {}
+    class CannotRetry extends Error {}
     try {
       await ledgerTransaction(async (tx) => {
         await tx.order.updateMany({
@@ -322,11 +348,31 @@ export async function retryPayment(userId: string, orderId: string): Promise<Liv
           data: { status: "pending_payment" },
         });
         if (order.coinsRedeemed > 0 && !(await holdCoins(tx, userId, orderId, order.coinsRedeemed))) {
-          throw new CoinsGone();
+          throw new CannotRetry();
+        }
+        // The failed attempt gave the stock back: hold it again, or leave
+        // the order as it is if it has been sold meanwhile.
+        // (Launch orders hold nothing until they are paid.)
+        const items =
+          order.type === "brand"
+            ? []
+            : await tx.orderItem.findMany({
+                where: { orderId, kind: "product", productId: { not: null } },
+          select: { productId: true, quantity: true },
+        });
+        try {
+          await reserveOrderStock(
+            tx,
+            orderId,
+            items.flatMap((item) => (item.productId === null ? [] : [{ productId: item.productId, quantity: item.quantity }])),
+          );
+        } catch (error) {
+          if (error instanceof StockError) throw new CannotRetry();
+          throw error;
         }
       });
     } catch (error) {
-      if (error instanceof CoinsGone) return null;
+      if (error instanceof CannotRetry) return null;
       throw error;
     }
   }

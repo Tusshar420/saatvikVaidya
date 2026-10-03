@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   BarChart3,
   BookOpen,
+  Boxes,
   Building2,
   Coins,
   Clapperboard,
@@ -33,6 +34,7 @@ import {
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
+import { inventory as inventoryCopy } from "@/content/inventory";
 import { errorLog } from "@/content/errors";
 import { adminSecurity } from "@/content/admin-security";
 import { adminHome } from "@/content/admin-site";
@@ -49,6 +51,7 @@ const main: NavLink[] = [
   { href: "/admin/approvals", area: "approvals", label: copy.nav.approvals, icon: BadgeCheck },
   { href: "/admin/catalogue", area: "catalogue", label: copy.nav.catalogue, icon: Pill },
   { href: "/admin/ebooks", area: "catalogue", label: copy.nav.ebooks, icon: BookOpen },
+  { href: "/admin/inventory", area: "inventory", label: inventoryCopy.nav, icon: Boxes },
 ];
 
 const content: NavLink[] = [

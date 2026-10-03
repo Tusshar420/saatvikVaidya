@@ -3,7 +3,7 @@ import { db } from "@/server/db";
 import { guestViewer, type PricingViewer } from "@/server/pricing/rules";
 import { seedDatabase } from "@/server/seed";
 import { clearAuthTables, clearContentTables } from "../../../tests/setup/content-db";
-import { makeProduct, makeUser } from "../../../tests/setup/shop";
+import { makeProduct, makeUser, setStock } from "../../../tests/setup/shop";
 import {
   addToCart,
   cartCount,
@@ -191,7 +191,7 @@ describe("readCart", () => {
     await addToCart(owner, short.id, 5);
     await addToCart(owner, fine.id, 1);
     await db.product.update({ where: { id: hidden.id }, data: { active: false } });
-    await db.product.update({ where: { id: short.id }, data: { stock: 3 } });
+    await setStock(db, short.id, 3);
 
     const cart = await readCart(owner, guestViewer, shipping);
     expect(cart.hasIssues).toBe(true);

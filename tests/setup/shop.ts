@@ -43,7 +43,6 @@ export async function makeProduct(
       professionalPricePaise: values.professionalPricePaise ?? 24_000,
       gstRate: values.gstRate ?? 5,
       hsnCode: "30049011",
-      stock: values.stock ?? 50,
       moq: values.moq ?? 1,
       active: values.active ?? true,
       bulkTiers: values.bulkTiers ? { create: values.bulkTiers } : undefined,
@@ -57,6 +56,7 @@ export async function makeProduct(
     },
     select: { id: true, slug: true },
   });
+  await giveStock(db, product.id, values.stock ?? 50);
   return product;
 }
 
@@ -86,8 +86,29 @@ export async function makeUser(
   return id;
 }
 
+export { stockCreate } from "./stock-create";
+
+/** Makes the product's finished-goods item with one batch of `quantity` units (no expiry). */
+export async function giveStock(db: PrismaClient, productId: number, quantity: number): Promise<number> {
+  const product = await db.product.findUniqueOrThrow({ where: { id: productId }, select: { name: true } });
+  const item = await db.stockItem.create({
+    data: { kind: "finished", name: product.name, productId, onHand: quantity },
+    select: { id: true },
+  });
+  await db.stockBatch.create({ data: { itemId: item.id, batchNo: "TEST", qtyOnHand: quantity } });
+  return item.id;
+}
+
+/** Sets a product's single test batch to exactly `quantity` units (nothing held). */
+export async function setStock(db: PrismaClient, productId: number, quantity: number): Promise<void> {
+  const item = await db.stockItem.findUniqueOrThrow({ where: { productId }, select: { id: true } });
+  await db.stockItem.update({ where: { id: item.id }, data: { onHand: quantity, reserved: 0 } });
+  await db.stockBatch.updateMany({ where: { itemId: item.id }, data: { qtyOnHand: quantity, qtyReserved: 0 } });
+}
+
+/** Units on hand for the product (held units are still on hand until the sale). */
 export const stockOf = async (db: PrismaClient, id: number) =>
-  (await db.product.findUniqueOrThrow({ where: { id }, select: { stock: true } })).stock;
+  (await db.stockItem.findUniqueOrThrow({ where: { productId: id }, select: { onHand: true } })).onHand;
 
 /** Address form values that pass parseAddress(). */
 export const validAddress = {

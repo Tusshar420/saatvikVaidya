@@ -79,6 +79,12 @@ export function BrandForm({ action, initial, mode }: BrandFormProps) {
           required
           className="sm:col-span-2"
         />
+        <CheckboxField
+          name="isPartner"
+          label={form.isPartner}
+          values={values}
+          className="sm:col-span-2"
+        />
       </FormSection>
       <FormSection title={form.sections.link}>
         <TextField

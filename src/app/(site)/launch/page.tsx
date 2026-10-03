@@ -3,8 +3,18 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CreditCard, PackageSearch, Phone, Search, ShoppingBag, X } from "lucide-react";
-import { saveBrandAddressAction, placeBrandOrderAction } from "@/app/(site)/launch/actions";
+import {
+  CreditCard,
+  PackageSearch,
+  Phone,
+  Search,
+  ShoppingBag,
+  X,
+} from "lucide-react";
+import {
+  saveBrandAddressAction,
+  placeBrandOrderAction,
+} from "@/app/(site)/launch/actions";
 import { AddToLaunchCart } from "@/components/site/brand/add-to-launch-cart";
 import { BrandProfiles } from "@/components/site/brand/brand-profiles";
 import { LabelDetailsForm } from "@/components/site/brand/label-details-form";
@@ -46,7 +56,11 @@ import {
   type BrandProduct,
 } from "@/server/brand/drafts";
 import { readLabelLines } from "@/server/brand/labels";
-import { chosenProfile, listProfiles, type BrandProfileView } from "@/server/brand/profiles";
+import {
+  chosenProfile,
+  listProfiles,
+  type BrandProfileView,
+} from "@/server/brand/profiles";
 import { listAddresses } from "@/server/checkout/addresses";
 import { getSetting } from "@/server/content/settings";
 import { paymentsAvailable } from "@/server/payments";
@@ -65,10 +79,14 @@ export const metadata: Metadata = {
  * before it are done (the cart itself always opens); anything else goes
  * back to the furthest step allowed.
  */
-export default async function LaunchPage({ searchParams }: PageProps<"/launch">) {
+export default async function LaunchPage({
+  searchParams,
+}: PageProps<"/launch">) {
   const params = await searchParams;
   const requested = launchStepNumber(params.step);
-  const { user } = await requireUser(requested > 1 ? `/launch?step=${requested}` : "/launch");
+  const { user } = await requireUser(
+    requested > 1 ? `/launch?step=${requested}` : "/launch",
+  );
   const [cart, draft, profiles] = await Promise.all([
     readBrandCart(user.id),
     readDraft(user.id),
@@ -83,9 +101,14 @@ export default async function LaunchPage({ searchParams }: PageProps<"/launch">)
     <div className="shell py-8 sm:py-12">
       <Eyebrow>{copy.launch.eyebrow}</Eyebrow>
       <h1 className="mt-2 text-h2 text-ink">
-        {copy.launch.title} <em className="block text-teal not-italic">{copy.launch.titleEmphasis}</em>
+        {copy.launch.title}{" "}
+        <em className="block text-teal not-italic">
+          {copy.launch.titleEmphasis}
+        </em>
       </h1>
-      <p className="mt-3 max-w-2xl text-body-lg text-muted">{copy.launch.intro}</p>
+      <p className="mt-3 max-w-2xl text-body-lg text-muted">
+        {copy.launch.intro}
+      </p>
 
       <Stepper
         label={copy.launch.stepsLabel}
@@ -100,9 +123,21 @@ export default async function LaunchPage({ searchParams }: PageProps<"/launch">)
         </p>
         {step === 1 && <ProductStep cart={cart} params={params} />}
         {step === 2 && <CartStep cart={cart} />}
-        {step === 3 && <PackagingStep userId={user.id} draft={draft} profiles={profiles} profile={profile} />}
+        {step === 3 && (
+          <PackagingStep
+            userId={user.id}
+            draft={draft}
+            profiles={profiles}
+            profile={profile}
+          />
+        )}
         {step === 4 && draft && profile && (
-          <ReviewStep cart={cart} draft={draft} profile={profile} userId={user.id} />
+          <ReviewStep
+            cart={cart}
+            draft={draft}
+            profile={profile}
+            userId={user.id}
+          />
         )}
       </section>
     </div>
@@ -134,11 +169,14 @@ async function ProductStep({
     getSetting("checkout.shipping"),
   ]);
   const { filters, products } = listing;
-  const inCart = new Map(cart.lines.map((line) => [line.productId, line.quantity]));
+  const inCart = new Map(
+    cart.lines.map((line) => [line.productId, line.quantity]),
+  );
   const text = copy.product;
   const filterText = text.filters;
-  const hrefFor = (next: Partial<Record<keyof typeof filters, string | number | undefined>>) =>
-    launchHref({ ...filters, ...next, page: undefined });
+  const hrefFor = (
+    next: Partial<Record<keyof typeof filters, string | number | undefined>>,
+  ) => launchHref({ ...filters, ...next, page: undefined });
 
   if (listing.totalEligible === 0) {
     return (
@@ -160,7 +198,10 @@ async function ProductStep({
   const rupees = (n: number) => formatPaise(n * 100);
   const priceChip =
     filters.minPrice !== undefined && filters.maxPrice !== undefined
-      ? filterText.priceRange(rupees(filters.minPrice), rupees(filters.maxPrice))
+      ? filterText.priceRange(
+          rupees(filters.minPrice),
+          rupees(filters.maxPrice),
+        )
       : filters.minPrice !== undefined
         ? filterText.priceFrom(rupees(filters.minPrice))
         : filters.maxPrice !== undefined
@@ -174,8 +215,12 @@ async function ProductStep({
       [["maker"], nameOf(listing.makers, filters.maker)],
       [["minPrice", "maxPrice"], priceChip],
     ] as [(keyof typeof filters)[], string | undefined][]
-  ).filter((chip): chip is [(keyof typeof filters)[], string] => Boolean(chip[1]));
-  const resultsLabel = filters.q ? text.resultsFor(listing.total, filters.q) : text.results(listing.total);
+  ).filter((chip): chip is [(keyof typeof filters)[], string] =>
+    Boolean(chip[1]),
+  );
+  const resultsLabel = filters.q
+    ? text.resultsFor(listing.total, filters.q)
+    : text.results(listing.total);
 
   return (
     <>
@@ -194,19 +239,38 @@ async function ProductStep({
               formatPaise(brandCartTotals(cart, shipping).totalPaise),
             )}
           </p>
-          <Link href="/launch?step=2" className={buttonClasses({ size: "sm", className: "max-sm:w-full" })}>
+          <Link
+            href="/launch?step=2"
+            className={buttonClasses({
+              size: "sm",
+              className: "max-sm:w-full",
+            })}
+          >
             {text.cartBar.view}
             <ButtonArrow />
           </Link>
         </section>
       )}
 
-      <form method="get" action="/launch" role="search" aria-label={text.searchLabel} className="mt-5 flex max-w-xl gap-2">
-        {(["form", "area", "maker", "minPrice", "maxPrice", "sort"] as const).map(
+      <form
+        method="get"
+        action="/launch"
+        role="search"
+        aria-label={text.searchLabel}
+        className="mt-5 flex max-w-xl gap-2"
+      >
+        {(
+          ["form", "area", "maker", "minPrice", "maxPrice", "sort"] as const
+        ).map(
           (name) =>
             filters[name] !== undefined &&
             !(name === "sort" && filters.sort === "featured") && (
-              <input key={name} type="hidden" name={name} value={filters[name]} />
+              <input
+                key={name}
+                type="hidden"
+                name={name}
+                value={filters[name]}
+              />
             ),
         )}
         <label htmlFor="launch-q" className="sr-only">
@@ -256,15 +320,26 @@ async function ProductStep({
 
         <section aria-labelledby="launch-results" className="min-w-0">
           <div className="mb-4 flex flex-col gap-3">
-            <h3 id="launch-results" aria-live="polite" className="text-base font-extrabold text-ink">
+            <h3
+              id="launch-results"
+              aria-live="polite"
+              className="text-base font-extrabold text-ink"
+            >
               {resultsLabel}
             </h3>
             {chips.length > 0 && (
-              <ul aria-label={filterText.active} className="flex flex-wrap gap-2">
+              <ul
+                aria-label={filterText.active}
+                className="flex flex-wrap gap-2"
+              >
                 {chips.map(([names, label]) => (
                   <li key={names.join("-")}>
                     <Link
-                      href={hrefFor(Object.fromEntries(names.map((name) => [name, undefined])))}
+                      href={hrefFor(
+                        Object.fromEntries(
+                          names.map((name) => [name, undefined]),
+                        ),
+                      )}
                       aria-label={filterText.remove(label)}
                       className="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-teal bg-teal-soft px-3 text-sm font-bold text-teal transition hover:bg-surface"
                     >
@@ -283,21 +358,37 @@ async function ProductStep({
               icon={<PackageSearch aria-hidden />}
               title={text.empty}
               action={
-                <Link href="/launch" className={buttonClasses({ variant: "secondary" })}>
+                <Link
+                  href="/launch"
+                  className={buttonClasses({ variant: "secondary" })}
+                >
                   {text.clearAll}
                 </Link>
               }
             />
           ) : (
             <>
-              <ul aria-label={text.listLabel} className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+              <ul
+                aria-label={text.listLabel}
+                className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3"
+              >
                 {products.map((product) => (
-                  <ProductChoice key={product.id} product={product} inCart={inCart.get(product.id) ?? null} />
+                  <ProductChoice
+                    key={product.id}
+                    product={product}
+                    inCart={inCart.get(product.id) ?? null}
+                  />
                 ))}
               </ul>
               <CataloguePagination
                 basePath="/launch"
-                params={{ ...filters, page: undefined, sort: filters.sort === "featured" ? undefined : filters.sort, minPrice: filters.minPrice?.toString(), maxPrice: filters.maxPrice?.toString() }}
+                params={{
+                  ...filters,
+                  page: undefined,
+                  sort: filters.sort === "featured" ? undefined : filters.sort,
+                  minPrice: filters.minPrice?.toString(),
+                  maxPrice: filters.maxPrice?.toString(),
+                }}
                 page={listing.page}
                 pageCount={listing.pageCount}
               />
@@ -315,11 +406,19 @@ async function ProductStep({
  * price in a teal panel (the retail price isn't shown), and "Add to launch
  * cart" instead of the store's Add to cart.
  */
-function ProductChoice({ product, inCart }: { product: BrandProduct; inCart: number | null }) {
+function ProductChoice({
+  product,
+  inCart,
+}: {
+  product: BrandProduct;
+  inCart: number | null;
+}) {
   const text = copy.product;
   const { terms } = product;
   const best = terms.tiers.at(-1);
   const chosen = inCart !== null;
+  // Fewer can be made than the minimum order: nothing can be ordered yet.
+  const soldOut = product.makeable !== null && product.makeable < terms.minQty;
   return (
     <li
       className={cn(
@@ -335,34 +434,68 @@ function ProductChoice({ product, inCart }: { product: BrandProduct; inCart: num
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-        {product.makerName && <p className="truncate text-label text-muted uppercase">{product.makerName}</p>}
-        <h4 className="text-[15px] leading-snug font-bold text-ink sm:text-base">{product.name}</h4>
+        {product.makerName && (
+          <p className="truncate text-label text-muted uppercase">
+            {product.makerName}
+          </p>
+        )}
+        <h4 className="text-[15px] leading-snug font-bold text-ink sm:text-base">
+          {product.name}
+        </h4>
         <p className="text-small text-muted">
           {product.formName} · {product.packSize}
         </p>
         <div className="mt-2 rounded-md bg-teal-soft/60 p-2.5">
           <p className="text-sm font-extrabold text-ink">
             {text.price(formatPaise(terms.unitPricePaise))}
-            <span className="block text-small font-medium text-muted">{text.priceNote}</span>
+            <span className="block text-small font-medium text-muted">
+              {text.priceNote}
+            </span>
           </p>
           <p className="mt-1.5 text-small font-bold text-teal">
             {text.minimum(terms.minQty, terms.unitLabel)}
-            {terms.minQty > 1 && <span className="block font-medium text-muted">{text.steps(terms.minQty)}</span>}
+            {terms.minQty > 1 && (
+              <span className="block font-medium text-muted">
+                {text.steps(terms.minQty)}
+              </span>
+            )}
           </p>
+          {product.makeable !== null && (
+            <p
+              className={cn(
+                "mt-1.5 text-small font-bold",
+                soldOut ? "text-danger" : "text-green",
+              )}
+            >
+              {soldOut
+                ? text.outOfStock
+                : text.available(product.makeable, terms.unitLabel)}
+            </p>
+          )}
           {best && (
             <p className="mt-1.5 text-small font-bold text-ink">
-              {text.bulkFrom(best.minQty, terms.unitLabel, formatPaise(best.unitPricePaise))}
+              {text.bulkFrom(
+                best.minQty,
+                terms.unitLabel,
+                formatPaise(best.unitPricePaise),
+              )}
             </p>
           )}
         </div>
         <div className="mt-auto pt-3">
-          <AddToLaunchCart
-            productId={product.id}
-            productName={product.name}
-            minQty={terms.minQty}
-            unitLabel={terms.unitLabel}
-            inCart={inCart}
-          />
+          {soldOut && inCart === null ? (
+            <p className="text-small font-medium text-muted">
+              {text.outOfStockLine}
+            </p>
+          ) : (
+            <AddToLaunchCart
+              productId={product.id}
+              productName={product.name}
+              minQty={terms.minQty}
+              unitLabel={terms.unitLabel}
+              inCart={inCart}
+            />
+          )}
         </div>
       </div>
     </li>
@@ -412,10 +545,19 @@ async function CartStep({ cart }: { cart: BrandCartView }) {
             {text.addMore}
           </Link>
         </div>
-        <OrderSummary title={text.summaryTitle} totals={totals} className="lg:sticky lg:top-40">
-          <p className="text-small text-muted">{text.count(cart.lines.length)}</p>
+        <OrderSummary
+          title={text.summaryTitle}
+          totals={totals}
+          className="lg:sticky lg:top-40"
+        >
+          <p className="text-small text-muted">
+            {text.count(cart.lines.length)}
+          </p>
           {cart.ready ? (
-            <Link href="/launch?step=3" className={buttonClasses({ className: "w-full" })}>
+            <Link
+              href="/launch?step=3"
+              className={buttonClasses({ className: "w-full" })}
+            >
               {text.continue}
               <ButtonArrow />
             </Link>
@@ -442,12 +584,17 @@ function CartLine({ line }: { line: BrandCartLine }) {
   return (
     <li className="flex gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:gap-4 sm:p-5">
       <div className="relative size-14 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-alt sm:size-20">
-        <ProductVisual image={product?.image ?? null} glyph={product?.glyph ?? null} />
+        <ProductVisual
+          image={product?.image ?? null}
+          glyph={product?.glyph ?? null}
+        />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <div className="min-w-0">
-            <h3 className="text-base font-extrabold break-words text-ink">{line.name}</h3>
+            <h3 className="text-base font-extrabold break-words text-ink">
+              {line.name}
+            </h3>
             {product && (
               <p className="text-small text-muted">
                 {product.formName} · {product.packSize}
@@ -456,8 +603,12 @@ function CartLine({ line }: { line: BrandCartLine }) {
           </div>
           {product && (
             <p className="text-right">
-              <span className="block text-small text-muted">{text.lineTotal}</span>
-              <span className="text-base font-extrabold text-ink">{formatPaise(line.lineTotalPaise)}</span>
+              <span className="block text-small text-muted">
+                {text.lineTotal}
+              </span>
+              <span className="text-base font-extrabold text-ink">
+                {formatPaise(line.lineTotalPaise)}
+              </span>
             </p>
           )}
         </div>
@@ -467,26 +618,45 @@ function CartLine({ line }: { line: BrandCartLine }) {
         ) : (
           <>
             <p className="flex flex-wrap items-center gap-2 text-sm text-ink">
-              <span className="font-bold">{text.each(formatPaise(line.unitPricePaise))}</span>
+              <span className="font-bold">
+                {text.each(formatPaise(line.unitPricePaise))}
+              </span>
               {bulk && <Badge variant="teal">{text.bulkApplied}</Badge>}
               <span id={ruleId} className="text-small text-muted">
                 {text.steps(terms.minQty, unit)}
               </span>
             </p>
             {terms.tiers.length > 0 && (
-              <ul aria-label={text.tiersLabel(line.name)} className="flex flex-wrap gap-1.5">
-                {[{ minQty: terms.minQty, unitPricePaise: terms.unitPricePaise }, ...terms.tiers].map((tier) => {
+              <ul
+                aria-label={text.tiersLabel(line.name)}
+                className="flex flex-wrap gap-1.5"
+              >
+                {[
+                  {
+                    minQty: terms.minQty,
+                    unitPricePaise: terms.unitPricePaise,
+                  },
+                  ...terms.tiers,
+                ].map((tier) => {
                   const current = tier.unitPricePaise === line.unitPricePaise;
                   return (
                     <li
                       key={tier.minQty}
                       className={cn(
                         "rounded-sm border px-2 py-1 text-small",
-                        current ? "border-teal bg-teal-soft font-bold text-teal" : "border-line text-muted",
+                        current
+                          ? "border-teal bg-teal-soft font-bold text-teal"
+                          : "border-line text-muted",
                       )}
                     >
-                      {text.tier(tier.minQty, unit, formatPaise(tier.unitPricePaise))}
-                      {current && <span className="sr-only"> ({text.currentTier})</span>}
+                      {text.tier(
+                        tier.minQty,
+                        unit,
+                        formatPaise(tier.unitPricePaise),
+                      )}
+                      {current && (
+                        <span className="sr-only"> ({text.currentTier})</span>
+                      )}
                     </li>
                   );
                 })}
@@ -494,10 +664,18 @@ function CartLine({ line }: { line: BrandCartLine }) {
             )}
             {next && (
               <p className="text-small font-medium text-ink">
-                {text.nextTier(next.unitsMore, unit, formatPaise(next.tier.unitPricePaise))}
+                {text.nextTier(
+                  next.unitsMore,
+                  unit,
+                  formatPaise(next.tier.unitPricePaise),
+                )}
               </p>
             )}
-            {!line.valid && <FormAlert>{text.invalid(terms.minQty)}</FormAlert>}
+            {line.overStock && product.makeable !== null ? (
+              <FormAlert>{text.overStock(product.makeable, unit)}</FormAlert>
+            ) : (
+              !line.valid && <FormAlert>{text.invalid(terms.minQty)}</FormAlert>
+            )}
           </>
         )}
         <LaunchCartLineControls
@@ -541,14 +719,21 @@ async function PackagingStep({
     <>
       <StepHeading title={copy.packaging.title} line={copy.packaging.line} />
       <div className="mt-6 flex max-w-4xl flex-col gap-8">
-        <section aria-labelledby="launch-brands-title" className="flex flex-col gap-3">
+        <section
+          aria-labelledby="launch-brands-title"
+          className="flex flex-col gap-3"
+        >
           <div>
             <h3 id="launch-brands-title" className="text-h3 text-ink">
               {copy.profiles.title}
             </h3>
             <p className="mt-1 text-body text-muted">{copy.profiles.line}</p>
           </div>
-          <BrandProfiles profiles={profiles} selectedId={profile?.id ?? null} max={MAX_BRAND_PROFILES} />
+          <BrandProfiles
+            profiles={profiles}
+            selectedId={profile?.id ?? null}
+            max={MAX_BRAND_PROFILES}
+          />
         </section>
         {profile?.logo ? (
           <LabelDetailsForm
@@ -566,7 +751,9 @@ async function PackagingStep({
           />
         ) : (
           profiles.length > 0 && (
-            <p className="text-sm font-bold text-muted">{copy.packaging.errors.logo}</p>
+            <p className="text-sm font-bold text-muted">
+              {copy.packaging.errors.logo}
+            </p>
           )
         )}
       </div>
@@ -616,13 +803,14 @@ async function ReviewStep({
   profile: BrandProfileView;
   userId: string;
 }) {
-  const [shipping, addresses, phone, checkoutSwitch, labelLines] = await Promise.all([
-    getSetting("checkout.shipping"),
-    listAddresses(userId),
-    getSetting("contact.phone"),
-    getSetting("checkout.enabled"),
-    readLabelLines(userId, profile),
-  ]);
+  const [shipping, addresses, phone, checkoutSwitch, labelLines] =
+    await Promise.all([
+      getSetting("checkout.shipping"),
+      listAddresses(userId),
+      getSetting("contact.phone"),
+      getSetting("checkout.enabled"),
+      readLabelLines(userId, profile),
+    ]);
   const totals = brandCartTotals(cart, shipping);
   const text = copy.review;
   const logo = profileLogoProps(profile);
@@ -631,13 +819,17 @@ async function ReviewStep({
     [copy.detail.tagline, profile.tagline],
     [
       copy.detail.marketedBy,
-      [profile.marketedByName, profile.marketedByAddress].filter(Boolean).join(", ") || null,
+      [profile.marketedByName, profile.marketedByAddress]
+        .filter(Boolean)
+        .join(", ") || null,
     ],
     [copy.detail.contactPhone, profile.contactPhone],
     [copy.detail.licenceNumbers, profile.licenceNumbers],
     [copy.detail.notes, draft.notes],
   ];
-  const lines = cart.lines.flatMap((line) => (line.product ? [{ ...line, product: line.product }] : []));
+  const lines = cart.lines.flatMap((line) =>
+    line.product ? [{ ...line, product: line.product }] : [],
+  );
 
   return (
     <>
@@ -646,14 +838,25 @@ async function ReviewStep({
         <ReviewCard title={text.products} editStep={2}>
           <ul className="flex flex-col divide-y divide-line">
             {lines.map((line) => (
-              <li key={line.productId} className="flex justify-between gap-3 py-2 first:pt-0 last:pb-0">
+              <li
+                key={line.productId}
+                className="flex justify-between gap-3 py-2 first:pt-0 last:pb-0"
+              >
                 <span className="min-w-0">
-                  <span className="block font-bold break-words">{line.name}</span>
+                  <span className="block font-bold break-words">
+                    {line.name}
+                  </span>
                   <span className="text-muted">
-                    {text.itemDetail(line.quantity, line.product.terms.unitLabel, formatPaise(line.unitPricePaise))}
+                    {text.itemDetail(
+                      line.quantity,
+                      line.product.terms.unitLabel,
+                      formatPaise(line.unitPricePaise),
+                    )}
                   </span>
                 </span>
-                <span className="shrink-0 font-bold">{formatPaise(line.lineTotalPaise)}</span>
+                <span className="shrink-0 font-bold">
+                  {formatPaise(line.lineTotalPaise)}
+                </span>
               </li>
             ))}
           </ul>
@@ -661,7 +864,10 @@ async function ReviewStep({
         <ReviewCard title={text.packaging} editStep={3}>
           <div className="flex flex-col gap-3">
             {logo ? (
-              <LogoPreview {...logo} alt={copy.packaging.logo.previewAlt(profile.brandName)} />
+              <LogoPreview
+                {...logo}
+                alt={copy.packaging.logo.previewAlt(profile.brandName)}
+              />
             ) : (
               <p className="text-muted">{text.noLogo}</p>
             )}
@@ -680,20 +886,32 @@ async function ReviewStep({
         <ReviewCard title={copy.labels.review.title} editStep={3}>
           <ul className="flex flex-col divide-y divide-line">
             {labelLines.map((line) => {
-              const edited = specFields(line.spec).filter((field) => line.overrides[field] !== undefined);
+              const edited = specFields(line.spec).filter(
+                (field) => line.overrides[field] !== undefined,
+              );
               return (
                 <li key={line.productId} className="py-2 first:pt-0 last:pb-0">
                   <details>
                     <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="min-w-0 flex-1 font-bold break-words">{line.name}</span>
-                      {edited.length > 0 && <Badge variant="gold">{copy.labels.review.edited}</Badge>}
+                      <span className="min-w-0 flex-1 font-bold break-words">
+                        {line.name}
+                      </span>
+                      {edited.length > 0 && (
+                        <Badge variant="gold">
+                          {copy.labels.review.edited}
+                        </Badge>
+                      )}
                     </summary>
                     <dl className="mt-2 flex flex-col gap-1.5">
                       {specFields(line.spec).map((field) =>
                         line.values[field] ? (
                           <div key={field} className="min-w-0">
-                            <dt className="text-small font-bold text-muted">{copy.labels.fields[field]}</dt>
-                            <dd className="break-words whitespace-pre-line">{line.values[field]}</dd>
+                            <dt className="text-small font-bold text-muted">
+                              {copy.labels.fields[field]}
+                            </dt>
+                            <dd className="break-words whitespace-pre-line">
+                              {line.values[field]}
+                            </dd>
                           </div>
                         ) : null,
                       )}
@@ -723,7 +941,11 @@ async function ReviewStep({
           items={lines.map((line) => ({
             key: line.productId,
             name: line.name,
-            detail: text.itemDetail(line.quantity, line.product.terms.unitLabel, formatPaise(line.unitPricePaise)),
+            detail: text.itemDetail(
+              line.quantity,
+              line.product.terms.unitLabel,
+              formatPaise(line.unitPricePaise),
+            ),
             totalPaise: line.lineTotalPaise,
           }))}
           placeAction={placeBrandOrderAction}
@@ -739,7 +961,10 @@ async function ReviewStep({
                 as="h3"
                 className="px-4 py-6"
                 action={
-                  <a href={telHref(phone)} className={buttonClasses({ variant: "secondary" })}>
+                  <a
+                    href={telHref(phone)}
+                    className={buttonClasses({ variant: "secondary" })}
+                  >
                     <Phone aria-hidden className="size-4" />
                     {phone}
                   </a>
