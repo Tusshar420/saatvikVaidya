@@ -13,17 +13,18 @@ import { LogoPreview, type LogoPreviewProps } from "./logo-preview";
 const text = copy.packaging.logo;
 
 /**
- * Step 2's logo: a file picker that uploads straight away to
+ * A saved brand's logo: a file picker that uploads straight away to
  * /api/launch/logo (which checks the type from the bytes), then refreshes
  * the page so the preview shows the stored file.
  */
 export function LogoUpload({
+  profileId,
+  brandName,
   logo,
-  error: fieldError,
 }: {
+  profileId: number;
+  brandName: string;
   logo: Omit<LogoPreviewProps, "alt" | "className"> | null;
-  /** "Upload your logo" when the step was saved without one. */
-  error?: string;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -42,6 +43,7 @@ export function LogoUpload({
     setUploading(true);
     try {
       const form = new FormData();
+      form.set("profileId", String(profileId));
       form.set("file", file);
       const response = await fetch("/api/launch/logo", { method: "POST", body: form });
       const result = (await response.json().catch(() => null)) as
@@ -62,9 +64,7 @@ export function LogoUpload({
     }
   }
 
-  // "Upload your logo" from the last save matters only while there's no logo.
-  const missing = logo ? undefined : fieldError;
-  const describedBy = [error && "logo-error", missing && "logo-missing", "logo-help"].filter(Boolean).join(" ");
+  const describedBy = [error && "logo-error", "logo-help"].filter(Boolean).join(" ");
   return (
     <fieldset className="flex flex-col gap-3" aria-describedby="logo-help">
       <legend className="text-xs font-extrabold text-ink">{text.label}</legend>
@@ -72,7 +72,7 @@ export function LogoUpload({
         {text.help}
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {logo && <LogoPreview {...logo} alt={text.previewAlt("")} />}
+        {logo && <LogoPreview {...logo} alt={text.previewAlt(brandName)} />}
         <div className="flex flex-col gap-2">
           <input
             ref={input}
@@ -105,11 +105,6 @@ export function LogoUpload({
         </div>
       </div>
       {error && <FormAlert id="logo-error">{error}</FormAlert>}
-      {missing && (
-        <p id="logo-missing" className="text-small font-medium text-danger">
-          {missing}
-        </p>
-      )}
     </fieldset>
   );
 }

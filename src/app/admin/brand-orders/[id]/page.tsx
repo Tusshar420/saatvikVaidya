@@ -7,6 +7,7 @@ import { BrandProductionPanel } from "@/components/admin/brand-production-panel"
 import { BrandProofUpload } from "@/components/admin/brand-proof-upload";
 import { CancelOrder } from "@/components/admin/cancel-order";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { OrderLabels } from "@/components/site/brand/order-labels";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
 import { ProofList } from "@/components/site/brand/proof-list";
 import { OrderDocuments } from "@/components/site/orders/order-documents";
@@ -60,6 +61,10 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
         [detailText.tagline, details.tagline],
         [detailText.marketedBy, [details.marketedByName, details.marketedByAddress].filter(Boolean).join(", ") || null],
         [detailText.contactPhone, details.contactPhone],
+        [detailText.licenceNumbers, details.licenceNumbers],
+        [detailText.shortDescription, details.shortDescription],
+        [detailText.longDescription, details.longDescription],
+        [detailText.colours, [details.primaryColour, details.secondaryColour].filter(Boolean).join(", ").toUpperCase() || null],
         [detailText.notes, details.notes],
       ]
     : [];
@@ -126,6 +131,14 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
                 </dl>
               </div>
             )}
+          </Card>
+
+          <Card as="section" aria-labelledby="brand-labels">
+            <h2 id="brand-labels" className="text-h3 text-ink">
+              {text.labelsTitle}
+            </h2>
+            <p className="mt-1 mb-4 text-small text-muted">{text.labelsLine}</p>
+            <OrderLabels items={order.items} empty={text.noLabel} />
           </Card>
 
           <Card as="section" aria-labelledby="brand-product">

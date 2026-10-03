@@ -24,8 +24,9 @@ import {
   removeFromBrandCart,
   setBrandCartQuantity,
 } from "./cart";
-import { draftLogoFile, listBrandProducts, readDraft, saveDraftLogo, savePackaging } from "./drafts";
+import { listBrandProducts, readDraft, savePackaging } from "./drafts";
 import { applyBrandImport, parseCsv, previewBrandImport } from "./import";
+import { chosenProfile, createProfile, listProfiles, profileLogoFile, saveProfileLogo } from "./profiles";
 import {
   brandOrderLogoFile,
   listBrandOrdersForUser,
@@ -44,14 +45,34 @@ const shipping = { feePaise: 8_000, freeFromPaise: 99_900 };
 const png = () => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 1, 2, 3]);
 const svg = () => new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
 
-const packaging = {
+const profileValues = {
+  profileName: "Main brand",
   brandName: "Vaidya Care",
   tagline: "Rooted in classics",
+  shortDescription: "Classical Ayurveda, made simple.",
+  longDescription: "Classical Ayurvedic formulations made to traditional recipes, tested and packed with care.",
   marketedByName: "Vaidya Care LLP",
   marketedByAddress: "12 MG Road\nPune 411001",
   contactPhone: "+91 92203 58400",
-  notes: "",
+  licenceNumbers: "Lic. No. AYU/2024/118",
+  primaryColour: "#1f6f5c",
+  secondaryColour: "",
 };
+
+/** A saved brand with a logo for the user; it becomes their default. */
+async function saveBrand(userId: string, values: Record<string, string> = {}) {
+  const created = await createProfile(userId, { ...profileValues, ...values });
+  if (!created.ok) throw new Error(`brand not saved: ${JSON.stringify(created)}`);
+  const logo = await saveProfileLogo({ userId, profileId: created.id, fileName: "logo.png", bytes: png() });
+  expect(logo.ok).toBe(true);
+  return created.id;
+}
+
+/** The furthest step with the user's current draft and chosen brand. */
+async function stepOf(userId: string) {
+  const [cart, draft, profiles] = await Promise.all([readBrandCart(userId), readDraft(userId), listProfiles(userId)]);
+  return furthestStep(cart, draft, chosenProfile(profiles, draft));
+}
 
 let sent: Message[];
 
@@ -86,9 +107,8 @@ async function readyDraft(options: { quantity?: number; type?: string } = {}) {
   const product = await makeProduct(db, { stock: 3, brand: { minQty: 4, unitPricePaise: 26_000 } });
   const userId = await makeUser(db, { type: options.type ?? "customer" });
   expect(await addToBrandCart(userId, product.id)).toMatchObject({ ok: true, quantity: 4 });
-  const logo = await saveDraftLogo({ userId, fileName: "logo.png", bytes: png() });
-  expect(logo.ok).toBe(true);
-  expect(await savePackaging(userId, packaging)).toEqual({ ok: true });
+  await saveBrand(userId);
+  expect(await savePackaging(userId, { notes: "" })).toEqual({ ok: true });
   expect(await setBrandCartQuantity(userId, product.id, options.quantity ?? 8)).toMatchObject({ ok: true });
   const addressId = await withAddress(userId);
   return { product, userId, addressId };
@@ -181,7 +201,7 @@ describe("the Launch cart", () => {
     const plain = await makeProduct(db);
     const userId = await makeUser(db, { type: "doctor", verificationStatus: "pending" });
 
-    expect(furthestStep(await readBrandCart(userId), await readDraft(userId))).toBe(1);
+    expect((await stepOf(userId))).toBe(1);
     expect(await addToBrandCart(userId, plain.id)).toEqual({ ok: false, error: { kind: "unavailable" } });
     expect(await addToBrandCart(userId, product.id)).toEqual({ ok: true, quantity: 4, count: 1 });
     // Adding it again adds one more step of the minimum.
@@ -196,7 +216,7 @@ describe("the Launch cart", () => {
     expect(cart).toMatchObject({ units: 13, subtotalPaise: 258_000, ready: true });
     // Two GST rates, each in the totals.
     expect(brandCartTotals(cart, shipping).gst.map((group) => group.rate)).toEqual([5, 12]);
-    expect(furthestStep(cart, await readDraft(userId))).toBe(3);
+    expect((await stepOf(userId))).toBe(3);
 
     // Quantities must be positive multiples of the minimum.
     for (const quantity of [0, 2, 5, 6, 10]) {
@@ -209,16 +229,16 @@ describe("the Launch cart", () => {
     expect(await setBrandCartQuantity(userId, plain.id, 4)).toEqual({ ok: false, error: { kind: "not_in_cart" } });
 
     // Packaging, then the review step opens.
-    expect((await saveDraftLogo({ userId, fileName: "logo.png", bytes: png() })).ok).toBe(true);
-    expect(await savePackaging(userId, packaging)).toEqual({ ok: true });
-    expect(furthestStep(await readBrandCart(userId), await readDraft(userId))).toBe(4);
+    await saveBrand(userId);
+    expect(await savePackaging(userId, { notes: "" })).toEqual({ ok: true });
+    expect((await stepOf(userId))).toBe(4);
 
     // A product taken off branding stays in the cart, unpriced, and blocks checkout.
     await db.product.update({ where: { id: other.id }, data: { brandEligible: false } });
     const gone = await readBrandCart(userId);
     expect(gone.lines[1]).toMatchObject({ product: null, valid: false, lineTotalPaise: 0 });
     expect(gone.ready).toBe(false);
-    expect(furthestStep(gone, await readDraft(userId))).toBe(2);
+    expect((await stepOf(userId))).toBe(2);
     expect(await removeFromBrandCart(userId, other.id)).toEqual({ count: 1 });
     expect((await readBrandCart(userId)).ready).toBe(true);
     // A changed minimum makes the line invalid until it is fixed.
@@ -227,7 +247,7 @@ describe("the Launch cart", () => {
     expect(await addToBrandCart(userId, product.id)).toMatchObject({ ok: true, quantity: 20 });
 
     expect(await removeFromBrandCart(userId, product.id)).toEqual({ count: 0 });
-    expect(furthestStep(await readBrandCart(userId), await readDraft(userId))).toBe(1);
+    expect((await stepOf(userId))).toBe(1);
   });
 
   it("prices each line at the bulk tier its quantity reaches", async () => {
@@ -292,55 +312,58 @@ describe("the Launch cart", () => {
 });
 
 describe("drafts", () => {
-  it("checks the packaging, which needs a logo", async () => {
+  it("confirms the packaging only with a product, a brand and a logo", async () => {
     const product = await makeProduct(db, { brand: { minQty: 4, unitPricePaise: 26_000 } });
     const userId = await makeUser(db);
-    expect(await savePackaging(userId, packaging)).toEqual({ ok: false, noProduct: true });
+    expect(await savePackaging(userId, { notes: "" })).toEqual({ ok: false, noProduct: true });
     await addToBrandCart(userId, product.id);
+    expect(await savePackaging(userId, { notes: "" })).toEqual({ ok: false, noProfile: true });
 
-    const noLogo = await savePackaging(userId, packaging);
-    expect(noLogo.ok).toBe(false);
-    if (!noLogo.ok && "fieldErrors" in noLogo) expect(Object.keys(noLogo.fieldErrors)).toEqual(["logo"]);
+    const created = await createProfile(userId, profileValues);
+    expect(created.ok).toBe(true);
+    expect(await savePackaging(userId, { notes: "" })).toEqual({ ok: false, noLogo: true });
 
-    expect(await saveDraftLogo({ userId, fileName: "logo.svg", bytes: svg() })).toEqual({
+    if (!created.ok) return;
+    expect(await saveProfileLogo({ userId, profileId: created.id, fileName: "logo.svg", bytes: svg() })).toEqual({
       ok: false,
       error: "fileType",
     });
-    expect((await saveDraftLogo({ userId, fileName: "../../etc/logo.png", bytes: png() })).ok).toBe(true);
-    const bad = await savePackaging(userId, {
-      ...packaging,
-      brandName: " ",
-      tagline: "x".repeat(121),
-      contactPhone: "12",
-    });
-    expect(bad.ok).toBe(false);
-    if (!bad.ok && "fieldErrors" in bad) {
-      expect(Object.keys(bad.fieldErrors).sort()).toEqual(["brandName", "contactPhone", "tagline"]);
-    }
-    expect(await savePackaging(userId, packaging)).toEqual({ ok: true });
+    expect(
+      (await saveProfileLogo({ userId, profileId: created.id, fileName: "../../etc/logo.png", bytes: png() })).ok,
+    ).toBe(true);
+    expect(await savePackaging(userId, { notes: "x".repeat(1001) })).toMatchObject({ ok: false, notesError: expect.any(String) });
+    expect(await savePackaging(userId, { notes: "Use the green." })).toEqual({ ok: true });
     const draft = await readDraft(userId);
-    expect(draft?.logo?.name).toBe("logo.png");
-    expect(draft?.packaging.marketedByAddress).toBe("12 MG Road\nPune 411001");
-    expect(draft?.packaging.notes).toBeNull();
+    expect(draft).toMatchObject({ packagingDone: true, notes: "Use the green." });
+    const [profile] = await listProfiles(userId);
+    expect(profile?.logo?.name).toBe("logo.png");
+    expect(profile?.marketedByAddress).toBe("12 MG Road\nPune 411001");
   });
 
-  it("replaces the logo file and removes the old one", async () => {
+  it("replaces a brand's logo file and removes the old one", async () => {
     const { userId } = await readyDraft();
-    const first = await draftLogoFile(userId);
+    const [profile] = await listProfiles(userId);
+    const first = await profileLogoFile(userId, profile!.id);
     expect(first?.key).toMatch(/^brand-logos\/.+\.png$/);
-    await saveDraftLogo({ userId, fileName: "new.png", bytes: png() });
-    const second = await draftLogoFile(userId);
+    await saveProfileLogo({ userId, profileId: profile!.id, fileName: "new.png", bytes: png() });
+    const second = await profileLogoFile(userId, profile!.id);
     expect(second?.key).not.toBe(first?.key);
     expect(await getStorage().get(first!.key)).toBeNull();
     expect(await getStorage().get(second!.key)).not.toBeNull();
+    // Changing the logo means the labels are confirmed again.
+    expect((await readDraft(userId))?.packagingDone).toBe(false);
   });
 
-  it("needs a product in the cart before a logo", async () => {
-    const userId = await makeUser(db);
-    expect(await saveDraftLogo({ userId, fileName: "a.png", bytes: png() })).toEqual({
+  it("only takes a logo for the user's own brand", async () => {
+    const owner = await makeUser(db);
+    const stranger = await makeUser(db);
+    const id = await saveBrand(owner);
+    expect(await saveProfileLogo({ userId: stranger, profileId: id, fileName: "a.png", bytes: png() })).toEqual({
       ok: false,
-      error: "noDraft",
+      error: "noProfile",
     });
+    expect(await profileLogoFile(stranger, id)).toBeNull();
+    expect(await profileLogoFile(owner, id)).not.toBeNull();
   });
 });
 
@@ -369,8 +392,16 @@ describe("placing a brand order", () => {
       logoContentType: "image/png",
     });
     expect(await readDraft(who.userId)).toBeNull();
-    // Its logo now belongs to the order.
+    // The order has its own copy of the logo, so the brand can change or go.
+    const [profile] = await listProfiles(who.userId);
+    expect(order.brandDetails!.logoKey).not.toBe((await profileLogoFile(who.userId, profile!.id))?.key);
     expect(await getStorage().get(order.brandDetails!.logoKey)).not.toBeNull();
+    expect(order.brandDetails).toMatchObject({
+      licenceNumbers: "Lic. No. AYU/2024/118",
+      shortDescription: "Classical Ayurveda, made simple.",
+      primaryColour: "#1f6f5c",
+      secondaryColour: null,
+    });
   });
 
   it("refuses a total that no longer matches, and a draft that isn't finished", async () => {

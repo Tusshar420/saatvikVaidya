@@ -84,21 +84,24 @@ async function brandCustomer(userId: string) {
 
   const logoKey = `brand-logos/draft-${randomBytes(16).toString("hex")}.png`;
   await writeStorageFile(logoKey, png);
-  await db.brandDraft.create({
+  const profile = await db.brandProfile.create({
     data: {
       userId,
+      profileName: "Asha Ayurveda",
+      isDefault: true,
       brandName: "Asha Ayurveda",
       tagline: "Classical care, every day",
       marketedByName: "Asha Ayurveda LLP",
       marketedByAddress: "Flat 4, Shanti Apartments\nPune 411001",
       contactPhone: "+91 98765 43210",
-      notes: "Matte finish, please.",
-      packagingDone: true,
       logoKey,
       logoName: "asha-logo.png",
       logoContentType: "image/png",
       logoSizeBytes: png.byteLength,
     },
+  });
+  await db.brandDraft.create({
+    data: { userId, profileId: profile.id, notes: "Matte finish, please.", packagingDone: true },
   });
   if (item.productId) {
     await db.brandCartItem.create({ data: { userId, productId: item.productId, quantity: 8 } });

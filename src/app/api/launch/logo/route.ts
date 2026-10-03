@@ -6,17 +6,19 @@ import { formatFileSize } from "@/lib/verification";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
 import { getSession } from "@/server/auth/session";
-import { draftLogoFile, saveDraftLogo, type LogoUploadError } from "@/server/brand/drafts";
 import { logoNotFound, logoResponse } from "@/server/brand/logo-response";
+import { profileLogoFile, saveProfileLogo, type LogoUploadError } from "@/server/brand/profiles";
 import { isSameOrigin } from "@/server/request-origin";
 import { readBodyWithLimit } from "@/server/storage/files";
 
-// /api/launch/logo (P2.1): the signed-in user's Launch Your Brand logo.
-// - POST uploads it (multipart form with one "file"): PNG, JPEG or PDF,
-//   type checked from the bytes, up to 5 MB. A route handler rather than a
-//   server action, for the larger body. Replies with JSON:
+// /api/launch/logo (P2.1): the logo of one of the signed-in user's saved
+// brand profiles.
+// - POST uploads it (multipart form with a "profileId" and one "file"): PNG,
+//   JPEG or PDF, type checked from the bytes, up to 5 MB. A route handler
+//   rather than a server action, for the larger body. Replies with JSON:
 //   { ok: true } or { ok: false, error, message }.
-// - GET serves the draft's logo to its owner only (404 for anyone else).
+// - GET ?profile=<id> serves that profile's logo to its owner only (404 for
+//   anyone else, and for a profile that doesn't exist).
 
 /** Room for the multipart boundaries. */
 const FORM_OVERHEAD_BYTES = 16 * 1024;
@@ -28,7 +30,7 @@ type ErrorCode = LogoUploadError | "signedOut" | "rateLimited" | "failed";
 
 const failures: Record<ErrorCode, { status: number; message: string }> = {
   signedOut: { status: 401, message: errors.signedOut },
-  noDraft: { status: 409, message: copy.cart.empty.title },
+  noProfile: { status: 404, message: copy.profiles.errors.notFound },
   empty: { status: 400, message: errors.empty },
   tooLarge: { status: 413, message: errors.tooLarge(maxSize) },
   fileType: { status: 415, message: errors.fileType },
@@ -41,7 +43,11 @@ function fail(error: ErrorCode, headers?: HeadersInit) {
   return NextResponse.json({ ok: false, error, message }, { status, headers });
 }
 
-const formSchema = z.object({ file: z.instanceof(File) });
+const formSchema = z.object({
+  file: z.instanceof(File),
+  profileId: z.coerce.number().int().positive().max(2_147_483_647),
+});
+const profileParam = z.coerce.number().int().positive().max(2_147_483_647);
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
@@ -66,13 +72,14 @@ export async function POST(request: Request) {
   } catch {
     return fail("failed");
   }
-  const parsed = formSchema.safeParse({ file: form.get("file") });
+  const parsed = formSchema.safeParse({ file: form.get("file"), profileId: form.get("profileId") });
   if (!parsed.success) return fail("failed");
-  const { file } = parsed.data;
+  const { file, profileId } = parsed.data;
   if (file.size > brandLogoUpload.maxBytes) return fail("tooLarge");
 
-  const result = await saveDraftLogo({
+  const result = await saveProfileLogo({
     userId: session.user.id,
+    profileId,
     fileName: file.name,
     bytes: new Uint8Array(await file.arrayBuffer()),
   });
@@ -83,7 +90,9 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) return logoNotFound();
-  const file = await draftLogoFile(session.user.id);
+  const profileId = profileParam.safeParse(new URL(request.url).searchParams.get("profile"));
+  if (!profileId.success) return logoNotFound();
+  const file = await profileLogoFile(session.user.id, profileId.data);
   if (!file) return logoNotFound();
   return logoResponse(request, file);
 }

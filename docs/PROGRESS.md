@@ -3689,3 +3689,71 @@ passed. Failures not caused by this change:
 - Abandoned cart lines are kept indefinitely; a cleanup (or a reminder) could
   come later.
 - `/admin/reports` doesn't split brand sales by product tier.
+
+## Launch: saved brand profiles and per-product label details (2026-10-03)
+
+A request outside the chunk list. Brand details are saved to the account as
+reusable **brand profiles** (like saved addresses), and each product in the
+Launch cart gets its own **label details**, fitted to that product's pack.
+
+- **Schema** (migration `20261003180000_brand_profiles`): `BrandProfile`
+  (profile name, default flag, brand name, tagline, short and long
+  description, marketed-by name and address, contact number, licence numbers,
+  two colours as #RRGGBB, logo); `LabelSpec` (key, name, printable area in mm,
+  logo size and placement, which description it starts from, `limits` JSON of
+  characters per field; a field not listed isn't printed); `Product.labelSpecId`;
+  `BrandCartItem.labelOverrides` (JSON); `OrderItem.labelDetails` (JSON);
+  `BrandOrderDetails` gains licence numbers, both descriptions, both colours.
+  `BrandDraft` now holds only `profileId`, `notes` and `packagingDone`; an
+  existing draft's packaging and logo moved into a default profile (draft must
+  be confirmed again).
+- **Rules** (`src/lib/label.ts`, shared with the browser): `defaultLabelValues`
+  picks the short or long description by the spec, takes ingredients and usage
+  from the product, and shortens text that is too long at a word boundary;
+  `overridesFor` keeps only fields that differ from the brand;
+  `labelProblems` reports text over a limit (and a blank brand name).
+- **Server**: `profiles.ts` (list, create, update, default, delete, choose for
+  the order, logo upload; everything scoped to the owner; at most 10 brands),
+  `labels.ts` (spec loading with a built-in "general" fallback, label lines,
+  `saveLabelDetails`, snapshot parsing), `savePackaging(userId, {notes,
+  labels})` confirms step 3 only when the brand has a logo and every label
+  fits. `placeBrandOrder` re-checks every label against its spec, copies the
+  logo for the order (a failed order leaves no copy), and saves the label as
+  approved on each order line plus the brand details on the order.
+- **Step 3 (Packaging)** is now: your brands (pick, default, edit, delete with
+  confirm, add; a new brand is saved first and then gets its logo), then one
+  card per product with the fields its pack prints, a live character count, a
+  clear "N characters too long" warning, "Edited" badge and per-field "Reset to
+  your brand". Step 4 lists the labels; the customer order page and the admin
+  brand-order page show "Labels as ordered". `/api/launch/logo` now takes a
+  profile id.
+- **Specs**: seeded `tube`, `bottle`, `jar`, `pouch` (sizes and limits are
+  working figures to confirm with the printer). `db:seed` and
+  `db:seed:catalogue` give products with no spec one by their form (churna etc.
+  pouch, avaleha jar, the rest bottle); the admin product form has a "Label
+  size (pack type)" choice, and blank means the general pack.
+
+**Decisions**
+- One brand per order, as before; per-line changes are stored as differences
+  only, so unchanged fields keep following the brand until the order is
+  placed, and then the order keeps its own copy.
+- Text over a limit is saved (nothing typed is lost) but blocks "Continue".
+- Editing a brand or its logo makes an order in progress confirm again.
+
+**Tests:** Vitest `src/lib/label.test.ts`, `src/server/brand/labels.test.ts`
+(profiles, specs, overrides, limits, snapshot kept after the brand changes or is
+deleted) and updated `brand.test.ts`; Playwright `brand.spec.ts` (new brand and
+logo, too-long warning, label saved on the order, and a saved-brands test with a
+tube and a bottle). Screens checked at 375 and 1280 px.
+**Checks:** typecheck, lint, test (792) and build pass. e2e: everything passes
+except the known environmental failures (client catalogue listing tests, the
+demo quiz "no quiz open" test, and two admin catalogue tests that pass alone).
+The disk was nearly full; `.next/cache` was deleted to build.
+
+**Later**
+- A new brand is saved before its logo is added (two steps); one combined
+  submit would be smoother.
+- Admin screen to edit label specs (today: seed or database).
+- The mockup preview (BLOCKED entry above) can now build on the label spec and
+  line label details.
+- Brand profiles on My Brand, outside an order.

@@ -6,10 +6,11 @@ import { redirect } from "next/navigation";
 import { CreditCard, PackageSearch, Phone, Search, ShoppingBag, X } from "lucide-react";
 import { saveBrandAddressAction, placeBrandOrderAction } from "@/app/(site)/launch/actions";
 import { AddToLaunchCart } from "@/components/site/brand/add-to-launch-cart";
+import { BrandProfiles } from "@/components/site/brand/brand-profiles";
+import { LabelDetailsForm } from "@/components/site/brand/label-details-form";
 import { LaunchCartLineControls } from "@/components/site/brand/launch-cart-line-controls";
 import { LaunchFilterPanel } from "@/components/site/brand/launch-filters";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
-import { PackagingForm } from "@/components/site/brand/packaging-form";
 import { OrderSummary } from "@/components/site/cart/order-summary";
 import { CataloguePagination } from "@/components/site/catalogue/catalogue-pagination";
 import { FormChips } from "@/components/site/catalogue/form-chips";
@@ -25,6 +26,7 @@ import { brand as copy } from "@/content/brand";
 import { checkout as checkoutCopy } from "@/content/checkout";
 import { checkoutOff as paused } from "@/content/maintenance";
 import { launchHref, launchStepNumber, nextBrandTier } from "@/lib/brand";
+import { MAX_BRAND_PROFILES, specFields } from "@/lib/label";
 import { cn } from "@/lib/cn";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
@@ -43,6 +45,8 @@ import {
   type BrandDraftView,
   type BrandProduct,
 } from "@/server/brand/drafts";
+import { readLabelLines } from "@/server/brand/labels";
+import { chosenProfile, listProfiles, type BrandProfileView } from "@/server/brand/profiles";
 import { listAddresses } from "@/server/checkout/addresses";
 import { getSetting } from "@/server/content/settings";
 import { paymentsAvailable } from "@/server/payments";
@@ -65,8 +69,13 @@ export default async function LaunchPage({ searchParams }: PageProps<"/launch">)
   const params = await searchParams;
   const requested = launchStepNumber(params.step);
   const { user } = await requireUser(requested > 1 ? `/launch?step=${requested}` : "/launch");
-  const [cart, draft] = await Promise.all([readBrandCart(user.id), readDraft(user.id)]);
-  const allowed = Math.max(2, furthestStep(cart, draft));
+  const [cart, draft, profiles] = await Promise.all([
+    readBrandCart(user.id),
+    readDraft(user.id),
+    listProfiles(user.id),
+  ]);
+  const profile = chosenProfile(profiles, draft);
+  const allowed = Math.max(2, furthestStep(cart, draft, profile));
   if (requested > allowed) redirect(`/launch?step=${allowed}`);
   const step = requested;
 
@@ -91,8 +100,10 @@ export default async function LaunchPage({ searchParams }: PageProps<"/launch">)
         </p>
         {step === 1 && <ProductStep cart={cart} params={params} />}
         {step === 2 && <CartStep cart={cart} />}
-        {step === 3 && <PackagingStep draft={draft} />}
-        {step === 4 && draft && <ReviewStep cart={cart} draft={draft} userId={user.id} />}
+        {step === 3 && <PackagingStep userId={user.id} draft={draft} profiles={profiles} profile={profile} />}
+        {step === 4 && draft && profile && (
+          <ReviewStep cart={cart} draft={draft} profile={profile} userId={user.id} />
+        )}
       </section>
     </div>
   );
@@ -505,32 +516,59 @@ function CartLine({ line }: { line: BrandCartLine }) {
 
 // ─── Step 3 ─────────────────────────────────────────────────────────────────
 
-function draftLogoProps(draft: BrandDraftView | null) {
-  if (!draft?.logo) return null;
+function profileLogoProps(profile: BrandProfileView | null) {
+  if (!profile?.logo) return null;
   return {
     // The time busts the browser's copy after a replacement.
-    src: `/api/launch/logo?v=${draft.updatedAt.getTime()}`,
-    name: draft.logo.name,
-    contentType: draft.logo.contentType,
-    sizeBytes: draft.logo.sizeBytes,
+    src: `/api/launch/logo?profile=${profile.id}&v=${profile.updatedAt.getTime()}`,
+    ...profile.logo,
   };
 }
 
-const emptyPackaging = {
-  brandName: null,
-  tagline: null,
-  marketedByName: null,
-  marketedByAddress: null,
-  contactPhone: null,
-  notes: null,
-};
-
-function PackagingStep({ draft }: { draft: BrandDraftView | null }) {
+async function PackagingStep({
+  userId,
+  draft,
+  profiles,
+  profile,
+}: {
+  userId: string;
+  draft: BrandDraftView | null;
+  profiles: BrandProfileView[];
+  profile: BrandProfileView | null;
+}) {
+  const lines = profile?.logo ? await readLabelLines(userId, profile) : [];
   return (
     <>
       <StepHeading title={copy.packaging.title} line={copy.packaging.line} />
-      <div className="mt-6 max-w-3xl rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6">
-        <PackagingForm initial={{ ...(draft?.packaging ?? emptyPackaging) }} logo={draftLogoProps(draft)} />
+      <div className="mt-6 flex max-w-4xl flex-col gap-8">
+        <section aria-labelledby="launch-brands-title" className="flex flex-col gap-3">
+          <div>
+            <h3 id="launch-brands-title" className="text-h3 text-ink">
+              {copy.profiles.title}
+            </h3>
+            <p className="mt-1 text-body text-muted">{copy.profiles.line}</p>
+          </div>
+          <BrandProfiles profiles={profiles} selectedId={profile?.id ?? null} max={MAX_BRAND_PROFILES} />
+        </section>
+        {profile?.logo ? (
+          <LabelDetailsForm
+            // A new brand, or changes to it, start the label fields again from it.
+            key={`${profile.id}-${profile.updatedAt.getTime()}-${lines.length}`}
+            lines={lines.map((line) => ({
+              productId: line.productId,
+              name: line.name,
+              spec: line.spec,
+              defaults: line.defaults,
+              trimmed: line.trimmed,
+              values: line.values,
+            }))}
+            notes={draft?.notes ?? null}
+          />
+        ) : (
+          profiles.length > 0 && (
+            <p className="text-sm font-bold text-muted">{copy.packaging.errors.logo}</p>
+          )
+        )}
       </div>
     </>
   );
@@ -570,31 +608,34 @@ function ReviewCard({
 async function ReviewStep({
   cart,
   draft,
+  profile,
   userId,
 }: {
   cart: BrandCartView;
   draft: BrandDraftView;
+  profile: BrandProfileView;
   userId: string;
 }) {
-  const [shipping, addresses, phone, checkoutSwitch] = await Promise.all([
+  const [shipping, addresses, phone, checkoutSwitch, labelLines] = await Promise.all([
     getSetting("checkout.shipping"),
     listAddresses(userId),
     getSetting("contact.phone"),
     getSetting("checkout.enabled"),
+    readLabelLines(userId, profile),
   ]);
   const totals = brandCartTotals(cart, shipping);
   const text = copy.review;
-  const packaging = draft.packaging;
-  const logo = draftLogoProps(draft);
+  const logo = profileLogoProps(profile);
   const details: [string, string | null][] = [
-    [copy.detail.brandName, packaging.brandName],
-    [copy.detail.tagline, packaging.tagline],
+    [copy.detail.brandName, profile.brandName],
+    [copy.detail.tagline, profile.tagline],
     [
       copy.detail.marketedBy,
-      [packaging.marketedByName, packaging.marketedByAddress].filter(Boolean).join(", ") || null,
+      [profile.marketedByName, profile.marketedByAddress].filter(Boolean).join(", ") || null,
     ],
-    [copy.detail.contactPhone, packaging.contactPhone],
-    [copy.detail.notes, packaging.notes],
+    [copy.detail.contactPhone, profile.contactPhone],
+    [copy.detail.licenceNumbers, profile.licenceNumbers],
+    [copy.detail.notes, draft.notes],
   ];
   const lines = cart.lines.flatMap((line) => (line.product ? [{ ...line, product: line.product }] : []));
 
@@ -620,7 +661,7 @@ async function ReviewStep({
         <ReviewCard title={text.packaging} editStep={3}>
           <div className="flex flex-col gap-3">
             {logo ? (
-              <LogoPreview {...logo} alt={copy.packaging.logo.previewAlt(packaging.brandName ?? "")} />
+              <LogoPreview {...logo} alt={copy.packaging.logo.previewAlt(profile.brandName)} />
             ) : (
               <p className="text-muted">{text.noLogo}</p>
             )}
@@ -635,6 +676,33 @@ async function ReviewStep({
               )}
             </dl>
           </div>
+        </ReviewCard>
+        <ReviewCard title={copy.labels.review.title} editStep={3}>
+          <ul className="flex flex-col divide-y divide-line">
+            {labelLines.map((line) => {
+              const edited = specFields(line.spec).filter((field) => line.overrides[field] !== undefined);
+              return (
+                <li key={line.productId} className="py-2 first:pt-0 last:pb-0">
+                  <details>
+                    <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="min-w-0 flex-1 font-bold break-words">{line.name}</span>
+                      {edited.length > 0 && <Badge variant="gold">{copy.labels.review.edited}</Badge>}
+                    </summary>
+                    <dl className="mt-2 flex flex-col gap-1.5">
+                      {specFields(line.spec).map((field) =>
+                        line.values[field] ? (
+                          <div key={field} className="min-w-0">
+                            <dt className="text-small font-bold text-muted">{copy.labels.fields[field]}</dt>
+                            <dd className="break-words whitespace-pre-line">{line.values[field]}</dd>
+                          </div>
+                        ) : null,
+                      )}
+                    </dl>
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
         </ReviewCard>
       </div>
 

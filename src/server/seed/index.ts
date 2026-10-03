@@ -27,6 +27,7 @@ import {
   productSeed,
   type ProductSeed,
 } from "./catalogue";
+import { assignLabelSpecs, seedLabelSpecs } from "./label-specs";
 import { userTypeSeed } from "./user-types";
 
 /**
@@ -69,6 +70,8 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
       await createMissing(whyStepSeed, (args) => tx.whyStep.upsert(args));
       const productsCreated = await createMissingProducts(tx);
       await addBrandSamples(tx);
+      await seedLabelSpecs(tx);
+      await assignLabelSpecs(tx);
 
       return {
         userTypes: userTypeSeed.length,

@@ -118,6 +118,7 @@ model User {
   twoFactors              TwoFactor[]
   adminInvitesSent        AdminInvite[]          @relation("AdminInviteSender")
   brandDraft              BrandDraft?
+  brandProfiles           BrandProfile[]
   brandCartItems          BrandCartItem[]
 
   @@index([userTypeId])
@@ -807,6 +808,9 @@ model Product {
   orderItems             OrderItem[]
   brandCartItems         BrandCartItem[]
   brandTiers             BrandPriceTier[]
+  /// What the label of this product can print (null: the general spec).
+  labelSpecId            Int?
+  labelSpec              LabelSpec?      @relation(fields: [labelSpecId], references: [id], onDelete: SetNull)
 
   @@index([active, sortOrder])
   @@index([brandId])
@@ -1002,6 +1006,12 @@ model BrandOrderDetails {
   marketedByAddress String?           @db.VarChar(300)
   contactPhone      String?           @db.VarChar(20)
   notes             String?           @db.VarChar(1000)
+  /// The brand profile as it was when ordered (the order keeps its own copy).
+  licenceNumbers    String?           @db.VarChar(300)
+  shortDescription  String?           @db.VarChar(160)
+  longDescription   String?           @db.VarChar(600)
+  primaryColour     String?           @db.VarChar(7)
+  secondaryColour   String?           @db.VarChar(7)
   /// The logo's key in Storage (not a URL).
   logoKey           String            @unique @db.VarChar(191)
   /// The name the logo had on the buyer's device (cleaned), for display.
@@ -1082,24 +1092,24 @@ model BrandStageEvent {
 
 /// The packaging of a Launch Your Brand order in progress (P2.1): one per
 /// user, saved on /launch and removed when the order is placed (its logo
-/// then belongs to the order). The products are in BrandCartItem.
+/// then belongs to the order). The brand is a BrandProfile and the products
+/// are in BrandCartItem.
 model BrandDraft {
-  userId            String   @id @db.VarChar(64)
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  brandName         String?  @db.VarChar(80)
-  tagline           String?  @db.VarChar(120)
-  marketedByName    String?  @db.VarChar(120)
-  marketedByAddress String?  @db.VarChar(300)
-  contactPhone      String?  @db.VarChar(20)
-  notes             String?  @db.VarChar(1000)
-  /// True once the packaging step was saved with every required field.
-  packagingDone     Boolean  @default(false)
-  logoKey           String?  @unique @db.VarChar(191)
-  logoName          String?  @db.VarChar(191)
-  logoContentType   String?  @db.VarChar(64)
-  logoSizeBytes     Int?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  userId        String        @id @db.VarChar(64)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The saved brand profile this order uses (null until one is picked; the
+  /// default profile is used then).
+  profileId     Int?
+  profile       BrandProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  /// Notes for the team, for this order only.
+  notes         String?       @db.VarChar(1000)
+  /// True once the packaging step was confirmed: a profile with a logo, and
+  /// label details that fit every product.
+  packagingDone Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([profileId])
 }
 
 /// One product in a user's Launch cart (/launch): the bulk order they are
@@ -1113,6 +1123,9 @@ model BrandCartItem {
   productId Int
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int
+  /// Label fields the user changed for this product (field -> text); the
+  /// rest follow the brand profile. See src/lib/label.ts.
+  labelOverrides Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1167,6 +1180,8 @@ model OrderItem {
   discountPaise  Int           @default(0)
   /// GST included in the line total after the discount.
   taxPaise       Int
+  /// Brand orders: the label exactly as approved (see LabelSnapshot in src/lib/label.ts).
+  labelDetails   Json?
 
   @@index([orderId])
   @@index([productId])
@@ -1440,4 +1455,70 @@ model Ebook {
   orderItems       OrderItem[]
 
   @@index([active, sortOrder])
+}
+
+/// A brand a user has saved to reuse on Launch orders, like a saved address:
+/// the shared label defaults (name, logo, colours, contact, licences, a short
+/// and a long description). One per account can be the default.
+model BrandProfile {
+  id                Int          @id @default(autoincrement())
+  userId            String       @db.VarChar(64)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The user's name for this profile in their list.
+  profileName       String       @db.VarChar(60)
+  isDefault         Boolean      @default(false)
+  brandName         String       @db.VarChar(80)
+  tagline           String?      @db.VarChar(120)
+  shortDescription  String?      @db.VarChar(160)
+  longDescription   String?      @db.VarChar(600)
+  marketedByName    String?      @db.VarChar(120)
+  marketedByAddress String?      @db.VarChar(300)
+  contactPhone      String?      @db.VarChar(20)
+  licenceNumbers    String?      @db.VarChar(300)
+  /// #RRGGBB
+  primaryColour     String?      @db.VarChar(7)
+  secondaryColour   String?      @db.VarChar(7)
+  logoKey           String?      @unique @db.VarChar(191)
+  logoName          String?      @db.VarChar(191)
+  logoContentType   String?      @db.VarChar(64)
+  logoSizeBytes     Int?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  drafts            BrandDraft[]
+
+  @@index([userId, isDefault])
+}
+
+enum LabelDescriptionSource {
+  short
+  long
+}
+
+enum LabelLogoPlacement {
+  top_left
+  top_center
+  top_right
+  center
+  bottom_center
+}
+
+/// What one kind of pack (tube, syrup bottle, jar...) can print on its label:
+/// the printable area, the logo size and place, and the characters allowed
+/// per field (a field not in `limits` isn't printed). Products point to one.
+model LabelSpec {
+  id                Int                    @id @default(autoincrement())
+  key               String                 @unique @db.VarChar(40)
+  name              String                 @db.VarChar(80)
+  sortOrder         Int                    @default(0)
+  /// Printable area in millimetres.
+  widthMm           Int
+  heightMm          Int
+  logoWidthMm       Int
+  logoHeightMm      Int
+  logoPlacement     LabelLogoPlacement
+  /// Which profile description the label starts from.
+  descriptionSource LabelDescriptionSource @default(short)
+  /// { fieldName: maxCharacters } for the fields on this label.
+  limits            Json
+  products          Product[]
 }

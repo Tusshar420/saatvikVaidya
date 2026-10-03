@@ -109,6 +109,11 @@ const productFormSchema = z
     brandEligible: checkbox,
     brandMinQty: z.preprocess(blankToNull, z.string().trim().nullable()),
     brandUnitPrice: z.preprocess(blankToNull, z.string().trim().nullable()),
+    /** The pack's label spec (blank: the general spec). */
+    labelSpecId: z.preprocess(
+      (value) => (blankToNull(value) === null ? null : Number(value)),
+      z.number({ error: brandErrors.labelSpec }).int(brandErrors.labelSpec).positive(brandErrors.labelSpec).nullable(),
+    ),
     brandUnitLabel: z.preprocess(
       blankToNull,
       z.string({ error: brandErrors.unitLabel }).trim().max(30, brandErrors.unitLabel).nullable(),
@@ -244,6 +249,7 @@ const productFormSchema = z
       brandMinQty: Number.isNaN(brandMinQty) ? null : brandMinQty,
       brandUnitPricePaise: brandPriceValid ? brandPricePaise : null,
       brandUnitLabel: data.brandUnitLabel,
+      labelSpecId: data.labelSpecId,
       bulkTiers,
       brandTiers,
     };
@@ -343,7 +349,7 @@ export type AdminProduct = NonNullable<Awaited<ReturnType<typeof getAdminProduct
 
 /** Brands, forms and practice areas for the product form's choices. */
 export async function readProductFormOptions() {
-  const [brands, categories] = await Promise.all([
+  const [brands, categories, labelSpecs] = await Promise.all([
     db.brand.findMany({
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       select: { id: true, name: true, active: true },
@@ -352,8 +358,10 @@ export async function readProductFormOptions() {
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       select: { id: true, name: true, kind: true, active: true },
     }),
+    db.labelSpec.findMany({ orderBy: [{ sortOrder: "asc" }, { id: "asc" }], select: { id: true, name: true } }),
   ]);
   return {
+    labelSpecs,
     brands,
     forms: categories.filter((c) => c.kind === "FORM"),
     areas: categories.filter((c) => c.kind === "PRACTICE_AREA"),
@@ -390,6 +398,7 @@ export function productFormValues(
     brandUnitPrice:
       product.brandUnitPricePaise === null ? null : paiseToRupeeInput(product.brandUnitPricePaise),
     brandUnitLabel: product.brandUnitLabel,
+    labelSpecId: product.labelSpecId,
   };
   for (const area of product.practiceAreas) values[`area-${area.id}`] = true;
   product.bulkTiers.forEach((tier, index) => {
@@ -445,6 +454,9 @@ async function checkRelations(
     }),
   ]);
   const fieldErrors: Record<string, string> = {};
+  if (input.labelSpecId !== null && !(await tx.labelSpec.findUnique({ where: { id: input.labelSpecId }, select: { id: true } }))) {
+    fieldErrors.labelSpecId = brandErrors.labelSpec;
+  }
   if (!brand) fieldErrors.brandId = errors.brand;
   if (!form) fieldErrors.formId = errors.form;
   if (areas !== input.practiceAreaIds.length) {

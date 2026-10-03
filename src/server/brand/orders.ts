@@ -6,10 +6,15 @@ import { hitRateLimit } from "@/server/auth/rate-limit";
 import { findAddress } from "@/server/checkout/addresses";
 import { newOrderId, newOrderNumber, startPaymentAttempt } from "@/server/checkout/orders";
 import { gstIncluded, type ShippingRule } from "@/server/checkout/totals";
+import { brandLogoUpload, type BrandLogoType } from "@/lib/brand";
+import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
 import { db } from "@/server/db";
 import { getPaymentProvider } from "@/server/payments";
 import { brandCartTotals, readBrandCart } from "./cart";
-import { packagingSchema } from "./packaging";
+import type { LabelSnapshot } from "@/lib/label";
+import { labelSnapshot, parseLabelSnapshot, readLabelLines } from "./labels";
+import { orderNotesSchema, profileSchema } from "./packaging";
+import { chosenProfile, listProfiles } from "./profiles";
 
 // Launch Your Brand orders (docs/CHUNKS.md, P2.1). A brand order is an
 // Order of type "brand" with one line per product of the user's Launch cart
@@ -46,6 +51,23 @@ export type PlaceBrandOrderError =
 export type PlaceBrandOrderResult =
   | { ok: true; orderId: string }
   | { ok: false; error: PlaceBrandOrderError };
+
+/** A value for a JSON column (the snapshot types are plain data). */
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+/** Copies a stored logo to a new key for an order; null when the file is missing. */
+async function copyLogo(userId: string, sourceKey: string, contentType: string): Promise<string | null> {
+  const extension = brandLogoUpload.types[contentType as BrandLogoType];
+  if (!extension) return null;
+  const file = await getStorage().get(sourceKey);
+  if (!file) return null;
+  const bytes = new Uint8Array(await new Response(file.body).arrayBuffer());
+  const key = newFileKey("brand-logos", userId, extension);
+  await getStorage().put(key, bytes);
+  return key;
+}
 
 class Refused extends Error {
   constructor(readonly reason: PlaceBrandOrderError) {
@@ -90,6 +112,7 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
 
   let orderId: string | null = null;
   for (let tries = 0; tries < 3 && !orderId; tries += 1) {
+    const copied: { key: string | null } = { key: null };
     try {
       orderId = await db.$transaction(async (tx) => {
         // Locks the draft, so two submits can't both turn it into an order.
@@ -98,17 +121,31 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
         if (locked.length === 0) throw new Refused("draft");
         const draft = await tx.brandDraft.findUniqueOrThrow({ where: { userId } });
         if (!draft.packagingDone) throw new Refused("draft");
-        if (!draft.logoKey || !draft.logoName || !draft.logoContentType || draft.logoSizeBytes === null) {
-          throw new Refused("draft");
-        }
-        const packaging = packagingSchema.safeParse(draft);
-        if (!packaging.success) throw new Refused("draft");
+        const profile = chosenProfile(await listProfiles(userId, tx), draft);
+        if (!profile?.logo) throw new Refused("draft");
+        const stored = await tx.brandProfile.findUniqueOrThrow({
+          where: { id: profile.id },
+          select: { logoKey: true },
+        });
+        const packaging = profileSchema.safeParse(profile);
+        const notes = orderNotesSchema.safeParse({ notes: draft.notes });
+        if (!packaging.success || !notes.success || !stored.logoKey) throw new Refused("draft");
+        // The order keeps its own copy of the logo: the profile may change or go.
+        const copiedLogoKey = await copyLogo(userId, stored.logoKey, profile.logo.contentType);
+        if (!copiedLogoKey) throw new Refused("draft");
+        copied.key = copiedLogoKey;
 
         // Locks the cart lines too: a quantity change waits for the order.
         await tx.$queryRaw`SELECT id FROM BrandCartItem WHERE userId = ${userId} FOR UPDATE`;
         const cart = await readBrandCart(userId, tx);
         if (cart.lines.length === 0) throw new Refused("draft");
         if (!cart.ready) throw new Refused("changed");
+        // Every label is checked against its product's spec once more, and
+        // what is approved is saved with the line.
+        const labels = new Map((await readLabelLines(userId, profile, tx)).map((line) => [line.productId, line]));
+        if (cart.lines.some((line) => (labels.get(line.productId)?.problems.length ?? 1) > 0)) {
+          throw new Refused("draft");
+        }
         const totals = brandCartTotals(cart, input.shipping);
         if (totals.totalPaise !== input.expectedTotalPaise) throw new Refused("changed");
 
@@ -135,6 +172,7 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
               quantity: line.quantity,
               lineTotalPaise: line.lineTotalPaise,
               taxPaise: gstIncluded(line.lineTotalPaise, product.gstRate),
+              labelDetails: asJson(labelSnapshot(labels.get(line.productId)!)),
             },
           ];
         });
@@ -162,11 +200,21 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
             items: { create: items },
             brandDetails: {
               create: {
-                ...packaging.data,
-                logoKey: draft.logoKey,
-                logoName: draft.logoName,
-                logoContentType: draft.logoContentType,
-                logoSizeBytes: draft.logoSizeBytes,
+                brandName: packaging.data.brandName,
+                tagline: packaging.data.tagline,
+                marketedByName: packaging.data.marketedByName,
+                marketedByAddress: packaging.data.marketedByAddress,
+                contactPhone: packaging.data.contactPhone,
+                licenceNumbers: packaging.data.licenceNumbers,
+                shortDescription: packaging.data.shortDescription,
+                longDescription: packaging.data.longDescription,
+                primaryColour: packaging.data.primaryColour,
+                secondaryColour: packaging.data.secondaryColour,
+                notes: notes.data.notes,
+                logoKey: copiedLogoKey,
+                logoName: profile.logo.name,
+                logoContentType: profile.logo.contentType,
+                logoSizeBytes: profile.logo.sizeBytes,
               },
             },
           },
@@ -177,6 +225,8 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
         return id;
       });
     } catch (error) {
+      // The order wasn't made, so its copy of the logo isn't needed.
+      if (copied.key) await deleteFilesQuietly([copied.key]);
       if (error instanceof Refused) {
         // A double submit may have placed the order meanwhile.
         const raced = await orderForKey(userId, checkoutKey);
@@ -206,6 +256,8 @@ export type BrandOrderLine = {
   unitPaise: number;
   gstRate: number;
   lineTotalPaise: number;
+  /** The label as approved for this product (null on orders from before label details). */
+  label: LabelSnapshot | null;
 };
 
 export type BrandOrderSummary = {
@@ -276,6 +328,11 @@ export type BrandOrderView = Omit<BrandOrderSummary, "items"> & {
     marketedByAddress: string | null;
     contactPhone: string | null;
     notes: string | null;
+    licenceNumbers: string | null;
+    shortDescription: string | null;
+    longDescription: string | null;
+    primaryColour: string | null;
+    secondaryColour: string | null;
     logoName: string;
     logoContentType: string;
     logoSizeBytes: number;
@@ -336,6 +393,7 @@ function toView(order: ViewRow): BrandOrderView {
       unitPaise: item.unitPaise,
       gstRate: item.gstRate,
       lineTotalPaise: item.lineTotalPaise,
+      label: parseLabelSnapshot(item.labelDetails),
     })),
     gst: [...gst.values()].sort((a, b) => a.rate - b.rate),
     details: details && {
@@ -345,6 +403,11 @@ function toView(order: ViewRow): BrandOrderView {
       marketedByAddress: details.marketedByAddress,
       contactPhone: details.contactPhone,
       notes: details.notes,
+      licenceNumbers: details.licenceNumbers,
+      shortDescription: details.shortDescription,
+      longDescription: details.longDescription,
+      primaryColour: details.primaryColour,
+      secondaryColour: details.secondaryColour,
       logoName: details.logoName,
       logoContentType: details.logoContentType,
       logoSizeBytes: details.logoSizeBytes,

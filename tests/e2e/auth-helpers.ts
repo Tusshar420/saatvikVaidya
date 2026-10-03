@@ -301,9 +301,9 @@ export async function cleanUpE2eData() {
   const ebookFiles = ebooks.flatMap((ebook) =>
     [ebook.fileKey, ebook.coverKey].flatMap((fileKey) => (fileKey ? [{ fileKey }] : [])),
   );
-  // Launch Your Brand logos (P2.1): on e2e users' drafts and brand orders.
+  // Launch Your Brand logos (P2.1): on e2e users' saved brands and brand orders.
   const brandLogos = [
-    ...(await db.brandDraft.findMany({ where: { userId: { in: ids } }, select: { logoKey: true } })),
+    ...(await db.brandProfile.findMany({ where: { userId: { in: ids } }, select: { logoKey: true } })),
     ...(await db.brandOrderDetails.findMany({
       where: { order: { userId: { in: ids } } },
       select: { logoKey: true },

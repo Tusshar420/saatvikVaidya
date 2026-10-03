@@ -28,7 +28,7 @@ export type ProductFormProps = {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   initial: FieldValues;
   mode: "new" | "edit";
-  options: { brands: Option[]; forms: Option[]; areas: Option[] };
+  options: { brands: Option[]; forms: Option[]; areas: Option[]; labelSpecs: { id: number; name: string }[] };
 };
 
 /** A choice list; hidden brands and forms are marked so they're not picked by mistake. */
@@ -255,6 +255,16 @@ export function ProductForm({ action, initial, mode, options }: ProductFormProps
           values={values}
           maxLength={30}
           optional
+        />
+        <SelectField
+          name="labelSpecId"
+          label={brandText.labelSpec}
+          help={brandText.labelSpecHelp}
+          values={values}
+          options={[
+            { value: "", label: brandText.labelSpecGeneral },
+            ...options.labelSpecs.map((spec) => ({ value: String(spec.id), label: spec.name })),
+          ]}
         />
         <p className="border-t border-line pt-4 text-small text-muted sm:col-span-2">{brandText.tiersHelp}</p>
         {Array.from({ length: MAX_BRAND_TIERS }, (_, index) => (

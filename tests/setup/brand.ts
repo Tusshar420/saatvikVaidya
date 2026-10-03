@@ -4,8 +4,9 @@ import { createAddress, parseAddress } from "@/server/checkout/addresses";
 import { startPaymentAttempt } from "@/server/checkout/orders";
 import { completePayment } from "@/server/checkout/payments";
 import { addToBrandCart, brandCartTotals, readBrandCart, setBrandCartQuantity } from "@/server/brand/cart";
-import { saveDraftLogo, savePackaging } from "@/server/brand/drafts";
+import { savePackaging } from "@/server/brand/drafts";
 import { placeBrandOrder } from "@/server/brand/orders";
+import { createProfile, saveProfileLogo } from "@/server/brand/profiles";
 import { makeProduct, makeUser, validAddress } from "./shop";
 
 // A Launch Your Brand order for the P2.2 tests, made through the real P2.1
@@ -28,16 +29,18 @@ export async function makeBrandOrder(
   const product = await makeProduct(db, { stock: 3, brand: { minQty: 4, unitPricePaise: 26_000 } });
   const userId = options.userId ?? (await makeUser(db));
   if (!(await addToBrandCart(userId, product.id)).ok) throw new Error("product not added");
-  const logo = await saveDraftLogo({ userId, fileName: "logo.png", bytes: pngBytes() });
-  if (!logo.ok) throw new Error("logo not saved");
-  const packaged = await savePackaging(userId, {
+  const profile = await createProfile(userId, {
+    profileName: "Main brand",
     brandName: "Vaidya Care",
     tagline: "Rooted in classics",
     marketedByName: "Vaidya Care LLP",
     marketedByAddress: "12 MG Road\nPune 411001",
     contactPhone: "+91 92203 58400",
-    notes: "",
   });
+  if (!profile.ok) throw new Error("brand not saved");
+  const logo = await saveProfileLogo({ userId, profileId: profile.id, fileName: "logo.png", bytes: pngBytes() });
+  if (!logo.ok) throw new Error("logo not saved");
+  const packaged = await savePackaging(userId, { notes: "" });
   if (!packaged.ok) throw new Error("packaging not saved");
   const quantity = await setBrandCartQuantity(userId, product.id, 8);
   if (!quantity.ok) throw new Error("quantity not saved");

@@ -3,23 +3,23 @@ import { z } from "zod";
 import { brand as copy } from "@/content/brand";
 import type { Prisma } from "@/generated/prisma/client";
 import {
-  brandLogoUpload,
   brandSorts,
   type BrandSort,
   brandTermsOf,
   type BrandTerms,
 } from "@/lib/brand";
+import type { LabelProblem, LabelValues } from "@/lib/label";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
 import { searchWhere } from "@/server/catalogue/products";
-import { fieldErrorsOf } from "@/server/admin/form";
 import { db } from "@/server/db";
-import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
-import { checkUpload, cleanFileName } from "@/server/storage/files";
-import { packagingSchema, type PackagingInput } from "./packaging";
+import { saveLabelDetails } from "./labels";
+import { orderNotesSchema } from "./packaging";
+import { chosenProfile, listProfiles } from "./profiles";
 
 // Launch Your Brand drafts (docs/CHUNKS.md, P2.1): the packaging of the
-// order a signed-in user is putting together on /launch (logo and label
-// text), one per user. The products and quantities are in the Launch cart
+// order a signed-in user is putting together on /launch, one per user: which
+// saved brand profile it uses (./profiles.ts), the notes for the team and
+// whether the label details were confirmed (./labels.ts). The products and quantities are in the Launch cart
 // (./cart.ts). Callers check the session and pass the signed-in user's id;
 // nothing here trusts the browser, and everything is checked again when the
 // order is placed (./orders.ts).
@@ -272,16 +272,11 @@ export async function findBrandProduct(
 
 // ─── Drafts ─────────────────────────────────────────────────────────────────
 
-export type DraftLogo = {
-  name: string;
-  contentType: string;
-  sizeBytes: number;
-};
-
 export type BrandDraftView = {
-  packaging: Record<keyof PackagingInput, string | null>;
+  /** The profile picked for this order (null: the default profile is used). */
+  profileId: number | null;
+  notes: string | null;
   packagingDone: boolean;
-  logo: DraftLogo | null;
   updatedAt: Date;
 };
 
@@ -289,19 +284,9 @@ export async function readDraft(userId: string): Promise<BrandDraftView | null> 
   const draft = await db.brandDraft.findUnique({ where: { userId } });
   if (!draft) return null;
   return {
-    packaging: {
-      brandName: draft.brandName,
-      tagline: draft.tagline,
-      marketedByName: draft.marketedByName,
-      marketedByAddress: draft.marketedByAddress,
-      contactPhone: draft.contactPhone,
-      notes: draft.notes,
-    },
+    profileId: draft.profileId,
+    notes: draft.notes,
     packagingDone: draft.packagingDone,
-    logo:
-      draft.logoKey && draft.logoName && draft.logoContentType && draft.logoSizeBytes !== null
-        ? { name: draft.logoName, contentType: draft.logoContentType, sizeBytes: draft.logoSizeBytes }
-        : null,
     updatedAt: draft.updatedAt,
   };
 }
@@ -313,88 +298,39 @@ async function hasCart(userId: string): Promise<boolean> {
 
 export type PackagingResult =
   | { ok: true }
-  | { ok: false; fieldErrors: Record<string, string> }
-  | { ok: false; noProduct: true };
-
-/** Step 3: the label text. The logo is uploaded separately (saveDraftLogo). */
-export async function savePackaging(
-  userId: string,
-  values: Record<string, string>,
-): Promise<PackagingResult> {
-  if (!(await hasCart(userId))) return { ok: false, noProduct: true };
-  const draft = await db.brandDraft.findUnique({ where: { userId }, select: { logoKey: true } });
-  const parsed = packagingSchema.safeParse(values);
-  const fieldErrors = parsed.success ? {} : fieldErrorsOf(parsed.error);
-  if (!draft?.logoKey) fieldErrors.logo = copy.packaging.errors.logo;
-  if (!parsed.success || Object.keys(fieldErrors).length > 0) {
-    return { ok: false, fieldErrors };
-  }
-  await db.brandDraft.update({
-    where: { userId },
-    data: { ...parsed.data, packagingDone: true },
-  });
-  return { ok: true };
-}
-
-export type LogoUploadError = "noDraft" | "empty" | "tooLarge" | "fileType";
+  | { ok: false; noProduct: true }
+  | { ok: false; noProfile: true }
+  | { ok: false; noLogo: true }
+  | { ok: false; notesError: string }
+  /** Some product's label text is over its limit (or has no brand name). */
+  | { ok: false; labelProblems: Map<number, LabelProblem[]> };
 
 /**
- * Step 3: stores the logo (PNG, JPEG or PDF, checked from its bytes) and
- * puts it on the draft, removing the one it replaces. The file is written
- * first; if the database step fails it's removed again.
+ * Step 3: confirms the packaging of the order: the brand profile (it needs a
+ * logo), the notes for the team and every product's label details, which
+ * `labels` are the typed values of (only the differences from the profile are
+ * kept; see ./labels.ts). The step is only done when every label fits.
  */
-export async function saveDraftLogo(options: {
-  userId: string;
-  fileName: string;
-  bytes: Uint8Array;
-}): Promise<{ ok: true; logo: DraftLogo } | { ok: false; error: LogoUploadError }> {
-  const checked = checkUpload(options.bytes, brandLogoUpload);
-  if (!checked.ok) return checked;
-  // A logo belongs to an order in progress: the cart needs a product first.
-  if (!(await hasCart(options.userId))) return { ok: false, error: "noDraft" };
-  await db.brandDraft.upsert({ where: { userId: options.userId }, create: { userId: options.userId }, update: {} });
+export async function savePackaging(
+  userId: string,
+  input: { notes?: string; labels?: Map<number, LabelValues> },
+): Promise<PackagingResult> {
+  if (!(await hasCart(userId))) return { ok: false, noProduct: true };
+  const notes = orderNotesSchema.safeParse({ notes: input.notes ?? "" });
+  if (!notes.success) return { ok: false, notesError: copy.packaging.errors.notes };
+  const draft = await db.brandDraft.findUnique({ where: { userId }, select: { profileId: true } });
+  const profiles = await listProfiles(userId);
+  const profile = chosenProfile(profiles, draft);
+  if (!profile) return { ok: false, noProfile: true };
+  if (!profile.logo) return { ok: false, noLogo: true };
 
-  const fileKey = newFileKey("brand-logos", options.userId, checked.extension);
-  await getStorage().put(fileKey, options.bytes);
-  const logo: DraftLogo = {
-    name: cleanFileName(options.fileName, checked.extension),
-    contentType: checked.contentType,
-    sizeBytes: options.bytes.byteLength,
-  };
-  let replaced: string | null = null;
-  try {
-    replaced = await db.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<{ logoKey: string | null }[]>`
-        SELECT logoKey FROM BrandDraft WHERE userId = ${options.userId} FOR UPDATE`;
-      if (rows.length === 0) throw new DraftGone();
-      await tx.brandDraft.update({
-        where: { userId: options.userId },
-        data: {
-          logoKey: fileKey,
-          logoName: logo.name,
-          logoContentType: logo.contentType,
-          logoSizeBytes: logo.sizeBytes,
-        },
-      });
-      return rows[0]!.logoKey;
-    });
-  } catch (error) {
-    await deleteFilesQuietly([fileKey]);
-    if (error instanceof DraftGone) return { ok: false, error: "noDraft" };
-    throw error;
-  }
-  if (replaced) await deleteFilesQuietly([replaced]);
-  return { ok: true, logo };
-}
-
-class DraftGone extends Error {}
-
-/** The draft logo's storage key and type, for serving it to its owner. */
-export async function draftLogoFile(userId: string) {
-  const draft = await db.brandDraft.findUnique({
+  const { problems } = await saveLabelDetails(userId, profile, input.labels ?? new Map());
+  // The brand and the notes are kept even when a label still needs work.
+  await db.brandDraft.upsert({
     where: { userId },
-    select: { logoKey: true, logoName: true, logoContentType: true },
+    create: { userId, profileId: profile.id, notes: notes.data.notes, packagingDone: problems.size === 0 },
+    update: { profileId: profile.id, notes: notes.data.notes, packagingDone: problems.size === 0 },
   });
-  if (!draft?.logoKey || !draft.logoName || !draft.logoContentType) return null;
-  return { key: draft.logoKey, name: draft.logoName, contentType: draft.logoContentType };
+  if (problems.size > 0) return { ok: false, labelProblems: problems };
+  return { ok: true };
 }

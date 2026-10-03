@@ -8,6 +8,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { SAMPLE_GST_RATE, SAMPLE_HSN_CODE } from "../src/server/seed/catalogue";
 import { buildProducts } from "../src/server/seed/catalogue-load";
 import { extraAreas, extraForms } from "../src/server/seed/catalogue-list";
+import { assignLabelSpecs, seedLabelSpecs } from "../src/server/seed/label-specs";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -71,6 +72,8 @@ async function main(): Promise<void> {
     created += 1;
   }
   console.info(`Catalogue: ${created} products created, ${existing} already there.`);
+  await seedLabelSpecs(db);
+  console.info(`Label specs: ${await assignLabelSpecs(db)} products given a spec by their form.`);
 }
 
 main()

@@ -191,10 +191,12 @@ export async function removeFromBrandCart(userId: string, productId: number): Pr
 /** The furthest /launch step the user may open: each needs the ones before it. */
 export function furthestStep(
   cart: Pick<BrandCartView, "lines" | "ready">,
-  draft: { packagingDone: boolean; logo: unknown } | null,
+  draft: { packagingDone: boolean } | null,
+  /** The brand profile the order uses (it needs a logo). */
+  profile: { logo: unknown } | null,
 ): number {
   if (cart.lines.length === 0) return 1;
   if (!cart.ready) return 2;
-  if (!draft?.packagingDone || !draft.logo) return 3;
+  if (!draft?.packagingDone || !profile?.logo) return 3;
   return 4;
 }

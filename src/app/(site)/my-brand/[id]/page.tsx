@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Download, FlaskConical } from "lucide-react";
 import { retryPaymentAction } from "@/app/(site)/checkout/actions";
+import { OrderLabels } from "@/components/site/brand/order-labels";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
 import { ProofDecision } from "@/components/site/brand/proof-decision";
 import { ProofList } from "@/components/site/brand/proof-list";
@@ -68,6 +69,10 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
         [text.tagline, details.tagline],
         [text.marketedBy, [details.marketedByName, details.marketedByAddress].filter(Boolean).join(", ") || null],
         [text.contactPhone, details.contactPhone],
+        [text.licenceNumbers, details.licenceNumbers],
+        [text.shortDescription, details.shortDescription],
+        [text.longDescription, details.longDescription],
+        [text.colours, [details.primaryColour, details.secondaryColour].filter(Boolean).join(", ").toUpperCase() || null],
         [text.notes, details.notes],
       ]
     : [];
@@ -202,6 +207,14 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
                 </dl>
               </div>
             )}
+          </Card>
+
+          <Card as="section" aria-labelledby="brand-labels">
+            <h2 id="brand-labels" className="text-h3 text-ink">
+              {text.labelsTitle}
+            </h2>
+            <p className="mt-1 mb-4 text-small text-muted">{text.labelsLine}</p>
+            <OrderLabels items={order.items} empty={text.noLabel} />
           </Card>
 
           <Card>

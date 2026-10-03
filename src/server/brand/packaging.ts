@@ -1,70 +1,83 @@
 import { z } from "zod";
 import { brand as copy } from "@/content/brand";
-import { isContactNumber, packagingLimits } from "@/lib/brand";
-import { optionalText, requiredText } from "@/server/admin/form";
+import { isContactNumber } from "@/lib/brand";
+import { isHexColour, profileLimits } from "@/lib/label";
+import { blankToNull, optionalText, requiredText } from "@/server/admin/form";
 
-// The packaging details of a Launch Your Brand order (P2.1): what goes on
-// the label. Checked when the packaging step is saved, and again from the
-// draft when the order is placed.
+// What a saved brand profile holds (the shared label defaults) and the notes
+// of one order. Checked when a profile is saved, and again when an order is
+// placed.
 
-const errors = copy.packaging.errors;
+const errors = copy.profiles.errors;
 
-/** Collapses runs of spaces and tabs, keeping line breaks (for the address and notes). */
+/** Collapses runs of spaces and tabs, keeping line breaks (for addresses and descriptions). */
 const tidy = (value: unknown) =>
   typeof value === "string" ? value.replace(/\r\n?/g, "\n").replace(/[^\S\n]+/g, " ") : value;
 
 /** Control characters other than line breaks are not allowed. */
 const noControl = (text: string | null) => text === null || !/[\u0000-\u0009\u000b-\u001f\u007f]/.test(text);
 
-export const packagingSchema = z.object({
+const singleLine = (text: string | null) => text === null || !/[\n\u0000-\u001f\u007f]/.test(text);
+
+const line = (max: number, message: string) =>
+  z.preprocess(tidy, optionalText(max, message).refine(singleLine, message));
+
+const block = (max: number, message: string) =>
+  z.preprocess(tidy, optionalText(max, message).refine(noControl, message));
+
+const colour = z.preprocess(
+  blankToNull,
+  z
+    .string({ error: errors.colour })
+    .trim()
+    .refine(isHexColour, errors.colour)
+    .transform((value) => value.toLowerCase())
+    .nullable(),
+);
+
+export const profileSchema = z.object({
+  profileName: z.preprocess(
+    tidy,
+    requiredText(profileLimits.profileName, errors.profileName).refine(singleLine, errors.profileName),
+  ),
   brandName: z.preprocess(
     tidy,
-    requiredText(packagingLimits.brandName, errors.brandName).refine(
-      (text) => !/[\n\u0000-\u001f\u007f]/.test(text),
-      errors.brandName,
-    ),
+    requiredText(profileLimits.brandName, errors.brandName).refine(singleLine, errors.brandName),
   ),
-  tagline: z.preprocess(
-    tidy,
-    optionalText(packagingLimits.tagline, errors.tagline).refine(
-      (text) => text === null || !/[\n\u0000-\u001f\u007f]/.test(text),
-      errors.tagline,
-    ),
-  ),
-  marketedByName: z.preprocess(
-    tidy,
-    optionalText(packagingLimits.marketedByName, errors.marketedByName).refine(
-      (text) => text === null || !/[\n\u0000-\u001f\u007f]/.test(text),
-      errors.marketedByName,
-    ),
-  ),
-  marketedByAddress: z.preprocess(
-    tidy,
-    optionalText(packagingLimits.marketedByAddress, errors.marketedByAddress).refine(
-      noControl,
-      errors.marketedByAddress,
-    ),
-  ),
+  tagline: line(profileLimits.tagline, errors.tagline),
+  shortDescription: line(profileLimits.shortDescription, errors.shortDescription),
+  longDescription: block(profileLimits.longDescription, errors.longDescription),
+  marketedByName: line(profileLimits.marketedByName, errors.marketedByName),
+  marketedByAddress: block(profileLimits.marketedByAddress, errors.marketedByAddress),
   contactPhone: z.preprocess(
     tidy,
-    optionalText(packagingLimits.contactPhone, errors.contactPhone).refine(
+    optionalText(profileLimits.contactPhone, errors.contactPhone).refine(
       (text) => text === null || isContactNumber(text),
       errors.contactPhone,
     ),
   ),
-  notes: z.preprocess(
-    tidy,
-    optionalText(packagingLimits.notes, errors.notes).refine(noControl, errors.notes),
-  ),
+  licenceNumbers: block(profileLimits.licenceNumbers, errors.licenceNumbers),
+  primaryColour: colour,
+  secondaryColour: colour,
 });
 
-export type PackagingInput = z.output<typeof packagingSchema>;
+export type ProfileInput = z.output<typeof profileSchema>;
 
-export const packagingFields = [
+export const profileFields = [
+  "profileName",
   "brandName",
   "tagline",
+  "shortDescription",
+  "longDescription",
   "marketedByName",
   "marketedByAddress",
   "contactPhone",
-  "notes",
-] as const satisfies readonly (keyof PackagingInput)[];
+  "licenceNumbers",
+  "primaryColour",
+  "secondaryColour",
+] as const satisfies readonly (keyof ProfileInput)[];
+
+/** Notes for the team on one order. */
+export const orderNotesSchema = z.object({
+  notes: z.preprocess(tidy, optionalText(1000, copy.packaging.errors.notes).refine(noControl, copy.packaging.errors.notes)),
+});
