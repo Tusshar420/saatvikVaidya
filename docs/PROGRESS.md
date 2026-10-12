@@ -4129,3 +4129,20 @@ nothing was changed.
 
 **Next:** run U.1 to U.6 in order, then re-run U.7 (this entry is then
 replaced by the real one).
+
+## U.6. Homepage v2, part 2 (2026-10-12): BLOCKED
+
+Not started. This chunk builds the homepage's Launch Your Brand preview, Top
+Brands cards, Courses and Saatvik Live cards and the gold Coins strip from the
+v2 components, and those components and the v2 tokens do not exist yet.
+
+**Waiting on:** U.1 (design system v2) to U.5 (Homepage v2, part 1).
+`docs/PROGRESS.md` has no entry for any of U.1 to U.5, there are no U.*
+commits on `dev` other than the planning one (`d7e87fa`) and BLOCKED notes,
+`src/app/layout.tsx` does not load Manrope, and there is no PageHero,
+StatStrip or Drawer in `src/components/ui/`. Building U.6 now would mean
+inventing the design system and the homepage shell inside this chunk, so
+nothing else was changed.
+
+**Next:** run U.1 to U.5 in order, then re-run U.6 (this entry is then
+replaced by the real one).
