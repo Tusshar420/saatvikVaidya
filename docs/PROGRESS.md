@@ -3983,3 +3983,20 @@ inventing the v2 tokens inside this chunk, so nothing was changed.
 
 **Next:** run U.1 to U.14 in order, then re-run U.15 (this entry is then
 replaced by the real one).
+
+## U.16. Admin portal v2: every admin page (2026-10-12): BLOCKED
+
+Not started. This chunk moves every admin route onto the shared admin
+components from U.15, and those components (and the v2 design system under
+them) do not exist yet.
+
+**Waiting on:** U.15 (admin shell and shared admin components), and through it
+U.1 to U.14. `docs/PROGRESS.md` has no real entry for any of U.1 to U.15 (only
+BLOCKED entries for U.14, U.15 and U.17), there are no U.* commits on `dev` (the
+last UI commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
+`src/app/globals.css` still hold the old tokens. Building U.16 now would mean
+inventing the tokens and shared admin components inside this chunk, so nothing
+was changed.
+
+**Next:** run U.1 to U.15 in order, then re-run U.16 (this entry is then
+replaced by the real one).
