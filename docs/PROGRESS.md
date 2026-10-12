@@ -4111,3 +4111,21 @@ changed.
 
 **Next:** run U.1 to U.7 in order, then re-run U.8 (this entry is then
 replaced by the real one).
+
+## U.7. Top Brands: catalogue, product page and search (2026-10-12): BLOCKED
+
+Not started. This chunk restyles `/products`, `/products/[slug]` and `/search`
+with the v2 components (PageHero, FilterBar, v2 product card, stock pill,
+QuantityStepper, cart Drawer), and those components and the v2 tokens do not
+exist yet.
+
+**Waiting on:** U.1 (design system v2) and the chunks after it, up to U.6.
+`docs/PROGRESS.md` has no real entry for any of U.1 to U.6 (only BLOCKED
+entries for U.8 and later), there are no U.* commits on `dev` (the last UI
+commit is the planning one, `d7e87fa`), `src/app/layout.tsx` does not load
+Manrope, and there is no PageHero, Drawer or FilterBar in `src/components/ui/`.
+Building U.7 now would mean inventing the design system inside this chunk, so
+nothing was changed.
+
+**Next:** run U.1 to U.6 in order, then re-run U.7 (this entry is then
+replaced by the real one).
