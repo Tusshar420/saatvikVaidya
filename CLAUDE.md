@@ -10,8 +10,9 @@ firm. Work here is often done by unattended Octopus runs, one chunk at a time.
 2. `docs/DESIGN.md`: the design system. Every screen follows it.
 3. `docs/PROGRESS.md`: what earlier chunks did and left behind.
 4. `docs/CHUNKS.md`: the chunk list; each task names its chunk.
-5. `docs/mockup/`: the client mockup (`index.html`, `styles.css`, `assets/`).
-   Read-only reference; never edit it.
+5. `docs/mockup-v2/`: the client's current UI for every screen (October
+   2026), with screenshots in `screens/`. It replaces the older
+   `docs/mockup/`. Both are read-only references; never edit them.
 
 ## Local setup
 
@@ -65,7 +66,7 @@ These scripts exist once chunk A1 is done; keep them working.
 
 1. `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:e2e` and `pnpm build`
    all pass.
-2. Screens match `docs/DESIGN.md` and the mockup at 375 px and 1280 px.
+2. Screens match `docs/DESIGN.md` and `docs/mockup-v2/` at 375 px and 1280 px.
 3. `docs/PROGRESS.md` has a new entry: chunk id, what was built, decisions,
    known gaps and next steps.
 4. One or more commits on `dev` with clear messages.

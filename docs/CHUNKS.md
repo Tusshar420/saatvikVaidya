@@ -45,6 +45,24 @@ here.
    - P3.3 WhatsApp chat button
    - P3.4 Hindi
    - P3.5 Phase 3 quality and security pass
+6. **UI Design: client UI v2** (every screen restyled to `docs/mockup-v2/`)
+   - U.1 Design system v2: tokens, fonts and DESIGN.md
+   - U.2 UI primitives in the v2 style
+   - U.3 New shared components
+   - U.4 Site shell v2
+   - U.5 Homepage v2, part 1
+   - U.6 Homepage v2, part 2
+   - U.7 Top Brands: catalogue, product page and search
+   - U.8 Launch Your Brand screens
+   - U.9 Cart, checkout, orders and Track Order
+   - U.10 Quiz & Win
+   - U.11 Saatvik Coins and My Profile
+   - U.12 New pages: Courses and Dr. Talk
+   - U.13 New pages: Real Feedback, Why Saatvik, Partner & Grow
+   - U.14 Remaining site screens
+   - U.15 Admin portal v2: shell and shared admin components
+   - U.16 Admin portal v2: every admin page
+   - U.17 UI quality, accessibility and security pass
 
 ---
 
@@ -955,3 +973,365 @@ may prepare it:
   limits, backups and monitoring.
 - A production smoke test.
 
+
+---
+
+# UI phase chunks (client UI v2)
+
+The client sent their full UI for the website on 2026-10-12. It is saved in
+`docs/mockup-v2/` (homepage `index.html`, every inner page in
+`portal.html?view=...`, screenshots of every view at 375 and 1280 px in
+`screens/`). This phase restyles **every screen**, site and admin, to match
+it. Run the chunks in order, one per Octopus task, on `dev`. Each ends with
+the definition of done in `CLAUDE.md`.
+
+## Rules for every UI chunk
+
+- **Match the client UI.** Compare each screen with `docs/mockup-v2/screens/`
+  (and the live HTML, served locally) at 375 and 1280 px: colours, type,
+  spacing, radius, shadows, layout and order of sections. Where matching it
+  exactly would break an accessibility rule in `docs/DESIGN.md` (contrast,
+  44 px targets, 14 px body, 11 px labels), keep the rule, get as close as it
+  allows, and note the difference in DESIGN.md.
+- **Reusable components, no one-offs.** Screens are built from
+  `src/components/ui/` and `src/components/site/`. If a pattern shows up on
+  two screens it is a component, not copied markup. Every new or changed
+  component is typed, takes `className`, and is on `/design` with all its
+  variants. Use tokens only, never raw colour values.
+- **Presentation only.** Keep every route, server action, API route, Zod
+  schema, auth check, rate limit, permission and query as it is, unless the
+  chunk says otherwise. Don't loosen the CSP; fonts come through `next/font`
+  (self-hosted), so no new external origins.
+- **Real data, honest states.** The mockup's sample data (doctor names, posts,
+  leaderboard rows, prices, order numbers, "DA" avatar) is illustration only.
+  Show real data from the database. Where a feature doesn't exist yet, show
+  the v2 "Coming next" state. Don't add buttons that do nothing (Wishlist,
+  Follow, Share, Set Reminder and similar): leave them out or show them as
+  coming soon.
+- **Text** goes in `src/content/`, and content admins edit stays in the
+  database.
+- **Tests.** Update Playwright tests whose text or selectors change, and add
+  them for new pages, at 375 and 1280 px with axe and the horizontal-overflow
+  check. Never delete or skip a failing test to get green.
+- **Shared working tree.** The tree may contain someone else's uncommitted
+  work (for example a brand-order "Update status" change in
+  `src/server/brand/`, `src/lib/brand-stage.ts` and `docs/PROGRESS.md`).
+  Don't commit, revert or stash it. Stage only your own files by path. If
+  `docs/PROGRESS.md` already has unrelated uncommitted edits, add your entry
+  without touching them and commit only your hunk (`git add -p`).
+
+## U.1. Design system v2: tokens, fonts and DESIGN.md
+
+- Rewrite `docs/DESIGN.md` for v2, from `docs/mockup-v2/styles.css` and
+  `portal.css`:
+  - colours: forest green brand, orange action, gold coins, paper and cream
+    backgrounds;
+  - type: Manrope for headings and DM Sans for body, with Noto Sans
+    Devanagari kept as the Hindi fallback;
+  - the radius, shadow, spacing and container values;
+  - the heading pattern (second line in orange or gold, not teal) and the
+    eyebrow with a short orange line before it;
+  - motion (scroll reveal, off under reduced motion);
+  - a component table updated for v2.
+  Keep the principles and content rules. Record every deliberate difference
+  from the mockup.
+- `src/app/globals.css`:
+  - Replace the token values with v2.
+  - Rename colour tokens to role names where the role changed (for example
+    `teal*` becomes `brand*` for the forest green) and update every use in
+    the codebase in the same chunk, so no stale names are left.
+  - Keep AA-safe text steps for white on orange, as today with
+    `orange-strong`.
+  - Add the v2 gradients (dark green hero, gold quiz/coins, product pack
+    colours) as named utilities.
+- `src/app/layout.tsx`: load Manrope and DM Sans with `next/font` in place of
+  Inter, and expose them as `--font-heading` and `--font-body`.
+- `/design` shows the new palette and type scale.
+- Expect many screens to change colour in this chunk. Fix any test that
+  asserts on old colours or class names, and check that contrast tests still
+  pass.
+
+## U.2. UI primitives in the v2 style
+
+Restyle every component in `src/components/ui/` to v2:
+- Button: dark green solid, orange primary with soft glow, soft outline and
+  link variants.
+- Inputs, select and textarea: cream fill, rounded 12–14 px.
+- Checkbox, choice chips (rounded pills, dark green when selected), tabs as
+  pill tabs.
+- Card: white, 24 px radius, the soft v2 shadow; featured gold and dark green
+  variants.
+- Badge and pill: green, orange, blue and gold tones, "In stock", "Coming
+  next".
+- Icon tile, avatar (rounded square, green gradient), coin pill (Coins / MY
+  WALLET).
+- Modal (bottom sheet on phones), toast, skeleton, empty state and coming
+  soon, carousel, horizontal scroller.
+
+Every variant goes on `/design`. Keep the APIs, or update the callers in the
+same chunk.
+
+## U.3. New shared components
+
+Add the patterns the v2 pages repeat, each in `src/components/ui/` (or
+`site/` if it is site-specific), on `/design`, with Vitest tests for any
+logic:
+- **PageHero**: the dark green inner-page hero with dotted texture, orange
+  eyebrow, big Manrope title, description, and the "BUILT FOR PROFESSIONALS"
+  side note card (stacks under the text on phones).
+- **SectionHeading** v2: eyebrow, two-tone title, optional description on the
+  right and a "View all →" link.
+- **StatStrip**: the 4-up gold-number stats band (2 × 2 on phones).
+- **FilterBar**: search field and select filters in one row, stacking on
+  phones.
+- **PillTabs**: the tab group used on Dr. Talk, Courses, Feedback and the
+  leaderboard.
+- **ProgressBar**.
+- **StepsBar**: the numbered 1–2–3 steps strip.
+- **Stepper** v2: the Track Order dots-and-line progress.
+- **Drawer**: side sheet on desktop, bottom sheet on phones; focus trapped.
+- **RankList**: the leaderboard rows.
+- **MediaCard**: reel and feedback cards with tag, play overlay and caption.
+- **InfoCard**: icon tile, number, title, text and link, used by Why Saatvik,
+  Partner and Coins.
+- **QuantityStepper**: promote from `site/cart` and reuse it everywhere.
+
+## U.4. Site shell v2
+
+Rebuild the site shell to v2, as one set of shared components used on every
+site page:
+- **Announcement bar**: orange, with the coins message from settings.
+- **Header**:
+  - the client's `logo.png` as the logo (copy it to `public/brand/` and use
+    `next/image` with alt text);
+  - search with the ⌘K hint;
+  - the Coins "MY WALLET" pill;
+  - "My Profile / Sign in / Register", or the signed-in avatar;
+  - the cart bag stays, styled to match.
+- **Nav rail**:
+  - pill items, with Dr. Talk as a dark green pill and Quiz & Win as an
+    orange pill;
+  - scrolls sideways on phones and marks the active page;
+  - links go to real routes: `/`, `/dr-talk`, `/quiz`, `/launch`,
+    `/products`, `/courses`, `/coins`, `/track`, `/feedback`, `/partner`,
+    `/why`.
+  - Routes that don't exist yet (`/dr-talk`, `/courses`, `/feedback`,
+    `/partner`, `/why`) get a simple coming-soon page now; U.12 and U.13
+    replace them.
+- **Mobile dock**: Home, Dr. Talk, Launch, Orders, Profile, as in v2. Update
+  DESIGN.md's dock section.
+- **Footer**: dark green, with the logo, tagline, Community / Products /
+  Support columns, the phone number, the legal row, and links to the policy
+  pages, which stay.
+- **Sign-in modal**: restyle to v2 ("Continue with mobile OTP"). The flows,
+  validation and rate limits stay exactly as they are.
+
+## U.5. Homepage v2, part 1
+
+Following `docs/mockup-v2/index.html` and `screens/*-home.jpg`:
+- **Hero**: dark green, "Learn. Connect. / Build. Grow.", two buttons and
+  ticks. Add the "Your Saatvik journey" panel with its four tiles (Dr. Talk,
+  Quiz & Win, Launch Your Brand, Business Opportunities), each linking to its
+  page.
+- **StatStrip** under the hero, from the `StatItem` rows.
+- **"Start with the community"**:
+  - The Dr. Talk card shows a Coming next state in place of the discussion
+    preview until P3.2. Don't use the sample doctor posts.
+  - The gold Quiz & Win card uses the current quiz's real data: questions,
+    minutes, coins, and the user's best score and rank when signed in.
+- **"Watch & Explore"**: the reels, with filter chips by reel category.
+
+Content comes from the existing homepage tables and settings, so the admin
+can still edit it. Add a migration and seed data only where v2 needs a field
+that doesn't exist yet (for example the journey tiles); edit those fields in
+the existing admin content screens.
+
+## U.6. Homepage v2, part 2
+
+- **Launch Your Brand**:
+  - the steps;
+  - a live product preview card (pack, MOQ buttons, suggested MRP and net
+    rate from the real launch products and bulk tiers);
+  - "Add to Order" uses the existing Launch cart action.
+- **Top Brands**: real product cards with MRP crossed out, the net rate, and
+  "Add +" through the existing cart action.
+- **Courses**: a course card and a Saatvik Live card from `CourseTeaser` and
+  `LiveSession`.
+- **Coins strip** (gold).
+- **Real Feedback**: a quote card from `Feedback`.
+- **Track Order** banner with the stepper.
+- **Why Saatvik** grid from `WhyStep`.
+- **Final CTA**: "Create Free Profile" opens sign-in.
+- **Old sections**:
+  - Remove homepage sections that v2 dropped (for example offers, quick
+    actions, trust strip): their components, content strings and admin
+    sections.
+  - Don't drop tables with data. Hide them from the homepage editor and note
+    this under "Later".
+  - The admin homepage editor (`/admin/content/sections`) lists exactly the
+    v2 sections.
+
+## U.7. Top Brands: catalogue, product page and search
+
+- **`/products`** following `portal.html?view=top-brands`:
+  - PageHero, then the FilterBar (search, brand, product form) on top of the
+    existing filter and URL logic.
+  - "Available products" with the "Live stock preview" pill.
+  - v2 product cards: pack visual from the product image, a stock pill based
+    on real stock, MRP crossed out, the net rate, QuantityStepper starting at
+    the product's minimum quantity, and "Add to Order".
+  - A floating "Order List" button with the real cart count that opens the
+    cart Drawer (or links to `/cart`).
+- **`/products/[slug]`** and **`/search`** in the same style.
+- Keep the pagination, filters, prices, and the server checks on minimum
+  quantity and stock.
+
+## U.8. Launch Your Brand screens
+
+- **`/launch`** following `portal.html?view=launch-brand`:
+  - PageHero, then the StepsBar (Choose product / Customise brand / Review &
+    submit) and FilterBar;
+  - the side filter list (product form, practice area);
+  - "Featured formulations" cards with a coloured pack header and "View &
+    Customise".
+- The customise step uses the live label preview. Keep the existing brand
+  profile, label details, logo upload and Launch cart logic. Honour any open
+  request in The Den's backlog about which label fields to show, and don't
+  re-add fields that were removed.
+- **`/my-brand`**, **`/my-brand/[id]`** (stage stepper) and
+  **`/account/brands`** in the same style.
+
+## U.9. Cart, checkout, orders and Track Order
+
+- **`/track`** following `portal.html?view=track-order`:
+  - PageHero;
+  - the tracking card with "Order / Request ID", mobile number and "Track
+    Order";
+  - "Previous orders" for signed-in users (with "Reorder" only if a reorder
+    action exists; otherwise leave it out);
+  - the Stepper for the result.
+- **`/cart`**, **`/checkout`**, **`/checkout/pay/[orderId]`**,
+  **confirmation** and **failed** pages in v2.
+- **`/orders`** and **`/orders/[id]`** (timeline, documents).
+- No change to totals, coins, address or payment logic.
+
+## U.10. Quiz & Win
+
+**`/quiz`** following `portal.html?view=quiz`:
+- PageHero with this week's quiz.
+- The challenge card: timer pill, progress bar, question count, options A–D,
+  "Next Question", and the result state.
+- The dark green leaderboard card with This week / This month PillTabs, from
+  the real leaderboard query.
+
+**`/quiz/leaderboard`** in the same style. The quiz rules, timing,
+anti-cheat and coin awards stay as they are.
+
+## U.11. Saatvik Coins and My Profile
+
+- **`/coins`** following `portal.html?view=coins`:
+  - the dark green wallet card (sign-in prompt, or the real balance);
+  - InfoCards for How to earn, How to use, Validity and Clear history, using
+    the real rules from settings;
+  - the "Coin history" table from the ledger.
+- **`/account`** following `portal.html?view=profile`:
+  - the profile card with avatar, completion bar and side nav (Overview,
+    Orders & Requests, Courses, Saatvik Coins, Saved Products, Professional
+    Details), with links only to sections that exist;
+  - cards for active requests and the reward wallet, and links to learning
+    and community;
+  - "Select your main practice interests" only if a field for it exists;
+    otherwise note it under "Later".
+- **`/account/addresses`**, **`/reports`** and **`/two-factor`** in the same
+  layout.
+
+## U.12. New pages: Courses and Dr. Talk
+
+- **`/courses`** following `portal.html?view=courses`:
+  - PageHero;
+  - PillTabs: Courses, Saatvik Live, and Ebooks & Resources (which links to
+    `/ebooks`);
+  - topic chips;
+  - course cards from `CourseTeaser`;
+  - "Upcoming Saatvik Live" from `LiveSession`.
+  - Links go where course data points today. No course purchase flow (that's
+    P3.1).
+- **`/dr-talk`** following `portal.html?view=doctor-talk`:
+  - the v2 page shell (PageHero, "Professional conversations" heading, the
+    Professional discussion standard note);
+  - a Coming next state where the feed goes, until P3.2.
+  - Don't add sample posts or a working "Ask a Question".
+- Both pages get metadata, content strings, nav and dock active states, and
+  Playwright tests.
+
+## U.13. New pages: Real Feedback, Why Saatvik, Partner & Grow
+
+- **`/feedback`**: PageHero, PillTabs (All / Letterheads / Videos / Products
+  received) filtering the real `Feedback` rows, and MediaCards opening the
+  original image in a Modal. Video entries show "Coming next" until videos
+  exist.
+- **`/why`**: following `portal.html?view=why`, from `WhyStep` and
+  `StatItem`.
+- **`/partner`**: three pathway InfoCards and a **Request a callback** form.
+  This is the one new feature in the phase, so build it securely:
+  - Zod on the server: name, 10-digit Indian mobile, partnership type from a
+    fixed list, city, and a message with length limits.
+  - A server action with rate limits per IP and per mobile, a honeypot field,
+    and the same-origin check.
+  - A new `PartnerLead` table (migration), and a dev notification through
+    `src/server/notify/`.
+  - The success message never reveals whether the number was seen before.
+  - An admin list page (`/admin/partner-leads`) behind a new permission, with
+    status (new / contacted / closed) and the admin log.
+  - Vitest for validation and rate limits; Playwright for the form and the
+    admin list.
+- Update `docs/PLAN.md` security notes if needed.
+
+## U.14. Remaining site screens
+
+Apply v2 to every other site screen so nothing looks old:
+- `/ebooks` and `/ebooks/[slug]`;
+- the policy pages (`/privacy`, `/terms`, `/shipping`, `/rewards-policy`);
+- `/reset-password` and `/admin-invite/[token]`;
+- the maintenance page, `error.tsx`, `global-error.tsx`, not found, the
+  coming-soon page and "Report a problem".
+
+Walk through every route under `src/app/(site)` at 375 and 1280 px and list
+any you changed or checked in the progress entry.
+
+## U.15. Admin portal v2: shell and shared admin components
+
+There is no admin screen in the mockup, so the admin uses the v2 tokens,
+type and components in a calm, dense, desktop-first form that still works at
+375 px:
+- the admin layout, nav (`admin-nav.tsx`) and header;
+- `page-header`, `data-table`, `pagination`, `form-fields`, `badges`,
+  `notice`, `row-actions`, `confirm-delete`, the tabs components and the
+  stats cards;
+- `/admin` (dashboard).
+
+Add an admin section to `/design` and an admin part to DESIGN.md.
+
+## U.16. Admin portal v2: every admin page
+
+Go through every route under `src/app/admin` (users, approvals, catalogue,
+orders, brand orders, inventory, coins, content, ebooks, errors, reports,
+settings, admins, database, partner leads). Swap leftover one-off styling for
+the shared admin components and fix layout at 375 and 1280 px. Leave the
+permissions and server actions alone. List every page in the progress entry.
+
+## U.17. UI quality, accessibility and security pass
+
+- Compare every site screen with `docs/mockup-v2/screens/` at 375 and
+  1280 px, and fix the differences. Check 360, 414, 768 and 1024 px for
+  overflow.
+- Search for raw hex or rgb values outside `globals.css`, duplicated markup
+  that should be a component, unused components and content strings left
+  from the old design, and remove them.
+- Check that axe passes on every page, keyboard and focus order work, reduced
+  motion is respected, and images have alt text and sizes. Check the
+  Lighthouse performance of the homepage on mobile, including the font
+  loading strategy.
+- Security review of everything changed in the phase, especially U.13's
+  form: validation, rate limits, permissions, CSP and no secrets.
+- Write a UI phase summary in `docs/PROGRESS.md`. **Do not deploy.**

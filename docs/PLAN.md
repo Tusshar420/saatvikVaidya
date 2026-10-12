@@ -3,8 +3,8 @@
 Source of truth: the shared plan doc
 (https://claude.ai/code/artifact/ed7b7619-6675-4f11-a6c0-14192bbbbe0f). This
 file is the in-repo copy for anyone working here, including unattended Octopus
-runs. Design rules are in `docs/DESIGN.md`; the client mockup is in
-`docs/mockup/`.
+runs. Design rules are in `docs/DESIGN.md`; the client's current UI is in
+`docs/mockup-v2/` (the older mockup in `docs/mockup/`).
 
 ## Current scope: Stage A (local only)
 
@@ -43,7 +43,7 @@ an admin panel. The client mockup sets the look; this plan sets the features.
 
 | Topic | Decision |
 |---|---|
-| Look and feel | Match the client mockup (colours, fonts, sections, mobile bottom bar) |
+| Look and feel | Match the client's UI v2 in `docs/mockup-v2/` on every screen, site and admin (UI phase, chunks U.1–U.17) |
 | Mobile | Fully responsive, designed phone-first |
 | User types | Customer, Ayurveda Doctor, Clinic / Hospital, Pharmacy / Store, Stockist / Distributor, plus Admin. Stored as data (a `UserType` table), so admins can add types later |
 | Login | Mobile OTP **and** email + password |
@@ -56,7 +56,7 @@ an admin panel. The client mockup sets the look; this plan sets the features.
 | Quiz & Win | Weekly quiz with coins and leaderboards (Phase 2) |
 | Courses | YouTube-based (Phase 3) |
 | Vaidya Community | Phase 3 |
-| Partner & Grow | Undecided; the menu link shows "coming soon" |
+| Partner & Grow | Pathway cards plus a "Request a callback" form, as in the client's UI v2 (chunk U.13) |
 | WhatsApp | "Chat on WhatsApp" button first, full integration in Phase 3 |
 | Language | English now; all strings kept in content files so Hindi can be added |
 | Dynamic site | Content, prices, rules and on/off switches (including maintenance mode) are edited in the admin panel, not in code |

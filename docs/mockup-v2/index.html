@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#063f36">
+  <meta name="description" content="Saatvik Vaidya is a professional platform for Ayurveda doctors to learn, connect, launch products and grow.">
+  <title>Saatvik Vaidya — Learn. Connect. Build. Grow.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c.8-4.2 3.5-6.4 8-6.4s7.2 2.2 8 6.4"></path></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5.5 10v10h13V10M9 20v-6h6v6"></path></symbol>
+    <symbol id="i-talk" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z"></path><path d="M8 9h8M8 12h5"></path></symbol>
+    <symbol id="i-quiz" viewBox="0 0 24 24"><path d="M7 3h10v3h3v15H4V6h3V3Z"></path><path d="M9 13c0-2 3-2 3-4 0-1-.8-1.5-2-1.5-1 0-1.8.4-2.4 1.2M10.5 17h.01"></path></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C11 4 5 8 5 15c0 3 2 5 5 5 7 0 10-7 10-16Z"></path><path d="M4 21c3-6 7-9 13-12"></path></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8Z"></path><path d="M9 9V6a3 3 0 0 1 6 0v3"></path></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h7a3 3 0 0 1 3 3v13a3 3 0 0 0-3-3H4V4Z"></path><path d="M20 4h-3a3 3 0 0 0-3 3v13a3 3 0 0 1 3-3h3V4Z"></path></symbol>
+    <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="9" cy="6" rx="6" ry="3"></ellipse><path d="M3 6v4c0 1.7 2.7 3 6 3 1.1 0 2-.1 3-.4M3 10v4c0 1.7 2.7 3 6 3"></path><ellipse cx="16" cy="15" rx="5" ry="2.5"></ellipse><path d="M11 15v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4"></path></symbol>
+    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 5h11v12H3V5Zm11 5h4l3 4v3h-7v-7Z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9L12 3Z"></path></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"></path></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="m10 8 6 4-6 4V8Z"></path></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 2.8 8.3 7 10 4.2-1.7 7-5 7-10V6l-7-3Z"></path><path d="m9 12 2 2 4-5"></path></symbol>
+  </svg>
+
+  <div class="announcement">
+    <div class="container announcement-inner">
+      <span><b>₹10,000 order = 1,000 Saatvik Coins</b><span class="announcement-extra"> · 10 Coins = ₹1 · Valid for 60 months</span></span>
+      <a href="portal.html?view=coins">View Coins <span>→</span></a>
+    </div>
+  </div>
+
+  <header class="site-header" id="top">
+    <div class="container header-main">
+      <a class="brand" href="#top" aria-label="Saatvik Vaidya home"><img src="logo.png" alt="Saatvik Vaidya — हमारा आयुर्वेद, हमारा गर्व"></a>
+      <div class="header-search">
+        <svg><use href="#i-search"></use></svg>
+        <input type="search" aria-label="Search" placeholder="Search products, courses or discussions">
+        <kbd>⌘ K</kbd>
+      </div>
+      <div class="header-actions">
+        <button class="icon-button search-mobile" aria-label="Search"><svg><use href="#i-search"></use></svg></button>
+        <a class="coin-pill" href="portal.html?view=coins"><svg><use href="#i-coins"></use></svg><span><b>Coins</b><small>My Wallet</small></span></a>
+        <a class="profile-button" href="portal.html?view=profile" aria-label="Open profile"><span>DA</span><div><b>My Profile</b><small>Sign in / Register</small></div></a>
+      </div>
+    </div>
+
+    <nav class="nav-rail" aria-label="Main navigation">
+      <div class="container nav-scroll">
+        <a class="nav-link active" href="#top"><svg><use href="#i-home"></use></svg><span>Home</span></a>
+        <a class="nav-link priority" href="portal.html?view=doctor-talk">Dr. Talk</a>
+        <a class="nav-link priority" href="portal.html?view=quiz">Quiz &amp; Win</a>
+        <a class="nav-link" href="portal.html?view=launch-brand">Launch Your Brand</a>
+        <a class="nav-link" href="portal.html?view=top-brands">Top Brands</a>
+        <a class="nav-link" href="portal.html?view=courses">Courses</a>
+        <a class="nav-link" href="portal.html?view=coins">Saatvik Coins</a>
+        <a class="nav-link" href="portal.html?view=track-order">Track Order</a>
+        <a class="nav-link" href="portal.html?view=feedback">Real Feedback</a>
+        <a class="nav-link" href="portal.html?view=partner">Partner &amp; Grow</a>
+        <a class="nav-link" href="portal.html?view=why">Why Saatvik</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-orb orb-one"></div><div class="hero-orb orb-two"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <div class="eyebrow light"><span></span> Professional platform for Ayurveda</div>
+          <h1>Learn. Connect.<br><em>Build. Grow.</em></h1>
+          <p>Saatvik Vaidya helps Ayurveda professionals build practical skills, connect with Verified Doctors, access products at Professional Net Rates and launch their own brand.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="portal.html?view=profile">Join Saatvik Vaidya <svg><use href="#i-arrow"></use></svg></a>
+            <a class="btn btn-ghost" href="#explore">Explore Platform</a>
+          </div>
+          <div class="hero-trust">
+            <span><svg><use href="#i-check"></use></svg> Built for Ayurveda professionals</span>
+            <span><svg><use href="#i-check"></use></svg> Simple OTP access</span>
+          </div>
+        </div>
+
+        <div class="hero-console reveal" aria-label="Saatvik platform overview">
+          <div class="console-top"><span>Your Saatvik journey</span><span class="live-dot">Live platform</span></div>
+          <div class="journey-grid">
+            <a href="portal.html?view=doctor-talk" class="journey-card orange"><span class="journey-icon"><svg><use href="#i-talk"></use></svg></span><div><small>CONNECT</small><b>Dr. Talk</b><p>Discuss with Verified Doctors</p></div><span class="go">↗</span></a>
+            <a href="portal.html?view=quiz" class="journey-card gold"><span class="journey-icon"><svg><use href="#i-quiz"></use></svg></span><div><small>LEARN</small><b>Quiz &amp; Win</b><p>Know more. Earn Coins.</p></div><span class="go">↗</span></a>
+            <a href="portal.html?view=launch-brand" class="journey-card teal"><span class="journey-icon"><svg><use href="#i-leaf"></use></svg></span><div><small>BUILD</small><b>Launch Your Brand</b><p>Low MOQ product development</p></div><span class="go">↗</span></a>
+            <a href="portal.html?view=partner" class="journey-card blue"><span class="journey-icon"><svg><use href="#i-bag"></use></svg></span><div><small>GROW</small><b>Business Opportunities</b><p>Products, partners and leads</p></div><span class="go">↗</span></a>
+          </div>
+          <div class="console-note"><span>One profile</span><i></i><span>Every Saatvik feature</span></div>
+        </div>
+      </div>
+      <div class="container proof-strip">
+        <div><strong>150+</strong><span>Classical formulations</span></div>
+        <div><strong>25</strong><span>Starting MOQ*</span></div>
+        <div><strong>Clear</strong><span>Professional Net Rates</span></div>
+        <div><strong>Complete</strong><span>Product &amp; label support</span></div>
+      </div>
+    </section>
+
+    <section class="section community-first" id="explore">
+      <div class="container">
+        <div class="section-head reveal">
+          <div><div class="eyebrow"><span></span> Start with the community</div><h2>Learn something useful.<br>Every time you visit.</h2></div>
+          <p>Professional conversations and short knowledge challenges come first—before products, orders or offers.</p>
+        </div>
+
+        <div class="lead-grid">
+          <article class="feature-panel talk-panel reveal" id="doctor-talk">
+            <div class="panel-topline"><span class="feature-number">01</span><span class="verified"><svg><use href="#i-shield"></use></svg> Verified Doctors</span></div>
+            <div class="feature-icon"><svg><use href="#i-talk"></use></svg></div>
+            <h3>Dr. Talk</h3>
+            <p class="panel-lead">Discuss • Share • Learn</p>
+            <p>Ask clinical questions, explore de-identified cases and learn from the experience of fellow Ayurveda doctors.</p>
+            <div class="talk-tabs" role="tablist">
+              <button class="active" data-talk-tab="latest">Latest</button><button data-talk-tab="questions">Questions</button><button data-talk-tab="cases">Case Discussions</button>
+            </div>
+            <div class="discussion-card" id="talk-content">
+              <div class="doctor-avatar">VS</div>
+              <div><div class="doctor-line"><b>Dr. Vedika Sharma</b><span><svg><use href="#i-check"></use></svg></span></div><small>Verified Doctor · Kayachikitsa</small><p>How do you personalise Pathya when Agni and disease stage indicate different priorities?</p><div class="discussion-meta"><span>12 helpful answers</span><span>38 doctors joined</span></div></div>
+            </div>
+            <a class="text-action" href="portal.html?view=doctor-talk">Explore Dr. Talk <svg><use href="#i-arrow"></use></svg></a>
+          </article>
+
+          <article class="feature-panel quiz-panel reveal" id="quiz">
+            <div class="panel-topline"><span class="feature-number">02</span><span class="reward-badge">+100 Coins</span></div>
+            <div class="feature-icon dark"><svg><use href="#i-quiz"></use></svg></div>
+            <h3>Quiz &amp; Win</h3>
+            <p class="panel-lead">This week: Agni &amp; Ahara</p>
+            <p>Test your Ayurveda knowledge, learn through clear explanations and earn Saatvik Coins.</p>
+            <div class="quiz-preview">
+              <div class="quiz-row"><span>10 Questions</span><span>5 Minutes</span></div>
+              <div class="progress"><i style="width:68%"></i></div>
+              <div class="quiz-rank"><div><small>Your best</small><b>8/10</b></div><div><small>Weekly rank</small><b>#24</b></div><div><small>Reward</small><b>100</b></div></div>
+            </div>
+            <a class="btn btn-dark" href="portal.html?view=quiz">Start Weekly Quiz <svg><use href="#i-arrow"></use></svg></a>
+            <small class="once-note">Coins awarded once per weekly quiz.</small>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reels-section" aria-label="Video reels">
+      <div class="container">
+        <div class="section-head compact reveal"><div><div class="eyebrow"><span></span> Watch &amp; explore</div><h2>Useful in under 60 seconds.</h2></div><div class="filter-pills"><button class="active">All</button><button>Products</button><button>Learning</button><button>Feedback</button></div></div>
+        <div class="reel-track">
+          <button class="reel-card reel-one" data-reel="Product development in 3 simple steps"><span class="reel-label">LAUNCH YOUR BRAND</span><span class="play"><svg><use href="#i-play"></use></svg></span><span class="reel-title">From formulation to your label</span><small>00:38</small></button>
+          <button class="reel-card reel-two" data-reel="Real doctor feedback"><span class="reel-label">REAL FEEDBACK</span><span class="play"><svg><use href="#i-play"></use></svg></span><span class="reel-title">What doctors say about Saatvik</span><small>00:42</small></button>
+          <button class="reel-card reel-three" data-reel="Clinical learning preview"><span class="reel-label">CLINICAL LEARNING</span><span class="play"><svg><use href="#i-play"></use></svg></span><span class="reel-title">One insight for your next OPD</span><small>00:51</small></button>
+          <button class="reel-card reel-four" data-reel="Saatvik Coins explained"><span class="reel-label">SAATVIK COINS</span><span class="play"><svg><use href="#i-play"></use></svg></span><span class="reel-title">How every order rewards you</span><small>00:29</small></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section brand-section" id="launch-brand">
+      <div class="container brand-grid">
+        <div class="brand-copy reveal">
+          <div class="eyebrow"><span></span> Launch your brand</div>
+          <h2>Your Ayurveda brand,<br><em>made simple.</em></h2>
+          <p>Choose a formulation, quantity and label. Review the Professional Net Rate and submit your request—without making an online payment.</p>
+          <div class="simple-steps">
+            <div><span>1</span><p><b>Choose a product</b><small>Browse by product type or practice area.</small></p></div>
+            <div><span>2</span><p><b>Select quantity &amp; label</b><small>Choose MOQ, MRP, brand details and design.</small></p></div>
+            <div><span>3</span><p><b>Submit your request</b><small>Our team calls within 24–48 working hours.</small></p></div>
+          </div>
+          <a class="btn btn-green" href="portal.html?view=launch-brand">Explore 150+ Products <svg><use href="#i-arrow"></use></svg></a>
+        </div>
+
+        <div class="product-studio reveal">
+          <div class="studio-header"><div><span>LIVE PRODUCT PREVIEW</span><b>Ashwagandha Vati</b></div><span class="gmp"><svg><use href="#i-shield"></use></svg> GMP</span></div>
+          <div class="product-visual">
+            <div class="bottle"><div class="cap"></div><div class="label"><small>YOUR LOGO</small><b>Ashwagandha<br>Vati</b><span>60 Tablets</span></div></div>
+            <div class="product-info"><span>VATI • CLASSICAL</span><h4>Your product.<br>Your identity.</h4><p>Upload your logo, choose your MRP and add your Marketed By details.</p><a class="mini-link" href="portal.html?view=launch-brand">View 5 label designs →</a></div>
+          </div>
+          <div class="quantity-block">
+            <div class="field-label"><span>Select quantity</span><small>MOQ starts at 25*</small></div>
+            <div class="quantity-options" role="group" aria-label="Quantity">
+              <button class="active" data-qty="25" data-rate="168">25</button><button data-qty="50" data-rate="164">50</button><button data-qty="100" data-rate="160">100</button><button data-qty="250" data-rate="156">250</button><button data-qty="500" data-rate="151">500</button>
+            </div>
+            <div class="rate-row"><div><small>Suggested MRP</small><b>₹420</b></div><div><small>Professional Net Rate</small><b id="net-rate">₹168 <em>/unit</em></b></div></div>
+            <div class="request-row"><span><b id="selected-qty">25 units</b><small>No online payment required</small></span><button class="btn btn-primary small" data-toast="Order request saved for review">Add to Order</button></div>
+          </div>
+          <small class="studio-footnote">*MOQ and rates vary by formulation and pack size.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="section marketplace-section" id="top-brands">
+      <div class="container">
+        <div class="section-head reveal"><div><div class="eyebrow"><span></span> Top brands</div><h2>Trusted products. Professional rates.</h2></div><p>See live availability, select the required quantity and send one simple order request.</p></div>
+        <div class="brand-cards">
+          <article class="medicine-card reveal"><div class="medicine-pack saffron"><span>Sabka Vaidya</span><b>Punarnavadi<br>Mandoor</b><small>60 Tablets</small></div><div class="medicine-body"><span class="stock">In stock</span><h3>Punarnavadi Mandoor</h3><p>Classical Ayurveda • Tablets</p><div class="price-line"><span><small>MRP</small><del>₹310</del></span><span><small>Professional Net Rate</small><b>₹186</b></span></div><div class="card-action"><span>Min. 3 units</span><button data-toast="Added to your Order List">Add +</button></div></div></article>
+          <article class="medicine-card reveal"><div class="medicine-pack green"><span>Pranacharya</span><b>Triphala<br>Churna</b><small>100 g</small></div><div class="medicine-body"><span class="stock">In stock</span><h3>Triphala Churna</h3><p>Classical Ayurveda • Churna</p><div class="price-line"><span><small>MRP</small><del>₹240</del></span><span><small>Professional Net Rate</small><b>₹144</b></span></div><div class="card-action"><span>Min. 3 units</span><button data-toast="Added to your Order List">Add +</button></div></div></article>
+          <article class="medicine-card reveal"><div class="medicine-pack blue"><span>Flowgra</span><b>Joint Care<br>Oil</b><small>100 ml</small></div><div class="medicine-body"><span class="stock">In stock</span><h3>Joint Care Oil</h3><p>Proprietary Ayurveda • Oil</p><div class="price-line"><span><small>MRP</small><del>₹390</del></span><span><small>Professional Net Rate</small><b>₹234</b></span></div><div class="card-action"><span>Min. 3 units</span><button data-toast="Added to your Order List">Add +</button></div></div></article>
+        </div>
+        <a class="view-all" href="portal.html?view=top-brands">Explore Top Brands <svg><use href="#i-arrow"></use></svg></a>
+      </div>
+    </section>
+
+    <section class="section learning-section" id="courses">
+      <div class="container">
+        <div class="section-head reveal"><div><div class="eyebrow"><span></span> Clinical learning</div><h2>Skills you can use in practice.</h2></div><p>Focused courses, live sessions and practical resources created for Ayurveda professionals.</p></div>
+        <div class="learning-grid">
+          <article class="course-feature reveal"><div class="course-art"><span>UPCOMING COURSE</span><div class="kidney-mark"><svg><use href="#i-leaf"></use></svg></div><small>100% Online</small></div><div class="course-body"><span class="course-type">FOUNDATION • 3 DAYS</span><h3>Kidney Care Vaidya — Batch 3</h3><p>Clinical approach, reports, diet and a step-by-step Ayurveda-led care framework.</p><div class="course-details"><span><b>15–17 Oct 2026</b><small>Course dates</small></span><span><b>7:00 PM</b><small>Live online</small></span></div><a class="btn btn-green" href="portal.html?view=courses">View Course</a></div></article>
+          <article class="live-feature reveal"><div class="live-head"><span><i></i> SAATVIK LIVE</span><small>Expert Session</small></div><h3>Practical conversations beyond textbooks.</h3><p>Join live sessions with experienced doctors and ask questions that matter in real clinical practice.</p><div class="speaker-row"><div class="speaker-stack"><span>DA</span><span>VS</span><span>PT</span></div><span><b>Verified Doctors</b><small>Live interaction &amp; Q&amp;A</small></span></div><a class="text-action" href="portal.html?view=courses">View Live Schedule <svg><use href="#i-arrow"></use></svg></a></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="coins-section" id="coins">
+      <div class="container coin-grid reveal">
+        <div class="coin-copy"><div class="coin-symbol"><svg><use href="#i-coins"></use></svg></div><div><span>SAATVIK COINS</span><h2>Order. Learn. Earn.</h2><p>Every eligible activity adds value to your professional journey.</p></div></div>
+        <div class="coin-math"><div><b>₹10,000</b><small>Order value</small></div><span>→</span><div><b>1,000</b><small>Saatvik Coins</small></div><span>=</span><div><b>₹100</b><small>Redemption value</small></div></div>
+        <a class="btn btn-light" href="portal.html?view=coins">View My Coins</a>
+      </div>
+      <div class="container coin-note">10 Coins = ₹1 <span></span> Coins valid for 60 months <span></span> Terms apply</div>
+    </section>
+
+    <section class="section feedback-section" id="feedback">
+      <div class="container feedback-grid">
+        <div class="feedback-copy reveal"><div class="eyebrow"><span></span> Real feedback</div><h2>Real experiences.<br>Original words.</h2><p>Feedback shared by Ayurveda doctors and institutions—presented with their original video, letterhead or product receipt.</p><a class="view-all left" href="portal.html?view=feedback">View All Feedback <svg><use href="#i-arrow"></use></svg></a></div>
+        <blockquote class="feedback-card reveal"><div class="quote-mark">“</div><p>Really impressed with the quality of the medicines and the support—everything has been smooth, reliable and truly satisfying.</p><footer><div class="hospital-mark">A</div><span><b>Ayurvedam Hospital</b><small>Original letterhead feedback</small></span><span class="authentic"><svg><use href="#i-shield"></use></svg> Original</span></footer></blockquote>
+      </div>
+    </section>
+
+    <section class="track-section" id="track">
+      <div class="container track-card reveal">
+        <div><div class="eyebrow light"><span></span> Track order</div><h2>Know exactly where your order is.</h2><p>Track progress, view past orders and repeat an order without starting again.</p></div>
+        <div class="order-progress"><div class="order-label"><span><b>SV-260184</b><small>Launch Your Brand</small></span><span class="current-status">Quality Check</span></div><div class="track-line"><i class="done"></i><i class="done"></i><i class="done"></i><i class="active"></i><i></i></div><div class="track-labels"><span>Received</span><span>Confirmed</span><span>Production</span><span>Quality</span><span>Dispatched</span></div></div>
+        <a class="btn btn-primary" href="portal.html?view=track-order">Track My Order</a>
+      </div>
+    </section>
+
+    <section class="section why-section" id="why">
+      <div class="container">
+        <div class="why-intro reveal"><div class="eyebrow"><span></span> Why Saatvik</div><h2>More than a marketplace.<br><em>A growth platform for Ayurveda.</em></h2><p>Saatvik Vaidya brings professional learning, doctor discussions, Ayurveda products and business opportunities together—helping the Ayurveda community learn, connect and grow.</p></div>
+        <div class="why-grid">
+          <article class="why-card reveal"><span>01</span><svg><use href="#i-talk"></use></svg><h3>Dr. Talk</h3><p>Discuss clinical topics with Verified Doctors.</p></article>
+          <article class="why-card reveal"><span>02</span><svg><use href="#i-book"></use></svg><h3>Courses &amp; Live</h3><p>Build practical clinical and professional skills.</p></article>
+          <article class="why-card reveal"><span>03</span><svg><use href="#i-quiz"></use></svg><h3>Quiz &amp; Win</h3><p>Test knowledge, learn and earn Saatvik Coins.</p></article>
+          <article class="why-card reveal"><span>04</span><svg><use href="#i-leaf"></use></svg><h3>Launch Your Brand</h3><p>Create your product range with low MOQ support.</p></article>
+          <article class="why-card reveal"><span>05</span><svg><use href="#i-bag"></use></svg><h3>Top Brands</h3><p>Order trusted products at Professional Net Rates.</p></article>
+          <article class="why-card reveal" id="partner"><span>06</span><svg><use href="#i-star"></use></svg><h3>Partner &amp; Grow</h3><p>Explore collaborations, products and business leads.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta">
+      <div class="container final-card reveal">
+        <div><span>BUILT FOR THE AYURVEDA COMMUNITY</span><h2>Your practice. Your learning.<br>Your growth—together.</h2><p>Create your free profile with a mobile number. Add other details only when you need a service.</p></div>
+        <a class="btn btn-primary large" href="portal.html?view=profile">Create Free Profile <svg><use href="#i-arrow"></use></svg></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-brand"><img src="logo.png" alt="Saatvik Vaidya"><p>A professional growth platform created to empower the Ayurveda community.</p><span>हमारा आयुर्वेद, हमारा गर्व</span></div>
+      <div><b>Explore</b><a href="portal.html?view=doctor-talk">Dr. Talk</a><a href="portal.html?view=quiz">Quiz &amp; Win</a><a href="portal.html?view=courses">Courses</a><a href="portal.html?view=feedback">Real Feedback</a></div>
+      <div><b>Products</b><a href="portal.html?view=launch-brand">Launch Your Brand</a><a href="portal.html?view=top-brands">Top Brands</a><a href="portal.html?view=track-order">Track Order</a><a href="portal.html?view=coins">Saatvik Coins</a></div>
+      <div><b>Support</b><a href="tel:+919220358400">+91 92203 58400</a><a href="portal.html?view=partner">Partner &amp; Grow</a><a href="portal.html?view=why">Why Saatvik</a><button data-toast="WhatsApp support opened">WhatsApp Support</button></div>
+    </div>
+    <div class="container footer-bottom"><span>© 2026 Saatvik Vaidya. All rights reserved.</span><span>Built for Ayurveda professionals</span></div>
+  </footer>
+
+  <nav class="mobile-dock" aria-label="Quick navigation">
+    <a class="active" href="#top"><svg><use href="#i-home"></use></svg><span>Home</span></a>
+    <a href="portal.html?view=doctor-talk"><svg><use href="#i-talk"></use></svg><span>Dr. Talk</span></a>
+    <a href="portal.html?view=launch-brand"><svg><use href="#i-leaf"></use></svg><span>Launch</span></a>
+    <a href="portal.html?view=track-order"><svg><use href="#i-truck"></use></svg><span>Orders</span></a>
+    <a href="portal.html?view=profile"><svg><use href="#i-user"></use></svg><span>Profile</span></a>
+  </nav>
+
+  <div class="modal" id="profile-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <button class="modal-close" data-close-modal aria-label="Close">×</button>
+      <div class="modal-brand"><img src="logo.png" alt="Saatvik Vaidya"></div>
+      <span class="modal-kicker">WELCOME TO SAATVIK VAIDYA</span>
+      <h2 id="profile-title">One profile. Every opportunity.</h2>
+      <p>Start with your mobile number and professional role. We will request other details only when needed.</p>
+      <label>Mobile number</label>
+      <div class="phone-field"><span>+91</span><input inputmode="numeric" maxlength="10" placeholder="Enter 10-digit number"></div>
+      <label>I am a</label>
+      <div class="role-options"><button class="active">Ayurveda Doctor</button><button>Ayurveda Student</button><button>Business Owner</button><button>Pharmacy / Store</button></div>
+      <button class="btn btn-primary full" data-send-otp>Continue with OTP <svg><use href="#i-arrow"></use></svg></button>
+      <small>By continuing, you agree to receive service-related communication.</small>
+    </div>
+  </div>
+
+  <div class="modal" id="quiz-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card quiz-modal" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
+      <button class="modal-close" data-close-modal aria-label="Close">×</button>
+      <div class="quiz-modal-top"><span>WEEKLY QUIZ</span><span id="timer">05:00</span></div>
+      <div class="quiz-progress"><i id="quiz-progress"></i></div>
+      <div id="quiz-stage"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="reel-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card reel-modal" role="dialog" aria-modal="true">
+      <button class="modal-close light-close" data-close-modal aria-label="Close">×</button>
+      <div class="reel-player"><div class="large-play"><svg><use href="#i-play"></use></svg></div><span>REEL PREVIEW</span><h2 id="reel-title">Saatvik Vaidya</h2><p>Video content will play here in the live website.</p></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><svg><use href="#i-check"></use></svg><span>Done</span></div>
+  <script src="app.js"></script>
+</html>
