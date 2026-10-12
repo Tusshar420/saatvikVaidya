@@ -4146,3 +4146,18 @@ nothing else was changed.
 
 **Next:** run U.1 to U.5 in order, then re-run U.6 (this entry is then
 replaced by the real one).
+
+## U.5. Homepage v2, part 1 (2026-10-12): BLOCKED
+
+Not started. This chunk builds the homepage shell (hero, StatStrip and the
+first sections) from the v2 components and tokens, and those do not exist yet.
+
+**Waiting on:** U.1 (design system v2) to U.4. `docs/PROGRESS.md` has no entry
+for any of U.1 to U.4 (only BLOCKED entries for U.6 and later), there are no
+U.* commits on `dev` other than the planning one (`d7e87fa`) and BLOCKED notes,
+`src/app/layout.tsx` does not load Manrope, and `src/components/ui/` has no
+PageHero, StatStrip or Drawer. Building U.5 now would mean inventing the design
+system inside this chunk, so nothing else was changed.
+
+**Next:** run U.1 to U.4 in order, then re-run U.5 (this entry is then
+replaced by the real one).
