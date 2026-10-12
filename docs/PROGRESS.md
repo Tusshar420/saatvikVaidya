@@ -3967,3 +3967,19 @@ yet, and doing the earlier chunks inside this one is out of scope.
 
 **Next:** run U.1 to U.16 in order, then re-run U.17 (this entry is then
 replaced by the real one).
+
+## U.15. Admin portal v2: shell and shared admin components (2026-10-12): BLOCKED
+
+Not started. This chunk rebuilds the admin shell and shared admin components
+on the v2 design system, and that system has not been built yet.
+
+**Waiting on:** U.1 (design system v2: tokens, fonts, DESIGN.md), and through
+it U.2 to U.14. `docs/PROGRESS.md` has no entry for any of U.1 to U.13 (only
+BLOCKED entries for U.14 and U.17), there are no U.* commits on `dev` (the last
+UI commit is the planning one, `d7e87fa`), and `docs/DESIGN.md`,
+`src/app/globals.css` and `src/app/layout.tsx` still hold the old tokens and
+fonts (no Manrope / DM Sans, no v2 colours). Building U.15 now would mean
+inventing the v2 tokens inside this chunk, so nothing was changed.
+
+**Next:** run U.1 to U.14 in order, then re-run U.15 (this entry is then
+replaced by the real one).
