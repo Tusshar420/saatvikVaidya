@@ -3938,6 +3938,49 @@ alone. Unit: 864 of 864 (the known flaky `orders.test.ts` filter test passed).
 - A scheduled job to write off expired batches (admins do it by hand now).
 - Hindi copy for `src/content/inventory.ts`.
 
+## Brand order admin: one "Update status" button (2026-10-03)
+
+A request outside the chunk list: on `/admin/brand-orders/[id]`, show only a
+button to update the status instead of the Proofs, Production and Stage
+history sections.
+
+**Built**
+- The three cards are replaced by one **Status** card. A paid order shows a
+  single button, "Update status to <next stage>" (`BrandProductionPanel`, now
+  without the note field). Cancelled, delivered and unpaid orders show a short
+  line instead of the button. Each click moves the order one stage:
+  In production, Quality check, Dispatched (test courier), Delivered. The
+  customer is told at each step, as before.
+- Proofs are no longer needed: `in_production` can follow `awaiting_proof`,
+  `proof_sent` or `changes_requested` (`lib/brand-stage.ts`), and
+  `advanceProduction` no longer requires an approved proof (the `no_proof`
+  error is gone).
+- Customer side (`/my-brand/[id]`): the "Label proof" card only shows when the
+  order already has a proof. The first stage is now called "Confirmed" ("Your
+  order is confirmed. Our team will start making it soon.").
+
+**Decisions**
+- The proof code (upload route, `BrandProofUpload`, customer approval) stays
+  but is not used, so it can come back without new work. Orders that already
+  have a proof still show it, and the customer can still decide on it.
+- The question of what the button should do was asked but not answered. The
+  simplest reading was used (next stage, no proof). Easy to change if the
+  client wants something else.
+
+**Tests:** Vitest `brand-stage.test.ts` and `stages.test.ts` updated
+(production starts from a paid order with or without a proof). Playwright
+`brand-proof.spec.ts` rewritten: the button takes an order to delivery, and a
+proof sent through the upload route still reaches the customer. Checked at
+375 and 1280 px with axe and overflow checks. typecheck, lint and unit (865)
+pass.
+
+**Later**
+- Remove the unused proof UI and upload route if the client confirms proofs
+  are gone for good.
+- Orders left at `proof_sent` from before this change keep a pending proof the
+  customer can no longer act on once production starts. It only shows in the
+  list.
+
 ## U.14. Remaining site screens (2026-10-12): BLOCKED
 
 Not started. This chunk restyles the remaining site screens with the v2
@@ -3999,4 +4042,20 @@ inventing the tokens and shared admin components inside this chunk, so nothing
 was changed.
 
 **Next:** run U.1 to U.15 in order, then re-run U.16 (this entry is then
+replaced by the real one).
+
+## U.13. New pages: Real Feedback, Why Saatvik, Partner & Grow (2026-10-12): BLOCKED
+
+Not started. This chunk builds `/feedback`, `/why` and `/partner` from the v2
+components (PageHero, PillTabs, MediaCard, Modal, InfoCard, WhyStep,
+StatItem), and those components and the v2 tokens do not exist yet.
+
+**Waiting on:** U.1 (design system v2) and the component chunks after it, up to
+U.12. `docs/PROGRESS.md` has no entry for any of U.1 to U.12 (only BLOCKED
+entries for U.14 to U.17), there are no U.* commits on `dev` (the last UI
+commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
+`src/app/globals.css` still hold the old tokens (no Manrope, no v2 colours).
+Building U.13 now would mean inventing the design system inside this chunk.
+
+**Next:** run U.1 to U.12 in order, then re-run U.13 (this entry is then
 replaced by the real one).
