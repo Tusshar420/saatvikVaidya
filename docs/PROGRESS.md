@@ -4074,3 +4074,21 @@ inventing the design system inside this chunk, so nothing was changed.
 
 **Next:** run U.1 to U.11 in order, then re-run U.12 (this entry is then
 replaced by the real one).
+
+## U.9. Cart, checkout, orders and Track Order (2026-10-12): BLOCKED
+
+Not started. This chunk restyles `/cart`, checkout, the orders pages and
+`/track` with the v2 components (PageHero, Stepper v2, Drawer,
+QuantityStepper and the v2 primitives), and those components and the v2
+tokens do not exist yet.
+
+**Waiting on:** U.1 (design system v2) and the chunks after it, up to U.8.
+`docs/PROGRESS.md` has no entry for any of U.1 to U.8 (only BLOCKED entries
+for U.12 to U.17), there are no U.* commits on `dev` (the last UI commit is
+the planning one, `d7e87fa`), `src/app/globals.css` still holds the old
+`teal*` tokens, `src/app/layout.tsx` does not load Manrope, and there is no
+PageHero or Drawer in `src/components/ui/`. Building U.9 now would mean
+inventing the design system inside this chunk, so nothing was changed.
+
+**Next:** run U.1 to U.8 in order, then re-run U.9 (this entry is then
+replaced by the real one).
