@@ -4059,3 +4059,18 @@ Building U.13 now would mean inventing the design system inside this chunk.
 
 **Next:** run U.1 to U.12 in order, then re-run U.13 (this entry is then
 replaced by the real one).
+
+## U.12. New pages: Courses and Dr. Talk (2026-10-12): BLOCKED
+
+Not started. This chunk builds `/courses` and `/dr-talk` from the v2
+components, and those components and the v2 tokens do not exist yet.
+
+**Waiting on:** U.1 (design system v2) and the component chunks after it, up
+to U.11. `docs/PROGRESS.md` has no entry for any of U.1 to U.11 (only BLOCKED
+entries for U.13 to U.17), there are no U.* commits on `dev` (the last UI
+commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
+`src/app/globals.css` still hold the old tokens. Building U.12 now would mean
+inventing the design system inside this chunk, so nothing was changed.
+
+**Next:** run U.1 to U.11 in order, then re-run U.12 (this entry is then
+replaced by the real one).
