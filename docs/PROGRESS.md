@@ -3937,3 +3937,19 @@ alone. Unit: 864 of 864 (the known flaky `orders.test.ts` filter test passed).
 - Production steps that consume only part of an order's components.
 - A scheduled job to write off expired batches (admins do it by hand now).
 - Hindi copy for `src/content/inventory.ts`.
+
+## U.14. Remaining site screens (2026-10-12): BLOCKED
+
+Not started. This chunk restyles the remaining site screens with the v2
+design system, and that system has not been built yet.
+
+**Waiting on:** U.1 (design system v2: tokens, fonts, DESIGN.md), and through
+it U.2 to U.13. `docs/PROGRESS.md` has no entry for any of U.1 to U.13, there
+are no U.* commits on `dev` (the last UI commit is the planning one,
+`d7e87fa`), and `docs/DESIGN.md` and `src/app/globals.css` still hold the old
+tokens (no Manrope / DM Sans, no v2 colours). Building U.14 now would mean
+inventing the v2 tokens and components inside this chunk, so nothing was
+changed.
+
+**Next:** run U.1 to U.13 in order, then re-run U.14 (this entry is then
+replaced by the real one).
