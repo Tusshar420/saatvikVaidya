@@ -3953,3 +3953,17 @@ changed.
 
 **Next:** run U.1 to U.13 in order, then re-run U.14 (this entry is then
 replaced by the real one).
+
+## U.17. UI quality, accessibility and security pass (2026-10-12): BLOCKED
+
+Not started. This chunk is the final pass over every restyled screen (site and
+admin), so it needs the screens to be restyled first.
+
+**Waiting on:** U.1 to U.16. `docs/PROGRESS.md` has no entry for any of them
+(only a BLOCKED entry for U.14), there are no U.* commits on `dev` (the last
+UI commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
+`src/app/globals.css` still hold the old tokens. There is nothing v2 to check
+yet, and doing the earlier chunks inside this one is out of scope.
+
+**Next:** run U.1 to U.16 in order, then re-run U.17 (this entry is then
+replaced by the real one).
