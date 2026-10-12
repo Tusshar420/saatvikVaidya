@@ -4161,3 +4161,20 @@ system inside this chunk, so nothing else was changed.
 
 **Next:** run U.1 to U.4 in order, then re-run U.5 (this entry is then
 replaced by the real one).
+
+## U.4. Site shell v2 (2026-10-12): BLOCKED
+
+Not started. This chunk rebuilds the header, nav rail, dock, footer and
+sign-in modal from the v2 tokens and the U.2/U.3 components, and those do not
+exist yet.
+
+**Waiting on:** U.1 (design system v2), U.2 (UI primitives) and U.3 (shared
+components). `docs/PROGRESS.md` has no entry for any of U.1 to U.3, there are
+no U.* commits on `dev` other than the planning one (`d7e87fa`) and BLOCKED
+notes, `src/app/layout.tsx` does not load Manrope, `src/app/globals.css` still
+holds the old `teal*` tokens, and `src/components/ui/` has no PageHero, Drawer
+or StatStrip. Building U.4 now would mean inventing the design system inside
+this chunk, so nothing was changed.
+
+**Next:** run U.1 to U.3 in order, then re-run U.4 (this entry is then
+replaced by the real one).
