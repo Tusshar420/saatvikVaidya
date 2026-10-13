@@ -4075,23 +4075,27 @@ inventing the design system inside this chunk, so nothing was changed.
 **Next:** run U.1 to U.11 in order, then re-run U.12 (this entry is then
 replaced by the real one).
 
-## U.9. Cart, checkout, orders and Track Order (2026-10-12): BLOCKED
+## U.9. Cart, checkout, orders and Track Order (2026-10-13): BLOCKED
 
-Not started. This chunk restyles `/cart`, checkout, the orders pages and
-`/track` with the v2 components (PageHero, Stepper v2, Drawer,
-QuantityStepper and the v2 primitives), and those components and the v2
-tokens do not exist yet.
+Not started (second attempt). This chunk restyles `/cart`, checkout, the
+orders pages and `/track` with the v2 components (PageHero, Stepper v2,
+Drawer, QuantityStepper and the v2 primitives) inside the v2 site shell, all
+built on the v2 tokens (U.1).
 
-**Waiting on:** U.1 (design system v2) and the chunks after it, up to U.8.
-`docs/PROGRESS.md` has no entry for any of U.1 to U.8 (only BLOCKED entries
-for U.12 to U.17), there are no U.* commits on `dev` (the last UI commit is
-the planning one, `d7e87fa`), `src/app/globals.css` still holds the old
-`teal*` tokens, `src/app/layout.tsx` does not load Manrope, and there is no
-PageHero or Drawer in `src/components/ui/`. Building U.9 now would mean
-inventing the design system inside this chunk, so nothing was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.8.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 to U.8 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+PageHero, Drawer or QuantityStepper and no v2 primitives, and the header, nav
+rail and dock are still v1. The pages U.9 restyles (`/cart`, `/checkout`,
+`/checkout/pay`, `/checkout/confirmation`, `/checkout/failed`, `/orders`,
+`/orders/[id]`, `/track`) already have staged U.1 changes, and several also
+have unstaged changes from other work, so committing U.9 would also mean
+committing U.1's unfinished work. Nothing was changed.
 
-**Next:** run U.1 to U.8 in order, then re-run U.9 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.8, then re-run U.9 (this entry is then replaced by the
+real one).
 
 ## U.8. Launch Your Brand screens (2026-10-13): BLOCKED
 
