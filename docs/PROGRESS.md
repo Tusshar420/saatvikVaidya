@@ -3981,21 +3981,28 @@ pass.
   customer can no longer act on once production starts. It only shows in the
   list.
 
-## U.14. Remaining site screens (2026-10-12): BLOCKED
+## U.14. Remaining site screens (2026-10-13): BLOCKED
 
-Not started. This chunk restyles the remaining site screens with the v2
-design system, and that system has not been built yet.
+Not started (second attempt). This chunk restyles `/ebooks` and
+`/ebooks/[slug]`, the policy pages, `/reset-password`,
+`/admin-invite/[token]`, the maintenance page, `error.tsx`,
+`global-error.tsx`, not found, the coming-soon page and "Report a problem"
+with the v2 components inside the v2 site shell, all built on the v2 tokens
+(U.1).
 
-**Waiting on:** U.1 (design system v2: tokens, fonts, DESIGN.md), and through
-it U.2 to U.13. `docs/PROGRESS.md` has no entry for any of U.1 to U.13, there
-are no U.* commits on `dev` (the last UI commit is the planning one,
-`d7e87fa`), and `docs/DESIGN.md` and `src/app/globals.css` still hold the old
-tokens (no Manrope / DM Sans, no v2 colours). Building U.14 now would mean
-inventing the v2 tokens and components inside this chunk, so nothing was
-changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.13.
+U.1's work is staged in the working tree (144 files) with a progress entry,
+but there is no U.1 commit on `dev` and its entry still says
+`E2E_RESULTS_PLACEHOLDER`. U.2 to U.13 are still BLOCKED waiting on U.1, so
+`src/components/ui/` has no v2 primitives or shared components (PageHero,
+InfoCard, Modal v2), and the header, nav rail, dock, footer and
+`coming-soon-page.tsx` are still v1. `/ebooks` and `/ebooks/[slug]` already
+have staged U.1 changes, so committing U.14 would also mean committing U.1's
+unfinished work. Nothing was changed.
 
-**Next:** run U.1 to U.13 in order, then re-run U.14 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.13, then re-run U.14 (this entry is then replaced by the
+real one).
 
 ## U.17. UI quality, accessibility and security pass (2026-10-12): BLOCKED
 
