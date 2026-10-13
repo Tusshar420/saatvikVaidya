@@ -4044,21 +4044,26 @@ was changed.
 **Next:** run U.1 to U.15 in order, then re-run U.16 (this entry is then
 replaced by the real one).
 
-## U.13. New pages: Real Feedback, Why Saatvik, Partner & Grow (2026-10-12): BLOCKED
+## U.13. New pages: Real Feedback, Why Saatvik, Partner & Grow (2026-10-13): BLOCKED
 
-Not started. This chunk builds `/feedback`, `/why` and `/partner` from the v2
-components (PageHero, PillTabs, MediaCard, Modal, InfoCard, WhyStep,
-StatItem), and those components and the v2 tokens do not exist yet.
+Not started (second attempt). This chunk builds `/feedback`, `/why` and
+`/partner` from the v2 components (PageHero, PillTabs, MediaCard, Modal,
+InfoCard, WhyStep, StatItem) inside the v2 site shell, all built on the v2
+tokens (U.1).
 
-**Waiting on:** U.1 (design system v2) and the component chunks after it, up to
-U.12. `docs/PROGRESS.md` has no entry for any of U.1 to U.12 (only BLOCKED
-entries for U.14 to U.17), there are no U.* commits on `dev` (the last UI
-commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
-`src/app/globals.css` still hold the old tokens (no Manrope, no v2 colours).
-Building U.13 now would mean inventing the design system inside this chunk.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.12.
+U.1's work is staged in the working tree (144 files) with a progress entry,
+but there is no U.1 commit on `dev` and its entry still says
+`E2E_RESULTS_PLACEHOLDER`. U.2 to U.12 are still BLOCKED waiting on U.1, so
+`src/components/ui/` has no v2 primitives, PageHero, PillTabs, MediaCard,
+InfoCard or WhyStep, the header, nav rail and dock are still v1, and the
+`/feedback`, `/why` and `/partner` coming-soon routes from U.4 do not exist.
+Building the three pages now would mean inventing those components inside
+this chunk, on top of U.1's uncommitted tokens. Nothing was changed.
 
-**Next:** run U.1 to U.12 in order, then re-run U.13 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.12, then re-run U.13 (this entry is then replaced by the
+real one).
 
 ## U.12. New pages: Courses and Dr. Talk (2026-10-13): BLOCKED
 
