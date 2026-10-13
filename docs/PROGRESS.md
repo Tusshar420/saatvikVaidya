@@ -4112,23 +4112,25 @@ changed.
 **Next:** run U.1 to U.7 in order, then re-run U.8 (this entry is then
 replaced by the real one).
 
-## U.7. Top Brands: catalogue, product page and search (2026-10-12): BLOCKED
+## U.7. Top Brands: catalogue, product page and search (2026-10-13): BLOCKED
 
-Not started. This chunk restyles `/products`, `/products/[slug]` and `/search`
-with the v2 components (PageHero, FilterBar, v2 product card, stock pill,
-QuantityStepper, cart Drawer), and those components and the v2 tokens do not
-exist yet.
+Not started (second attempt). This chunk restyles `/products`,
+`/products/[slug]` and `/search` with the v2 components (PageHero, FilterBar,
+v2 product card, stock pill, QuantityStepper, cart Drawer) inside the v2 site
+shell, all built on the v2 tokens (U.1).
 
-**Waiting on:** U.1 (design system v2) and the chunks after it, up to U.6.
-`docs/PROGRESS.md` has no real entry for any of U.1 to U.6 (only BLOCKED
-entries for U.8 and later), there are no U.* commits on `dev` (the last UI
-commit is the planning one, `d7e87fa`), `src/app/layout.tsx` does not load
-Manrope, and there is no PageHero, Drawer or FilterBar in `src/components/ui/`.
-Building U.7 now would mean inventing the design system inside this chunk, so
-nothing was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.6.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 to U.6 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+v2 primitives, PageHero, FilterBar, Drawer or stock pill, and the header, nav
+rail and dock are still v1. The three pages U.7 restyles also already have
+staged U.1 changes (and unstaged changes from other work), so committing U.7
+would also mean committing U.1's unfinished work. Nothing was changed.
 
-**Next:** run U.1 to U.6 in order, then re-run U.7 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.6, then re-run U.7 (this entry is then replaced by the
+real one).
 
 ## U.6. Homepage v2, part 2 (2026-10-13): BLOCKED
 
