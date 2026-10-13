@@ -4179,21 +4179,22 @@ this chunk, so nothing was changed.
 **Next:** run U.1 to U.3 in order, then re-run U.4 (this entry is then
 replaced by the real one).
 
-## U.3. New shared components (2026-10-12): BLOCKED
+## U.3. New shared components (2026-10-13): BLOCKED
 
-Not started. This chunk adds PageHero, StatStrip, FilterBar, PillTabs, Drawer
-and the other shared components in the v2 style, on top of the v2 tokens (U.1)
-and the restyled primitives (U.2), and neither exists yet.
+Not started (second attempt). This chunk adds PageHero, StatStrip, FilterBar,
+PillTabs, Drawer and the other shared components in the v2 style, on top of
+the v2 tokens (U.1) and the restyled primitives (U.2).
 
-**Waiting on:** U.1 (design system v2) and U.2 (UI primitives). `docs/PROGRESS.md`
-has no entry for U.1 or U.2, there are no U.* commits on `dev` other than the
-planning one (`d7e87fa`) and BLOCKED notes, `src/app/layout.tsx` does not load
-Manrope or DM Sans, and `src/app/globals.css` still holds the old `teal*`
-tokens. Building U.3 now would mean inventing the design system inside this
-chunk, so nothing was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 (UI
+primitives). U.1's work is staged in the working tree with a progress entry,
+but there is no U.1 commit on `dev` and its entry still says
+`E2E_RESULTS_PLACEHOLDER`. U.2 is still BLOCKED waiting on U.1, so nothing in
+`src/components/ui/` has been restyled yet. U.3's components would sit on top
+of both, and committing them would mean committing U.1's unfinished work too.
+Nothing was changed.
 
-**Next:** run U.1 and U.2 in order, then re-run U.3 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2, then re-run U.3 (this entry is then replaced by the real one).
 
 ## U.2. UI primitives in the v2 style (2026-10-13): BLOCKED
 
