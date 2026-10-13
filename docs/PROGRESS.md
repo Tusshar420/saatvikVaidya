@@ -4130,22 +4130,26 @@ nothing was changed.
 **Next:** run U.1 to U.6 in order, then re-run U.7 (this entry is then
 replaced by the real one).
 
-## U.6. Homepage v2, part 2 (2026-10-12): BLOCKED
+## U.6. Homepage v2, part 2 (2026-10-13): BLOCKED
 
-Not started. This chunk builds the homepage's Launch Your Brand preview, Top
-Brands cards, Courses and Saatvik Live cards and the gold Coins strip from the
-v2 components, and those components and the v2 tokens do not exist yet.
+Not started (second attempt). This chunk adds the homepage's Launch Your
+Brand preview, Top Brands cards, Courses and Saatvik Live cards and the gold
+Coins strip, on top of the homepage shell from U.5, the v2 site shell (U.4),
+the shared components (U.3) and the v2 primitives (U.2), all built on the v2
+tokens (U.1).
 
-**Waiting on:** U.1 (design system v2) to U.5 (Homepage v2, part 1).
-`docs/PROGRESS.md` has no entry for any of U.1 to U.5, there are no U.*
-commits on `dev` other than the planning one (`d7e87fa`) and BLOCKED notes,
-`src/app/layout.tsx` does not load Manrope, and there is no PageHero,
-StatStrip or Drawer in `src/components/ui/`. Building U.6 now would mean
-inventing the design system and the homepage shell inside this chunk, so
-nothing else was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.5.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 to U.5 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+v2 primitives, PageHero, StatStrip or Drawer, the header, nav rail and dock
+are still v1, and the homepage has no v2 hero or first sections to extend.
+Committing U.6 would also mean committing U.1's unfinished work. Nothing was
+changed.
 
-**Next:** run U.1 to U.5 in order, then re-run U.6 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.5, then re-run U.6 (this entry is then replaced by the
+real one).
 
 ## U.5. Homepage v2, part 1 (2026-10-13): BLOCKED
 
