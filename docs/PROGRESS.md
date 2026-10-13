@@ -4075,6 +4075,27 @@ inventing the design system inside this chunk, so nothing was changed.
 **Next:** run U.1 to U.11 in order, then re-run U.12 (this entry is then
 replaced by the real one).
 
+## U.10. Quiz & Win (2026-10-13): BLOCKED
+
+Not started. This chunk restyles `/quiz` and `/quiz/leaderboard` with the v2
+components (PageHero, PillTabs, the challenge card with timer pill and
+progress bar, the dark green leaderboard card) inside the v2 site shell, all
+built on the v2 tokens (U.1).
+
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.9.
+U.1's work is staged in the working tree (144 files) with a progress entry,
+but there is no U.1 commit on `dev` and its entry still says
+`E2E_RESULTS_PLACEHOLDER`. U.2 to U.9 are still BLOCKED waiting on U.1, so
+`src/components/ui/` has no v2 primitives, PageHero or PillTabs, and the
+header, nav rail and dock are still v1. `/quiz` and `/quiz/leaderboard`
+already have staged U.1 changes, and `quiz-player.tsx` and `quiz-builder.tsx`
+have unstaged changes from other work, so committing U.10 would also mean
+committing U.1's unfinished work. Nothing was changed.
+
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.9, then re-run U.10 (this entry is then replaced by the
+real one).
+
 ## U.9. Cart, checkout, orders and Track Order (2026-10-13): BLOCKED
 
 Not started (second attempt). This chunk restyles `/cart`, checkout, the
