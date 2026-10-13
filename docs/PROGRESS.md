@@ -4093,24 +4093,26 @@ inventing the design system inside this chunk, so nothing was changed.
 **Next:** run U.1 to U.8 in order, then re-run U.9 (this entry is then
 replaced by the real one).
 
-## U.8. Launch Your Brand screens (2026-10-12): BLOCKED
+## U.8. Launch Your Brand screens (2026-10-13): BLOCKED
 
-Not started. This chunk restyles `/launch`, `/my-brand`, `/my-brand/[id]` and
-`/account/brands` with the v2 components (PageHero, StepsBar, FilterBar, the
-v2 cards and primitives), and those components and the v2 tokens do not
-exist yet.
+Not started (second attempt). This chunk restyles `/launch`, `/my-brand`,
+`/my-brand/[id]` and `/account/brands` with the v2 components (PageHero,
+StepsBar, FilterBar, the v2 cards and primitives) inside the v2 site shell,
+all built on the v2 tokens (U.1).
 
-**Waiting on:** U.1 (design system v2) and the chunks after it, up to U.7.
-`docs/PROGRESS.md` has no entry for any of U.1 to U.7 (only BLOCKED entries
-for U.9 and U.12 to U.17), there are no U.* commits on `dev` (the last UI
-commit is the planning one, `d7e87fa`), `src/app/globals.css` still holds the
-old `teal*` tokens, `src/app/layout.tsx` does not load Manrope, and there is
-no PageHero, StepsBar or FilterBar in `src/components/`. Building U.8 now
-would mean inventing the design system inside this chunk, so nothing was
-changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.7.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 to U.7 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+v2 primitives, PageHero, StepsBar or FilterBar, and the header, nav rail and
+dock are still v1. `/launch`, `/my-brand`, `/my-brand/[id]` and
+`/account/brands` also already have staged U.1 changes (and the first three
+have unstaged changes from other work), so committing U.8 would also mean
+committing U.1's unfinished work. Nothing was changed.
 
-**Next:** run U.1 to U.7 in order, then re-run U.8 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.7, then re-run U.8 (this entry is then replaced by the
+real one).
 
 ## U.7. Top Brands: catalogue, product page and search (2026-10-13): BLOCKED
 
