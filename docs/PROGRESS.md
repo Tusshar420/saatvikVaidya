@@ -4075,6 +4075,28 @@ inventing the design system inside this chunk, so nothing was changed.
 **Next:** run U.1 to U.11 in order, then re-run U.12 (this entry is then
 replaced by the real one).
 
+## U.11. Saatvik Coins and My Profile (2026-10-13): BLOCKED
+
+Not started. This chunk restyles `/coins` (dark green wallet card, InfoCards
+for earning, using, validity and clear history, the coin history table) and
+`/account` with `/account/addresses`, `/reports` and `/two-factor` (profile
+card with avatar, completion bar and side nav, request and wallet cards) in
+the v2 site shell, all built on the v2 tokens (U.1).
+
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.10.
+U.1's work is staged in the working tree (144 files) with a progress entry,
+but there is no U.1 commit on `dev` and its entry still says
+`E2E_RESULTS_PLACEHOLDER`. U.2 to U.10 are still BLOCKED waiting on U.1, so
+`src/components/ui/` has no v2 primitives, InfoCard or PageHero, and the
+header, nav rail and dock are still v1. `/coins`, `/account`,
+`/account/addresses` and `/account/reports` already have staged U.1 changes,
+so committing U.11 would also mean committing U.1's unfinished work. Nothing
+was changed.
+
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.10, then re-run U.11 (this entry is then replaced by the
+real one).
+
 ## U.10. Quiz & Win (2026-10-13): BLOCKED
 
 Not started. This chunk restyles `/quiz` and `/quiz/leaderboard` with the v2
