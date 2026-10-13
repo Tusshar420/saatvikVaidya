@@ -4018,21 +4018,28 @@ yet, and doing the earlier chunks inside this one is out of scope.
 **Next:** run U.1 to U.16 in order, then re-run U.17 (this entry is then
 replaced by the real one).
 
-## U.15. Admin portal v2: shell and shared admin components (2026-10-12): BLOCKED
+## U.15. Admin portal v2: shell and shared admin components (2026-10-13): BLOCKED
 
-Not started. This chunk rebuilds the admin shell and shared admin components
-on the v2 design system, and that system has not been built yet.
+Not started (second attempt). This chunk rebuilds the admin layout, nav
+(`admin-nav.tsx`) and header, the shared admin components (`page-header`,
+`data-table`, `pagination`, `form-fields`, `badges`, `notice`,
+`row-actions`, `confirm-delete`, the tabs components and the stats cards) and
+`/admin` (dashboard) on the v2 tokens (U.1) and the v2 primitives (U.2), and
+adds an admin section to `/design` and an admin part to DESIGN.md.
 
-**Waiting on:** U.1 (design system v2: tokens, fonts, DESIGN.md), and through
-it U.2 to U.14. `docs/PROGRESS.md` has no entry for any of U.1 to U.13 (only
-BLOCKED entries for U.14 and U.17), there are no U.* commits on `dev` (the last
-UI commit is the planning one, `d7e87fa`), and `docs/DESIGN.md`,
-`src/app/globals.css` and `src/app/layout.tsx` still hold the old tokens and
-fonts (no Manrope / DM Sans, no v2 colours). Building U.15 now would mean
-inventing the v2 tokens inside this chunk, so nothing was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.14.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 to U.14 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+v2 primitives to build the admin components from. The files U.15 changes
+(`src/app/admin/layout.tsx`, `src/app/admin/page.tsx`, `admin-nav.tsx`,
+`badges.tsx`, `/design` and `docs/DESIGN.md`) already have staged U.1
+changes, so committing U.15 would also mean committing U.1's unfinished
+work. Nothing was changed.
 
-**Next:** run U.1 to U.14 in order, then re-run U.15 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.14, then re-run U.15 (this entry is then replaced by the
+real one).
 
 ## U.16. Admin portal v2: every admin page (2026-10-12): BLOCKED
 
