@@ -4060,20 +4060,31 @@ Building U.13 now would mean inventing the design system inside this chunk.
 **Next:** run U.1 to U.12 in order, then re-run U.13 (this entry is then
 replaced by the real one).
 
-## U.12. New pages: Courses and Dr. Talk (2026-10-12): BLOCKED
+## U.12. New pages: Courses and Dr. Talk (2026-10-13): BLOCKED
 
-Not started. This chunk builds `/courses` and `/dr-talk` from the v2
-components, and those components and the v2 tokens do not exist yet.
+Not started (second attempt). This chunk builds `/courses` (PageHero,
+PillTabs, topic chips, course cards from `CourseTeaser`, upcoming Saatvik Live
+from `LiveSession`) and `/dr-talk` (PageHero, "Professional conversations",
+the discussion standard note and a Coming next state) inside the v2 site
+shell, all built on the v2 tokens (U.1).
 
-**Waiting on:** U.1 (design system v2) and the component chunks after it, up
-to U.11. `docs/PROGRESS.md` has no entry for any of U.1 to U.11 (only BLOCKED
-entries for U.13 to U.17), there are no U.* commits on `dev` (the last UI
-commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
-`src/app/globals.css` still hold the old tokens. Building U.12 now would mean
-inventing the design system inside this chunk, so nothing was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 to U.11.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 to U.11 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+v2 primitives, PageHero or PillTabs, and the header, nav rail and dock are
+still v1 (so there are no v2 nav and dock active states to add). Building the
+two pages now would mean inventing those components inside this chunk, and
+they would sit on U.1's uncommitted tokens. Nothing was changed.
 
-**Next:** run U.1 to U.11 in order, then re-run U.12 (this entry is then
-replaced by the real one).
+**Note for later:** the client wants a thread section where doctors can talk
+to each other, like Chatter. That is what `/dr-talk` will hold. U.12 only
+builds the page shell with a Coming next state. The working feed (threads,
+replies, moderation) belongs to P3.2.
+
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.11, then re-run U.12 (this entry is then replaced by the
+real one).
 
 ## U.11. Saatvik Coins and My Profile (2026-10-13): BLOCKED
 
