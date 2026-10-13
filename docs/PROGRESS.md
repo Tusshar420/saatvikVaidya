@@ -4041,22 +4041,32 @@ work. Nothing was changed.
 `dev`), run U.2 to U.14, then re-run U.15 (this entry is then replaced by the
 real one).
 
-## U.16. Admin portal v2: every admin page (2026-10-12): BLOCKED
+## U.16. Admin portal v2: every admin page (2026-10-13): BLOCKED
 
-Not started. This chunk moves every admin route onto the shared admin
-components from U.15, and those components (and the v2 design system under
-them) do not exist yet.
+Not started (second attempt). This chunk moves every admin route (users,
+approvals, catalogue, orders, brand orders, inventory, coins, content,
+ebooks, errors, reports, settings, admins, database, partner leads) onto the
+shared admin components from U.15 and fixes their layout at 375 and 1280 px,
+all built on the v2 tokens (U.1) and primitives (U.2).
 
-**Waiting on:** U.15 (admin shell and shared admin components), and through it
-U.1 to U.14. `docs/PROGRESS.md` has no real entry for any of U.1 to U.15 (only
-BLOCKED entries for U.14, U.15 and U.17), there are no U.* commits on `dev` (the
-last UI commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
-`src/app/globals.css` still hold the old tokens. Building U.16 now would mean
-inventing the tokens and shared admin components inside this chunk, so nothing
-was changed.
+**Waiting on:** U.15 (admin shell and shared admin components), and through
+it U.1 to U.14. U.1's work is staged in the working tree (144 files) with a
+progress entry, but there is no U.1 commit on `dev` and its entry still says
+`E2E_RESULTS_PLACEHOLDER`. U.2 to U.15 are still BLOCKED waiting on U.1, so
+there are no v2 primitives in `src/components/ui/` and no v2 admin shell or
+shared admin components (`page-header`, `data-table`, `pagination`,
+`form-fields`, `notice`, `row-actions`, `confirm-delete`, stats cards).
+Nearly every admin page and component U.16 would touch
+(`src/app/admin/**/page.tsx`, `src/app/admin/layout.tsx`,
+`src/components/admin/*`) already has staged U.1 changes, and
+`src/app/admin/settings/*`, `brand-orders/[id]` and
+`brand-production-panel.tsx` / `settings-forms.tsx` also have unstaged
+changes from other work, so committing U.16 would also mean committing U.1's
+unfinished work. Nothing was changed.
 
-**Next:** run U.1 to U.15 in order, then re-run U.16 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.15, then re-run U.16 (this entry is then replaced by the
+real one).
 
 ## U.13. New pages: Real Feedback, Why Saatvik, Partner & Grow (2026-10-13): BLOCKED
 
