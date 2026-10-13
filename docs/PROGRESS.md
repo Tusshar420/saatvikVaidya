@@ -4162,22 +4162,23 @@ system inside this chunk, so nothing else was changed.
 **Next:** run U.1 to U.4 in order, then re-run U.5 (this entry is then
 replaced by the real one).
 
-## U.4. Site shell v2 (2026-10-12): BLOCKED
+## U.4. Site shell v2 (2026-10-13): BLOCKED
 
-Not started. This chunk rebuilds the header, nav rail, dock, footer and
-sign-in modal from the v2 tokens and the U.2/U.3 components, and those do not
-exist yet.
+Not started (second attempt). This chunk rebuilds the header, nav rail, dock,
+footer and sign-in modal from the v2 tokens (U.1), the v2 primitives (U.2) and
+the shared components (U.3, for example Drawer and Modal).
 
-**Waiting on:** U.1 (design system v2), U.2 (UI primitives) and U.3 (shared
-components). `docs/PROGRESS.md` has no entry for any of U.1 to U.3, there are
-no U.* commits on `dev` other than the planning one (`d7e87fa`) and BLOCKED
-notes, `src/app/layout.tsx` does not load Manrope, `src/app/globals.css` still
-holds the old `teal*` tokens, and `src/components/ui/` has no PageHero, Drawer
-or StatStrip. Building U.4 now would mean inventing the design system inside
-this chunk, so nothing was changed.
+**Waiting on:** U.1 (design system v2) to be committed, then U.2 and U.3.
+U.1's work is staged in the working tree with a progress entry, but there is
+no U.1 commit on `dev` and its entry still says `E2E_RESULTS_PLACEHOLDER`.
+U.2 and U.3 are still BLOCKED waiting on U.1, so `src/components/ui/` has no
+v2 primitives, Drawer or Modal yet. The shell would sit on top of all three,
+and committing it would mean committing U.1's unfinished work too. Nothing
+was changed.
 
-**Next:** run U.1 to U.3 in order, then re-run U.4 (this entry is then
-replaced by the real one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 and U.3, then re-run U.4 (this entry is then replaced by the
+real one).
 
 ## U.3. New shared components (2026-10-13): BLOCKED
 
