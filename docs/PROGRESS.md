@@ -4195,16 +4195,18 @@ chunk, so nothing was changed.
 **Next:** run U.1 and U.2 in order, then re-run U.3 (this entry is then
 replaced by the real one).
 
-## U.2. UI primitives in the v2 style (2026-10-12): BLOCKED
+## U.2. UI primitives in the v2 style (2026-10-13): BLOCKED
 
-Not started. This chunk restyles every component in `src/components/ui/` to
-v2 using the v2 tokens and fonts, and those do not exist yet.
+Not started (second attempt). This chunk restyles every component in
+`src/components/ui/` on top of the v2 tokens and fonts from U.1.
 
-**Waiting on:** U.1 (design system v2). `docs/PROGRESS.md` has no entry for
-U.1, there are no U.* commits on `dev` other than the planning one (`d7e87fa`)
-and BLOCKED notes, `src/app/layout.tsx` does not load Manrope or DM Sans, and
-`src/app/globals.css` still holds the old `teal*` tokens. Building U.2 now would
-mean inventing the design system inside this chunk, so nothing was changed.
+**Waiting on:** U.1 (design system v2) to be finished and committed. Its work
+is in the working tree and staged (144 files: `globals.css`, `layout.tsx`,
+`DESIGN.md`, `cn.ts`, most components and pages) and it has a progress entry
+below, but there is no U.1 commit on `dev`, and the entry still says
+`E2E_RESULTS_PLACEHOLDER`, so the full e2e run was not recorded. U.2 would
+change the same component files U.1 has staged, so it could not be committed
+without also committing U.1's unfinished work. Nothing was changed.
 
-**Next:** run U.1, then re-run U.2 (this entry is then replaced by the real
-one).
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), then re-run U.2 (this entry is then replaced by the real one).
