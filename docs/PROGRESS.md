@@ -4004,18 +4004,29 @@ unfinished work. Nothing was changed.
 `dev`), run U.2 to U.13, then re-run U.14 (this entry is then replaced by the
 real one).
 
-## U.17. UI quality, accessibility and security pass (2026-10-12): BLOCKED
+## U.17. UI quality, accessibility and security pass (2026-10-13): BLOCKED
 
-Not started. This chunk is the final pass over every restyled screen (site and
-admin), so it needs the screens to be restyled first.
+Not started (second attempt). This chunk is the final pass over every
+restyled site and admin screen: compare each one with
+`docs/mockup-v2/screens/` at 375 and 1280 px (and check 360, 414, 768 and
+1024 px for overflow), remove raw hex/rgb values, duplicated markup, unused
+components and old-design strings, check axe, keyboard and focus order,
+reduced motion, alt text and the homepage's mobile Lighthouse score, review
+the security of everything the phase changed (especially U.13's Partner &
+Grow form), and write the UI phase summary.
 
-**Waiting on:** U.1 to U.16. `docs/PROGRESS.md` has no entry for any of them
-(only a BLOCKED entry for U.14), there are no U.* commits on `dev` (the last
-UI commit is the planning one, `d7e87fa`), and `docs/DESIGN.md` and
-`src/app/globals.css` still hold the old tokens. There is nothing v2 to check
-yet, and doing the earlier chunks inside this one is out of scope.
+**Waiting on:** U.1 to U.16. U.1's work is staged in the working tree (144
+files) with a progress entry, but there is no U.1 commit on `dev` and its
+entry still says `E2E_RESULTS_PLACEHOLDER`. U.2 to U.16 are all BLOCKED
+waiting on U.1, so no screen has been restyled to v2: there are no v2
+primitives or shared components, the site shell and admin portal are still
+v1, and `/feedback`, `/why`, `/partner`, `/courses` and `/dr-talk` do not
+exist (so there is no U.13 form to review). There is nothing v2 to compare
+or audit yet, and doing the earlier chunks inside this one is out of scope.
+Nothing was changed.
 
-**Next:** run U.1 to U.16 in order, then re-run U.17 (this entry is then
+**Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
+`dev`), run U.2 to U.16 in order, then re-run U.17 (this entry is then
 replaced by the real one).
 
 ## U.15. Admin portal v2: shell and shared admin components (2026-10-13): BLOCKED
