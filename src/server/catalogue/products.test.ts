@@ -107,11 +107,13 @@ describe("listCatalogue", () => {
     expect((await cheapest(guestViewer))?.price).toEqual({
       unitPaise: 15_000,
       mrpPaise: 15_000,
+      discountPercent: 0,
       tier: "mrp",
     });
     expect((await cheapest(doctor))?.price).toEqual({
       unitPaise: 11_000,
       mrpPaise: 15_000,
+      discountPercent: 0,
       tier: "professional",
     });
     const prices = (await listCatalogue(filters({ sort: "price-desc" }), doctor)).products.map(

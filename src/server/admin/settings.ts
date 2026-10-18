@@ -14,12 +14,13 @@ import { blankToNull, checkbox, fieldErrorsOf, optionalLinkTarget } from "./form
 // the cached settings so the site shows the change at once. Call it from a
 // server action (updateTag only works there).
 
-export type SettingsGroup = "contact" | "announcement" | "shipping" | "seller" | "switches";
+export type SettingsGroup = "contact" | "announcement" | "shipping" | "discount" | "seller" | "switches";
 
 export const settingsGroups: readonly SettingsGroup[] = [
   "contact",
   "announcement",
   "shipping",
+  "discount",
   "seller",
   "switches",
 ];
@@ -69,6 +70,14 @@ const forms = {
   shipping: z.object({
     fee: rupees(10_000_000, errors.money),
     freeFrom: z.preprocess(blankToNull, rupees(1_000_000_000, errors.money).nullable()),
+  }),
+  discount: z.object({
+    percent: z
+      .string({ error: errors.percent })
+      .trim()
+      .regex(/^\d{1,2}$/, errors.percent)
+      .transform(Number)
+      .pipe(z.number().min(0, errors.percent).max(90, errors.percent)),
   }),
   seller: z.object({
     legalName: text(120, errors.text),
@@ -123,6 +132,11 @@ export function parseSettingsForm(
     case "shipping": {
       const v = parsed.data as z.infer<typeof forms.shipping>;
       changes["checkout.shipping"] = { feePaise: v.fee, freeFromPaise: v.freeFrom };
+      break;
+    }
+    case "discount": {
+      const v = parsed.data as z.infer<typeof forms.discount>;
+      changes["pricing.discount"] = { percent: v.percent };
       break;
     }
     case "seller": {
@@ -250,13 +264,14 @@ export async function readSettingHistory(take = 12) {
 
 /** Everything the settings page shows, read straight through getSetting(). */
 export async function readSettingsForAdmin() {
-  const [phone, supportNote, popular, tagline, shipping, seller, announcement, checkout, coins, ebooks, maintenance] =
+  const [phone, supportNote, popular, tagline, shipping, discount, seller, announcement, checkout, coins, ebooks, maintenance] =
     await Promise.all([
       getSetting("contact.phone"),
       getSetting("contact.supportNote"),
       getSetting("search.popular"),
       getSetting("footer.tagline"),
       getSetting("checkout.shipping"),
+      getSetting("pricing.discount"),
       getSetting("invoice.seller"),
       getSetting("site.announcement"),
       getSetting("checkout.enabled"),
@@ -264,5 +279,5 @@ export async function readSettingsForAdmin() {
       getSetting("ebooks.downloads"),
       getSetting("site.maintenance"),
     ]);
-  return { phone, supportNote, popular, tagline, shipping, seller, announcement, checkout, coins, ebooks, maintenance };
+  return { phone, supportNote, popular, tagline, shipping, discount, seller, announcement, checkout, coins, ebooks, maintenance };
 }

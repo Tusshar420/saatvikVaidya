@@ -4,6 +4,7 @@ import { useActionState, type ReactNode } from "react";
 import {
   saveAnnouncementAction,
   saveContactAction,
+  saveDiscountAction,
   saveSellerAction,
   saveShippingAction,
   saveSwitchesAction,
@@ -61,6 +62,7 @@ export type SettingsFormsProps = {
   contact: { phone: string; supportNote: string; footerTagline: string; popularSearches: string };
   announcement: { enabled: boolean; text: string; href: string };
   shipping: { fee: string; freeFrom: string };
+  discount: { percent: string };
   seller: {
     legalName: string;
     addressLines: string;
@@ -78,7 +80,7 @@ export type SettingsFormsProps = {
   };
 };
 
-export function SettingsForms({ contact, announcement, shipping, seller, switches }: SettingsFormsProps) {
+export function SettingsForms({ contact, announcement, shipping, discount, seller, switches }: SettingsFormsProps) {
   const g = copy.groups;
   return (
     <div className="mt-6 flex max-w-4xl flex-col gap-8">
@@ -168,6 +170,12 @@ export function SettingsForms({ contact, announcement, shipping, seller, switche
               optional
             />
           </>
+        )}
+      </SettingsForm>
+
+      <SettingsForm action={saveDiscountAction} title={g.discount.title} initial={discount}>
+        {(values) => (
+          <TextField name="percent" label={g.discount.percent} help={g.discount.percentHelp} values={values} inputMode="numeric" maxLength={2} required />
         )}
       </SettingsForm>
 

@@ -96,6 +96,7 @@ describe("priceFor", () => {
         mrpPaise: 32_000,
         tier: "mrp",
         savingPaise: 0,
+        discountPercent: 0,
         bulkTiers: [],
       });
     }
@@ -150,5 +151,37 @@ describe("priceFor", () => {
       [pharmacy, "professionalPricePaise"],
     ];
     for (const [viewer, column] of viewers) expect(basePriceColumn(viewer)).toBe(column);
+  });
+});
+
+describe("site-wide discount", () => {
+  const pharmacy: PricingViewer = { kind: "professional", professional: true, bulk: true };
+  const doctor: PricingViewer = { kind: "professional", professional: true, bulk: false };
+
+  it("takes the percentage off the retail price and keeps MRP as the old price", () => {
+    const price = priceFor(product, guestViewer, 2, 20);
+    expect(price).toMatchObject({
+      unitPaise: 25_600,
+      totalPaise: 51_200,
+      mrpPaise: 32_000,
+      savingPaise: 6_400,
+      discountPercent: 20,
+      tier: "mrp",
+    });
+  });
+
+  it("applies to professional and bulk prices too", () => {
+    expect(priceFor(product, doctor, 1, 20).unitPaise).toBe(19_200);
+    const bulk = priceFor(product, pharmacy, 10, 20);
+    expect(bulk.unitPaise).toBe(18_000);
+    expect(bulk.tier).toBe("bulk");
+    expect(bulk.bulkTiers.map((t) => t.pricePaise)).toEqual([18_000, 16_800]);
+  });
+
+  it("changes nothing at 0 and ignores nonsense values", () => {
+    expect(priceFor(product, guestViewer).unitPaise).toBe(32_000);
+    expect(priceFor(product, guestViewer, 1, 0).discountPercent).toBe(0);
+    expect(priceFor(product, guestViewer, 1, Number.NaN).unitPaise).toBe(32_000);
+    expect(priceFor(product, guestViewer, 1, -5).unitPaise).toBe(32_000);
   });
 });

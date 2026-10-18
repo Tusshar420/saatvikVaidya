@@ -6,7 +6,7 @@ export const adminSettings = {
   eyebrow: "Site",
   title: "Settings",
   description:
-    "Phone number, footer text, announcement bar, delivery fee, seller details and the site switches. Every change is kept in the history.",
+    "Phone number, footer text, announcement bar, delivery fee, the site-wide discount, seller details and the site switches. Every change is kept in the history.",
   saved: "Settings saved.",
   unchanged: "Nothing changed.",
   formError: "Please fix the highlighted fields.",
@@ -45,6 +45,12 @@ export const adminSettings = {
       freeFrom: "Free delivery from (₹)",
       freeFromHelp: "Order value from which delivery is free. Leave empty for never.",
     },
+    discount: {
+      title: "Discount on all products",
+      percent: "Discount (%)",
+      percentHelp:
+        "Taken off every price for everyone, including professional and bulk prices. Shown on the site as a percentage off with the old price struck through. Enter 0 to turn it off.",
+    },
     seller: {
       title: "Seller details on invoices",
       legalName: "Legal name",
@@ -79,6 +85,7 @@ export const adminSettings = {
     list: "Add one to eight lines, each up to 60 characters.",
     link: 'Use a site path such as "/coins", or "modal:sign-in".',
     announcementText: "Add the text to show.",
+    percent: "Enter a whole number from 0 to 90.",
     money: "Enter an amount in rupees, such as 80 or 99.50.",
     addressLines: "Add one to three lines, each up to 120 characters.",
     state: "Choose a state.",

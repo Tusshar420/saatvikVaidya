@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { test, expect, type Page } from "@playwright/test";
 import { adminHome, adminSettings, homeKinds } from "../../src/content/admin-site";
 import { admin } from "../../src/content/admin";
+import { catalogue } from "../../src/content/catalogue";
 import { checkoutOff, maintenance } from "../../src/content/maintenance";
 import { settingDefaults } from "../../src/content/settings";
 import { E2E_CONTENT_PREFIX, signInAs } from "./auth-helpers";
@@ -227,4 +228,51 @@ test("homepage editing: every content list opens, and a hero slide saves unchang
   await page.getByLabel("Panel content").fill("{ not json");
   await page.getByRole("button", { name: admin.common.save }).click();
   await expect(page.getByText(adminHome.jsonError)).toBeVisible();
+});
+
+test("discount: the admin percentage shows as an off badge with the old price struck through", async ({
+  page,
+  baseURL,
+}) => {
+  const errors = collectErrors(page);
+  await signInAs(page, baseURL!, { role: "admin" });
+  await page.goto("/admin/settings");
+  const form = formOf(page, g.discount.title);
+  const percent = form.getByLabel(g.discount.percent);
+
+  // The e2e run starts with the discount off (tests/e2e/pin-discount.ts).
+  await expect(percent).toHaveValue("0");
+
+  // Nonsense is refused and nothing is saved.
+  await percent.fill("95");
+  await form.getByRole("button", { name: adminSettings.save }).click();
+  await expect(form.getByText(adminSettings.errors.percent)).toBeVisible();
+
+  try {
+    await percent.fill("20");
+    await save(page, g.discount.title);
+
+    // Product page: ₹320 MRP becomes ₹256, with the old price struck through.
+    await page.goto("/products/punarnava-mandoor");
+    const box = page.getByRole("region", { name: catalogue.product.price.label });
+    await expect(box).toContainText("₹256");
+    await expect(box.locator("s")).toContainText("₹320");
+    await expect(box.getByTestId("percent-off")).toHaveText("20% off");
+
+    // The listing card shows it too.
+    await page.goto("/products");
+    const item = page.getByRole("link", { name: /Punarnava Mandoor/ });
+    await expect(item).toContainText("₹256");
+    await expect(item).toContainText("20% off");
+  } finally {
+    await page.goto("/admin/settings");
+    await percent.fill("0");
+    await save(page, g.discount.title);
+  }
+
+  await page.goto("/products/punarnava-mandoor");
+  await expect(
+    page.getByRole("region", { name: catalogue.product.price.label }),
+  ).toContainText("MRP₹320");
+  expect(errors).toEqual([]);
 });

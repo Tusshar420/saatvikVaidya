@@ -27,13 +27,14 @@ export const metadata: Metadata = {
  * sold out, under the MOQ, over the stock) say so and hold up checkout.
  */
 export default async function CartPage() {
-  const [viewer, owner, shipping, session] = await Promise.all([
+  const [viewer, owner, shipping, discount, session] = await Promise.all([
     getPricingViewer(),
     currentCartOwner(),
     getSetting("checkout.shipping"),
+    getSetting("pricing.discount"),
     getSession(),
   ]);
-  const cart = await readCart(owner, viewer, shipping);
+  const cart = await readCart(owner, viewer, shipping, discount.percent);
 
   if (cart.lines.length === 0 && cart.ebooks.length === 0) {
     return (

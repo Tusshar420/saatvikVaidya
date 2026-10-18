@@ -73,6 +73,8 @@ export type ViewerPrice = {
   tier: PriceTier;
   /** How much less than MRP one unit is (0 at MRP). */
   savingPaise: number;
+  /** The site-wide discount taken off the price above (0: none). */
+  discountPercent: number;
   /**
    * Bulk tiers this viewer can use, by quantity ascending. Empty unless the
    * viewer gets bulk prices, so pages can't show them to anyone else.
@@ -89,6 +91,8 @@ export function priceFor(
   product: PriceableProduct,
   viewer: PricingViewer,
   quantity = 1,
+  /** Site-wide discount (setting "pricing.discount"), taken off every price. */
+  discountPercent = 0,
 ): ViewerPrice {
   if (!Number.isSafeInteger(quantity) || quantity < 1) {
     throw new RangeError(`Quantity must be a whole number from 1: ${quantity}`);
@@ -117,14 +121,26 @@ export function priceFor(
     }
   }
 
+  const off = Number.isFinite(discountPercent) ? Math.min(100, Math.max(0, discountPercent)) : 0;
+  if (off > 0) {
+    unitPaise = discounted(unitPaise, off);
+    bulkTiers = bulkTiers.map((t) => ({ ...t, pricePaise: discounted(t.pricePaise, off) }));
+  }
+
   return {
     unitPaise,
     totalPaise: unitPaise * quantity,
     mrpPaise,
     tier,
     savingPaise: mrpPaise - unitPaise,
+    discountPercent: off,
     bulkTiers,
   };
+}
+
+/** `paise` less `percent` per cent, rounded to the nearest paisa. */
+export function discounted(paise: number, percent: number): number {
+  return Math.round((paise * (100 - percent)) / 100);
 }
 
 /**

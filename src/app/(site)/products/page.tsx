@@ -19,6 +19,7 @@ import {
   catalogueFiltersSchema,
   listCatalogue,
 } from "@/server/catalogue/products";
+import { getSetting } from "@/server/content/settings";
 import { getPricingViewer } from "@/server/pricing";
 
 const text = copy.listing;
@@ -31,8 +32,12 @@ export const metadata: Metadata = {
 export default async function ProductsPage({
   searchParams,
 }: PageProps<"/products">) {
-  const [params, viewer] = await Promise.all([searchParams, getPricingViewer()]);
-  const listing = await listCatalogue(catalogueFiltersSchema.parse(params), viewer);
+  const [params, viewer, discount] = await Promise.all([
+    searchParams,
+    getPricingViewer(),
+    getSetting("pricing.discount"),
+  ]);
+  const listing = await listCatalogue(catalogueFiltersSchema.parse(params), viewer, discount.percent);
   const { filters, facets, products, total } = listing;
   const resultsLabel = filters.q
     ? text.resultsFor(total, filters.q)

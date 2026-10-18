@@ -54,14 +54,15 @@ export default async function CheckoutPage() {
       </div>
     );
   }
-  const [viewer, shipping, addresses, phone, coinRules] = await Promise.all([
+  const [viewer, shipping, discount, addresses, phone, coinRules] = await Promise.all([
     getPricingViewer(),
     getSetting("checkout.shipping"),
+    getSetting("pricing.discount"),
     listAddresses(user.id),
     getSetting("contact.phone"),
     getSetting("coins.rules"),
   ]);
-  const cart = await readCart({ kind: "user", userId: user.id }, viewer, shipping);
+  const cart = await readCart({ kind: "user", userId: user.id }, viewer, shipping, discount.percent);
   if (cart.lines.length === 0 && cart.ebooks.length === 0) redirect("/cart");
   // What the buyer's coins could take off this order, if they choose to use
   // them. The server works it out again when the order is placed.

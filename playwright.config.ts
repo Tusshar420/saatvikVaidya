@@ -33,7 +33,7 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   // Sign-in tests create accounts in the dev database; these remove them.
-  globalSetup: "./tests/e2e/cleanup.ts",
+  globalSetup: ["./tests/e2e/cleanup.ts", "./tests/e2e/pin-discount.ts"],
   globalTeardown: "./tests/e2e/cleanup.ts",
   use: {
     baseURL,

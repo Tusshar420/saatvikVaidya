@@ -65,6 +65,11 @@ export type SettingValues = {
    * target (src/server/content/home-schema.ts), or null for plain text.
    */
   "site.announcement": { enabled: boolean; text: string; href: string | null };
+  /**
+   * Site-wide discount taken off every price (retail, professional and bulk).
+   * Whole percent, 0 to 90; 0 turns it off. Editable in /admin/settings.
+   */
+  "pricing.discount": { percent: number };
   /** Checkout switch (P1.9): off stops new orders; carts still work. */
   "checkout.enabled": { enabled: boolean };
   /**
@@ -116,6 +121,7 @@ export const settingDefaults: SettingValues = {
   },
   "ebooks.downloads": { enabled: true },
   "site.announcement": { enabled: false, text: "", href: null },
+  "pricing.discount": { percent: 20 },
   "checkout.enabled": { enabled: true },
   "site.maintenance": {
     enabled: false,

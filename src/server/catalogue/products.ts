@@ -65,7 +65,7 @@ export type ProductCard = {
   inStock: boolean;
   moq: number;
   image: ProductImageView | null;
-  price: Pick<ViewerPrice, "unitPaise" | "mrpPaise" | "tier">;
+  price: Pick<ViewerPrice, "unitPaise" | "mrpPaise" | "tier" | "discountPercent">;
 };
 
 export type FacetOption = { key: string; name: string };
@@ -199,8 +199,13 @@ const cardSelect = {
 
 type CardRow = Prisma.ProductGetPayload<{ select: typeof cardSelect }>;
 
-function toCard(row: CardRow, stock: number, viewer: PricingViewer): ProductCard {
-  const { unitPaise, mrpPaise, tier } = priceFor(row, viewer);
+function toCard(
+  row: CardRow,
+  stock: number,
+  viewer: PricingViewer,
+  discountPercent = 0,
+): ProductCard {
+  const { unitPaise, mrpPaise, tier } = priceFor(row, viewer, 1, discountPercent);
   const image = row.images[0];
   return {
     id: row.id,
@@ -214,7 +219,7 @@ function toCard(row: CardRow, stock: number, viewer: PricingViewer): ProductCard
     inStock: stock >= Math.max(1, row.moq),
     moq: row.moq,
     image: image ? { src: productImageSrc(image.id), alt: image.alt } : null,
-    price: { unitPaise, mrpPaise, tier },
+    price: { unitPaise, mrpPaise, tier, discountPercent },
   };
 }
 
@@ -226,6 +231,8 @@ function toCard(row: CardRow, stock: number, viewer: PricingViewer): ProductCard
 export async function listCatalogue(
   input: CatalogueFilters,
   viewer: PricingViewer,
+  /** Site-wide discount percent (setting "pricing.discount"). */
+  discountPercent = 0,
 ): Promise<CatalogueListing> {
   const facets = await readFacets();
   const known = (options: FacetOption[], key: string | undefined) =>
@@ -260,7 +267,7 @@ export async function listCatalogue(
   const sellable = await sellableByProduct(rows.map((row) => row.id));
   return {
     filters: { ...filters, page },
-    products: rows.map((row) => toCard(row, sellable.get(row.id) ?? 0, viewer)),
+    products: rows.map((row) => toCard(row, sellable.get(row.id) ?? 0, viewer, discountPercent)),
     total,
     page,
     pageCount,
@@ -281,6 +288,8 @@ function stockStatus(stock: number, moq: number): StockStatus {
 export async function readProductPage(
   slug: string,
   viewer: PricingViewer,
+  /** Site-wide discount percent (setting "pricing.discount"). */
+  discountPercent = 0,
 ): Promise<ProductPage | null> {
   if (slug.length > 120 || !productSlugPattern.test(slug)) return null;
   const row = await db.product.findFirst({
@@ -321,7 +330,7 @@ export async function readProductPage(
       src: productImageSrc(image.id),
       alt: image.alt,
     })),
-    price: priceFor(row, viewer),
+    price: priceFor(row, viewer, 1, discountPercent),
     viewer: viewer.kind,
   };
 }

@@ -61,6 +61,8 @@ export type PlaceOrderInput = {
   /** The total the checkout page showed; a different total means something changed. */
   expectedTotalPaise: number;
   shipping: ShippingRule;
+  /** Site-wide discount percent (setting "pricing.discount"). */
+  discountPercent?: number;
   /** The Super Coins rules, and whether the buyer chose to use their coins. */
   coinRules?: CoinRules;
   redeemCoins?: boolean;
@@ -99,6 +101,7 @@ async function orderForKey(userId: string, checkoutKey: string) {
  */
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   const { userId, viewer, checkoutKey } = input;
+  const discountPercent = input.discountPercent ?? 0;
   const existing = await orderForKey(userId, checkoutKey);
   if (existing) return { ok: true, orderId: existing.id };
 
@@ -135,7 +138,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           item.product
             ? [
                 {
-                  line: priceLine(item.product, item.quantity, viewer, sellable.get(item.product.id) ?? 0),
+                  line: priceLine(item.product, item.quantity, viewer, sellable.get(item.product.id) ?? 0, discountPercent),
                   product: item.product,
                 },
               ]

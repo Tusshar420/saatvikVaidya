@@ -68,6 +68,13 @@ export function CartLineItem({ line }: { line: CartLine }) {
                 <s>{formatPaise(line.mrpPaise)}</s>
               </span>
             )}
+            {line.unitPaise < line.mrpPaise && (
+              <span className="text-small font-bold text-success">
+                {catalogue.card.percentOff(
+                  Math.round(((line.mrpPaise - line.unitPaise) / line.mrpPaise) * 100),
+                )}
+              </span>
+            )}
             {tierLabel && <Badge>{tierLabel}</Badge>}
             {line.isSample && <Badge variant="soon">{catalogue.card.sample}</Badge>}
           </p>

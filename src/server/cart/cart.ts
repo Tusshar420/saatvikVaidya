@@ -357,9 +357,11 @@ export function priceLine(
   viewer: PricingViewer,
   /** Units on sale now (see sellableByProduct). */
   stock: number,
+  /** Site-wide discount percent (setting "pricing.discount"). */
+  discountPercent = 0,
 ): CartLine {
   const issue = lineIssue({ ...product, stock }, quantity);
-  const price = priceFor(product, viewer, Math.max(1, quantity));
+  const price = priceFor(product, viewer, Math.max(1, quantity), discountPercent);
   const image = product.images[0];
   return {
     productId: product.id,
@@ -411,6 +413,8 @@ export async function readCart(
   owner: CartOwner | null,
   viewer: PricingViewer,
   shipping: ShippingRule,
+  /** Site-wide discount percent (setting "pricing.discount"). */
+  discountPercent = 0,
 ): Promise<CartView> {
   const cart = owner
     ? await db.cart.findUnique({
@@ -431,7 +435,9 @@ export async function readCart(
   await sweepLapsedHolds();
   const sellable = await sellableByProduct(items.flatMap((item) => (item.product ? [item.product.id] : [])));
   const lines = items.flatMap((item) =>
-    item.product ? [priceLine(item.product, item.quantity, viewer, sellable.get(item.product.id) ?? 0)] : [],
+    item.product
+      ? [priceLine(item.product, item.quantity, viewer, sellable.get(item.product.id) ?? 0, discountPercent)]
+      : [],
   );
   const ebookRows = items.flatMap((item) => (item.ebook ? [item.ebook] : []));
   const owned =

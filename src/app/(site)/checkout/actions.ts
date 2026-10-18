@@ -64,9 +64,10 @@ export async function placeOrderAction(_: FormState, formData: FormData): Promis
       message: missingAddress ? copy.place.errors.address : copy.place.errors.generic,
     };
   }
-  const [viewer, shipping, coinRules, checkoutSwitch, maintenance] = await Promise.all([
+  const [viewer, shipping, discount, coinRules, checkoutSwitch, maintenance] = await Promise.all([
     getPricingViewer(),
     getSetting("checkout.shipping"),
+    getSetting("pricing.discount"),
     getSetting("coins.rules"),
     getSetting("checkout.enabled"),
     getSetting("site.maintenance"),
@@ -75,7 +76,7 @@ export async function placeOrderAction(_: FormState, formData: FormData): Promis
   if (!checkoutSwitch.enabled || (maintenance.enabled && (user.role !== "admin" || !user.twoFactorEnabled))) {
     return { status: "error", message: placeErrors.checkout_off };
   }
-  const result = await placeOrder({ userId: user.id, viewer, shipping, coinRules, ...parsed.data });
+  const result = await placeOrder({ userId: user.id, viewer, shipping, discountPercent: discount.percent, coinRules, ...parsed.data });
   if (!result.ok) {
     // Show the cart as it is now, so the summary matches what changed.
     if (["cart_changed", "empty", "coins"].includes(result.error)) revalidatePath("/checkout");

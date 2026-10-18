@@ -27,11 +27,12 @@ export default async function ProductPage({
   params,
 }: PageProps<"/products/[slug]">) {
   const { slug } = await params;
-  const [viewer, phone] = await Promise.all([
+  const [viewer, phone, discount] = await Promise.all([
     getPricingViewer(),
     getSetting("contact.phone"),
+    getSetting("pricing.discount"),
   ]);
-  const product = await readProductPage(slug, viewer);
+  const product = await readProductPage(slug, viewer, discount.percent);
   if (!product) notFound();
 
   const stock = (() => {

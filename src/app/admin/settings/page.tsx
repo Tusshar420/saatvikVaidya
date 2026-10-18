@@ -31,6 +31,7 @@ export default async function AdminSettingsPage() {
           fee: paiseToRupeeInput(s.shipping.feePaise),
           freeFrom: s.shipping.freeFromPaise === null ? "" : paiseToRupeeInput(s.shipping.freeFromPaise),
         }}
+        discount={{ percent: String(s.discount.percent) }}
         seller={{
           legalName: s.seller.legalName,
           addressLines: s.seller.addressLines.join("\n"),

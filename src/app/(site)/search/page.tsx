@@ -40,11 +40,12 @@ export default async function SearchPage({
   const parsed = catalogueFiltersSchema.parse(await searchParams);
   // Search looks across the whole catalogue: only the words and the page count.
   const filters = { ...parsed, form: undefined, area: undefined, brand: undefined, sort: "featured" as const };
-  const [viewer, popular] = await Promise.all([
+  const [viewer, popular, discount] = await Promise.all([
     getPricingViewer(),
     getSetting("search.popular"),
+    getSetting("pricing.discount"),
   ]);
-  const listing = filters.q ? await listCatalogue(filters, viewer) : null;
+  const listing = filters.q ? await listCatalogue(filters, viewer, discount.percent) : null;
 
   return (
     <div className="shell py-8 sm:py-12">

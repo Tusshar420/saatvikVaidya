@@ -57,6 +57,7 @@ export const catalogue = {
     minOrder: (n: number) => `Min. order ${count(n)}`,
     mrp: "MRP",
     yourPrice: "Your price",
+    percentOff: (n: number) => `${n}% off`,
   },
 
   pagination: {

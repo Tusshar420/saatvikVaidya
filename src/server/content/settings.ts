@@ -55,6 +55,7 @@ export const settingSchemas = {
     text: z.string().trim().max(200),
     href: linkTargetSchema.nullable(),
   }),
+  "pricing.discount": z.object({ percent: z.number().int().min(0).max(90) }),
   "checkout.enabled": z.object({ enabled: z.boolean() }),
   "site.maintenance": z.object({
     enabled: z.boolean(),
