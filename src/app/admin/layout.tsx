@@ -41,7 +41,7 @@ export default async function AdminLayout({
     <div className="flex min-h-full flex-1 flex-col bg-surface-alt">
       <a
         href="#admin-main"
-        className="sr-only z-500 rounded-md bg-teal px-4 py-3 font-bold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        className="sr-only z-500 rounded-md bg-brand px-4 py-3 font-bold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >
         {copy.skipToContent}
       </a>
@@ -68,7 +68,7 @@ export default async function AdminLayout({
             </span>
             <Link
               href="/"
-              className="hidden min-h-10 items-center gap-1.5 rounded-md px-3 text-small font-bold text-teal hover:bg-teal-soft sm:inline-flex"
+              className="hidden min-h-10 items-center gap-1.5 rounded-md px-3 text-small font-bold text-brand hover:bg-brand-soft sm:inline-flex"
             >
               {copy.viewSite}
               <ExternalLink aria-hidden className="size-3.5" />

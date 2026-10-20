@@ -39,7 +39,7 @@ export function DocumentReview({
           </h3>
           {help && <p className="mt-0.5 text-small text-muted">{help}</p>}
         </div>
-        {document?.verifiedAt && <Badge variant="teal">{text.verified}</Badge>}
+        {document?.verifiedAt && <Badge variant="brand">{text.verified}</Badge>}
       </div>
 
       {!document ? (
@@ -50,9 +50,9 @@ export function DocumentReview({
         <>
           <p className="mt-3 flex min-w-0 items-center gap-2 text-sm text-ink">
             {document.contentType === "application/pdf" ? (
-              <FileText aria-hidden className="size-4.5 shrink-0 text-teal" />
+              <FileText aria-hidden className="size-4.5 shrink-0 text-brand" />
             ) : (
-              <ImageIcon aria-hidden className="size-4.5 shrink-0 text-teal" />
+              <ImageIcon aria-hidden className="size-4.5 shrink-0 text-brand" />
             )}
             <span className="min-w-0 font-semibold break-words">
               {document.fileName}

@@ -125,7 +125,7 @@ export default async function AdminDashboardPage() {
             />
           </ul>
           <p className="mt-4 flex items-center gap-2 text-small text-muted">
-            <ShieldCheck aria-hidden className="size-4 text-teal" />
+            <ShieldCheck aria-hidden className="size-4 text-brand" />
             {copy.common.count(summary.admins, "admin", "admins")}
           </p>
         </Card>
@@ -143,7 +143,7 @@ export default async function AdminDashboardPage() {
 
 function Stat({
   icon,
-  tone = "teal",
+  tone = "brand",
   label,
   value,
   note,
@@ -162,7 +162,7 @@ function Stat({
     <li>
       <Link
         href={href}
-        className="flex h-full flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-card transition hover:border-teal/40 hover:shadow-raised sm:p-5"
+        className="flex h-full flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-card transition hover:border-brand/40 hover:shadow-raised sm:p-5"
       >
         <IconTile tone={tone}>{icon}</IconTile>
         <span className="flex flex-col">
@@ -200,9 +200,9 @@ function ContentRow({
     <li>
       <Link
         href={href}
-        className="flex min-h-14 items-center gap-3 py-2 text-sm font-semibold text-ink hover:text-teal"
+        className="flex min-h-14 items-center gap-3 py-2 text-sm font-semibold text-ink hover:text-brand"
       >
-        <IconTile tone="teal" className="size-9 [&_svg]:size-4.5">
+        <IconTile tone="brand" className="size-9 [&_svg]:size-4.5">
           {icon}
         </IconTile>
         <span className="flex-1">{label}</span>

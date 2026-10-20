@@ -19,7 +19,7 @@ export function ActivityList({
       {items.map((item) => (
         <li key={item.id} className="flex flex-col gap-0.5 text-sm">
           <span className="flex flex-wrap items-center gap-2">
-            <Badge variant={item.action.endsWith("reject") ? "orange" : "teal"}>
+            <Badge variant={item.action.endsWith("reject") ? "orange" : "brand"}>
               {copy.activity.actions[item.action] ?? item.action}
             </Badge>
             <span className="font-semibold text-ink">

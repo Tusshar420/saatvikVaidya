@@ -13,7 +13,7 @@ import { QuickAdd } from "./quick-add";
  */
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
-    <li className="group flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card transition hover:border-teal/40 hover:shadow-raised motion-safe:hover:-translate-y-0.75">
+    <li className="group flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card transition hover:border-brand/40 hover:shadow-raised motion-safe:hover:-translate-y-0.75">
       <Link href={productHref(product.slug)} className="flex flex-1 flex-col">
         <div className="relative aspect-square overflow-hidden border-b border-line bg-surface-alt">
           <ProductVisual image={product.image} glyph={product.glyph} />
@@ -26,7 +26,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           {product.brandName && (
             <p className="truncate text-label text-muted uppercase">{product.brandName}</p>
           )}
-          <h3 className="text-[15px] leading-snug font-bold text-ink group-hover:text-teal sm:text-base">
+          <h3 className="text-[15px] leading-snug font-bold text-ink group-hover:text-brand sm:text-base">
             {product.name}
           </h3>
           <p className="text-small text-muted">

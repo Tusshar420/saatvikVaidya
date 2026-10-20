@@ -57,7 +57,7 @@ export function QuickAdd({ productId, name, moq, outOfStock }: QuickAddProps) {
         {added && (
           <p className="mt-1.5">
             <span className="sr-only">{text.addedLine(name)} </span>
-            <Link href="/cart" className="font-extrabold text-teal underline underline-offset-4">
+            <Link href="/cart" className="font-extrabold text-brand underline underline-offset-4">
               {text.viewCart}
             </Link>
           </p>

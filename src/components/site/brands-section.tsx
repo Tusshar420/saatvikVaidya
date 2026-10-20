@@ -11,14 +11,14 @@ import type {
 
 const toneStyles: Partial<Record<string, string>> = {
   orange: "bg-orange-soft",
-  teal: "bg-teal-soft",
+  teal: "bg-brand-soft",
   gold: "bg-gold-soft",
   blue: "bg-blue-soft",
 } as const;
 
 const toneTextStyles: Partial<Record<string, string>> = {
   orange: "text-orange-ink",
-  teal: "text-teal",
+  teal: "text-brand",
   gold: "text-gold-ink",
   blue: "text-blue",
 } as const;
@@ -77,7 +77,7 @@ export function BrandsSection({ heading, brands }: BrandsSectionProps) {
                     <Link
                       href={brand.link.href}
                       aria-label={`${brand.link.label}: ${brand.name}`}
-                      className="mt-3 inline-flex min-h-11 items-center text-teal font-600 hover:underline"
+                      className="mt-3 inline-flex min-h-11 items-center text-brand font-600 hover:underline"
                     >
                       {brand.link.label} →
                     </Link>
@@ -108,7 +108,7 @@ export function BrandsSection({ heading, brands }: BrandsSectionProps) {
                     <Link
                       href={brand.link.href}
                       aria-label={`${brand.link.label}: ${brand.name}`}
-                      className="mt-3 inline-flex min-h-11 items-center text-small font-bold text-teal hover:underline"
+                      className="mt-3 inline-flex min-h-11 items-center text-small font-bold text-brand hover:underline"
                     >
                       {brand.link.label} →
                     </Link>

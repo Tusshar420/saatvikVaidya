@@ -4323,3 +4323,122 @@ without also committing U.1's unfinished work. Nothing was changed.
 
 **Next:** finish U.1 (run `pnpm test:e2e`, fill in the e2e result, commit on
 `dev`), then re-run U.2 (this entry is then replaced by the real one).
+
+## U.1. Design system v2: tokens, fonts and DESIGN.md (2026-10-13)
+
+The first UI-phase chunk. It moves the design system to the client's UI v2
+(`docs/mockup-v2/`); screens keep their current layouts until U.2 to U.17
+restyle them, but every screen already picks up the v2 colours, fonts,
+radius, shadows and spacing.
+
+**Built**
+- `docs/DESIGN.md` rewritten for v2 from `styles.css` and `portal.css`:
+  forest green brand, orange action, gold coins/quiz, paper and cream
+  backgrounds; Manrope headings and DM Sans body with Noto Sans Devanagari as
+  the Hindi fallback; radius, shadow, spacing and container values; the
+  heading pattern (second line orange on light, gold on dark) and the eyebrow
+  with a short orange line; motion including the scroll reveal; a v2
+  component table that says which chunk brings each component to v2; and a
+  "Differences from the mockup" list. Principles and content rules are kept.
+- `src/app/globals.css`: v2 token values. Role renames, with every use in the
+  code updated in the same change: `teal` → `brand`, `teal-dark` →
+  `brand-dark`, `teal-soft` → `brand-soft`, `green` → `success` (it meant
+  success; the brand is now green too), `green-light` → `brand-light`. The
+  `"teal"` variant/tone names on Badge, Eyebrow, IconTile and EmptyState are
+  now `"brand"`. New tokens: `brand-mid`, `orange-title`, `gold-light`,
+  `success-soft`, `paper`, `forest-ink`, `text-h1`, `text-h4`, `radius-3xl`,
+  and the `gold`, `forest` and `dock` shadows. The body background is now
+  `paper`.
+- AA-safe steps kept and extended: `orange-strong` (white on it, 4.6:1),
+  `orange-dark` (hover, 5.4:1), `orange-ink` (orange text), `orange-title`
+  (the large orange heading line, 3.3:1 on cream), `gold-ink` (text on gold),
+  `muted` deepened to `#5f6d68` so it passes on cream.
+- v2 gradients as named utilities: `bg-hero`, `bg-page-hero`, `bg-forest`,
+  `bg-brand-wash`, `bg-quiz`, `bg-coins-band`, `bg-coin`, `bg-pack-green` /
+  `-saffron` / `-blue` / `-gold`, `bg-avatar`, `bg-cta`, `bg-announcement`,
+  `bg-brand-mark`, and the `bg-dots` texture. The v1 ones (`bg-learning`,
+  `bg-learning-poster`, `bg-offer-*`, `bg-profile`) are gone; their few uses
+  moved to `bg-forest` and `bg-pack-green`.
+- A `reveal` utility: a CSS scroll-driven fade-and-rise, only when the browser
+  supports it and motion is allowed, so content is never hidden.
+- `shell` is now `min(1180px, 100% − 40px)` (720 px max under 820 px, 26 px
+  of gutter under 560 px); `section-y` is 100 / 78 / 62 px.
+- `src/app/layout.tsx` loads Manrope and DM Sans through `next/font` (self-
+  hosted, no new CSP origin) in place of Inter; `globals.css` exposes them as
+  `--font-heading` and `--font-body`, and `h1`–`h6` use the heading face.
+- Heading pattern applied where it was hand-written: SectionHeading's second
+  line and the page-title `<em>`s now use `orange-title` (`gold-light` on
+  dark bands). The admin help text for "title emphasis" now says orange.
+- `/design` shows the whole v2 palette, the two fonts, a dark-hero type
+  sample, the full type scale (display to label, Hindi in both faces), radius,
+  shadows, gradients and texture, and a Motion demo of `reveal`.
+- `src/lib/cn.ts` knows the new type, font, shadow and gradient names.
+  Multi-part gradient names are nested in the tailwind-merge config, because
+  a hyphenated literal like `pack-green` was read as a colour (and would have
+  dropped a real `bg-*` colour next to it; `bg-brand-mark` already had this
+  bug).
+- The invoice PDF colours follow the v2 ink, muted, line and brand values.
+
+**Decisions**
+- The database `Tone` enum keeps its `TEAL` value: renaming stored data needs
+  a migration and this chunk is presentation only. The homepage maps that key
+  (`teal:` in offers, brands and quick actions) render it in brand green.
+  DESIGN.md records this.
+- Breakpoints stay at 560 / 820 / 1100 px (the mockup uses 1050, 760 and
+  1000 in places), so existing layouts don't shift; recorded in DESIGN.md.
+- Every other deliberate difference from the mockup (white on orange, orange
+  and gold text steps, muted grey, 11/14 px minimums, CSS-only reveal) is
+  listed in DESIGN.md.
+
+**Tests:** Vitest `ui-helpers.test.ts` gains a case for the v2 token names in
+`cn`. Playwright: `design.spec.ts` passes at 375 and 1280 px (axe and
+overflow included). In `account.spec.ts` the saved-address test now scrolls
+the new address into view before axe: with the taller v2 section padding,
+closing the long form left the card's buttons under the sticky header, and
+axe read them as obscured targets (a scroll-position artefact, not a size
+problem). typecheck, lint, unit (869) and build pass. Screens checked at 375
+and 1280 px (`/design`, home, products, cart, track): v2 colours and fonts,
+no sideways scroll.
+
+**Finished on 2026-10-20.** The work sat staged without a commit for a week.
+Meanwhile `dev` gained the site-wide discount commit (`0fc29af`), and the
+staged copies of `orders.ts`, `products.ts`, `cart.ts` and five other files
+predated it, so committing them as they were would have quietly removed the
+discount. U.1 was replayed onto `dev` with a three-way merge (base `236e647`).
+It merged cleanly, and no pricing or settings file is in this commit. All
+checks were then run on that merged tree in a separate worktree with fresh
+databases, away from the uncommitted work in the main tree.
+
+In `brand.spec.ts` the launch-cart test now scrolls the tagline into view
+before axe, after typing the corrected text. It failed on phone only, with
+`target-size` "partially obscured". Typing into a field that is already on
+screen doesn't scroll, and with the taller v2 spacing the field stopped half
+under the sticky header. That is the same scroll-position artefact as the
+address test, not a size problem (WCAG 2.4.11 AA only fails a fully hidden
+focus). The test passes on `dev` without U.1.
+
+typecheck, lint and build pass. Unit: 867 of 868; the one failure is
+`db.test.ts`, which checks the test database is called
+`saatvik_vaidya_test`, so it fails on the isolated `saatvik_vaidya_u1_test`
+by design. Full e2e, run project by project: phone 124 passed (8 skipped,
+desktop-only), desktop 132 passed, phone-exclusive 6, desktop-exclusive 6,
+phone-last 7 (1 skipped, desktop-last runs it), desktop-last 8. No failures.
+`account.spec.ts` "edits their name…" once hit a one-off `ECONNRESET` on the
+phone sign-in request and passed 3 of 3 on rerun. Home and products checked
+again at 375 and 1280 px: v2 colours and fonts, no sideways scroll.
+
+**Later**
+- After saving an address, the form closes but focus and scroll stay where
+  the form was. Move focus to the saved card or the status line.
+- The homepage offers, brands and quick-action tone maps use lower-case keys
+  (`orange`, `teal`, ...) but the database tones are upper-case (`ORANGE`,
+  `TEAL`, ...), so they always fall back to the default style. U.6 removes
+  offers and quick actions; fix brands there if it stays.
+- The admin tone picker still labels `TEAL` as "Teal", which now renders in
+  brand green.
+- The Eyebrow component still uses `brand` text; DESIGN.md asks for
+  `brand-mid` with the orange line on every section (U.2).
+
+**Next:** U.2 (UI primitives in the v2 style). The BLOCKED entries for U.2 to
+U.17 above (waiting on U.1) are now out of date; each is replaced when its
+chunk runs.

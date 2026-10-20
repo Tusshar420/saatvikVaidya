@@ -231,10 +231,10 @@ function ReelPreview({ preview }: { preview: Preview }) {
       aria-label={form.preview}
       className="rounded-xl border border-line bg-surface p-4 shadow-card lg:sticky lg:top-24"
     >
-      <h2 className="text-label text-teal uppercase">{form.preview}</h2>
+      <h2 className="text-label text-brand uppercase">{form.preview}</h2>
       <div className="relative mt-3 aspect-[4/5] overflow-hidden rounded-lg bg-surface-alt">
         {preview.mediaKind === "POSTER" ? (
-          <div className="absolute inset-0 grid place-items-center bg-learning-poster p-5 text-center">
+          <div className="absolute inset-0 grid place-items-center bg-pack-green p-5 text-center">
             <p className="font-serif-hindi text-lg leading-snug font-bold whitespace-pre-line text-white">
               {preview.posterText}
             </p>
@@ -265,7 +265,7 @@ function ReelPreview({ preview }: { preview: Preview }) {
           </p>
         )}
         {preview.badge && (
-          <span className="absolute top-3 left-3 rounded-sm bg-teal px-2 py-1 text-xs font-bold text-white">
+          <span className="absolute top-3 left-3 rounded-sm bg-brand px-2 py-1 text-xs font-bold text-white">
             {preview.badge}
           </span>
         )}

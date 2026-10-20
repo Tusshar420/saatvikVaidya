@@ -24,7 +24,7 @@ export function HeroSection({ slides }: HeroSectionProps) {
           {/* Left side: copy and CTAs */}
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <span className="text-label uppercase text-teal">
+              <span className="text-label uppercase text-brand">
                 {slide.eyebrow}
               </span>
               <h1 className="text-display text-ink">
@@ -32,7 +32,7 @@ export function HeroSection({ slides }: HeroSectionProps) {
                 {slide.titleEmphasis && (
                   <>
                     <br />
-                    <em className="text-teal not-italic">{slide.titleEmphasis}</em>
+                    <em className="text-orange-title not-italic">{slide.titleEmphasis}</em>
                   </>
                 )}
               </h1>
@@ -82,7 +82,7 @@ export function HeroSection({ slides }: HeroSectionProps) {
                   {slide.proof.initials.map((initial, i) => (
                     <div
                       key={i}
-                      className="flex h-10 w-10 items-center justify-center rounded-md border-2 border-surface bg-teal text-sm font-700 text-surface"
+                      className="flex h-10 w-10 items-center justify-center rounded-md border-2 border-surface bg-brand text-sm font-700 text-surface"
                     >
                       {initial}
                     </div>
@@ -167,7 +167,7 @@ function LaunchStudioPanel({
       </div>
 
       <div className="mb-4 flex items-start gap-3 rounded-md border border-line bg-surface p-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded text-xs font-700 text-teal">
+        <div className="flex h-8 w-8 items-center justify-center rounded text-xs font-700 text-brand">
           {panel.product.symbol}
         </div>
         <div className="flex-1">
@@ -222,8 +222,8 @@ function BrandShowcasePanel({
       </span>
 
       {/* Featured brand card */}
-      <div className="rounded-xl border-2 border-teal bg-teal-soft p-5">
-        <p className="mb-2 text-label uppercase text-teal">
+      <div className="rounded-xl border-2 border-brand bg-brand-soft p-5">
+        <p className="mb-2 text-label uppercase text-brand">
           {panel.featured.eyebrow}
         </p>
         <h3 className="mb-2 text-h3 text-ink">{panel.featured.name}</h3>
@@ -265,7 +265,7 @@ function LearningBoardPanel({
   panel: HeroPanel & { kind: "LEARNING_BOARD" };
 }) {
   return (
-    <div className="rounded-xl bg-learning p-6 text-surface md:p-8">
+    <div className="rounded-xl bg-forest p-6 text-surface md:p-8">
       <div className="mb-4 flex items-center gap-2">
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-xs font-700 text-surface">
           ●

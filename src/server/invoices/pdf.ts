@@ -50,11 +50,12 @@ const text = copy.pdf;
 
 // The DESIGN.md colour tokens (a PDF can't read the CSS variables).
 const colour = {
-  ink: rgb(0x14 / 255, 0x26 / 255, 0x2c / 255),
-  muted: rgb(0x65 / 255, 0x74 / 255, 0x7a / 255),
-  line: rgb(0xdf / 255, 0xe8 / 255, 0xe5 / 255),
-  teal: rgb(0x08 / 255, 0x73 / 255, 0x7a / 255),
-  surfaceAlt: rgb(0xf8 / 255, 0xfb / 255, 0xfa / 255),
+  ink: rgb(0x14 / 255, 0x23 / 255, 0x1f / 255),
+  muted: rgb(0x5f / 255, 0x6d / 255, 0x68 / 255),
+  // --color-line is translucent; this is its colour on white.
+  line: rgb(0xe3 / 255, 0xe5 / 255, 0xe4 / 255),
+  brand: rgb(0x06 / 255, 0x3f / 255, 0x36 / 255),
+  surfaceAlt: rgb(0xfa / 255, 0xfa / 255, 0xf7 / 255),
   danger: rgb(0xc6 / 255, 0x41 / 255, 0x1b / 255),
 };
 
@@ -334,7 +335,7 @@ function drawHeader(writer: Writer, doc: InvoiceDocument) {
   writer.draw(text.title[doc.kind], RIGHT, top - 16, {
     font: bold,
     size: 18,
-    color: colour.teal,
+    color: colour.brand,
     align: "right",
   });
   if (doc.kind === "invoice") {

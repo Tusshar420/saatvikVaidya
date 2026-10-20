@@ -34,11 +34,11 @@ export default async function ConfirmationPage({
   return (
     <div className="shell py-8 sm:py-12">
       <div className="flex items-start gap-3">
-        <CircleCheck aria-hidden className="mt-1 size-8 shrink-0 text-green" />
+        <CircleCheck aria-hidden className="mt-1 size-8 shrink-0 text-success" />
         <div>
           <Eyebrow>{text.eyebrow}</Eyebrow>
           <h1 className="mt-2 text-h2 text-ink">
-            {text.title} <em className="block text-teal not-italic">{text.titleEmphasis}</em>
+            {text.title} <em className="block text-orange-title not-italic">{text.titleEmphasis}</em>
           </h1>
         </div>
       </div>

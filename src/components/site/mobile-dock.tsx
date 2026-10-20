@@ -45,7 +45,7 @@ export function MobileDock({ className }: { className?: string }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={cn(itemClasses, active && "text-teal")}
+                className={cn(itemClasses, active && "text-brand")}
               >
                 <Icon aria-hidden />
                 <span className={labelClasses}>{label}</span>
@@ -84,7 +84,7 @@ function ProfileItem({ active }: { active: boolean }) {
         href="/account"
         data-focus-key={profileFocusKey}
         aria-current={active ? "page" : undefined}
-        className={cn(itemClasses, active && "text-teal")}
+        className={cn(itemClasses, active && "text-brand")}
       >
         {content}
       </Link>

@@ -17,7 +17,7 @@ export type AvatarProps = {
   className?: string;
 };
 
-/** The user's initials on teal. */
+/** The user's initials on brand green. */
 export function Avatar({
   name,
   size = "md",
@@ -30,7 +30,7 @@ export function Avatar({
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
       className={cn(
-        "inline-grid shrink-0 place-items-center bg-teal font-extrabold text-white select-none",
+        "inline-grid shrink-0 place-items-center bg-brand font-extrabold text-white select-none",
         sizeClasses[size],
         className,
       )}

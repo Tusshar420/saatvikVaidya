@@ -361,7 +361,7 @@ function QuestionCard({
                   checked={question.correct === optionIndex}
                   onChange={() => onChange({ correct: optionIndex })}
                   aria-label={form.correctFor(optionIndex + 1)}
-                  className="size-5 cursor-pointer accent-teal"
+                  className="size-5 cursor-pointer accent-brand"
                 />
               </label>
               <input

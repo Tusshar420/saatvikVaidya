@@ -81,7 +81,7 @@ describe("isDesignPageEnabled", () => {
 
 describe("cn", () => {
   it("keeps custom text sizes next to text colours", () => {
-    expect(cn("text-h2 text-ink", "text-teal")).toBe("text-h2 text-teal");
+    expect(cn("text-h2 text-ink", "text-brand")).toBe("text-h2 text-brand");
   });
 
   it("lets a caller override a token-based class", () => {
@@ -89,5 +89,19 @@ describe("cn", () => {
       "shadow-raised rounded-lg",
     );
     expect(cn("bg-surface bg-hero")).toBe("bg-surface bg-hero");
+  });
+
+  it("knows the v2 type, font, shadow and gradient tokens", () => {
+    expect(cn("text-h4 font-heading font-bold", "text-orange-title")).toBe(
+      "text-h4 font-heading font-bold text-orange-title",
+    );
+    expect(cn("font-body", "font-heading")).toBe("font-heading");
+    expect(cn("shadow-card", "shadow-forest")).toBe("shadow-forest");
+    expect(cn("font-body", "font-serif-hindi")).toBe("font-serif-hindi");
+    // A gradient replaces a gradient but sits next to a background colour.
+    expect(cn("bg-brand bg-pack-green", "bg-quiz")).toBe("bg-brand bg-quiz");
+    expect(cn("bg-brand-soft bg-hero", "bg-page-hero")).toBe(
+      "bg-brand-soft bg-page-hero",
+    );
   });
 });

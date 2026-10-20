@@ -35,7 +35,7 @@ export function Checkbox({
             type="checkbox"
             aria-invalid={error ? true : undefined}
             aria-describedby={ids.describedBy}
-            className="peer size-5 cursor-pointer appearance-none rounded-[6px] border-2 border-muted bg-surface transition checked:border-teal checked:bg-teal disabled:cursor-not-allowed aria-invalid:border-danger"
+            className="peer size-5 cursor-pointer appearance-none rounded-[6px] border-2 border-muted bg-surface transition checked:border-brand checked:bg-brand disabled:cursor-not-allowed aria-invalid:border-danger"
             {...props}
           />
           <Check

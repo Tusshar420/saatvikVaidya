@@ -109,6 +109,10 @@ test("a customer adds, edits and deletes a saved address", async ({ page, baseUR
   await expect(page.getByText(account.addresses.saved)).toBeVisible();
   await expect(page.getByText("Flat 4, Shanti Apartments")).toBeVisible();
   expect(await e2eDb().address.count({ where: { userId: user.id } })).toBe(1);
+  // Closing the long form leaves the page scrolled down, which can park the
+  // new card's buttons under the sticky header; axe would then read them as
+  // obscured targets. Bring the saved address into view, as a user would.
+  await page.getByText("Flat 4, Shanti Apartments").scrollIntoViewIfNeeded();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("addresses.png"), fullPage: true });

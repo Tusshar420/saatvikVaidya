@@ -10,7 +10,7 @@ export function SampleNote({ children, className }: { children: string; classNam
         className,
       )}
     >
-      <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-teal" />
+      <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
       {children}
     </p>
   );

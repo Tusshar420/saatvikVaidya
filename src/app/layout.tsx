@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
-  Inter,
+  DM_Sans,
+  Manrope,
   Noto_Sans_Devanagari,
   Noto_Serif_Devanagari,
 } from "next/font/google";
@@ -9,9 +10,17 @@ import { ToastProvider } from "@/components/ui/toast";
 import { site } from "@/content/site";
 import "./globals.css";
 
-const inter = Inter({
+// next/font self-hosts these at build time, so no font origin is added to the
+// CSP. globals.css exposes them as --font-heading and --font-body.
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-manrope",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
   display: "swap",
 });
 
@@ -40,7 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${notoSansDevanagari.variable} ${notoSerifDevanagari.variable} h-full antialiased`}
+      className={`${manrope.variable} ${dmSans.variable} ${notoSansDevanagari.variable} ${notoSerifDevanagari.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <ErrorReporter />

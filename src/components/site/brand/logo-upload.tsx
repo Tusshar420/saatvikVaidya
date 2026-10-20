@@ -98,7 +98,7 @@ export function LogoUpload({
             {uploading ? text.uploading : logo ? text.replace : text.upload}
           </Button>
           {done && !uploading && (
-            <p role="status" className="text-small font-bold text-green">
+            <p role="status" className="text-small font-bold text-success">
               {text.uploaded}
             </p>
           )}

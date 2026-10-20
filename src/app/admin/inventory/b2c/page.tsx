@@ -113,7 +113,7 @@ export default async function B2cInventoryPage({ searchParams }: PageProps<"/adm
           )}
         </div>
         <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink sm:col-span-2 lg:col-span-4">
-          <input type="checkbox" name="partner" value="1" defaultChecked={filters.partner} className="size-4.5 accent-teal" />
+          <input type="checkbox" name="partner" value="1" defaultChecked={filters.partner} className="size-4.5 accent-brand" />
           {text.filters.partnerOnly}
         </label>
       </form>
@@ -163,7 +163,7 @@ export default async function B2cInventoryPage({ searchParams }: PageProps<"/adm
                   {row.sellable === 0 ? <Badge variant="live">{text.badges.out}</Badge> : row.low && <Badge variant="orange">{text.badges.low}</Badge>}
                   {row.soonBatches > 0 && <Badge variant="gold">{text.badges.soon(row.soonBatches)}</Badge>}
                   {row.expiredBatches > 0 && <Badge variant="live">{text.badges.expired(row.expiredBatches)}</Badge>}
-                  {row.sellable > 0 && !row.low && row.soonBatches === 0 && row.expiredBatches === 0 && <Badge variant="teal">{text.badges.ok}</Badge>}
+                  {row.sellable > 0 && !row.low && row.soonBatches === 0 && row.expiredBatches === 0 && <Badge variant="brand">{text.badges.ok}</Badge>}
                 </span>
               </Td>
               <Td>

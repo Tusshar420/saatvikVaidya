@@ -27,16 +27,16 @@ type ToastItem = ToastInput & { id: number };
 
 const toneStyles: Record<ToastTone, { icon: ReactNode; accent: string }> = {
   success: {
-    icon: <CircleCheck aria-hidden className="size-5 text-green" />,
-    accent: "border-l-green",
+    icon: <CircleCheck aria-hidden className="size-5 text-success" />,
+    accent: "border-l-success",
   },
   error: {
     icon: <CircleAlert aria-hidden className="size-5 text-danger" />,
     accent: "border-l-danger",
   },
   info: {
-    icon: <Info aria-hidden className="size-5 text-teal" />,
-    accent: "border-l-teal",
+    icon: <Info aria-hidden className="size-5 text-brand" />,
+    accent: "border-l-brand",
   },
 };
 

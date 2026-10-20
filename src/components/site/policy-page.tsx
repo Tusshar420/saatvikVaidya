@@ -28,7 +28,7 @@ export function PolicyPage({ copy, href, phone }: PolicyPageProps) {
           {policyPages.contactLead}{" "}
           <a
             href={telHref(phone)}
-            className="inline-flex min-h-11 items-center font-bold text-teal underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center font-bold text-brand underline-offset-4 hover:underline"
           >
             {policyPages.call(phone)}
           </a>
@@ -42,7 +42,7 @@ export function PolicyPage({ copy, href, phone }: PolicyPageProps) {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="inline-flex min-h-11 items-center font-semibold text-teal underline-offset-4 hover:underline"
+                  className="inline-flex min-h-11 items-center font-semibold text-brand underline-offset-4 hover:underline"
                 >
                   {link.label}
                 </Link>

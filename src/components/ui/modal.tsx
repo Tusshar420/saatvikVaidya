@@ -21,7 +21,7 @@ export type ModalContentProps = Omit<
 > & {
   title: ReactNode;
   description?: ReactNode;
-  /** Teal tile above the title, as on the mockup's sign-in modal. */
+  /** Brand-green tile above the title, as on the mockup's sign-in modal. */
   icon?: ReactNode;
   /** Small uppercase label above the title ("MY PROFILE"). */
   eyebrow?: ReactNode;
@@ -73,7 +73,7 @@ export function ModalContent({
         {icon && (
           <span
             aria-hidden
-            className="mb-5 grid size-12 place-items-center rounded-button bg-teal text-white [&_svg]:size-6"
+            className="mb-5 grid size-12 place-items-center rounded-button bg-brand text-white [&_svg]:size-6"
           >
             {icon}
           </span>

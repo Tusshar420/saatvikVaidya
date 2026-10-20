@@ -55,7 +55,7 @@ export function OrderDocuments({ orderId, orderNumber, documents, showUnpaidNote
               className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 @sm:flex-row @sm:items-center @sm:justify-between"
             >
               <span className="flex min-w-0 items-start gap-3">
-                <FileText aria-hidden className="mt-0.5 size-5 shrink-0 text-teal" />
+                <FileText aria-hidden className="mt-0.5 size-5 shrink-0 text-brand" />
                 <span className="min-w-0">
                   <span className="block font-bold text-ink">{row.label}</span>
                   <span className={cn("block text-small text-muted", row.number && "font-mono whitespace-nowrap")}>

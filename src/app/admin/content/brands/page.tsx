@@ -71,7 +71,7 @@ export default async function BrandsPage({
                 ) : (
                   <span
                     aria-hidden
-                    className="grid size-10 place-items-center rounded-md bg-teal-soft text-xs font-black text-teal"
+                    className="grid size-10 place-items-center rounded-md bg-brand-soft text-xs font-black text-brand"
                   >
                     {brand.monogram}
                   </span>

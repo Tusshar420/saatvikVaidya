@@ -3,7 +3,7 @@ import { bugReportsAdmin as copy } from "@/content/bug-reports";
 import { cn } from "@/lib/cn";
 
 const tabClasses =
-  "relative inline-flex min-h-11 shrink-0 items-center gap-2 px-0.5 text-sm font-extrabold whitespace-nowrap transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-teal after:transition-opacity focus-visible:-outline-offset-2";
+  "relative inline-flex min-h-11 shrink-0 items-center gap-2 px-0.5 text-sm font-extrabold whitespace-nowrap transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand after:transition-opacity focus-visible:-outline-offset-2";
 
 /**
  * The error log's two sections, automatic errors and problem reports, as
@@ -27,7 +27,7 @@ export function ErrorLogTabs({ active, newReports }: { active: "errors" | "repor
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   tabClasses,
-                  current ? "text-teal after:opacity-100" : "text-muted after:opacity-0 hover:text-ink",
+                  current ? "text-brand after:opacity-100" : "text-muted after:opacity-0 hover:text-ink",
                 )}
               >
                 {tab.label}

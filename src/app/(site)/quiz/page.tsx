@@ -111,12 +111,12 @@ export default async function QuizPage() {
               <h2 id="quiz-result" className="text-h3 text-ink">
                 {copy.result.title}
               </h2>
-              <p className="mt-2 text-h2 text-teal">{copy.result.score(view.result.score, view.result.maxScore)}</p>
+              <p className="mt-2 text-h2 text-brand">{copy.result.score(view.result.score, view.result.maxScore)}</p>
               <p className="mt-1 text-sm text-muted">
                 {copy.result.correct(view.result.correctCount, view.review.length)} ·{" "}
                 {copy.result.time(clock(view.result.timeTakenSeconds))}
               </p>
-              <p role="status" className="mt-4 rounded-lg bg-teal-soft p-3 text-sm font-semibold text-ink">
+              <p role="status" className="mt-4 rounded-lg bg-brand-soft p-3 text-sm font-semibold text-ink">
                 {view.result.coinsAwarded > 0
                   ? copy.result.earned(view.result.coinsAwarded)
                   : copy.result.notEarned(view.passPercent)}
@@ -158,7 +158,7 @@ export default async function QuizPage() {
                             className={cn(
                               "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
                               isCorrect
-                                ? "border-teal bg-teal-soft font-bold text-ink"
+                                ? "border-brand bg-brand-soft font-bold text-ink"
                                 : isChosen
                                   ? "border-danger bg-danger-soft text-ink"
                                   : "border-line text-muted",

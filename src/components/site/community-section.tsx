@@ -15,7 +15,7 @@ export function CommunitySection({
   points,
 }: CommunitySectionProps) {
   return (
-    <section className="section-y bg-teal-dark" id="community">
+    <section className="section-y bg-brand-dark" id="community">
       <div className="shell">
         <SectionHeading
           eyebrow={heading.eyebrow}
@@ -25,12 +25,12 @@ export function CommunitySection({
           tone="dark"
         />
 
-        <Card interactive className="mt-16 bg-teal/10">
+        <Card interactive className="mt-16 bg-brand/10">
           <div className="p-8 sm:p-12">
             <div className="space-y-4">
               {points.map((point, index) => (
                 <div key={index} className="flex gap-4">
-                  <div className="text-h2 text-teal flex-shrink-0">✓</div>
+                  <div className="text-h2 text-brand flex-shrink-0">✓</div>
                   <p className="text-body text-white">{point}</p>
                 </div>
               ))}

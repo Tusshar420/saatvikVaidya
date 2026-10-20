@@ -4,7 +4,7 @@ import type { VerificationStatus } from "@/server/admin/users";
 
 const statusVariant = {
   pending: "orange",
-  approved: "teal",
+  approved: "brand",
   rejected: "live",
 } as const;
 
@@ -31,7 +31,7 @@ export function ActiveBadge({
   hiddenLabel?: string;
 }) {
   return active ? (
-    <Badge variant="teal">{activeLabel}</Badge>
+    <Badge variant="brand">{activeLabel}</Badge>
   ) : (
     <span className="text-small font-semibold text-muted">{hiddenLabel}</span>
   );

@@ -142,7 +142,7 @@ function ReelCard({ reel }: { reel: ReelItem }) {
                     : reel.badgeTone === "GOLD"
                       ? // White on gold is under 2:1; dark ink passes AA.
                         "bg-gold text-ink"
-                      : "bg-teal",
+                      : "bg-brand",
                 )}
               >
                 {reel.badge}
@@ -159,7 +159,7 @@ function ReelCard({ reel }: { reel: ReelItem }) {
           <div
             className={cn(
               "absolute inset-0 flex flex-col gap-3 justify-center items-center px-4 py-6 text-center text-surface",
-              "bg-learning"
+              "bg-forest"
             )}
           >
             {reel.poster.kicker && (
@@ -195,7 +195,7 @@ function ReelCard({ reel }: { reel: ReelItem }) {
         {reel.link.href !== null ? (
           <a
             href={reel.link.href}
-            className="text-small font-500 text-teal hover:underline"
+            className="text-small font-500 text-brand hover:underline"
           >
             {reel.link.label} →
           </a>

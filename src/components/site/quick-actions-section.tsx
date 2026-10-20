@@ -30,7 +30,7 @@ export function QuickActionsSection({
 function QuickActionCard({ action }: { action: QuickActionItem }) {
   const toneMap: Record<string, { bg: string; icon: string }> = {
     orange: { bg: "bg-orange-soft", icon: "text-orange-ink" },
-    teal: { bg: "bg-teal-soft", icon: "text-teal" },
+    teal: { bg: "bg-brand-soft", icon: "text-brand" },
     blue: { bg: "bg-blue-soft", icon: "text-blue" },
     gold: { bg: "bg-gold-soft", icon: "text-gold-ink" },
   };

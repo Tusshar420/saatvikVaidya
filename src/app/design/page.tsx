@@ -56,29 +56,39 @@ export const metadata: Metadata = {
 
 // Swatches list Tailwind classes literally so the build picks them up.
 const colours = [
+  { name: "brand", className: "bg-brand" },
+  { name: "brand-mid", className: "bg-brand-mid" },
+  { name: "brand-dark", className: "bg-brand-dark" },
+  { name: "brand-soft", className: "bg-brand-soft" },
+  { name: "brand-light", className: "bg-brand-light" },
   { name: "orange", className: "bg-orange" },
-  { name: "orange-dark", className: "bg-orange-dark" },
   { name: "orange-strong", className: "bg-orange-strong" },
+  { name: "orange-dark", className: "bg-orange-dark" },
   { name: "orange-ink", className: "bg-orange-ink" },
+  { name: "orange-title", className: "bg-orange-title" },
   { name: "orange-soft", className: "bg-orange-soft" },
-  { name: "teal", className: "bg-teal" },
-  { name: "teal-dark", className: "bg-teal-dark" },
-  { name: "teal-soft", className: "bg-teal-soft" },
-  { name: "green", className: "bg-green" },
-  { name: "blue", className: "bg-blue" },
-  { name: "blue-soft", className: "bg-blue-soft" },
+  { name: "orange-light", className: "bg-orange-light" },
   { name: "gold", className: "bg-gold" },
   { name: "gold-soft", className: "bg-gold-soft" },
   { name: "gold-ink", className: "bg-gold-ink" },
+  { name: "gold-light", className: "bg-gold-light" },
+  { name: "success", className: "bg-success" },
+  { name: "success-soft", className: "bg-success-soft" },
+  { name: "blue", className: "bg-blue" },
+  { name: "blue-soft", className: "bg-blue-soft" },
+  { name: "danger", className: "bg-danger" },
+  { name: "danger-soft", className: "bg-danger-soft" },
   { name: "ink", className: "bg-ink" },
   { name: "muted", className: "bg-muted" },
   { name: "line", className: "bg-line" },
   { name: "line-strong", className: "bg-line-strong" },
   { name: "surface", className: "bg-surface" },
   { name: "surface-alt", className: "bg-surface-alt" },
+  { name: "paper", className: "bg-paper" },
   { name: "cream", className: "bg-cream" },
-  { name: "danger", className: "bg-danger" },
-  { name: "danger-soft", className: "bg-danger-soft" },
+  { name: "forest-ink", className: "bg-forest-ink" },
+  { name: "night", className: "bg-night" },
+  { name: "night-ink", className: "bg-night-ink" },
 ] as const;
 
 const radii = [
@@ -86,9 +96,10 @@ const radii = [
   { name: "md · 12", className: "rounded-md" },
   { name: "button · 13", className: "rounded-button" },
   { name: "lg · 18", className: "rounded-lg" },
-  { name: "xl · 22", className: "rounded-xl" },
+  { name: "xl · 24", className: "rounded-xl" },
   { name: "modal · 24", className: "rounded-modal" },
-  { name: "2xl · 26", className: "rounded-2xl" },
+  { name: "2xl · 28", className: "rounded-2xl" },
+  { name: "3xl · 30", className: "rounded-3xl" },
   { name: "full", className: "rounded-full" },
 ] as const;
 
@@ -97,25 +108,33 @@ const shadows = [
   { name: "raised", className: "shadow-raised" },
   { name: "modal", className: "shadow-modal" },
   { name: "cta", className: "shadow-cta" },
+  { name: "gold", className: "shadow-gold" },
+  { name: "forest", className: "shadow-forest" },
+  { name: "dock", className: "shadow-dock" },
 ] as const;
 
 const gradients = [
   { name: "bg-hero", className: "bg-hero" },
-  { name: "bg-learning", className: "bg-learning" },
-  { name: "bg-learning-poster", className: "bg-learning-poster" },
-  { name: "bg-offer-orange", className: "bg-offer-orange" },
-  { name: "bg-offer-teal", className: "bg-offer-teal" },
-  { name: "bg-offer-navy", className: "bg-offer-navy" },
+  { name: "bg-page-hero", className: "bg-page-hero" },
+  { name: "bg-forest", className: "bg-forest" },
+  { name: "bg-brand-wash", className: "bg-brand-wash" },
   { name: "bg-quiz", className: "bg-quiz" },
-  { name: "bg-profile", className: "bg-profile" },
-  { name: "bg-brand-mark", className: "bg-brand-mark" },
+  { name: "bg-coins-band", className: "bg-coins-band" },
   { name: "bg-coin", className: "bg-coin" },
+  { name: "bg-pack-green", className: "bg-pack-green" },
+  { name: "bg-pack-saffron", className: "bg-pack-saffron" },
+  { name: "bg-pack-blue", className: "bg-pack-blue" },
+  { name: "bg-pack-gold", className: "bg-pack-gold" },
+  { name: "bg-avatar", className: "bg-avatar" },
+  { name: "bg-cta", className: "bg-cta" },
+  { name: "bg-announcement", className: "bg-announcement" },
+  { name: "bg-brand-mark", className: "bg-brand-mark" },
 ] as const;
 
 const slideBackgrounds = [
-  "bg-hero text-ink",
-  "bg-learning text-white",
-  "bg-quiz text-white",
+  "bg-hero text-white",
+  "bg-quiz text-ink",
+  "bg-pack-saffron text-white",
 ] as const;
 
 const contents = Object.entries(copy.groups) as [
@@ -183,7 +202,7 @@ export default async function DesignPage() {
               <li key={id}>
                 <a
                   href={`#${id}`}
-                  className="inline-flex min-h-11 items-center rounded-sm border border-line px-3.5 text-sm font-semibold text-teal hover:bg-teal-soft"
+                  className="inline-flex min-h-11 items-center rounded-sm border border-line px-3.5 text-sm font-semibold text-brand hover:bg-brand-soft"
                 >
                   {label}
                 </a>
@@ -202,27 +221,61 @@ export default async function DesignPage() {
           </div>
         </Demo>
         <Demo title={s.typography}>
-          <div className="flex flex-col gap-5">
-            <p className="text-display">
-              {copy.type.display}{" "}
-              <em className="block text-teal not-italic">
-                {copy.type.displayEmphasis}
-              </em>
-            </p>
-            <p className="text-h2">
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-line bg-surface p-5">
+                <p className="text-label text-orange-ink uppercase">
+                  {copy.type.headingFontLabel}
+                </p>
+                <p className="mt-2 font-heading text-h3">
+                  {copy.type.headingFont}
+                </p>
+              </div>
+              <div className="rounded-lg border border-line bg-surface p-5">
+                <p className="text-label text-orange-ink uppercase">
+                  {copy.type.bodyFontLabel}
+                </p>
+                <p className="mt-2 text-body-lg">{copy.type.bodyFont}</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-2xl bg-hero p-6 text-white sm:p-9">
+              <span aria-hidden className="absolute inset-0 bg-dots" />
+              <div className="relative">
+                <Eyebrow bar tone="light">
+                  {copy.type.heroEyebrow}
+                </Eyebrow>
+                <p className="mt-3 font-heading text-display">
+                  {copy.type.display}{" "}
+                  <em className="block text-gold-light not-italic">
+                    {copy.type.displayEmphasis}
+                  </em>
+                </p>
+                <p className="mt-4 max-w-xl text-body-lg text-forest-ink">
+                  {copy.type.bodyLg}
+                </p>
+              </div>
+            </div>
+            <p className="font-heading text-h1">{copy.type.h1}</p>
+            <p className="font-heading text-h2">
               {copy.type.h2}{" "}
-              <em className="block text-teal not-italic">
+              <em className="block text-orange-title not-italic">
                 {copy.type.h2Emphasis}
               </em>
             </p>
-            <p className="text-h3">{copy.type.h3}</p>
+            <p className="font-heading text-h3">{copy.type.h3}</p>
+            <p className="font-heading text-h4">{copy.type.h4}</p>
             <p className="text-body-lg">{copy.type.bodyLg}</p>
             <p className="text-body">{copy.type.body}</p>
             <p className="text-small font-medium text-muted">
               {copy.type.small}
             </p>
-            <p className="text-label text-teal uppercase">{copy.type.label}</p>
+            <p className="font-heading text-label text-brand-mid uppercase">
+              {copy.type.label}
+            </p>
             <p lang="hi" className="text-body-lg">
+              {copy.type.hindiSans}
+            </p>
+            <p lang="hi" className="font-heading text-h3">
               {copy.type.hindiSans}
             </p>
             <p lang="hi" className="font-serif-hindi text-h3">
@@ -235,7 +288,7 @@ export default async function DesignPage() {
             {radii.map((r) => (
               <div key={r.name}>
                 <div
-                  className={`h-16 border-2 border-teal bg-teal-soft ${r.className}`}
+                  className={`h-16 border-2 border-brand bg-brand-soft ${r.className}`}
                 />
                 <p className="mt-1.5 text-small text-muted">{r.name}</p>
               </div>
@@ -258,6 +311,25 @@ export default async function DesignPage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {gradients.map((g) => (
               <Swatch key={g.name} name={g.name} className={g.className} />
+            ))}
+            <div className="min-w-0">
+              <div className="relative h-16 overflow-hidden rounded-md bg-page-hero">
+                <span aria-hidden className="absolute inset-0 bg-dots" />
+              </div>
+              <p className="mt-1.5 truncate text-small text-muted">bg-dots</p>
+            </div>
+          </div>
+        </Demo>
+        <Demo title={s.motion}>
+          <p className="max-w-2xl text-muted">{copy.motion.body}</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {copy.motion.cards.map((card) => (
+              <div
+                key={card}
+                className="reveal rounded-xl border border-line bg-surface p-5 shadow-card"
+              >
+                <p className="font-heading text-h4">{card}</p>
+              </div>
             ))}
           </div>
         </Demo>
@@ -283,7 +355,7 @@ export default async function DesignPage() {
                 {copy.buttons.disabled}
               </Button>
             </div>
-            <div className="rounded-xl p-5 bg-learning">
+            <div className="rounded-xl p-5 bg-forest">
               <Button variant="light" arrow>
                 {copy.buttons.light}
               </Button>
@@ -432,7 +504,7 @@ export default async function DesignPage() {
         <Demo title={s.badge}>
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="teal">{copy.badges.teal}</Badge>
+              <Badge variant="brand">{copy.badges.brand}</Badge>
               <Badge variant="orange">{copy.badges.orange}</Badge>
               <Badge variant="blue">{copy.badges.blue}</Badge>
               <Badge variant="gold">{copy.badges.gold}</Badge>
@@ -441,7 +513,7 @@ export default async function DesignPage() {
             </div>
             <Eyebrow>{copy.badges.eyebrow}</Eyebrow>
             <Eyebrow bar>{copy.badges.eyebrowBar}</Eyebrow>
-            <div className="rounded-xl p-5 bg-learning">
+            <div className="rounded-xl p-5 bg-forest">
               <Eyebrow tone="light">{copy.badges.eyebrow}</Eyebrow>
             </div>
           </div>
@@ -451,7 +523,7 @@ export default async function DesignPage() {
             <IconTile tone="orange" label={copy.iconTiles.orange}>
               <Plus />
             </IconTile>
-            <IconTile tone="teal" label={copy.iconTiles.teal}>
+            <IconTile tone="brand" label={copy.iconTiles.brand}>
               <Package />
             </IconTile>
             <IconTile tone="blue" label={copy.iconTiles.blue}>
@@ -460,7 +532,7 @@ export default async function DesignPage() {
             <IconTile tone="gold" label={copy.iconTiles.gold}>
               <Video />
             </IconTile>
-            <IconTile tone="teal" size="lg" label={copy.iconTiles.teal}>
+            <IconTile tone="brand" size="lg" label={copy.iconTiles.brand}>
               <Package />
             </IconTile>
           </div>
@@ -475,7 +547,7 @@ export default async function DesignPage() {
               description={copy.sectionHeading.description}
               action={{ href: "/design#display" }}
             />
-            <div className="rounded-2xl p-6 bg-learning">
+            <div className="rounded-2xl p-6 bg-forest">
               <SectionHeading
                 as="h4"
                 tone="dark"
@@ -574,7 +646,7 @@ export default async function DesignPage() {
           >
             {copy.hscroller.items.map((item) => (
               <div key={item}>
-                <div className="aspect-[9/13.5] rounded-lg bg-teal-soft" />
+                <div className="aspect-[9/13.5] rounded-lg bg-brand-soft" />
                 <p className="mt-3 text-sm font-bold">{item}</p>
               </div>
             ))}

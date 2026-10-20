@@ -54,7 +54,7 @@ export default async function ApprovalsPage() {
                 <Link
                   href={`/admin/approvals/detail/${user.id}`}
                   aria-label={text.viewNamed(user.name)}
-                  className="font-bold break-words text-teal hover:underline"
+                  className="font-bold break-words text-brand hover:underline"
                 >
                   {user.name}
                 </Link>
@@ -79,7 +79,7 @@ export default async function ApprovalsPage() {
                   <Link
                     href={`/admin/approvals/detail/${user.id}`}
                     aria-label={text.reviewNamed(user.name)}
-                    className="inline-flex min-h-11 items-center font-bold text-teal hover:underline md:min-h-0"
+                    className="inline-flex min-h-11 items-center font-bold text-brand hover:underline md:min-h-0"
                   >
                     {text.review}
                   </Link>

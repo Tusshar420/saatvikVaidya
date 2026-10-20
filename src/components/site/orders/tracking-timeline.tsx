@@ -14,16 +14,16 @@ function Note({ tone, icon, children }: { tone: "info" | "warn" | "done"; icon: 
     <p
       className={cn(
         "flex gap-3 rounded-lg p-4 text-sm text-ink",
-        tone === "info" && "bg-teal-soft",
+        tone === "info" && "bg-brand-soft",
         tone === "warn" && "bg-orange-soft",
-        tone === "done" && "bg-teal-soft",
+        tone === "done" && "bg-brand-soft",
       )}
     >
       <span
         aria-hidden
         className={cn(
           "mt-0.5 shrink-0 *:size-5",
-          tone === "warn" ? "text-orange-ink" : tone === "done" ? "text-green" : "text-teal",
+          tone === "warn" ? "text-orange-ink" : tone === "done" ? "text-success" : "text-brand",
         )}
       >
         {icon}
@@ -76,7 +76,7 @@ function VerticalSteps({ tracking, current }: { tracking: TrackingView; current:
                 aria-hidden
                 className={cn(
                   "absolute -top-1/2 left-3.25 h-full w-0.5",
-                  index <= current ? "bg-green" : "bg-track",
+                  index <= current ? "bg-success" : "bg-track",
                 )}
               />
             )}
@@ -84,7 +84,7 @@ function VerticalSteps({ tracking, current }: { tracking: TrackingView; current:
               aria-hidden
               className={cn(
                 "relative z-10 grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold",
-                done && "bg-green text-white",
+                done && "bg-success text-white",
                 active && "bg-orange-strong text-white ring-5 ring-orange/15",
                 !done && !active && "border border-line bg-surface text-muted",
               )}
@@ -178,7 +178,7 @@ export function TrackingTimeline({
                   aria-hidden
                   className={cn(
                     "relative mt-1 size-3 shrink-0 rounded-full",
-                    index === 0 ? "bg-orange-strong ring-4 ring-orange/15" : "bg-green",
+                    index === 0 ? "bg-orange-strong ring-4 ring-orange/15" : "bg-success",
                   )}
                 />
                 <span className="flex min-w-0 flex-col">

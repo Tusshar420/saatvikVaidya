@@ -48,7 +48,7 @@ export function BrandProfileForm({
 
   const title = profile ? text.form.editTitle(profile.profileName) : text.form.newTitle;
   return (
-    <div className="flex flex-col gap-5 rounded-xl border border-teal/50 bg-surface p-4 shadow-card sm:p-6">
+    <div className="flex flex-col gap-5 rounded-xl border border-brand/50 bg-surface p-4 shadow-card sm:p-6">
       <div>
         <h3 id="brand-form-title" className="text-h3 text-ink">
           {title}

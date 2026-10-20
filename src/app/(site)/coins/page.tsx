@@ -130,7 +130,7 @@ export default async function CoinsPage({ searchParams }: PageProps<"/coins">) {
                     <p
                       className={cn(
                         "shrink-0 text-base font-extrabold",
-                        entry.amount < 0 ? "text-danger" : "text-green",
+                        entry.amount < 0 ? "text-danger" : "text-success",
                       )}
                     >
                       <span className="sr-only">{entry.amount < 0 ? "−" : "+"}</span>

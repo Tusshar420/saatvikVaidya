@@ -3,7 +3,7 @@ import { inventory as copy } from "@/content/inventory";
 import { cn } from "@/lib/cn";
 
 const tabClasses =
-  "relative inline-flex min-h-11 shrink-0 items-center gap-2 px-0.5 text-sm font-extrabold whitespace-nowrap transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-teal after:transition-opacity focus-visible:-outline-offset-2";
+  "relative inline-flex min-h-11 shrink-0 items-center gap-2 px-0.5 text-sm font-extrabold whitespace-nowrap transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand after:transition-opacity focus-visible:-outline-offset-2";
 
 /** The two inventories as underline tabs (links: each is its own page). */
 export function InventoryTabs({ active }: { active: "b2c" | "b2b" }) {
@@ -21,7 +21,7 @@ export function InventoryTabs({ active }: { active: "b2c" | "b2b" }) {
               aria-current={tab.key === active ? "page" : undefined}
               className={cn(
                 tabClasses,
-                tab.key === active ? "text-teal after:opacity-100" : "text-muted after:opacity-0 hover:text-ink",
+                tab.key === active ? "text-brand after:opacity-100" : "text-muted after:opacity-0 hover:text-ink",
               )}
             >
               {tab.label}

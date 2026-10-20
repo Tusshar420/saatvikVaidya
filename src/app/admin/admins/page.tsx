@@ -60,9 +60,9 @@ export default async function AdminsPage({ searchParams }: PageProps<"/admin/adm
               <li key={admin.id} data-testid="admin-row" className="flex flex-col gap-3 p-4">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="font-extrabold text-ink">{admin.name}</span>
-                  {self && <Badge variant="teal">{text.you}</Badge>}
+                  {self && <Badge variant="brand">{text.you}</Badge>}
                   <span className="text-sm break-all text-muted">{admin.email}</span>
-                  <Badge variant={admin.twoFactorEnabled ? "teal" : "orange"}>
+                  <Badge variant={admin.twoFactorEnabled ? "brand" : "orange"}>
                     {admin.twoFactorEnabled ? text.twoFactorOn : text.twoFactorOff}
                   </Badge>
                 </div>

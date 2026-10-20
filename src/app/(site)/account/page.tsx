@@ -31,9 +31,9 @@ export const metadata: Metadata = {
 };
 
 const statusBadge = {
-  none: "teal",
+  none: "brand",
   pending: "orange",
-  approved: "teal",
+  approved: "brand",
   rejected: "orange",
 } as const;
 
@@ -62,7 +62,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         <Eyebrow>{copy.eyebrow}</Eyebrow>
         <h1 className="mt-2 text-h2 text-ink">
           {copy.title(profile.name)}{" "}
-          <em className="block text-teal not-italic">{copy.titleEmphasis}</em>
+          <em className="block text-orange-title not-italic">{copy.titleEmphasis}</em>
         </h1>
 
         {justVerified && profile.emailVerified && (
@@ -196,9 +196,9 @@ function Shortcuts({ isAdmin }: { isAdmin: boolean }) {
           <li key={href}>
             <Link
               href={href}
-              className="flex min-h-14 items-center gap-3 rounded-lg border border-line bg-surface p-3.5 transition hover:border-teal"
+              className="flex min-h-14 items-center gap-3 rounded-lg border border-line bg-surface p-3.5 transition hover:border-brand"
             >
-              <Icon aria-hidden className="size-5 shrink-0 text-teal" />
+              <Icon aria-hidden className="size-5 shrink-0 text-brand" />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-extrabold text-ink">{text.label}</span>
                 <span className="block text-small text-muted">{text.help}</span>
@@ -215,7 +215,7 @@ function Shortcuts({ isAdmin }: { isAdmin: boolean }) {
 const stateBadge = {
   needed: "orange",
   review: "orange",
-  approved: "teal",
+  approved: "brand",
   rejected: "live",
 } as const;
 
@@ -305,7 +305,7 @@ function CallUs({ phone }: { phone: string }) {
   return (
     <a
       href={telHref(phone)}
-      className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal underline-offset-4 hover:underline"
+      className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand underline-offset-4 hover:underline"
     >
       <Phone aria-hidden className="size-4" />
       {copy.call(phone)}
@@ -329,7 +329,7 @@ function Contact({ value, verified }: { value: string; verified: boolean }) {
       <span
         className={
           verified
-            ? "inline-flex items-center gap-1 text-small font-bold text-teal [&_svg]:text-green"
+            ? "inline-flex items-center gap-1 text-small font-bold text-brand [&_svg]:text-success"
             : "text-small font-medium text-muted"
         }
       >

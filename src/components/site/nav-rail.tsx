@@ -134,7 +134,7 @@ export function NavRail({ items, phone, className }: NavRailProps) {
               title={shell.header.callUs}
               className="group inline-flex h-11 items-center focus-visible:outline-offset-[-2px]"
             >
-              <span className="inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-small font-bold text-teal transition group-hover:bg-teal-soft">
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-small font-bold text-brand transition group-hover:bg-brand-soft">
                 <Phone aria-hidden className="size-4" />
                 {phone}
               </span>
@@ -180,8 +180,8 @@ function RailLink({
         className={cn(
           "inline-flex h-9 items-center justify-center gap-1.5 rounded-[10px] px-3 text-xs font-bold whitespace-nowrap transition md:text-small",
           active
-            ? "bg-teal-soft text-teal"
-            : "text-ink/80 group-hover:bg-teal-soft group-hover:text-teal",
+            ? "bg-brand-soft text-brand"
+            : "text-ink/80 group-hover:bg-brand-soft group-hover:text-brand",
           className,
         )}
       >

@@ -96,7 +96,7 @@ export default async function B2cItemPage({ params }: PageProps<"/admin/inventor
                   ) : state === "soon" ? (
                     <Badge variant="gold">{text.batches.state.soon(days ?? 0)}</Badge>
                   ) : state === "ok" ? (
-                    <Badge variant="teal">{text.batches.state.ok}</Badge>
+                    <Badge variant="brand">{text.batches.state.ok}</Badge>
                   ) : (
                     <span className="text-muted">{text.batches.state.none}</span>
                   )}

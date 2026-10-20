@@ -6,7 +6,7 @@ export type TrustSectionProps = {
 
 export function TrustSection({ stats }: TrustSectionProps) {
   return (
-    <section className="bg-teal-dark py-12 md:py-16 lg:py-20">
+    <section className="bg-brand-dark py-12 md:py-16 lg:py-20">
       <div className="shell">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (

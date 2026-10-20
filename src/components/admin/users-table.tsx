@@ -89,7 +89,7 @@ export function UsersTable({
                 allSelected ? new Set() : new Set(rows.map((row) => row.id)),
               )
             }
-            className="size-5 cursor-pointer accent-teal"
+            className="size-5 cursor-pointer accent-brand"
           />
           {text.selectAll}
         </label>
@@ -143,7 +143,7 @@ export function UsersTable({
                     checked={selected.has(row.id)}
                     onChange={() => toggle(row.id)}
                     aria-label={text.selectRow(row.name)}
-                    className="size-5 cursor-pointer accent-teal"
+                    className="size-5 cursor-pointer accent-brand"
                   />
                 </label>
               </Td>
@@ -151,7 +151,7 @@ export function UsersTable({
                 <span className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/admin/users/${row.id}`}
-                    className="font-bold break-words text-teal hover:underline"
+                    className="font-bold break-words text-brand hover:underline"
                   >
                     {row.name}
                   </Link>

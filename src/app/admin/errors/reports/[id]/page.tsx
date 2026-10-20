@@ -108,7 +108,7 @@ export default async function AdminBugReportPage({ params, searchParams }: PageP
         <Fact term={d.from}>
           {report.user ? (
             <>
-              <Link href={`/admin/users/${report.user.id}`} className="font-bold text-teal underline-offset-4 hover:underline">
+              <Link href={`/admin/users/${report.user.id}`} className="font-bold text-brand underline-offset-4 hover:underline">
                 {report.user.name}
               </Link>
               {contact && <span className="block text-small text-muted">{contact}</span>}
@@ -120,7 +120,7 @@ export default async function AdminBugReportPage({ params, searchParams }: PageP
         {!report.user && (
           <Fact term={d.contact}>
             {report.contactEmail ? (
-              <a href={`mailto:${report.contactEmail}`} className="font-bold text-teal underline-offset-4 hover:underline">
+              <a href={`mailto:${report.contactEmail}`} className="font-bold text-brand underline-offset-4 hover:underline">
                 {report.contactEmail}
               </a>
             ) : (
@@ -231,7 +231,7 @@ export default async function AdminBugReportPage({ params, searchParams }: PageP
             {report.errors.map(({ group, auto }) => (
               <li key={group.id} data-testid="linked-error" className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center">
                 <div className="min-w-0 flex-1">
-                  <Link href={`/admin/errors/${group.id}`} className="font-bold break-words text-ink hover:text-teal">
+                  <Link href={`/admin/errors/${group.id}`} className="font-bold break-words text-ink hover:text-brand">
                     {d.errorLabel(group.id, group.message)}
                   </Link>
                   <span className="mt-1 flex flex-wrap items-center gap-2 text-small text-muted">

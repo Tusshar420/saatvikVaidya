@@ -15,7 +15,7 @@ const strengthBars: Record<PasswordStrength, { filled: number; tone: string }> =
     empty: { filled: 0, tone: "bg-line" },
     weak: { filled: 1, tone: "bg-danger" },
     fair: { filled: 2, tone: "bg-gold" },
-    strong: { filled: 3, tone: "bg-green" },
+    strong: { filled: 3, tone: "bg-success" },
   };
 
 export type PasswordInputProps = Omit<
@@ -85,7 +85,7 @@ export function PasswordInput({
           aria-label={visible ? ui.password.hide : ui.password.show}
           aria-controls={ids.inputId}
           disabled={props.disabled}
-          className="flex h-full w-11 shrink-0 cursor-pointer items-center justify-center text-muted transition hover:text-teal focus-visible:-outline-offset-2"
+          className="flex h-full w-11 shrink-0 cursor-pointer items-center justify-center text-muted transition hover:text-brand focus-visible:-outline-offset-2"
         >
           {visible ? (
             <EyeOff aria-hidden className="size-5" />

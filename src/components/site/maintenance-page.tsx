@@ -22,7 +22,7 @@ export function MaintenancePage({ message, phone }: { message: string; phone: st
       <div className="max-w-xl">
         <Eyebrow>{copy.eyebrow}</Eyebrow>
         <h1 className="mt-2 text-h1 text-ink">
-          {copy.title} <em className="text-teal not-italic">{copy.titleEmphasis}</em>
+          {copy.title} <em className="text-orange-title not-italic">{copy.titleEmphasis}</em>
         </h1>
         <p className="mt-4 text-muted">{message}</p>
       </div>
@@ -30,7 +30,7 @@ export function MaintenancePage({ message, phone }: { message: string; phone: st
         <Phone aria-hidden className="size-4.5" />
         {copy.callLine} {phone}
       </a>
-      <SiteModalButton modal="signIn" className="min-h-11 text-small font-bold text-muted underline-offset-4 hover:text-teal hover:underline">
+      <SiteModalButton modal="signIn" className="min-h-11 text-small font-bold text-muted underline-offset-4 hover:text-brand hover:underline">
         {copy.adminSignIn}
       </SiteModalButton>
     </main>

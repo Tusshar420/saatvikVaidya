@@ -99,7 +99,7 @@ export default async function AdminEbooksPage({ searchParams }: PageProps<"/admi
                     className="h-14 w-10 rounded-sm border border-line bg-surface-alt object-cover"
                   />
                 ) : (
-                  <span aria-hidden className="block h-14 w-10 rounded-sm bg-teal-soft" />
+                  <span aria-hidden className="block h-14 w-10 rounded-sm bg-brand-soft" />
                 )}
               </Td>
               <Td>
@@ -107,7 +107,7 @@ export default async function AdminEbooksPage({ searchParams }: PageProps<"/admi
                 <code className="block text-small text-muted">{ebook.slug}</code>
               </Td>
               <Td label={text.columns.price} className="whitespace-nowrap">
-                {ebook.isFree ? <Badge variant="teal">{text.free}</Badge> : formatPaise(ebook.pricePaise)}
+                {ebook.isFree ? <Badge variant="brand">{text.free}</Badge> : formatPaise(ebook.pricePaise)}
               </Td>
               <Td label={text.columns.file}>
                 {ebook.fileKey && ebook.fileSizeBytes !== null ? (

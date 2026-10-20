@@ -20,7 +20,7 @@ export type EmptyStateProps = {
 
 export function EmptyState({
   icon,
-  tone = "teal",
+  tone = "brand",
   title,
   description,
   action,

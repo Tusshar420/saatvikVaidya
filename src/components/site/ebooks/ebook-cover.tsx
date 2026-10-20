@@ -12,7 +12,7 @@ export function EbookCover({
   return (
     <div
       className={cn(
-        "aspect-[3/4] overflow-hidden rounded-lg border border-line bg-teal-soft",
+        "aspect-[3/4] overflow-hidden rounded-lg border border-line bg-brand-soft",
         className,
       )}
     >
@@ -20,7 +20,7 @@ export function EbookCover({
         // eslint-disable-next-line @next/next/no-img-element -- our own image route
         <img src={src} alt="" className="size-full object-cover" />
       ) : (
-        <span aria-hidden className="grid size-full place-items-center text-teal">
+        <span aria-hidden className="grid size-full place-items-center text-brand">
           <BookOpen className="size-1/3" strokeWidth={1.5} />
         </span>
       )}

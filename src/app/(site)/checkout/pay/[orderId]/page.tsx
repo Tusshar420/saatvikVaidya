@@ -113,11 +113,11 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
       </div>
       <p className="mt-6">
         {order.type === "brand" ? (
-          <Link href={`/my-brand/${order.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline">
+          <Link href={`/my-brand/${order.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
             {brandCopy.checkout.backToMyBrand}
           </Link>
         ) : (
-          <Link href="/cart" className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline">
+          <Link href="/cart" className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
             {copy.failed.backToCart}
           </Link>
         )}

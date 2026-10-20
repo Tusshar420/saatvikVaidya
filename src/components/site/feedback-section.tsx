@@ -40,7 +40,7 @@ export function FeedbackSection({ heading, feedback }: FeedbackSectionProps) {
                   />
                 </div>
                 <div className="p-6 sm:p-8 flex flex-col justify-center">
-                  <div className="text-label text-teal uppercase">
+                  <div className="text-label text-brand uppercase">
                     {featured[0].badge}
                   </div>
                   <blockquote className="text-h3 mt-4">
@@ -51,7 +51,7 @@ export function FeedbackSection({ heading, feedback }: FeedbackSectionProps) {
                     {featured[0].link.href ? (
                       <Link
                         href={featured[0].link.href}
-                        className="inline-block text-teal font-600 mt-3 hover:underline"
+                        className="inline-block text-brand font-600 mt-3 hover:underline"
                         target="_blank"
                         rel="noopener"
                       >
@@ -79,7 +79,7 @@ export function FeedbackSection({ heading, feedback }: FeedbackSectionProps) {
                     />
                   </div>
                   <div className="p-4 sm:p-6">
-                    <div className="text-label text-teal uppercase">
+                    <div className="text-label text-brand uppercase">
                       {item.badge}
                     </div>
                     <p className="text-body font-500 mt-3 line-clamp-3">

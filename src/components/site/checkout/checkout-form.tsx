@@ -89,7 +89,7 @@ export function CheckoutForm({
         className="rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6"
       >
         <h2 id="checkout-address" className="flex items-center gap-2.5 text-h3 text-ink">
-          <MapPin aria-hidden className="size-5 text-teal" />
+          <MapPin aria-hidden className="size-5 text-brand" />
           {copy.steps.address}
         </h2>
 
@@ -106,7 +106,7 @@ export function CheckoutForm({
                     key={address.id}
                     className={cn(
                       "flex items-start gap-2 rounded-lg border p-1 transition",
-                      active ? "border-teal bg-teal-soft/50" : "border-line",
+                      active ? "border-brand bg-brand-soft/50" : "border-line",
                     )}
                   >
                     <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 p-3">
@@ -117,7 +117,7 @@ export function CheckoutForm({
                         value={address.id}
                         checked={active}
                         onChange={() => setSelected(address.id)}
-                        className="mt-1 size-4.5 shrink-0 accent-teal"
+                        className="mt-1 size-4.5 shrink-0 accent-brand"
                       />
                       <span className="min-w-0 text-sm">
                         <span className="block font-extrabold text-ink">{address.name}</span>

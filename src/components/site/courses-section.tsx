@@ -15,7 +15,7 @@ function LearningCard({ item }: { item: LearningItem }) {
   return (
     <Card interactive>
       <div className="p-6">
-        <div className="text-label text-teal uppercase">{item.tag}</div>
+        <div className="text-label text-brand uppercase">{item.tag}</div>
         <h3 className="text-h3 mt-3">{item.title}</h3>
         <p className="text-body text-muted mt-3">{item.body}</p>
         <div className="flex justify-between items-center mt-4 text-small text-muted">
@@ -25,7 +25,7 @@ function LearningCard({ item }: { item: LearningItem }) {
         {item.link.href ? (
           <Link
             href={item.link.href}
-            className="inline-block text-teal font-600 mt-4 hover:underline"
+            className="inline-block text-brand font-600 mt-4 hover:underline"
           >
             {item.link.label} →
           </Link>

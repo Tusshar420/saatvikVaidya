@@ -39,11 +39,11 @@ export function LogoPreview({ src, name, contentType, sizeBytes, alt, className 
     <a
       href={src}
       className={cn(
-        "flex min-h-11 min-w-0 items-center gap-3 rounded-lg border border-line bg-surface-alt p-3 text-sm hover:border-teal/60",
+        "flex min-h-11 min-w-0 items-center gap-3 rounded-lg border border-line bg-surface-alt p-3 text-sm hover:border-brand/60",
         className,
       )}
     >
-      <FileText aria-hidden className="size-8 shrink-0 text-teal" />
+      <FileText aria-hidden className="size-8 shrink-0 text-brand" />
       <span className="min-w-0">
         <span className="block font-bold break-words text-ink">{name}</span>
         <span className="block text-small text-muted">

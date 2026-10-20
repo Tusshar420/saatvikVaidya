@@ -159,7 +159,7 @@ function LegalLink({ href, children }: { href: string; children: string }) {
       href={href}
       target="_blank"
       rel="noopener"
-      className="font-bold text-teal underline underline-offset-2"
+      className="font-bold text-brand underline underline-offset-2"
     >
       {children}
       <span className="sr-only"> {copy.register.newTab}</span>

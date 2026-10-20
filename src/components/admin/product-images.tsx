@@ -137,7 +137,7 @@ function AltForm({
         {text.saveAlt}
       </Button>
       {state.status === "success" && (
-        <p role="status" className="text-small font-semibold text-green sm:mb-3">
+        <p role="status" className="text-small font-semibold text-success sm:mb-3">
           {state.message}
         </p>
       )}
@@ -224,7 +224,7 @@ function UploadForm({ productId }: { productId: number }) {
             aria-describedby={fileIds.describedBy}
             className={cn(
               inputClasses,
-              "cursor-pointer py-2.5 file:mr-3 file:rounded-sm file:border-0 file:bg-teal-soft file:px-3 file:py-1 file:font-bold file:text-teal",
+              "cursor-pointer py-2.5 file:mr-3 file:rounded-sm file:border-0 file:bg-brand-soft file:px-3 file:py-1 file:font-bold file:text-brand",
             )}
           />
         </Field>

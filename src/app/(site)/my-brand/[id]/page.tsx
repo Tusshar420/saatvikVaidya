@@ -88,7 +88,7 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
     <div className="shell py-8 sm:py-12">
       <Link
         href="/my-brand"
-        className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-teal hover:underline"
+        className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand hover:underline"
       >
         <ChevronLeft aria-hidden className="size-4" />
         {text.back}
@@ -102,7 +102,7 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
             {copy.myBrand.placedOn(formatDate(order.createdAt))}
           </p>
         </div>
-        {paid ? <Badge variant={stage === "cancelled" ? "live" : "teal"}>{text.stageLabels[stage]}</Badge> : <OrderStatusBadge status={order.status} />}
+        {paid ? <Badge variant={stage === "cancelled" ? "live" : "brand"}>{text.stageLabels[stage]}</Badge> : <OrderStatusBadge status={order.status} />}
       </div>
 
       <Card className="mt-6">
@@ -188,7 +188,7 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
                   {isImageLogo(details.logoContentType) && (
                     <a
                       href={`${logoSrc}?download=1`}
-                      className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+                      className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
                     >
                       <Download aria-hidden className="size-4" />
                       {text.downloadLogo}

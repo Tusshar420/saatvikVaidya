@@ -35,7 +35,7 @@ const detailText = copy.detail;
 
 export const metadata: Metadata = { title: copy.admin.metaTitle };
 
-const paymentVariant = { created: "orange", succeeded: "teal", failed: "live" } as const;
+const paymentVariant = { created: "orange", succeeded: "brand", failed: "live" } as const;
 
 /**
  * One brand order (P2.1): the logo (view and download), what goes on the
@@ -86,7 +86,7 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span className="font-mono font-bold text-ink">{order.number}</span>
             <OrderStatusBadge status={order.status} labels={adminCopy.orders.statuses} />
-            {paid && <Badge variant={stage === "cancelled" ? "live" : "teal"}>{detailText.stageLabels[stage]}</Badge>}
+            {paid && <Badge variant={stage === "cancelled" ? "live" : "brand"}>{detailText.stageLabels[stage]}</Badge>}
             <span>{formatDateTime(order.createdAt)}</span>
           </span>
         }
@@ -112,7 +112,7 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
                   {isImageLogo(details.logoContentType) && (
                     <a
                       href={`${logoSrc}?download=1`}
-                      className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+                      className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
                     >
                       <Download aria-hidden className="size-4" />
                       {text.downloadLogo}
@@ -272,7 +272,7 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
                 <div>
                   <dt className="sr-only">{text.customer}</dt>
                   <dd>
-                    <Link href={`/admin/users/${user.id}`} className="font-bold break-words text-teal hover:underline">
+                    <Link href={`/admin/users/${user.id}`} className="font-bold break-words text-brand hover:underline">
                       {user.name}
                     </Link>
                   </dd>
@@ -288,7 +288,7 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
                   <div>
                     <dt className="text-small font-bold text-muted">{text.email}</dt>
                     <dd>
-                      <a href={`mailto:${user.email}`} className="break-all text-teal hover:underline">
+                      <a href={`mailto:${user.email}`} className="break-all text-brand hover:underline">
                         {user.email}
                       </a>
                     </dd>
@@ -298,7 +298,7 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
                   <div>
                     <dt className="text-small font-bold text-muted">{text.phone}</dt>
                     <dd>
-                      <a href={`tel:${user.phoneNumber}`} className="text-teal hover:underline">
+                      <a href={`tel:${user.phoneNumber}`} className="text-brand hover:underline">
                         {formatIndianPhone(user.phoneNumber)}
                       </a>
                     </dd>
@@ -321,7 +321,7 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
                   {line}
                 </span>
               ))}
-              <a href={`tel:${order.address.phone}`} className="mt-1 block text-teal hover:underline">
+              <a href={`tel:${order.address.phone}`} className="mt-1 block text-brand hover:underline">
                 {formatIndianPhone(order.address.phone)}
               </a>
             </address>

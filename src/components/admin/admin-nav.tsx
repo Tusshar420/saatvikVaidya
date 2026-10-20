@@ -122,8 +122,8 @@ export function AdminNav({
           className={cn(
             "flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap transition",
             current
-              ? "bg-teal-soft font-extrabold text-teal"
-              : "text-ink/80 hover:bg-surface-alt hover:text-teal",
+              ? "bg-brand-soft font-extrabold text-brand"
+              : "text-ink/80 hover:bg-surface-alt hover:text-brand",
           )}
         >
           <Icon aria-hidden className="size-4.5 shrink-0" />

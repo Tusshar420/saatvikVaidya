@@ -51,7 +51,7 @@ export function ActiveFilters({
           <Link
             href={catalogueHref({ ...params, [name]: undefined })}
             aria-label={copy.filters.remove(label)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-teal bg-teal-soft px-3 text-sm font-bold text-teal transition hover:bg-surface"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-brand bg-brand-soft px-3 text-sm font-bold text-brand transition hover:bg-surface"
           >
             {label}
             <X aria-hidden className="size-4" />

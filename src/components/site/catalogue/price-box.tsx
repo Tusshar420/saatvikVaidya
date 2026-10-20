@@ -21,7 +21,7 @@ export function PriceBox({ product }: { product: ProductPage }) {
             {text.hint.guest}{" "}
             <Link
               href={signInPath(`/products/${product.slug}`)}
-              className="font-bold text-teal underline underline-offset-4"
+              className="font-bold text-brand underline underline-offset-4"
             >
               {text.hint.guestAction}
             </Link>
@@ -35,7 +35,7 @@ export function PriceBox({ product }: { product: ProductPage }) {
             {text.hint.unverified}{" "}
             <Link
               href="/account"
-              className="font-bold text-teal underline underline-offset-4"
+              className="font-bold text-brand underline underline-offset-4"
             >
               {text.hint.unverifiedAction}
             </Link>
@@ -54,7 +54,7 @@ export function PriceBox({ product }: { product: ProductPage }) {
       <PriceTag price={price} size="lg" />
       <p className="mt-1 text-small text-muted">{text.price.inclusive(product.gstRate)}</p>
       {price.savingPaise > 0 && (
-        <p className="mt-1 text-small font-bold text-green">
+        <p className="mt-1 text-small font-bold text-success">
           {text.price.save(formatPaise(price.savingPaise))}
         </p>
       )}

@@ -67,7 +67,7 @@ export function PartnerSection({
                     <div
                       className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-sm font-600 ${
                         isDone
-                          ? "bg-green text-white"
+                          ? "bg-success text-white"
                           : "bg-line text-muted"
                       }`}
                     >
@@ -80,7 +80,7 @@ export function PartnerSection({
                       )}
                     </div>
                     {isDone && (
-                      <div className="text-label font-600 text-green">
+                      <div className="text-label font-600 text-success">
                         {step.coins} coins
                       </div>
                     )}

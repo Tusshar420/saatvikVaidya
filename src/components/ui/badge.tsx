@@ -2,10 +2,10 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 export type BadgeVariant =
-  "teal" | "orange" | "blue" | "gold" | "live" | "soon";
+  "brand" | "orange" | "blue" | "gold" | "live" | "soon";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  teal: "bg-teal-soft text-teal",
+  brand: "bg-brand-soft text-brand",
   orange: "bg-orange-soft text-orange-ink",
   blue: "bg-blue-soft text-blue",
   gold: "bg-gold-soft text-gold-ink",
@@ -17,7 +17,7 @@ export type BadgeProps = ComponentProps<"span"> & { variant?: BadgeVariant };
 
 /** Small uppercase label. `live` adds the red dot from the mockup. */
 export function Badge({
-  variant = "teal",
+  variant = "brand",
   className,
   children,
   ...props
@@ -46,13 +46,13 @@ export type EyebrowProps = ComponentProps<"p"> & {
   /** Short orange bar before the text, as on the hero. */
   bar?: boolean;
   /** `light` for dark sections. */
-  tone?: "teal" | "light";
+  tone?: "brand" | "light";
 };
 
 /** The uppercase label that sits above section and hero titles. */
 export function Eyebrow({
   bar = false,
-  tone = "teal",
+  tone = "brand",
   className,
   children,
   ...props
@@ -61,7 +61,7 @@ export function Eyebrow({
     <p
       className={cn(
         "flex items-center gap-2 text-label uppercase",
-        tone === "teal" ? "text-teal" : "text-teal-soft",
+        tone === "brand" ? "text-brand" : "text-brand-soft",
         className,
       )}
       {...props}

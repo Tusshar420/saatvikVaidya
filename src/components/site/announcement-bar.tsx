@@ -33,7 +33,7 @@ export function AnnouncementBar({ text, href }: { text: string; href: string | n
     content = <p className={barClasses}>{text}</p>;
   }
   return (
-    <div role="region" aria-label={copy.label} className="bg-teal">
+    <div role="region" aria-label={copy.label} className="bg-brand">
       {content}
     </div>
   );

@@ -1,11 +1,11 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-export type IconTileTone = "orange" | "teal" | "blue" | "gold";
+export type IconTileTone = "orange" | "brand" | "blue" | "gold";
 
 const toneClasses: Record<IconTileTone, string> = {
   orange: "bg-orange-soft text-orange-ink",
-  teal: "bg-teal-soft text-teal",
+  brand: "bg-brand-soft text-brand",
   blue: "bg-blue-soft text-blue",
   gold: "bg-gold-soft text-gold-ink",
 };
@@ -19,7 +19,7 @@ export type IconTileProps = ComponentProps<"span"> & {
 
 /** A soft-tinted rounded square holding an icon (quick actions, modals). */
 export function IconTile({
-  tone = "teal",
+  tone = "brand",
   size = "md",
   label,
   className,

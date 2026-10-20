@@ -17,7 +17,7 @@ export default async function BrandImportPage() {
     <>
       <Link
         href="/admin/catalogue"
-        className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-teal hover:underline"
+        className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand hover:underline"
       >
         <ChevronLeft aria-hidden className="size-4" />
         {text.back}

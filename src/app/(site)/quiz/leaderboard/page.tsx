@@ -44,8 +44,8 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/quiz
               className={cn(
                 "inline-flex min-h-11 items-center rounded-button border px-4 text-sm font-bold transition",
                 item === period
-                  ? "border-teal bg-teal text-white"
-                  : "border-line-strong bg-surface text-teal hover:border-teal",
+                  ? "border-brand bg-brand text-white"
+                  : "border-line-strong bg-surface text-brand hover:border-brand",
               )}
             >
               {text.periods[item]}
@@ -57,7 +57,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/quiz
         </p>
 
         {session && (
-          <p role="status" data-testid="your-rank" className="mt-4 rounded-lg bg-teal-soft p-3 text-sm font-bold text-ink">
+          <p role="status" data-testid="your-rank" className="mt-4 rounded-lg bg-brand-soft p-3 text-sm font-bold text-ink">
             {board.you ? text.yourRank(board.you.rank) : text.notRanked}
           </p>
         )}
@@ -85,12 +85,12 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/quiz
                   <tr
                     key={`${row.rank}-${index}`}
                     data-testid="leaderboard-row"
-                    className={cn("border-t border-line", row.isYou && "bg-teal-soft font-bold")}
+                    className={cn("border-t border-line", row.isYou && "bg-brand-soft font-bold")}
                   >
                     <td className="px-4 py-3 tabular-nums">{row.rank}</td>
                     <td className="px-4 py-3 break-words">
                       {row.name}
-                      {row.isYou && <span className="ml-2 text-small text-teal">({text.you})</span>}
+                      {row.isYou && <span className="ml-2 text-small text-brand">({text.you})</span>}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{row.score}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{clock(row.seconds)}</td>

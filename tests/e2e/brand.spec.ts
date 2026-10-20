@@ -259,6 +259,10 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(firstLabel.getByRole("button", { name: brand.labels.resetLabel(brand.labels.fields.tagline, product.name) })).toBeVisible();
   await expect(firstLabel.getByText(brand.labels.changedBadge, { exact: true })).toBeVisible();
   await expect(labelOf(bulk.name).getByLabel(brand.labels.fields.tagline, { exact: true })).toHaveValue("Classical care, made simple");
+  // Typing in a field that is already on screen doesn't scroll, so on phones
+  // the tagline can sit half under the sticky header; axe would then read it
+  // as an obscured target. Bring it into view, as a user would.
+  await tagline.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await checkPage(page, errors);
   await page.getByRole("button", { name: brand.launch.continue }).click();
   await expect(page).toHaveURL("/launch?step=4");

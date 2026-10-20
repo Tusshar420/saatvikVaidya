@@ -43,7 +43,7 @@ export async function generateMetadata({
   return { title: order ? text.metaTitle(order.number) : copy.orders.metaTitle };
 }
 
-const paymentVariant = { created: "orange", succeeded: "teal", failed: "live" } as const;
+const paymentVariant = { created: "orange", succeeded: "brand", failed: "live" } as const;
 
 /** One order: items, totals, customer, payments, the shipment and cancelling. */
 export default async function AdminOrderPage({ params }: PageProps<"/admin/orders/[id]">) {
@@ -101,7 +101,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
               {order.type === "brand" ? (
                 <p className="text-sm text-muted">
                   {text.brandShipment}{" "}
-                  <Link href={`/admin/brand-orders/${order.id}`} className="font-bold text-teal hover:underline">
+                  <Link href={`/admin/brand-orders/${order.id}`} className="font-bold text-brand hover:underline">
                     {text.openBrandOrder}
                   </Link>
                 </p>
@@ -189,7 +189,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
               {order.coinDiscountPaise > 0 && (
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted">{text.totals.coins(order.coinsRedeemed)}</dt>
-                  <dd className="text-green">−{formatPaise(order.coinDiscountPaise)}</dd>
+                  <dd className="text-success">−{formatPaise(order.coinDiscountPaise)}</dd>
                 </div>
               )}
               <div className="flex justify-between gap-4">

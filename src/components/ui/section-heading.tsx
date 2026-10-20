@@ -9,7 +9,7 @@ export type SectionHeadingProps = {
   eyebrow?: ReactNode;
   /** First line of the title. */
   title: ReactNode;
-  /** Second line, shown in teal (the mockup's `<em>`). */
+  /** Second line, in orange (gold on dark bands), the mockup's `<em>`. */
   emphasis?: ReactNode;
   description?: ReactNode;
   /** "View all →" style link on the right (stacked under the title on phones). */
@@ -17,7 +17,7 @@ export type SectionHeadingProps = {
   as?: "h1" | "h2" | "h3" | "h4";
   /** Id for the heading, so a section can use aria-labelledby. */
   id?: string;
-  /** `dark` for teal bands. */
+  /** `dark` for dark green bands. */
   tone?: "default" | "dark";
   className?: string;
 };
@@ -42,7 +42,7 @@ export function SectionHeading({
       )}
     >
       <div className="min-w-0">
-        {eyebrow && <Eyebrow tone={dark ? "light" : "teal"}>{eyebrow}</Eyebrow>}
+        {eyebrow && <Eyebrow tone={dark ? "light" : "brand"}>{eyebrow}</Eyebrow>}
         <Heading
           id={id}
           className={cn(
@@ -57,7 +57,7 @@ export function SectionHeading({
               <em
                 className={cn(
                   "block not-italic",
-                  dark ? "text-teal-soft/85" : "text-teal",
+                  dark ? "text-gold-light" : "text-orange-title",
                 )}
               >
                 {emphasis}
@@ -69,7 +69,7 @@ export function SectionHeading({
           <p
             className={cn(
               "mt-2.5 max-w-175 text-body",
-              dark ? "text-teal-soft" : "text-muted",
+              dark ? "text-brand-soft" : "text-muted",
             )}
           >
             {description}
@@ -81,7 +81,7 @@ export function SectionHeading({
           href={action.href}
           className={cn(
             "inline-flex min-h-11 shrink-0 items-center gap-2 text-small font-black whitespace-nowrap underline-offset-4 hover:underline",
-            dark ? "text-white" : "text-teal",
+            dark ? "text-white" : "text-brand",
           )}
         >
           {action.label ?? ui.viewAll}

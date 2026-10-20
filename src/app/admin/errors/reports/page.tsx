@@ -130,7 +130,7 @@ export default async function AdminBugReportsPage({ searchParams }: PageProps<"/
               <Td className="md:max-w-md">
                 <Link
                   href={`/admin/errors/reports/${report.id}`}
-                  className="line-clamp-3 font-bold break-words text-ink hover:text-teal"
+                  className="line-clamp-3 font-bold break-words text-ink hover:text-brand"
                 >
                   {report.description}
                 </Link>

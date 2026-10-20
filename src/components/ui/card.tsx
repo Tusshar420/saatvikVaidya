@@ -18,7 +18,7 @@ export function Card({
       className={cn(
         "rounded-xl border border-line bg-surface p-5.5 shadow-card sm:p-6",
         interactive &&
-          "transition hover:border-teal/40 hover:shadow-raised motion-safe:hover:-translate-y-0.75",
+          "transition hover:border-brand/40 hover:shadow-raised motion-safe:hover:-translate-y-0.75",
         className,
       )}
       {...props}

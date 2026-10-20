@@ -4,11 +4,11 @@ import { ui } from "@/content/ui";
 
 /** Shared look of text inputs (Input, PasswordInput, OtpInput boxes). */
 export const inputClasses =
-  "h-12 w-full min-w-0 rounded-md border border-line bg-surface-alt px-3.5 text-base text-ink transition placeholder:text-muted focus:border-teal focus:bg-surface aria-invalid:border-danger disabled:cursor-not-allowed disabled:opacity-60";
+  "h-12 w-full min-w-0 rounded-md border border-line bg-surface-alt px-3.5 text-base text-ink transition placeholder:text-muted focus:border-brand focus:bg-surface aria-invalid:border-danger disabled:cursor-not-allowed disabled:opacity-60";
 
 /** The same frame for composite inputs (PhoneInput, PasswordInput). */
 export const inputFrameClasses =
-  "flex h-12 w-full items-center overflow-hidden rounded-md border border-line bg-surface-alt text-base transition focus-within:border-teal focus-within:bg-surface focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-teal has-[[aria-invalid=true]]:border-danger has-disabled:opacity-60";
+  "flex h-12 w-full items-center overflow-hidden rounded-md border border-line bg-surface-alt text-base transition focus-within:border-brand focus-within:bg-surface focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand has-[[aria-invalid=true]]:border-danger has-disabled:opacity-60";
 
 export type FieldIds = {
   inputId: string;

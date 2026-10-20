@@ -131,7 +131,7 @@ function ProfileItem({
     <li
       className={cn(
         "flex min-w-0 flex-col gap-3 rounded-lg border bg-surface p-4",
-        selected ? "border-teal shadow-card" : "border-line",
+        selected ? "border-brand shadow-card" : "border-line",
       )}
     >
       <div className="flex gap-3">
@@ -151,7 +151,7 @@ function ProfileItem({
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="min-w-0 text-base font-extrabold break-words text-ink">{profile.profileName}</h4>
             {profile.isDefault && <Badge variant="gold">{text.badgeDefault}</Badge>}
-            {selected && <Badge variant="teal">{text.badgeSelected}</Badge>}
+            {selected && <Badge variant="brand">{text.badgeSelected}</Badge>}
           </div>
           <p className="text-sm break-words text-muted">{profile.brandName}</p>
           {colours && (

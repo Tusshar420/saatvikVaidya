@@ -46,7 +46,7 @@ export function LaunchSection({
             {steps.map((step, index) => (
               <div key={index} className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <div className="text-label text-teal uppercase">
+                  <div className="text-label text-brand uppercase">
                     Step {index + 1}
                   </div>
                   <h3 className="text-h3 mt-2">{step.title}</h3>
@@ -95,7 +95,7 @@ export function LaunchSection({
                       className={cn(
                         "pb-3 text-body font-500 transition border-b-2 -mb-px",
                         activeTab === tabOption.tab
-                          ? "border-teal text-teal"
+                          ? "border-brand text-brand"
                           : "border-transparent text-muted hover:text-ink"
                       )}
                     >
@@ -115,7 +115,7 @@ export function LaunchSection({
                           ? { form: category.key }
                           : { area: category.key },
                       )}
-                      className="block h-full p-4 rounded-lg border border-line hover:border-teal/60 hover:bg-surface-alt transition text-center"
+                      className="block h-full p-4 rounded-lg border border-line hover:border-brand/60 hover:bg-surface-alt transition text-center"
                     >
                       {category.glyph && (
                         <span aria-hidden className="block text-3xl mb-2">
@@ -125,7 +125,7 @@ export function LaunchSection({
                       <span className="block text-body font-600 text-ink">
                         {category.name}
                       </span>
-                      <span className="mt-1 block text-small font-bold text-teal">
+                      <span className="mt-1 block text-small font-bold text-brand">
                         {catalogueMeta.categoryLinkLabel}
                         <span aria-hidden> →</span>
                       </span>

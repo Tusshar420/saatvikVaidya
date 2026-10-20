@@ -30,7 +30,7 @@ export default async function EbooksPage() {
     <div className="shell section-y">
       <Eyebrow>{copy.eyebrow}</Eyebrow>
       <h1 className="mt-2 text-h2 text-ink">
-        {copy.title} <em className="block text-teal not-italic">{copy.titleEmphasis}</em>
+        {copy.title} <em className="block text-orange-title not-italic">{copy.titleEmphasis}</em>
       </h1>
       <p className="mt-3 max-w-2xl text-body text-muted">{copy.intro}</p>
 

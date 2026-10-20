@@ -48,7 +48,7 @@ export default async function EbookPage({ params }: PageProps<"/ebooks/[slug]">)
           </div>
           <p className="flex flex-wrap items-center gap-2">
             {book.isFree ? (
-              <Badge variant="teal">{copy.free}</Badge>
+              <Badge variant="brand">{copy.free}</Badge>
             ) : (
               <>
                 <span className="text-h3 font-extrabold text-ink">{formatPaise(book.pricePaise)}</span>

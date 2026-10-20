@@ -42,7 +42,7 @@ export function CartEbookItem({ line }: { line: CartEbookLine }) {
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="text-small text-muted">{text.kind}</p>
           <h3 className="text-base font-extrabold text-ink">
-            <Link href={ebookHref(line.slug)} className="hover:text-teal hover:underline">
+            <Link href={ebookHref(line.slug)} className="hover:text-brand hover:underline">
               {line.title}
             </Link>
           </h3>

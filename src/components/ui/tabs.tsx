@@ -38,8 +38,8 @@ export function TabsTrigger({
       className={cn(
         "relative min-h-11 shrink-0 cursor-pointer px-0.5 text-sm font-extrabold whitespace-nowrap text-muted transition-colors hover:text-ink",
         "focus-visible:-outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-        "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-teal after:opacity-0 after:transition-opacity",
-        "data-[state=active]:text-teal data-[state=active]:after:opacity-100",
+        "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand after:opacity-0 after:transition-opacity",
+        "data-[state=active]:text-brand data-[state=active]:after:opacity-100",
         className,
       )}
       {...props}

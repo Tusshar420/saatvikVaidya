@@ -286,7 +286,7 @@ function SalesRow({ bucket, by, peak }: { bucket: SalesBucket; by: Grouping; pea
           <span className="whitespace-nowrap">{formatPaise(bucket.paise)}</span>
           <span aria-hidden className="hidden h-2 min-w-0 flex-1 rounded-full bg-surface-alt md:block">
             <span
-              className="block h-2 rounded-full bg-teal"
+              className="block h-2 rounded-full bg-brand"
               style={{ width: `${Math.round((bucket.paise / peak) * 100)}%` }}
             />
           </span>

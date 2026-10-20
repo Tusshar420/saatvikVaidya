@@ -35,7 +35,7 @@ export function Stepper({ steps, current, label, className }: StepperProps) {
                 aria-hidden
                 className={cn(
                   "absolute top-3.25 right-1/2 h-0.5 w-full",
-                  index <= current ? "bg-green" : "bg-track",
+                  index <= current ? "bg-success" : "bg-track",
                 )}
               />
             )}
@@ -43,7 +43,7 @@ export function Stepper({ steps, current, label, className }: StepperProps) {
               aria-hidden
               className={cn(
                 "relative z-10 grid size-7 place-items-center rounded-full text-[11px] font-bold",
-                done && "bg-green text-white",
+                done && "bg-success text-white",
                 active && "bg-orange-strong text-white ring-5 ring-orange/15",
                 !done && !active && "border border-line bg-surface text-muted",
               )}

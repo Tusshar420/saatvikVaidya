@@ -89,7 +89,7 @@ export default async function B2bInventoryPage() {
                   {component.low && <Badge variant="orange">{text.components.low}</Badge>}
                   {component.available < 0 && <Badge variant="live">{text.components.short}</Badge>}
                   {component.active && !component.low && !component.madeToOrder && component.available >= 0 && (
-                    <Badge variant="teal">{text.components.ok}</Badge>
+                    <Badge variant="brand">{text.components.ok}</Badge>
                   )}
                 </span>
               </Td>

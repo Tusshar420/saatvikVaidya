@@ -78,7 +78,7 @@ export function HeaderSearch({
       <Link
         href="/search"
         aria-label={shell.search.openSearch}
-        className="grid size-11 place-items-center rounded-md bg-surface-alt text-teal transition hover:bg-teal-soft md:hidden"
+        className="grid size-11 place-items-center rounded-md bg-surface-alt text-brand transition hover:bg-brand-soft md:hidden"
       >
         <Search aria-hidden className="size-5" />
       </Link>
@@ -88,9 +88,9 @@ export function HeaderSearch({
         action="/search"
         method="get"
         aria-label={shell.search.label}
-        className="flex h-11.5 items-center gap-2.5 rounded-[14px] border border-line bg-surface-alt pr-3 pl-3.75 transition focus-within:border-teal max-md:hidden"
+        className="flex h-11.5 items-center gap-2.5 rounded-[14px] border border-line bg-surface-alt pr-3 pl-3.75 transition focus-within:border-brand max-md:hidden"
       >
-        <Search aria-hidden className="size-4.75 shrink-0 text-teal" />
+        <Search aria-hidden className="size-4.75 shrink-0 text-brand" />
         <input
           ref={inputRef}
           type="search"
@@ -148,7 +148,7 @@ export function HeaderSearch({
                     setQuery(term);
                     inputRef.current?.blur();
                   }}
-                  className="inline-flex min-h-11 items-center rounded-sm border border-line bg-surface-alt px-3 text-small text-ink transition hover:border-teal hover:text-teal"
+                  className="inline-flex min-h-11 items-center rounded-sm border border-line bg-surface-alt px-3 text-small text-ink transition hover:border-brand hover:text-brand"
                 >
                   {term}
                 </Link>

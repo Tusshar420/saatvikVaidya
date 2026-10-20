@@ -5,10 +5,10 @@ import type { OrderStatus } from "@/generated/prisma/enums";
 const variants: Record<OrderStatus, BadgeVariant> = {
   pending_payment: "orange",
   payment_failed: "live",
-  paid: "teal",
+  paid: "brand",
   processing: "blue",
   shipped: "blue",
-  delivered: "teal",
+  delivered: "brand",
   returned: "orange",
   cancelled: "live",
 };

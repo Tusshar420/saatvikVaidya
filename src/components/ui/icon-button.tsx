@@ -5,8 +5,8 @@ export type IconButtonVariant = "ghost" | "outline" | "soft";
 
 const variantClasses: Record<IconButtonVariant, string> = {
   ghost: "bg-transparent text-ink hover:bg-surface-alt",
-  outline: "border border-line-strong bg-white/75 text-teal hover:bg-surface",
-  soft: "bg-surface-alt text-muted hover:bg-teal-soft hover:text-teal",
+  outline: "border border-line-strong bg-white/75 text-brand hover:bg-surface",
+  soft: "bg-surface-alt text-muted hover:bg-brand-soft hover:text-brand",
 };
 
 export type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> & {

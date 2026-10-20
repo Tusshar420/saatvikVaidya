@@ -61,7 +61,7 @@ export function EbookFiles({ ebookId, cover, file }: EbookFilesProps) {
               </p>
               <a
                 href={ebookDownloadHref(ebookId)}
-                className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal underline-offset-4 hover:underline"
+                className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand underline-offset-4 hover:underline"
               >
                 <Download aria-hidden className="size-4" />
                 {text.download}
@@ -156,7 +156,7 @@ function UploadForm({
           aria-describedby={ids.describedBy}
           className={cn(
             inputClasses,
-            "cursor-pointer py-2.5 file:mr-3 file:rounded-sm file:border-0 file:bg-teal-soft file:px-3 file:py-1 file:font-bold file:text-teal",
+            "cursor-pointer py-2.5 file:mr-3 file:rounded-sm file:border-0 file:bg-brand-soft file:px-3 file:py-1 file:font-bold file:text-brand",
           )}
         />
       </Field>

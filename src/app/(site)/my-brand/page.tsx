@@ -35,7 +35,7 @@ export default async function MyBrandPage() {
       <div className="mx-auto max-w-3xl">
         <Eyebrow>{text.eyebrow}</Eyebrow>
         <h1 className="mt-2 text-h2 text-ink">
-          {text.title} <em className="block text-teal not-italic">{text.titleEmphasis}</em>
+          {text.title} <em className="block text-orange-title not-italic">{text.titleEmphasis}</em>
         </h1>
 
         {orders.length === 0 ? (

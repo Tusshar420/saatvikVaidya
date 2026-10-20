@@ -24,7 +24,7 @@ function StatusLine({ state }: { state: FormState }) {
   return (
     <div role="status" aria-live="polite" className="empty:hidden">
       <FormError state={state} />
-      {state.status === "success" && <p className="text-sm font-bold text-green">{state.message}</p>}
+      {state.status === "success" && <p className="text-sm font-bold text-success">{state.message}</p>}
     </div>
   );
 }
@@ -296,7 +296,7 @@ export function WriteOffButton({ batchId, label }: { batchId: number; label: str
       </Button>
       <div role="status" aria-live="polite" className="empty:hidden">
         {state.status === "error" && <p className="text-small font-medium text-danger">{state.message}</p>}
-        {state.status === "success" && <p className="text-small font-bold text-green">{state.message}</p>}
+        {state.status === "success" && <p className="text-small font-bold text-success">{state.message}</p>}
       </div>
     </form>
   );

@@ -5,7 +5,7 @@ import type { ErrorStatusKey } from "@/server/admin/errors";
 const variants: Record<ErrorStatusKey, BadgeVariant> = {
   new: "live",
   investigating: "orange",
-  fixed: "teal",
+  fixed: "brand",
   ignored: "blue",
 };
 

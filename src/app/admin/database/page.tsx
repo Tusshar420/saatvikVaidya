@@ -26,10 +26,10 @@ export default async function AdminDatabasePage() {
           <li key={name}>
             <Link
               href={`/admin/tables/${name}`}
-              className="group flex min-h-16 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 shadow-card transition hover:border-teal"
+              className="group flex min-h-16 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 shadow-card transition hover:border-brand"
             >
               <span className="min-w-0">
-                <span className="block truncate font-bold text-ink group-hover:text-teal">
+                <span className="block truncate font-bold text-ink group-hover:text-brand">
                   {name}
                 </span>
                 <span className="text-small text-muted">
@@ -38,7 +38,7 @@ export default async function AdminDatabasePage() {
               </span>
               <ArrowRight
                 aria-hidden
-                className="size-4.5 shrink-0 text-muted group-hover:text-teal"
+                className="size-4.5 shrink-0 text-muted group-hover:text-brand"
               />
             </Link>
           </li>

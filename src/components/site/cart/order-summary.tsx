@@ -75,14 +75,14 @@ export function OrderSummary({
           </div>
         ))}
         {totals.coinDiscountPaise ? (
-          <div className="flex justify-between gap-4 text-green">
+          <div className="flex justify-between gap-4 text-success">
             <dt>{coinCopy.order.row}</dt>
             <dd className="font-semibold">−{formatPaise(totals.coinDiscountPaise)}</dd>
           </div>
         ) : null}
         <div className="flex justify-between gap-4">
           <dt className="text-muted">{text.shipping}</dt>
-          <dd className={cn("font-semibold", totals.shippingPaise === 0 ? "text-green" : "text-ink")}>
+          <dd className={cn("font-semibold", totals.shippingPaise === 0 ? "text-success" : "text-ink")}>
             {totals.shippingPaise === 0 ? text.free : formatPaise(totals.shippingPaise)}
           </dd>
         </div>
@@ -95,7 +95,7 @@ export function OrderSummary({
       </dl>
 
       {totals.toFreeShippingPaise ? (
-        <p className="mt-3 text-small text-teal">{text.addForFree(formatPaise(totals.toFreeShippingPaise))}</p>
+        <p className="mt-3 text-small text-brand">{text.addForFree(formatPaise(totals.toFreeShippingPaise))}</p>
       ) : null}
       {!hideNote && <p className="mt-3 text-small text-muted">{text.pricesNote}</p>}
 

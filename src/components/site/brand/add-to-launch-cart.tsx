@@ -41,7 +41,7 @@ export function AddToLaunchCart({
     <div className="flex flex-col gap-1.5">
       <div aria-live="polite" className="text-small">
         {inCart !== null && (
-          <p className="font-bold text-teal">{text.inCartLine(inCart, unitLabel)}</p>
+          <p className="font-bold text-brand">{text.inCartLine(inCart, unitLabel)}</p>
         )}
         {error && <p className="font-medium text-danger">{error}</p>}
       </div>

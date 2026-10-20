@@ -20,7 +20,7 @@ export default async function TrackPage() {
       <div className="mx-auto max-w-2xl">
         <Eyebrow>{text.eyebrow}</Eyebrow>
         <h1 className="mt-2 text-h2 text-ink">
-          {text.title} <em className="block text-teal not-italic">{text.titleEmphasis}</em>
+          {text.title} <em className="block text-orange-title not-italic">{text.titleEmphasis}</em>
         </h1>
         <p className="mt-3 text-body-lg text-muted">{text.description}</p>
 
@@ -30,7 +30,7 @@ export default async function TrackPage() {
 
         <p className="mt-6 text-sm text-muted">
           {text.signedInHint}{" "}
-          <Link href="/orders" className="font-bold text-teal underline-offset-4 hover:underline">
+          <Link href="/orders" className="font-bold text-brand underline-offset-4 hover:underline">
             {text.myOrders}
           </Link>
           .
@@ -39,7 +39,7 @@ export default async function TrackPage() {
           {text.helpLead}{" "}
           <a
             href={telHref(phone)}
-            className="inline-flex min-h-11 items-center gap-1.5 font-bold text-teal underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center gap-1.5 font-bold text-brand underline-offset-4 hover:underline"
           >
             <Phone aria-hidden className="size-4" />
             {text.call(phone)}

@@ -41,14 +41,14 @@ export function EbookCard({
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <Heading className="text-base font-extrabold text-ink">
-          <Link href={ebookHref(ebook.slug)} className="hover:text-teal hover:underline">
+          <Link href={ebookHref(ebook.slug)} className="hover:text-brand hover:underline">
             {ebook.title}
           </Link>
         </Heading>
         {ebook.author && <p className="text-small text-muted">{copy.by(ebook.author)}</p>}
         <p className="flex flex-wrap items-center gap-2">
           {ebook.isFree ? (
-            <Badge variant="teal">{copy.free}</Badge>
+            <Badge variant="brand">{copy.free}</Badge>
           ) : (
             <span className="text-lg font-extrabold text-ink">{formatPaise(ebook.pricePaise)}</span>
           )}

@@ -29,7 +29,7 @@ export default async function EditUserPage({
     <>
       <Link
         href={`/admin/users/${user.id}`}
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
       >
         <ChevronLeft aria-hidden className="size-4" />
         {user.name}

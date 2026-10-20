@@ -71,10 +71,10 @@ export function EbookAction({ ebookId, slug, title, access, paused, className }:
       {paused && <p className="text-small text-muted">{text.pausedLine}</p>}
       <div aria-live="polite">
         {result?.ok && (
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-teal-soft px-3.5 py-3 text-sm font-medium text-teal-dark">
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-brand-soft px-3.5 py-3 text-sm font-medium text-brand-dark">
             <CircleCheck aria-hidden className="size-4.5 shrink-0" />
             <span>{text.inCart}</span>
-            <Link href="/cart" className="font-extrabold text-teal underline underline-offset-4">
+            <Link href="/cart" className="font-extrabold text-brand underline underline-offset-4">
               {text.viewCart}
             </Link>
           </p>

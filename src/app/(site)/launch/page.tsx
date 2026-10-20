@@ -102,7 +102,7 @@ export default async function LaunchPage({
       <Eyebrow>{copy.launch.eyebrow}</Eyebrow>
       <h1 className="mt-2 text-h2 text-ink">
         {copy.launch.title}{" "}
-        <em className="block text-teal not-italic">
+        <em className="block text-orange-title not-italic">
           {copy.launch.titleEmphasis}
         </em>
       </h1>
@@ -118,7 +118,7 @@ export default async function LaunchPage({
       />
 
       <section aria-labelledby="launch-step-title" className="mt-8">
-        <p className="text-label text-teal uppercase">
+        <p className="text-label text-brand uppercase">
           {copy.launch.stepOf(step, copy.launch.steps.length)}
         </p>
         {step === 1 && <ProductStep cart={cart} params={params} />}
@@ -228,9 +228,9 @@ async function ProductStep({
       {cart.lines.length > 0 && (
         <section
           aria-label={text.cartBar.label}
-          className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-teal/40 bg-teal-soft/50 p-3.5"
+          className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-brand/40 bg-brand-soft/50 p-3.5"
         >
-          <ShoppingBag aria-hidden className="size-5 shrink-0 text-teal" />
+          <ShoppingBag aria-hidden className="size-5 shrink-0 text-brand" />
           <p className="min-w-0 flex-1 text-sm text-ink">
             <span className="block font-extrabold">{text.cartBar.label}</span>
             {text.cartBar.summary(
@@ -341,7 +341,7 @@ async function ProductStep({
                         ),
                       )}
                       aria-label={filterText.remove(label)}
-                      className="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-teal bg-teal-soft px-3 text-sm font-bold text-teal transition hover:bg-surface"
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-brand bg-brand-soft px-3 text-sm font-bold text-brand transition hover:bg-surface"
                     >
                       {label}
                       <X aria-hidden className="size-4" />
@@ -403,7 +403,7 @@ async function ProductStep({
 /**
  * One product in the brand catalogue: the store card's picture-on-top
  * layout, but with the branded price, minimum order, step and best bulk
- * price in a teal panel (the retail price isn't shown), and "Add to launch
+ * price in a brand-green panel (the retail price isn't shown), and "Add to launch
  * cart" instead of the store's Add to cart.
  */
 function ProductChoice({
@@ -423,13 +423,13 @@ function ProductChoice({
     <li
       className={cn(
         "flex min-w-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-card",
-        chosen ? "border-teal" : "border-line",
+        chosen ? "border-brand" : "border-line",
       )}
     >
       <div className="relative aspect-4/3 overflow-hidden border-b border-line bg-surface-alt">
         <ProductVisual image={product.image} glyph={product.glyph} />
         <div className="absolute top-2 left-2 flex flex-col items-start gap-1.5">
-          <Badge variant="teal">{text.catalogueTag}</Badge>
+          <Badge variant="brand">{text.catalogueTag}</Badge>
           {chosen && <Badge variant="orange">{text.inCart}</Badge>}
         </div>
       </div>
@@ -445,14 +445,14 @@ function ProductChoice({
         <p className="text-small text-muted">
           {product.formName} · {product.packSize}
         </p>
-        <div className="mt-2 rounded-md bg-teal-soft/60 p-2.5">
+        <div className="mt-2 rounded-md bg-brand-soft/60 p-2.5">
           <p className="text-sm font-extrabold text-ink">
             {text.price(formatPaise(terms.unitPricePaise))}
             <span className="block text-small font-medium text-muted">
               {text.priceNote}
             </span>
           </p>
-          <p className="mt-1.5 text-small font-bold text-teal">
+          <p className="mt-1.5 text-small font-bold text-brand">
             {text.minimum(terms.minQty, terms.unitLabel)}
             {terms.minQty > 1 && (
               <span className="block font-medium text-muted">
@@ -464,7 +464,7 @@ function ProductChoice({
             <p
               className={cn(
                 "mt-1.5 text-small font-bold",
-                soldOut ? "text-danger" : "text-green",
+                soldOut ? "text-danger" : "text-success",
               )}
             >
               {soldOut
@@ -540,7 +540,7 @@ async function CartStep({ cart }: { cart: BrandCartView }) {
           {cart.overLimit && <FormAlert>{text.overLimit}</FormAlert>}
           <Link
             href="/launch"
-            className="inline-flex min-h-11 items-center self-start text-sm font-bold text-teal hover:underline"
+            className="inline-flex min-h-11 items-center self-start text-sm font-bold text-brand hover:underline"
           >
             {text.addMore}
           </Link>
@@ -621,7 +621,7 @@ function CartLine({ line }: { line: BrandCartLine }) {
               <span className="font-bold">
                 {text.each(formatPaise(line.unitPricePaise))}
               </span>
-              {bulk && <Badge variant="teal">{text.bulkApplied}</Badge>}
+              {bulk && <Badge variant="brand">{text.bulkApplied}</Badge>}
               <span id={ruleId} className="text-small text-muted">
                 {text.steps(terms.minQty, unit)}
               </span>
@@ -645,7 +645,7 @@ function CartLine({ line }: { line: BrandCartLine }) {
                       className={cn(
                         "rounded-sm border px-2 py-1 text-small",
                         current
-                          ? "border-teal bg-teal-soft font-bold text-teal"
+                          ? "border-brand bg-brand-soft font-bold text-brand"
                           : "border-line text-muted",
                       )}
                     >
@@ -782,7 +782,7 @@ function ReviewCard({
         <Link
           href={editStep > 1 ? `/launch?step=${editStep}` : "/launch"}
           aria-label={copy.launch.editLabel(title)}
-          className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline"
+          className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline"
         >
           {copy.launch.edit}
         </Link>

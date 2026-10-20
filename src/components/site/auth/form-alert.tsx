@@ -27,7 +27,7 @@ export function FormAlert({
       role={error ? "alert" : "status"}
       className={cn(
         "flex gap-2.5 rounded-lg p-3.5 text-sm font-medium",
-        error ? "bg-danger-soft text-danger" : "bg-teal-soft text-teal-dark",
+        error ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand-dark",
         className,
       )}
     >

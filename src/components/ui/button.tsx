@@ -10,9 +10,9 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "bg-orange-strong text-white shadow-cta hover:bg-orange-ink motion-safe:hover:-translate-y-0.5 active:translate-y-0",
   secondary:
-    "border border-line-strong bg-white/70 text-teal hover:bg-surface hover:border-teal",
-  light: "bg-surface text-teal-dark hover:bg-teal-soft",
-  link: "min-h-11 px-1 text-teal underline-offset-4 hover:underline",
+    "border border-line-strong bg-white/70 text-brand hover:bg-surface hover:border-brand",
+  light: "bg-surface text-brand-dark hover:bg-brand-soft",
+  link: "min-h-11 px-1 text-brand underline-offset-4 hover:underline",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

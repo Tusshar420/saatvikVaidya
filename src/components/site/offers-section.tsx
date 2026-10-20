@@ -26,14 +26,14 @@ export function OffersSection({ heading, offers }: OffersSectionProps) {
 function OfferCard({ offer }: { offer: OfferItem }) {
   const bgColorMap: Record<string, string> = {
     orange: "bg-orange-soft border-orange-dark",
-    teal: "bg-teal-soft border-teal",
+    teal: "bg-brand-soft border-brand",
     navy: "bg-blue-soft border-blue",
   };
 
   const bgClass = bgColorMap[offer.tone] || "bg-surface-alt border-line";
   const iconBgMap: Record<string, string> = {
     orange: "bg-orange text-surface",
-    teal: "bg-teal text-surface",
+    teal: "bg-brand text-surface",
     navy: "bg-blue text-surface",
   };
   const iconBgClass = iconBgMap[offer.tone] || "bg-surface-alt text-ink";
@@ -61,7 +61,7 @@ function OfferCard({ offer }: { offer: OfferItem }) {
       {offer.link.href !== null ? (
         <a
           href={offer.link.href}
-          className="text-h2 font-500 text-teal hover:text-teal-dark transition-colors flex-shrink-0"
+          className="text-h2 font-500 text-brand hover:text-brand-dark transition-colors flex-shrink-0"
           aria-label={offer.link.label}
         >
           →

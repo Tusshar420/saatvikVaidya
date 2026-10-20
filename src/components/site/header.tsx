@@ -20,7 +20,7 @@ export type HeaderProps = {
 };
 
 const actionClasses =
-  "inline-flex h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-md text-teal transition hover:bg-teal-soft/60 md:h-11.5";
+  "inline-flex h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-md text-brand transition hover:bg-brand-soft/60 md:h-11.5";
 
 /**
  * Sticky site header: the utility bar (logo, search, track order, coins, bag,
@@ -37,7 +37,7 @@ export function Header({
   return (
     <header
       className={cn(
-        "sticky top-0 z-100 border-b border-teal/12 bg-surface/96 backdrop-blur-lg",
+        "sticky top-0 z-100 border-b border-brand/12 bg-surface/96 backdrop-blur-lg",
         className,
       )}
     >

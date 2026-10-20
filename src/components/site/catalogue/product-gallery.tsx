@@ -27,7 +27,7 @@ export function ProductGallery({
       <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-surface-alt">
         <ProductVisual image={current} glyph={glyph} loading="eager" />
         {!current && (
-          <p className="absolute inset-x-0 bottom-4 text-center text-small font-semibold text-teal">
+          <p className="absolute inset-x-0 bottom-4 text-center text-small font-semibold text-brand">
             {text.noImage}
           </p>
         )}
@@ -44,8 +44,8 @@ export function ProductGallery({
                 className={cn(
                   "block size-16 overflow-hidden rounded-md border-2 bg-surface-alt transition sm:size-20",
                   position === index
-                    ? "border-teal"
-                    : "border-line hover:border-teal/60",
+                    ? "border-brand"
+                    : "border-line hover:border-brand/60",
                 )}
               >
                 {/* Decorative: the button's label says which image it shows. */}

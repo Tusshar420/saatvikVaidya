@@ -59,7 +59,7 @@ function Thanks() {
   const signedIn = Boolean(useAuthSession().data);
   return (
     <div role="status" className="flex flex-col gap-4">
-      <p className="flex gap-2.5 rounded-lg bg-teal-soft p-3.5 text-sm font-medium text-teal-dark">
+      <p className="flex gap-2.5 rounded-lg bg-brand-soft p-3.5 text-sm font-medium text-brand-dark">
         <CircleCheck aria-hidden className="mt-0.5 size-4.5 shrink-0" />
         <span>
           {copy.thanks.body} {signedIn ? copy.thanks.signedIn : copy.thanks.guest}
@@ -194,7 +194,7 @@ function ReportProblemForm({ onSent }: { onSent: () => void }) {
             onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
             aria-invalid={errors.screenshot ? true : undefined}
             aria-describedby={screenshotIds.describedBy}
-            className="min-h-11 w-full min-w-0 cursor-pointer rounded-md border border-dashed border-line bg-surface-alt p-1.5 text-sm text-muted file:mr-3 file:min-h-9 file:cursor-pointer file:rounded-sm file:border-0 file:bg-teal-soft file:px-3 file:text-sm file:font-bold file:text-teal"
+            className="min-h-11 w-full min-w-0 cursor-pointer rounded-md border border-dashed border-line bg-surface-alt p-1.5 text-sm text-muted file:mr-3 file:min-h-9 file:cursor-pointer file:rounded-sm file:border-0 file:bg-brand-soft file:px-3 file:text-sm file:font-bold file:text-brand"
           />
           {file && (
             <IconButton label={copy.removeScreenshot} variant="soft" onClick={clearFile}>

@@ -38,7 +38,7 @@ export function AdjustCoinsForm({ userId }: { userId: string }) {
       />
       <div role="status" aria-live="polite" className="empty:hidden">
         <FormError state={state} />
-        {state.status === "success" && <p className="text-sm font-bold text-green">{state.message}</p>}
+        {state.status === "success" && <p className="text-sm font-bold text-success">{state.message}</p>}
       </div>
       <Button type="submit" variant="secondary" loading={pending} className="self-start max-sm:w-full">
         {text.submit}

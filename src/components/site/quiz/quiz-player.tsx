@@ -119,7 +119,7 @@ export function QuizPlayer({ quizId, questions, initialAnswers, secondsLeft }: Q
                       key={option.id}
                       className={cn(
                         "flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-2.5 text-sm transition",
-                        selected ? "border-teal bg-teal-soft font-bold text-ink" : "border-line hover:border-teal",
+                        selected ? "border-brand bg-brand-soft font-bold text-ink" : "border-line hover:border-brand",
                       )}
                     >
                       <input
@@ -127,7 +127,7 @@ export function QuizPlayer({ quizId, questions, initialAnswers, secondsLeft }: Q
                         name={`question-${question.id}`}
                         checked={selected}
                         onChange={() => choose(question.id, option.id)}
-                        className="size-5 shrink-0 cursor-pointer accent-teal"
+                        className="size-5 shrink-0 cursor-pointer accent-brand"
                       />
                       <span className="min-w-0 break-words">{option.text}</span>
                     </label>

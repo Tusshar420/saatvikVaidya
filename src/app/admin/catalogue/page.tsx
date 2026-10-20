@@ -146,7 +146,7 @@ export default async function CataloguePage({
                     className="size-10 rounded-md border border-line bg-surface-alt object-contain"
                   />
                 ) : (
-                  <span aria-hidden className="block size-10 rounded-md bg-teal-soft" />
+                  <span aria-hidden className="block size-10 rounded-md bg-brand-soft" />
                 )}
               </Td>
               <Td>

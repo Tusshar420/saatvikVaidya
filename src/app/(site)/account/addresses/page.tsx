@@ -21,7 +21,7 @@ export default async function AddressesPage() {
       <div className="mx-auto max-w-3xl">
         <Link
           href="/account"
-          className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-teal underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand underline-offset-4 hover:underline"
         >
           <ChevronLeft aria-hidden className="size-4" />
           {copy.addresses.back}

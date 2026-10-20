@@ -171,7 +171,7 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
               {text.help}{" "}
               <a
                 href={telHref(phone)}
-                className="inline-flex min-h-11 items-center gap-1.5 font-bold text-teal underline-offset-4 hover:underline"
+                className="inline-flex min-h-11 items-center gap-1.5 font-bold text-brand underline-offset-4 hover:underline"
               >
                 <Phone aria-hidden className="size-4" />
                 {text.call(phone)}

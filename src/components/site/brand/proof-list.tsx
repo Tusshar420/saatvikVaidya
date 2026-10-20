@@ -10,7 +10,7 @@ const text = copy.proof;
 
 const variants: Record<BrandProofStatus, BadgeVariant> = {
   pending: "orange",
-  approved: "teal",
+  approved: "brand",
   changes_requested: "blue",
   superseded: "soon",
 };
@@ -93,7 +93,7 @@ export function ProofList({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={text.viewLabel(proof.version)}
-                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
                 >
                   <ExternalLink aria-hidden className="size-4" />
                   {text.view}
@@ -102,7 +102,7 @@ export function ProofList({
               <a
                 href={`${src}?download=1`}
                 aria-label={text.downloadLabel(proof.version)}
-                className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+                className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
               >
                 <Download aria-hidden className="size-4" />
                 {text.download}

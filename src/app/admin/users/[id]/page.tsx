@@ -52,7 +52,7 @@ export default async function UserDetailPage({
     <>
       <Link
         href="/admin/users"
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
       >
         <ChevronLeft aria-hidden className="size-4" />
         {text.back}
@@ -141,7 +141,7 @@ export default async function UserDetailPage({
             <>
               <div className="mt-4 flex flex-col gap-3 rounded-lg bg-surface-alt p-4 sm:flex-row sm:items-center">
                 <p className="flex flex-1 items-start gap-2 text-sm text-ink">
-                  <FileText aria-hidden className="mt-0.5 size-4.5 shrink-0 text-teal" />
+                  <FileText aria-hidden className="mt-0.5 size-4.5 shrink-0 text-brand" />
                   <span>
                     <span className="block font-bold">{text.documentsTitle}</span>
                     {verification &&

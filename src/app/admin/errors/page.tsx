@@ -177,7 +177,7 @@ export default async function AdminErrorsPage({ searchParams }: PageProps<"/admi
           {errors.map((error) => (
             <Tr key={error.id} data-testid="error-row">
               <Td className="md:max-w-md">
-                <Link href={`/admin/errors/${error.id}`} className="block font-bold break-words text-ink hover:text-teal">
+                <Link href={`/admin/errors/${error.id}`} className="block font-bold break-words text-ink hover:text-brand">
                   {error.message}
                 </Link>
                 <span className="block font-mono text-small break-all text-muted">

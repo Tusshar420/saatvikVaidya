@@ -34,7 +34,7 @@ export function Logo({
         className={cn(
           "relative grid size-9.75 place-items-center rounded-md text-base font-black tracking-[-1px] text-white shadow-cta bg-brand-mark md:size-11.5 md:rounded-[15px_15px_20px_20px]",
           // The green leaf on the mark's top-right corner.
-          "after:absolute after:top-0.5 after:-right-1 after:h-1.75 after:w-3.5 after:-rotate-25 after:rounded-[14px_2px_14px_2px] after:bg-green after:content-['']",
+          "after:absolute after:top-0.5 after:-right-1 after:h-1.75 after:w-3.5 after:-rotate-25 after:rounded-[14px_2px_14px_2px] after:bg-brand after:content-['']",
         )}
       >
         {shell.brand.mark}
@@ -42,7 +42,7 @@ export function Logo({
       <span aria-hidden className="flex flex-col leading-[1.1]">
         {/* 15 px below 375 px, so the signed-in header (coins, bag, profile) fits a 360 px phone. */}
         <strong className="text-[17px] font-extrabold tracking-[-0.8px] max-[374px]:text-[15px] sm:text-[19px] md:text-2xl">
-          <span className={light ? "text-green-light" : "text-green"}>
+          <span className={light ? "text-brand-light" : "text-brand"}>
             {shell.brand.first}
           </span>{" "}
           <span className={light ? "text-orange-light" : "text-orange"}>

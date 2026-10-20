@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 const statusVariant: Record<keyof typeof reportStatusForUser, BadgeVariant> = {
   new: "blue",
   investigating: "orange",
-  fixed: "teal",
+  fixed: "brand",
   ignored: "blue",
 };
 
@@ -32,7 +32,7 @@ export default async function MyReportsPage() {
       <div className="mx-auto max-w-3xl">
         <Link
           href="/account"
-          className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-teal underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand underline-offset-4 hover:underline"
         >
           <ChevronLeft aria-hidden className="size-4" />
           {copy.back}
@@ -96,7 +96,7 @@ export default async function MyReportsPage() {
                         href={`/api/bug-reports/${report.id}/screenshot`}
                         target="_blank"
                         rel="noopener"
-                        className="inline-flex min-h-11 items-center gap-1 font-bold text-teal underline-offset-4 hover:underline"
+                        className="inline-flex min-h-11 items-center gap-1 font-bold text-brand underline-offset-4 hover:underline"
                       >
                         <ImageIcon aria-hidden className="size-4" />
                         {copy.viewScreenshot}

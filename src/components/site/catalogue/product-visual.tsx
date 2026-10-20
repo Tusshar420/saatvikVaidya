@@ -38,7 +38,7 @@ export function ProductVisual({
     <span
       aria-hidden
       className={cn(
-        "grid size-full place-items-center bg-teal-soft font-serif-hindi text-5xl font-bold text-teal sm:text-6xl",
+        "grid size-full place-items-center bg-brand-soft font-serif-hindi text-5xl font-bold text-brand sm:text-6xl",
         className,
       )}
     >

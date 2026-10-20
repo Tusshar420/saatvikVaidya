@@ -33,7 +33,7 @@ export function CoinActivity({
             {showUser && <Td label={text.columns.user}>{entry.userName}</Td>}
             <Td
               label={text.columns.change}
-              className={cn("font-bold", entry.amount < 0 ? "text-danger" : "text-green")}
+              className={cn("font-bold", entry.amount < 0 ? "text-danger" : "text-success")}
             >
               {entry.amount > 0 ? "+" : "−"}
               {formatNumber(Math.abs(entry.amount))}

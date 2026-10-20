@@ -111,7 +111,7 @@ export default async function AdminErrorDetailPage({
               <ul className="mt-1 flex flex-wrap gap-1.5">
                 {affectedUsers.map((user) => (
                   <li key={user.id}>
-                    <Badge variant="teal" className="normal-case">
+                    <Badge variant="brand" className="normal-case">
                       {user.name}
                     </Badge>
                   </li>
@@ -135,7 +135,7 @@ export default async function AdminErrorDetailPage({
               <li key={report.id} data-testid="error-report" className="flex flex-col gap-1 p-4 text-sm">
                 <Link
                   href={`/admin/errors/reports/${report.id}`}
-                  className="line-clamp-2 font-bold break-words text-ink hover:text-teal"
+                  className="line-clamp-2 font-bold break-words text-ink hover:text-brand"
                 >
                   {report.description}
                 </Link>
@@ -182,7 +182,7 @@ export default async function AdminErrorDetailPage({
               {occurrence.userAgent && <span className="text-small break-words text-muted">{occurrence.userAgent}</span>}
               {occurrence.context != null && (
                 <details className="mt-1">
-                  <summary className="cursor-pointer text-small font-bold text-teal">{d.context}</summary>
+                  <summary className="cursor-pointer text-small font-bold text-brand">{d.context}</summary>
                   <pre className="mt-1 overflow-auto rounded-md bg-surface-alt p-2 font-mono text-xs whitespace-pre-wrap">
                     {JSON.stringify(occurrence.context, null, 2)}
                   </pre>

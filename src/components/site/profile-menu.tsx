@@ -23,7 +23,7 @@ export function contactOf(user: AuthUser): string {
 }
 
 const itemClasses =
-  "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md px-3 text-sm font-bold text-ink outline-none select-none data-highlighted:bg-teal-soft data-highlighted:text-teal [&_svg]:size-4.5 [&_svg]:text-teal";
+  "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md px-3 text-sm font-bold text-ink outline-none select-none data-highlighted:bg-brand-soft data-highlighted:text-brand [&_svg]:size-4.5 [&_svg]:text-brand";
 
 /**
  * The header's profile button. Signed out it opens sign-in ("My Profile /
@@ -52,7 +52,7 @@ export function ProfileMenu({ className }: { className?: string }) {
       >
         <span
           aria-hidden
-          className="grid size-9.75 place-items-center rounded-[11px] bg-teal text-white lg:size-8.75"
+          className="grid size-9.75 place-items-center rounded-[11px] bg-brand text-white lg:size-8.75"
         >
           <UserRound className="size-5" />
         </span>

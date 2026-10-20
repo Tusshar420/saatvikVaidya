@@ -101,7 +101,7 @@ export function LaunchFilterPanel({
         method="get"
         aria-label={copy.label}
         className={cn(
-          "mt-3 flex flex-col gap-4 rounded-xl border border-teal/30 bg-teal-soft/40 p-4 shadow-card lg:mt-0 lg:p-5",
+          "mt-3 flex flex-col gap-4 rounded-xl border border-brand/30 bg-brand-soft/40 p-4 shadow-card lg:mt-0 lg:p-5",
           !open && "max-lg:hidden",
         )}
       >
@@ -112,7 +112,7 @@ export function LaunchFilterPanel({
         {hasRange && (
           <fieldset className="flex flex-col gap-2">
             <legend className="text-xs font-extrabold text-ink">{copy.price}</legend>
-            <p aria-live="polite" className="text-sm font-bold text-teal">
+            <p aria-live="polite" className="text-sm font-bold text-brand">
               {copy.priceRange(rupees(low), rupees(high))}
             </p>
             <label className="flex flex-col gap-1 text-small text-muted">
@@ -129,7 +129,7 @@ export function LaunchFilterPanel({
                   setLow(next);
                   if (next > high) setHigh(next);
                 }}
-                className="h-11 w-full cursor-pointer accent-teal"
+                className="h-11 w-full cursor-pointer accent-brand"
               />
             </label>
             <label className="flex flex-col gap-1 text-small text-muted">
@@ -146,7 +146,7 @@ export function LaunchFilterPanel({
                   setHigh(next);
                   if (next < low) setLow(next);
                 }}
-                className="h-11 w-full cursor-pointer accent-teal"
+                className="h-11 w-full cursor-pointer accent-brand"
               />
             </label>
           </fieldset>

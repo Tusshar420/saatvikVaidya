@@ -41,7 +41,7 @@ export function BrandImportForm() {
             accept=".csv,text/csv"
             required
             aria-describedby="brand-import-help"
-            className="min-h-11 text-sm text-ink file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-md file:border file:border-line file:bg-surface-alt file:px-4 file:font-bold file:text-teal"
+            className="min-h-11 text-sm text-ink file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-md file:border file:border-line file:bg-surface-alt file:px-4 file:font-bold file:text-brand"
           />
           <p id="brand-import-help" className="mt-1.5 text-small text-muted">
             {text.fileHelp}
@@ -96,7 +96,7 @@ export function BrandImportForm() {
                     {row.error ? (
                       <span className="text-small font-bold text-danger">{row.error}</span>
                     ) : (
-                      <Badge variant="teal">{text.ok}</Badge>
+                      <Badge variant="brand">{text.ok}</Badge>
                     )}
                   </Td>
                 </Tr>

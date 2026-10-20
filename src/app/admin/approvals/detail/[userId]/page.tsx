@@ -46,7 +46,7 @@ export default async function ReviewPage({
     <>
       <Link
         href="/admin/approvals"
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-teal hover:underline"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-brand hover:underline"
       >
         <ChevronLeft aria-hidden className="size-4" />
         {text.back}
@@ -150,7 +150,7 @@ export default async function ReviewPage({
               <ol className="mt-4 flex flex-col gap-4">
                 {review.history.map((item) => (
                   <li key={item.id} className="flex flex-col gap-1 text-sm">
-                    <Badge variant={item.decision === "approved" ? "teal" : "orange"}>
+                    <Badge variant={item.decision === "approved" ? "brand" : "orange"}>
                       {text.decisions[item.decision]}
                     </Badge>
                     <p className="text-ink break-words">

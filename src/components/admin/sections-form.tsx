@@ -76,7 +76,7 @@ export function SectionsForm({ rows }: { rows: SectionRow[] }) {
       </DataTable>
       <div role="status" aria-live="polite" className="empty:hidden">
         <FormError state={state} />
-        {state.status === "success" && <p className="text-sm font-bold text-green">{state.message}</p>}
+        {state.status === "success" && <p className="text-sm font-bold text-success">{state.message}</p>}
       </div>
       <div>
         <Button type="submit" loading={pending} className="max-sm:w-full">

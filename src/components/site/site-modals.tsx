@@ -262,7 +262,7 @@ function TrackOrderModal({
         <ModalClose asChild>
           <Link
             href="/orders"
-            className="font-bold text-teal underline-offset-4 hover:underline"
+            className="font-bold text-brand underline-offset-4 hover:underline"
           >
             {copy.myOrders}
           </Link>
@@ -272,7 +272,7 @@ function TrackOrderModal({
         {copy.helpLead}{" "}
         <a
           href={telHref(phone)}
-          className="inline-flex min-h-11 items-center gap-1.5 font-bold text-teal underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center gap-1.5 font-bold text-brand underline-offset-4 hover:underline"
         >
           <Phone aria-hidden className="size-4" />
           {copy.call(phone)}

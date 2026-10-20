@@ -147,7 +147,7 @@ export function DocumentUpload({
         <h3 id={headingId} className="text-base font-extrabold text-ink">
           {label}
         </h3>
-        {current?.verified && <Badge variant="teal">{copy.verifiedBadge}</Badge>}
+        {current?.verified && <Badge variant="brand">{copy.verifiedBadge}</Badge>}
       </div>
       <p id={helpId} className="mt-0.5 text-small text-muted">
         {help}
@@ -170,7 +170,7 @@ export function DocumentUpload({
             target="_blank"
             rel="noopener"
             aria-label={copy.viewNamed(label)}
-            className="-my-1.5 inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-teal underline-offset-4 hover:underline"
+            className="-my-1.5 inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-brand underline-offset-4 hover:underline"
           >
             {copy.view}
           </a>
@@ -194,12 +194,12 @@ export function DocumentUpload({
                   className="size-16 shrink-0 rounded-sm border border-line object-cover"
                 />
               ) : (
-                <span className="grid size-16 shrink-0 place-items-center rounded-sm bg-teal-soft">
-                  <FileText aria-hidden className="size-7 text-teal" />
+                <span className="grid size-16 shrink-0 place-items-center rounded-sm bg-brand-soft">
+                  <FileText aria-hidden className="size-7 text-brand" />
                 </span>
               )}
               <div className="min-w-0">
-                <p className="text-small font-bold text-teal">{copy.selected}</p>
+                <p className="text-small font-bold text-brand">{copy.selected}</p>
                 <p className="text-sm font-semibold break-words text-ink">
                   {file.name}
                 </p>
@@ -218,10 +218,10 @@ export function DocumentUpload({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={progress}
-                className="h-2 overflow-hidden rounded-full bg-teal-soft"
+                className="h-2 overflow-hidden rounded-full bg-brand-soft"
               >
                 <div
-                  className="h-full rounded-full bg-teal transition-[width] duration-200"
+                  className="h-full rounded-full bg-brand transition-[width] duration-200"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -277,7 +277,7 @@ export function DocumentUpload({
                   variant: "secondary",
                   size: "sm",
                   className:
-                    "w-full peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-teal sm:w-auto",
+                    "w-full peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand sm:w-auto",
                 })}
               >
                 <Upload aria-hidden className="size-4" />
@@ -293,5 +293,5 @@ export function DocumentUpload({
 
 function FileIcon({ type }: { type: string }) {
   const Icon = type === "application/pdf" ? FileText : ImageIcon;
-  return <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-teal" />;
+  return <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-brand" />;
 }

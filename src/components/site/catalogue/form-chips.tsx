@@ -35,8 +35,8 @@ export function FormChips({
           className={cn(
             "inline-flex min-h-11 items-center rounded-sm border px-3.5 text-sm font-semibold whitespace-nowrap transition",
             current
-              ? "border-teal bg-teal-soft font-extrabold text-teal"
-              : "border-line bg-surface text-ink hover:border-teal/60",
+              ? "border-brand bg-brand-soft font-extrabold text-brand"
+              : "border-line bg-surface text-ink hover:border-brand/60",
           )}
         >
           {label}

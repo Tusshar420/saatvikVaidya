@@ -85,8 +85,8 @@ export function ChoiceChips({
             disabled={option.disabled}
             className={cn(
               "inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-sm border border-line bg-surface px-3.5 text-sm font-semibold whitespace-nowrap text-ink transition",
-              "hover:border-teal/60 disabled:cursor-not-allowed disabled:opacity-50",
-              "data-[state=checked]:border-teal data-[state=checked]:bg-teal-soft data-[state=checked]:font-extrabold data-[state=checked]:text-teal",
+              "hover:border-brand/60 disabled:cursor-not-allowed disabled:opacity-50",
+              "data-[state=checked]:border-brand data-[state=checked]:bg-brand-soft data-[state=checked]:font-extrabold data-[state=checked]:text-brand",
             )}
           >
             {option.label}
