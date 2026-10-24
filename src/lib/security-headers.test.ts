@@ -47,6 +47,15 @@ describe("security headers", () => {
     expect(contentSecurityPolicy({ isDev: true })).not.toContain(upgrade);
   });
 
+  it("sends HSTS only for an https site, never in development or on plain http", () => {
+    const hsts = (options: Parameters<typeof securityHeaders>[0]) =>
+      securityHeaders(options).find((h) => h.key === "Strict-Transport-Security")?.value;
+    expect(hsts({ isDev: false, siteOrigin: "https://test.saatvikvaidya.com" })).toBe("max-age=15552000");
+    expect(hsts({ isDev: false })).toBeUndefined();
+    expect(hsts({ isDev: false, siteOrigin: "http://localhost:3100" })).toBeUndefined();
+    expect(hsts({ isDev: true, siteOrigin: "https://test.saatvikvaidya.com" })).toBeUndefined();
+  });
+
   it("sets referrer and permissions policies", () => {
     expect(header(false, "Referrer-Policy")).toBe(
       "strict-origin-when-cross-origin",

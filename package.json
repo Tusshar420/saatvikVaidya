@@ -22,11 +22,13 @@
     "test:e2e:manual": "playwright test -c playwright.manual.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
     "db:seed:catalogue": "tsx scripts/seed-catalogue.ts",
     "db:reset": "prisma migrate reset --force && prisma db seed",
     "db:test:prepare": "tsx scripts/db-test-prepare.ts",
+    "db:clear-test-data": "tsx scripts/clear-test-data.ts",
     "admin:create": "tsx scripts/admin-create.ts",
     "postinstall": "prisma generate"
   },

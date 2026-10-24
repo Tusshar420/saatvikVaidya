@@ -61,8 +61,21 @@ export function contentSecurityPolicy(options: SecurityHeaderOptions): string {
   return policy.join("; ");
 }
 
+/**
+ * Strict-Transport-Security: browsers keep using https for this host for six
+ * months. Only sent when the site's own origin is https, so a local plain-http
+ * build never tells a browser to refuse http for "localhost". No
+ * includeSubDomains or preload: the main address and the test address are
+ * different hosts and each decides for itself.
+ */
+export function strictTransportSecurity({ isDev, siteOrigin }: SecurityHeaderOptions): Header[] {
+  if (isDev || !siteOrigin?.startsWith("https:")) return [];
+  return [{ key: "Strict-Transport-Security", value: "max-age=15552000" }];
+}
+
 export function securityHeaders(options: SecurityHeaderOptions): Header[] {
   return [
+    ...strictTransportSecurity(options),
     { key: "Content-Security-Policy", value: contentSecurityPolicy(options) },
     // Legacy twin of frame-ancestors 'none' for older browsers.
     { key: "X-Frame-Options", value: "DENY" },
