@@ -36,7 +36,11 @@ const authEnvSchema = z.object({
   BETTER_AUTH_SECRET: z
     .string()
     .min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
-  /** The site's own origin, e.g. http://localhost:3000. */
+  /**
+   * The site's own origin, e.g. http://localhost:3000. The default is for
+   * development only: on a server the start-up check (site-check.ts)
+   * refuses to start without it.
+   */
   BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
   /** Dev only: lets the UI show the latest OTP (never in production). */
   DEV_SHOW_OTP: z

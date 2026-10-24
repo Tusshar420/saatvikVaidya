@@ -31,7 +31,9 @@ transfer (see "Payments").
    `https://test.yourdomain.com` opens with the padlock before going on: the
    team password is sent in plain text without https.
 2. **Database.** hPanel > _Databases > MySQL_: create a database and a user
-   for the test address (for example `saatvik_test`). Write down the name,
+   for the test address. Its name **must contain `test` or `staging`** (for
+   example `u123456789_saatvik_test`): the site checks this when it starts,
+   so the test address can never run on the live database. Write down the name,
    user, password and host. The connection string looks like
    `mysql://USER:PASSWORD@HOST:3306/DATABASE` (URL-encode special characters
    in the password).
@@ -69,7 +71,7 @@ transfer (see "Payments").
 
 | Variable | Test address | Main address (live) |
 | --- | --- | --- |
-| `DATABASE_URL` | the test database | the live database (different!) |
+| `DATABASE_URL` | the test database (name contains `test` or `staging`) | the live database (different! name without `test` or `staging`) |
 | `BETTER_AUTH_URL` | `https://test.yourdomain.com` | `https://yourdomain.com` |
 | `BETTER_AUTH_SECRET` | a new random value (`openssl rand -base64 32`) | a different new random value |
 | `STORAGE_DIR` | a folder on persistent disk **outside** the web folder | another such folder |
@@ -83,6 +85,13 @@ transfer (see "Payments").
 | `APP_VERSION` | optional label shown in the error log | optional |
 
 Never reuse the same `BETTER_AUTH_SECRET` on both addresses.
+
+**Start-up check.** On a server the site checks its settings when it starts
+(`src/server/site-check.ts`). If `BETTER_AUTH_URL` is missing or not https, or
+the database name does not match the address (test address: name contains
+`test` or `staging`; live site: it does not), every page shows an error and
+the server log starts with "Site settings need fixing" and the reason. Fix the
+variable and restart the app.
 
 ## 2. Payments (QR code or bank transfer)
 
@@ -164,9 +173,10 @@ Use the test address on a phone and a computer. Tick each line.
 ## 6. Before 1 November (clear and get ready)
 
 1. Fix everything the team found; re-test each fix.
-2. **Clear test data** on the database that will go live. On the live database
-   this is normally already empty; use it on the test database, or if the
-   test database becomes the live one:
+2. **Clear test data.** The live site gets its own new database (section 7),
+   so test accounts and orders never reach it; the site refuses to start if
+   the live address points at a database named like a test one. Clear the
+   test database when testing ends:
    ```
    pnpm db:clear-test-data          # only counts what it would remove
    pnpm db:clear-test-data --yes    # removes it

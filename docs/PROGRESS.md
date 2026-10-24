@@ -4823,3 +4823,24 @@ all pass.
 - Real UPI ID and bank details must be entered in Admin > Settings.
 - U.17 (full mockup comparison and Lighthouse pass) was not done; moved to `docs/BACKLOG.md` by owner decision.
 - `/launch` being public still needs the owner's confirmation (see earlier entry).
+
+## Settings and data audit: start-up check for test vs live (2026-10-25)
+
+**What was done.** Checked every setting the code reads against
+`.env.example` (all listed) and searched for hard-coded addresses, databases
+and keys (none; payment details, phone and WhatsApp come from Admin >
+Settings). Added `src/server/site-check.ts`, run from `register()` in
+`src/instrumentation.ts`. On a server it stops the site serving pages when
+`BETTER_AUTH_URL` is missing or not https (it used to fall back to
+localhost), or when the database name does not match the address: test
+address (team password set) needs `test` or `staging` in the name, live site
+must not have it. Skipped in development, tests, `next build` and localhost
+builds. Docs: `.env.example`, `docs/DEPLOY.md` (naming rule; the live site
+always gets a new database), `docs/SITE_OVERVIEW.md` section 6.
+
+**Checked:** 7 Vitest tests for the check; the built site started with a
+wrong database answered 500 on every page with "Site settings need fixing"
+in the log, and with the right one answered 200.
+
+**Needs a person:** when creating the Hostinger databases, give the test one a
+name with `test` or `staging` in it and the live one a name without.

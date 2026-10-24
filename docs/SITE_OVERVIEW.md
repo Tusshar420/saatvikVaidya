@@ -79,9 +79,9 @@ address (test and live) gets its own values. Full list with comments:
 
 | Need | Setting | Notes |
 | --- | --- | --- |
-| Database connection | `DATABASE_URL` | `mysql://USER:PASSWORD@HOST:3306/DATABASE`. A separate database for the test address. |
+| Database connection | `DATABASE_URL` | `mysql://USER:PASSWORD@HOST:3306/DATABASE`. A separate database for each address: the test one's name contains `test` or `staging`, the live one's does not (checked at start-up, see section 6). |
 | Secret key | `BETTER_AUTH_SECRET` | 32+ random characters (`openssl rand -base64 32`). Different on each address. |
-| Site address | `BETTER_AUTH_URL` | e.g. `https://test.yourdomain.com`. Used for links, the sign-in safety check and HSTS. |
+| Site address | `BETTER_AUTH_URL` | e.g. `https://test.yourdomain.com`. Used for links, the sign-in safety check and HSTS. Required on a server, with https. |
 | Uploads folder | `STORAGE_DIR` | Full path to a folder outside the web folder. |
 | Payment | `PAYMENT_PROVIDER` | `manual` on both addresses. `test` refuses to run on a server. |
 | Shipping | `SHIPPING_PROVIDER` | `test`. On a server, "Create shipment" stays off until Shiprocket. |
@@ -146,3 +146,49 @@ can stop the site from running at all.
 on points 1 to 3. If the plan has no Node 24, cannot finish the build, or the
 database misbehaves on MariaDB, the fix (a different plan, a VPS, or building
 elsewhere) takes days. Check them first.
+
+## 6. Settings and data audit (25 October 2026)
+
+**Where settings live.** One list: `.env.example` names every value the site
+reads, with safe placeholders and no real secrets. On this computer the real
+values go in `.env.local` (not in Git); on Hostinger they go in each Node.js
+app's settings. The code reads them through `src/server/env.ts` (checked with
+Zod) and a few small readers (payments, shipping, team password, design page),
+all listed in `.env.example`.
+
+**What was checked.** Every setting the code reads was compared with
+`.env.example`: none is missing. The code has no hard-coded site address,
+database or key:
+
+- The site address comes from `BETTER_AUTH_URL`.
+- The database comes from `DATABASE_URL`.
+- The secret comes from `BETTER_AUTH_SECRET`.
+- Payment details (UPI ID, bank), phone and WhatsApp number come from Admin >
+  Settings in each site's own database.
+- The only `localhost` addresses are in the test setup and the local-build
+  safety checks.
+
+**Test and live kept apart.** Each address has its own database, secret,
+uploads folder and settings, so accounts, orders and files never mix.
+
+**Changed in this audit:**
+
+1. **Start-up check** (`src/server/site-check.ts`, run from
+   `src/instrumentation.ts`). On a server, the site will not serve pages if:
+   - `BETTER_AUTH_URL` is missing or not `https://`. Before this, a missing
+     value quietly fell back to `http://localhost:3000`, which breaks sign-in
+     and the links in messages.
+   - The test address (team password set) uses a database whose name lacks
+     `test` or `staging`.
+   - The live site (no team password) uses a database whose name has `test`
+     or `staging`.
+
+   Every page then shows an error, and the server log starts with "Site
+   settings need fixing" and the reason. This computer, the automatic tests
+   and the local test build (address on `localhost`) are not checked.
+2. **Docs:** `.env.example` and `docs/DEPLOY.md` explain the database naming
+   rule. The live site always gets its own new database; the earlier option of
+   turning the test database into the live one is gone, so test data can never
+   become live data.
+
+Design and features are unchanged.
