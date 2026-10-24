@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { config, proxy } from "./proxy";
+import { config, proxy, testSiteRobots } from "./proxy";
 
 const request = (path: string, cookie?: string) =>
   new NextRequest(`http://localhost:3000${path}`, {
@@ -89,6 +89,19 @@ describe("proxy on the private test site", () => {
     expect(proxy(gated("/checkout", basic("team", "s3cret-team-pass"))).status).toBe(307);
   });
 
+  it("tells crawlers to stay away in /robots.txt, without the password", async () => {
+    for (const header of [undefined, basic("team", "s3cret-team-pass")]) {
+      const response = proxy(gated("/robots.txt", header));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/plain");
+      expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+      expect(await response.text()).toBe(testSiteRobots);
+    }
+    expect(testSiteRobots).toMatch(/^User-agent: \*\nDisallow: \/$/m);
+    // Only the exact path; anything else still needs the password.
+    expect(proxy(gated("/robots.txt/x")).status).toBe(401);
+  });
+
   it("allows a password that contains a colon", () => {
     vi.stubEnv("STAGING_ACCESS_PASSWORD", "a:b:c");
     expect(proxy(gated("/", basic("team", "a:b:c"))).headers.get("x-middleware-next")).toBe("1");
@@ -98,5 +111,7 @@ describe("proxy on the private test site", () => {
     vi.stubEnv("STAGING_ACCESS_PASSWORD", "");
     expect(proxy(gated("/")).headers.get("x-middleware-next")).toBe("1");
     expect(proxy(gated("/")).headers.get("x-robots-tag")).toBeNull();
+    // The live site's /robots.txt is left to the app (no "Disallow: /").
+    expect(proxy(gated("/robots.txt")).headers.get("x-middleware-next")).toBe("1");
   });
 });

@@ -432,6 +432,9 @@ the checks, see "Clean up the rehearsal" below). Check on **a phone (375 px wide
       other way round, as chosen).
 - [ ] **No password box** appears before the site (that would mean the team
       lock lines slipped into the live settings: remove them and restart).
+- [ ] `https://yourdomain.com/robots.txt` does **not** say `Disallow: /`
+      (a "page not found" is fine). Otherwise search engines would skip the
+      live site (`docs/ACCESS_CONTROL.md` section 4).
 - [ ] No page says **"Site settings need fixing"**. If one does, the reason
       is at the top of the app's log in hPanel (`docs/DEPLOY.md`, "Start-up
       check").

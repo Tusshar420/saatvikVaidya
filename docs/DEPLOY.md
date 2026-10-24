@@ -161,6 +161,10 @@ Use the test address on a phone and a computer. Tick each line.
 - [ ] `https://test.yourdomain.com/design` shows a 404.
 - [ ] The response headers include `Strict-Transport-Security` (the site sends
       it when `BETTER_AUTH_URL` is https) and `X-Robots-Tag: noindex`.
+- [ ] `https://test.yourdomain.com/robots.txt` opens without the password
+      and says `Disallow: /` (`src/proxy.ts`, only while the team password is
+      set). Adding and removing testers, IP lists and search engines:
+      `docs/ACCESS_CONTROL.md`.
 - [ ] `.env`, `storage/` and the database are not reachable from the web.
 - [ ] **Rate limits and the visitor's address.** The site reads the first
       `x-forwarded-for` entry (`src/server/request-origin.ts`, and Better Auth

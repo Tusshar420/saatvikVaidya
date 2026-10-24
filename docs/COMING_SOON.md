@@ -48,6 +48,9 @@ Edit `coming-soon/index.html` (the phone number is in the `tel:` link and the
 button text). Then run `pnpm exec playwright test tests/e2e/coming-soon.spec.ts`
 and upload the changed file again.
 
+Until then, keep the full website off the main address:
+`docs/ACCESS_CONTROL.md` section 1.
+
 ## On 1 November
 
 The full website replaces this page (`docs/LAUNCH_1_NOVEMBER.md`). Keep the

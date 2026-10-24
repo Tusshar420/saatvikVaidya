@@ -8,7 +8,9 @@ import { gatePasses, siteGateFromEnv } from "@/lib/site-gate";
  *
  * 1. On the private test address (STAGING_ACCESS_PASSWORD set) everything
  *    asks for the team's user name and password, and search engines are told
- *    to stay away. With it unset (the live site) this does nothing.
+ *    to stay away: every answer says noindex, and /robots.txt (open without
+ *    the password, so crawlers can read it) disallows everything. With it
+ *    unset (the live site) this does nothing.
  * 2. Sends signed-out visitors of /account/..., /checkout, /orders/...,
  *    /notifications and /admin to sign-in. Bare /account and /orders are
  *    open: they show a sign-in prompt to signed-out visitors (the "You" and
@@ -34,8 +36,20 @@ function needsSession(pathname: string): boolean {
   );
 }
 
+/** What /robots.txt says on the test address: crawl nothing. */
+export const testSiteRobots = "User-agent: *\nDisallow: /\n";
+
 export function proxy(request: NextRequest) {
   const gate = siteGateFromEnv();
+  if (gate && request.nextUrl.pathname === "/robots.txt") {
+    return new NextResponse(testSiteRobots, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow",
+      },
+    });
+  }
   if (gate && !gatePasses(request.headers.get("authorization"), gate)) {
     return new NextResponse("Private test site. Sign in with the team password.", {
       status: 401,

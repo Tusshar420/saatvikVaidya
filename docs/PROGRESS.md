@@ -5012,3 +5012,61 @@ WebKit: styles, logo and fonts load with no errors.
   manual step in hPanel; nothing was uploaded.
 - If the firm wants an email address or WhatsApp link on it, add it to
   `index.html`.
+
+## Access control guide: Coming soon, team access, search engines (2026-10-25)
+
+**What was done.**
+- `docs/ACCESS_CONTROL.md`, for the owner:
+  - keep the Coming soon page on the main address (Node.js app only on
+    `test.`, never the ZIP in the main `public_html`), with checks;
+  - add and remove team members (one shared team password: removing someone
+    means a new `STAGING_ACCESS_PASSWORD`, a restart and resending it, plus
+    Admin > Admins / Admin > Users);
+  - why not hPanel's Password Protect Directories, and the IP Manager allow
+    list as an optional extra only (it works through `.htaccess`, which may
+    not cover a Node.js app, so test it on mobile data);
+  - search engines; what changes on 1 November; a problems table.
+- `src/proxy.ts`: with the team password set, `/robots.txt` is answered
+  directly with `User-agent: *` / `Disallow: /` (plus noindex), **without**
+  the password, so crawlers can read it. It is the only path open without
+  the password. With no password (the live site) it is untouched. Two new
+  cases in `src/proxy.test.ts`.
+- `scripts/package_for_hostinger.sh`: a new safety check stops the package
+  if it carries a site-wide "don't index": a `public/` or `src/app/`
+  robots file with `Disallow: /`, `index: false` in the root layouts, or an
+  `X-Robots-Tag` in `next.config.ts` / `src/lib/security-headers.ts`.
+- Links and checks added in `docs/TEST_DEPLOY_STEPS.md` (step 8, step 9
+  robots check, corrected IP Manager note), `docs/DEPLOY.md` section 5,
+  `docs/LAUNCH_1_NOVEMBER.md` section 6 (live `robots.txt` must not say
+  `Disallow: /`) and `docs/COMING_SOON.md`.
+
+**Decision:** no separate test and live packages. The task suggested a
+noindex file in the test package only. Instead, "test or live" stays one
+switch, the team password in the settings, which already drives the lock,
+the noindex header and the start-up check (test database ⇔ password). With
+one ZIP, the test version can't be uploaded to the main address by mistake
+and hide the live site from Google. The packaging check guards the other way
+round.
+
+**Checked.** `pnpm typecheck`, `pnpm lint`, `pnpm test` (919 tests) and
+`pnpm build` pass. Playwright `shell.spec.ts` and `coming-soon.spec.ts`
+pass (34 tests); the full e2e suite was not run, because no screen changed.
+A local production server with a team password answered `/robots.txt` with
+200 and the two lines without a password, and `/` and `/products` (wrong
+password) with 401. In a throwaway clone the package script passed as is,
+and stopped on a committed `public/robots.txt` with `Disallow: /` and on
+`robots: { index: false }` in `src/app/layout.tsx`. Nothing was uploaded and
+no server was contacted.
+
+**Needs a person**
+- The owner follows `docs/ACCESS_CONTROL.md` on hPanel. A test address that
+  is already up runs the older code, so its `/robots.txt` still asks for the
+  password until a new ZIP is uploaded. The pages are hidden anyway
+  (password and noindex).
+- Whether hPanel's IP Manager covers a Node.js app is unknown; the guide
+  says to test it before relying on it.
+
+**Later**
+- One shared team password means removing one tester changes it for
+  everyone. Personal logins per tester would need a code change (not
+  planned for launch).

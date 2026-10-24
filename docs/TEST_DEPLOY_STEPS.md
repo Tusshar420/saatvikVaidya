@@ -451,13 +451,17 @@ office.
 - It only works if every tester has a **fixed** internet address. Phones on
   mobile data and most home connections change address often, so testers
   would be locked out at random.
-- On shared and Cloud plans, hPanel's **IP Manager** mainly **blocks**
-  addresses. It is not built to "allow only these".
+- hPanel's **IP Manager** can "allow only these", but it works through a
+  web-server file (`.htaccess`) that may not cover a Node.js app. Test it on
+  mobile data before relying on it (`docs/ACCESS_CONTROL.md` section 2).
 - On a VPS, the developer can set a firewall allow list if the team works
   from one fixed office connection. This can be added **on top of** the team
   password, never instead of it.
 
 **Recommendation:** use the team password alone for testing.
+
+Adding and removing team members, the IP list steps, and keeping the test
+address out of Google are all in `docs/ACCESS_CONTROL.md`.
 
 ---
 
@@ -506,6 +510,12 @@ password.
 - [ ] In **Admin > Settings > Payment details (QR and bank)**, fill in the
       UPI ID and bank details, then place one test order. The QR code
       screen appears with the right amount.
+
+### Search engines are kept out
+
+- [ ] Open `https://test.yourdomain.com/robots.txt` in a private window. It
+      shows `User-agent: *` and `Disallow: /` **without** asking for the
+      password.
 
 ### After a few days
 

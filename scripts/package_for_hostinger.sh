@@ -129,6 +129,35 @@ bad_paths="$(cd "$PKG_DIR" && find . \
 bad_sql="$(cd "$PKG_DIR" && find . -type f -name '*.sql' ! -path './prisma/migrations/*')"
 [ -z "$bad_sql" ] || add_problem "database files outside prisma/migrations: $(echo $bad_sql)"
 
+# The same ZIP goes to the test address and, on 1 November, the main
+# address. The test address's "don't index" comes from its settings (the
+# team password: src/proxy.ts sends noindex and answers /robots.txt with
+# "Disallow: /"), never from a file in the package, so a site-wide noindex
+# or blocking robots file found here would hide the live site from search
+# engines. (docs/ACCESS_CONTROL.md)
+noindex_hits=""
+for robots in public/robots.txt src/app/robots.txt; do
+  if [ -f "$PKG_DIR/$robots" ] && grep -qiE '^[[:space:]]*disallow:[[:space:]]*/[[:space:]]*$' "$PKG_DIR/$robots"; then
+    noindex_hits="$noindex_hits $robots"
+  fi
+done
+for robots in src/app/robots.ts src/app/robots.js; do
+  if [ -f "$PKG_DIR/$robots" ] && grep -qiE "disallow:[[:space:]]*[\"'\`]/[\"'\`]" "$PKG_DIR/$robots"; then
+    noindex_hits="$noindex_hits $robots"
+  fi
+done
+for layout in "src/app/layout.tsx" "src/app/(site)/layout.tsx"; do
+  if [ -f "$PKG_DIR/$layout" ] && grep -qE 'index:[[:space:]]*false' "$PKG_DIR/$layout"; then
+    noindex_hits="$noindex_hits $layout"
+  fi
+done
+for headers in next.config.ts src/lib/security-headers.ts; do
+  if [ -f "$PKG_DIR/$headers" ] && grep -qi 'x-robots-tag' "$PKG_DIR/$headers"; then
+    noindex_hits="$noindex_hits $headers"
+  fi
+done
+[ -z "$noindex_hits" ] || add_problem "a site-wide 'don't index' setting would also hide the main site from search engines:$noindex_hits"
+
 # Secret values from this computer's .env.local must not appear anywhere.
 # The values themselves are never printed.
 if [ -f .env.local ]; then
