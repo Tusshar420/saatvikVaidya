@@ -201,13 +201,13 @@ without changing how orders are made, paid or refunded.
 
 **How a QR order works** (`PAYMENT_PROVIDER=manual`, both addresses):
 
-1. The customer checks out. The button says it places the order and shows
-   payment details. The order is saved as "waiting for payment" and the stock
+1. The customer clicks **Place order**. A note under the button says the QR
+   code and bank details come next. The order is saved as "waiting for payment" and the stock
    is held.
 2. The pay screen (`/checkout/pay/<order>`) shows a UPI QR code with the
    amount and order number filled in, the UPI ID and the bank details. These
-   come from Admin > Settings > Payment. If none are filled in, it asks the
-   customer to call the shop instead.
+   come from Admin > Settings. If none are filled in, it asks the customer to
+   call the shop, who then shares the details.
 3. The customer pays from their UPI app or by bank transfer. Nothing on the
    site talks to a bank.
 4. An admin checks that the money arrived and clicks **Mark paid** on the
