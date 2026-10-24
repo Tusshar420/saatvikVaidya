@@ -192,3 +192,63 @@ uploads folder and settings, so accounts, orders and files never mix.
    become live data.
 
 Design and features are unchanged.
+
+## 7. Payment audit (25 October 2026)
+
+**Result: ordering works with the QR payment step, and the payment step is a
+separate, replaceable part.** Razorpay can be added later as one new piece,
+without changing how orders are made, paid or refunded.
+
+**How a QR order works** (`PAYMENT_PROVIDER=manual`, both addresses):
+
+1. The customer checks out. The button says it places the order and shows
+   payment details. The order is saved as "waiting for payment" and the stock
+   is held.
+2. The pay screen (`/checkout/pay/<order>`) shows a UPI QR code with the
+   amount and order number filled in, the UPI ID and the bank details. These
+   come from Admin > Settings > Payment. If none are filled in, it asks the
+   customer to call the shop instead.
+3. The customer pays from their UPI app or by bank transfer. Nothing on the
+   site talks to a bank.
+4. An admin checks that the money arrived and clicks **Mark paid** on the
+   order. The order becomes paid, the stock is sold, the GST invoice is made
+   and the confirmation is sent, the same as with any other payment method.
+
+The same steps apply to Launch Your Brand (bulk branded) orders.
+
+**How it is split up** (`src/server/payments/`):
+
+| Part | What it does |
+|---|---|
+| `types.ts` | The one interface every payment method follows: start a payment, check a result, refund. |
+| `manual-provider.ts` | QR / bank transfer. Only an admin can confirm it. |
+| `test-provider.ts` | "Simulate success / failure", for this computer and the automatic tests only. It refuses to run on a server. |
+| `index.ts` | Picks the method from `PAYMENT_PROVIDER`. |
+| `src/server/checkout/payments.ts` | `completePayment()`: what happens once a payment succeeds or fails. It is the same for every method. |
+
+Each payment row in the database saves the name of the method that took it
+(`Payment.provider`, plain text), so a new method needs no database change.
+
+**Changed in this audit (the smallest fix needed):** refunds
+(`src/server/checkout/refunds.ts`) used to ask the method currently set in
+`PAYMENT_PROVIDER`. Once Razorpay is switched on, cancelling an older QR-paid
+brand order would have sent a QR payment to Razorpay, and the refund would
+have failed. Refunds now go to the method saved on the payment
+(`getPaymentProviderByName()` in `src/server/payments/index.ts`), with a unit
+test. Nothing else changed, and no online payment was added.
+
+**Checked:** typecheck, lint, all 910 unit tests, the QR order browser test
+(`pnpm test:e2e:manual`, phone and desktop) and the checkout, admin and brand
+browser tests (46, including cancel and refund) all pass.
+
+**What the Razorpay ticket will need (later, not now):**
+
+- A new `razorpay-provider.ts`, plus adding `"razorpay"` to the list in
+  `index.ts` and `types.ts`.
+- A Razorpay branch on the pay screen (it already has one each for "manual"
+  and "test"), and a route for Razorpay's signature or webhook that calls
+  `verifyPayment()` and then `completePayment()`.
+- A plan for orders still waiting for a QR payment on the day of the switch.
+  Admins can still mark those paid, since that checks the payment's own method.
+  But their pay screen will show the new method and keep the old QR payment
+  open, so either cancel them first or let a new attempt replace the QR one.

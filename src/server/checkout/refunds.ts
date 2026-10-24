@@ -1,10 +1,11 @@
 import "server-only";
 import { db } from "@/server/db";
-import { getPaymentProvider } from "@/server/payments";
+import { getPaymentProviderByName } from "@/server/payments";
 
 // Refunds (P2.2): a cancelled brand order's payment is given back through
-// the payment provider. With the test provider no money moves; only a
-// made-up refund reference is kept on the payment. Done once: a payment that
+// the provider that took it (not the current PAYMENT_PROVIDER). With the
+// test provider no money moves; only a made-up refund reference is kept on
+// the payment. Done once: a payment that
 // already has a refund is left alone.
 
 /** Refunds the order's successful payment. Returns the refund reference, or null if there was nothing to refund. */
@@ -12,10 +13,10 @@ export async function refundOrderPayment(orderId: string): Promise<string | null
   const payment = await db.payment.findFirst({
     where: { orderId, status: "succeeded", refundedAt: null },
     orderBy: { attempt: "desc" },
-    select: { id: true, reference: true, amountPaise: true },
+    select: { id: true, provider: true, reference: true, amountPaise: true },
   });
   if (!payment) return null;
-  const refund = await getPaymentProvider().refundPayment({
+  const refund = await getPaymentProviderByName(payment.provider).refundPayment({
     reference: payment.reference,
     amountPaise: payment.amountPaise,
   });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getPaymentProvider, paymentsAvailable, PaymentProviderUnavailableError } from "./index";
+import { getPaymentProvider, getPaymentProviderByName, paymentsAvailable, PaymentProviderUnavailableError } from "./index";
 import { testPaymentProvider, testPaymentsAllowed } from "./test-provider";
 
 // The test payment provider never runs on a live site (P1.4).
@@ -68,5 +68,15 @@ describe("getPaymentProvider", () => {
     expect(getPaymentProvider({}).name).toBe("test");
     expect(getPaymentProvider({ PAYMENT_PROVIDER: "test" }).name).toBe("test");
     expect(() => getPaymentProvider({ PAYMENT_PROVIDER: "razorpay" })).toThrow(/Unknown/);
+  });
+});
+
+describe("getPaymentProviderByName", () => {
+  it("finds the provider stored on a payment, whatever PAYMENT_PROVIDER is now", () => {
+    vi.stubEnv("PAYMENT_PROVIDER", "test");
+    expect(getPaymentProviderByName("manual").name).toBe("manual");
+    expect(getPaymentProviderByName("test").name).toBe("test");
+    expect(() => getPaymentProviderByName("razorpay")).toThrow(/Unknown/);
+    expect(() => getPaymentProviderByName("")).toThrow(/Unknown/);
   });
 });

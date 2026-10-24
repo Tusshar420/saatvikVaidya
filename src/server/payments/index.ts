@@ -25,6 +25,18 @@ export function getPaymentProvider(env: Partial<Record<string, string>> = proces
   return providers[parsed.data];
 }
 
+/**
+ * The provider that took a payment, from the name stored on it (Payment.provider).
+ * Use this, not getPaymentProvider(), for anything done to an existing
+ * payment (e.g. a refund), so switching PAYMENT_PROVIDER later doesn't send
+ * an older payment to the wrong provider.
+ */
+export function getPaymentProviderByName(name: string): PaymentProvider {
+  const parsed = providerSchema.unwrap().safeParse(name);
+  if (!parsed.success) throw new Error(`Unknown payment provider "${name}" on a payment.`);
+  return providers[parsed.data];
+}
+
 /** True when online payment can be taken right now (checkout shows "coming soon" otherwise). */
 export function paymentsAvailable(): boolean {
   return getPaymentProvider().isAvailable();
