@@ -20,7 +20,8 @@ type Env = Partial<
 >;
 
 const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
-const testishName = /test|staging/i;
+/** A test address's database name says so; a live one's never does. */
+export const testishName = /test|staging/i;
 
 function parseUrl(value: string | undefined): URL | null {
   if (!value) return null;

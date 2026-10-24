@@ -162,7 +162,34 @@ live database is new.
 ### Clearing the test address (Saturday 31 October)
 
 The test address keeps running after launch, for future testing, so it is
-emptied rather than deleted.
+emptied rather than deleted. The tool for this is `pnpm db:clear-test-data`
+(the code is `scripts/clear-test-data.ts`).
+
+**What it removes:** every order (store and Launch Your Brand, with their
+payments, invoices and delivery steps), every quiz attempt, every Super Coin
+entry, all notifications, bug reports and error log entries, and **every
+account that is not an admin** (doctors, regular and bulk buyers, with their
+addresses, carts, Launch drafts, brand profiles, threads and uploaded
+documents). Stock that unpaid test orders were holding is given back.
+
+**What it keeps:** admin (staff) accounts, the products and their stock
+levels, quizzes, e-books, courses, the home page content, settings and the
+admin log. (Courses can't be bought on the site yet, so there are no course
+purchases to clear; paid e-books are orders and are cleared with them.)
+
+**Safety locks.** It does nothing unless all of these are true:
+
+- the database name contains `test` or `staging` (for example
+  `u123456789_saatvik_test`);
+- the settings are the test address's (the team password
+  `STAGING_ACCESS_PASSWORD` is set), not the live site's;
+- you asked for `--delete`, **and** then typed the database name exactly when
+  it asked. Anything else cancels.
+
+Without `--delete` it is a **dry run**: it only lists what it would remove
+and keep, and changes nothing.
+
+Steps:
 
 1. hPanel > the **test** Node.js app > open the **terminal** (Advanced > SSH
    Access, or the browser Terminal button).
@@ -172,48 +199,65 @@ emptied rather than deleted.
    ```
 3. First a dry run. It only counts, it changes nothing:
    ```
-   pnpm db:clear-test-data
+   pnpm db:clear-test-data --dry-run
    ```
-   Check the first line it prints: `Database: ..._saatvik_test on ...`. **If
-   the name does not contain `test`, stop** and call the developer: you are
-   in the wrong folder.
-4. If the counts look right (all test orders, all non-admin accounts):
+   It prints something like this:
    ```
-   pnpm db:clear-test-data --yes
-   ```
-   It removes every order, invoice, bug report, error log entry and every
-   non-admin account (with their carts, coins, quiz attempts, threads,
-   notifications and uploaded files). It keeps admin accounts, the catalogue,
-   content, settings and stock levels.
-5. Run the dry run again. Orders and accounts should now be `0`.
-6. In the test site's Admin > Users, check only staff admin accounts are
-   left. Remove any admin account made just for testing.
+   Database: u123456789_saatvik_test on localhost
 
-### On the live site: only in the quiet window, never after opening
+   Would remove:
+     Accounts (not admins):  14 (6 Ayurveda Doctor, 5 Customer, 3 Pharmacy / Store)
+     Orders:                 22 (4 Launch Your Brand), with 25 payment(s) and 9 invoice(s)
+     Quiz attempts:          11
+     ...
+   Keeps:
+     Admin accounts:         2 (admin@..., staff@...)
+     Products:               171, with their stock levels
+     ...
+   Dry run: nothing was changed. Run with --delete to remove it.
+   ```
+   Check the first line: the name must be the **test** database. If it
+   says `Stopped, nothing was changed.`, read the reason; usually you are in
+   the wrong folder. Call the developer rather than changing settings.
+4. Check the "Keeps" list: every admin account named there must be a real
+   staff member's. If the counts look right:
+   ```
+   pnpm db:clear-test-data --delete
+   ```
+   It shows the same list, then asks you to **type the database name**. Type
+   it exactly and press Enter. It ends with `Done. Removed the test data and
+   N file(s) ...`. Typing anything else prints `Cancelled: nothing was
+   changed.`
+5. Run the dry run again. Accounts, orders and quiz attempts should now be
+   `0`.
+6. In the test site's Admin > Admins, remove any admin account made just for
+   testing (the script keeps every admin). Set the stock in Admin > Inventory
+   if the testers' paid orders used it up: stock that a **paid** test order
+   took is not put back.
+
+**Never** copy the test database to the live site, or the live database to
+the test address, to "save time". The two must stay separate.
+
+### On the live site: the script refuses to run
 
 On launch morning the team places **one rehearsal order** on the live site
-(section 6). It is removed with the same command, **in the live app's
-folder**, while Maintenance mode is still on:
+(section 6). `pnpm db:clear-test-data` **won't** clear it: on the live site
+it stops at once with `Stopped, nothing was changed` (the live database has
+no `test` in its name). That is on purpose, so no one can ever wipe real
+customers with it. Clean up by hand instead, while Maintenance mode is still
+on:
 
-```
-pnpm db:clear-test-data          # dry run: expect 1 order and 1 or 2 accounts
-pnpm db:clear-test-data --yes
-```
-
-> **Danger.** On the live site this command deletes **every** customer
-> account and **every** order. Run it there **only** before Maintenance mode
-> is switched off on 1 November. **Never** after the site is open. If in
-> doubt, don't run it, and cancel the rehearsal order in Admin > Orders
-> instead.
-
-The rehearsal order is never marked paid, so no stock is taken and no
-invoice is made.
+1. **Admin > Orders** > the rehearsal order > **Cancel order** (note:
+   "Launch rehearsal"). It stays in the list as Cancelled, which is fine: it
+   was never paid, so no stock was taken and no invoice was made.
+2. **Admin > Users**: delete any account a tester made for the rehearsal.
+   (Testers who sign in as admins leave nothing to delete.)
 
 ### Before the test data is gone for good
 
 Nothing from testing needs keeping. If the team wants a record of bugs found,
 export or screenshot the bug reports in Admin > Errors on the test address
-**before** step 4.
+**before** step 4 (the script removes them).
 
 ---
 
@@ -375,8 +419,8 @@ Signed in as admin, while Maintenance mode is on:
 ## 6. Launch-day checks and opening (09:00)
 
 Testers sign in to the live site as admins **or** with their own new
-accounts (accounts are fine; they are removed with the rehearsal order in
-step 3 below if needed). Check on **a phone (375 px wide, or any phone)** and
+accounts (accounts are fine; they are deleted by hand in Admin > Users after
+the checks, see "Clean up the rehearsal" below). Check on **a phone (375 px wide, or any phone)** and
 **a computer**.
 
 ### Checks while Maintenance mode is still on
@@ -408,11 +452,11 @@ step 3 below if needed). Check on **a phone (375 px wide, or any phone)** and
 
 ### Clean up the rehearsal (only now, only before opening)
 
-1. In the live app's terminal, run the dry run and then the clear, exactly as
-   in section 3, "On the live site". Check the first line says the **live**
-   database name.
-2. Check Admin > Orders is empty and only staff admin accounts are left in
-   Admin > Users.
+1. Cancel the rehearsal order and delete the testers' accounts by hand, as
+   in section 3, "On the live site". (`pnpm db:clear-test-data` refuses to
+   run on the live site, on purpose.)
+2. Check Admin > Orders shows only the cancelled rehearsal order, and Admin >
+   Users shows only staff admin accounts.
 
 ### Go/no-go and open (about 10:30)
 

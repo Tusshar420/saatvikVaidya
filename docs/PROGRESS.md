@@ -4904,3 +4904,61 @@ server.
 - The maintenance page says "Maintenance / We'll be back very soon"; only the
   message is editable. When the planned Coming soon page phase is done,
   update the rollback section.
+
+## Clearing test data safely before launch (2026-10-25)
+
+**What was done.** `pnpm db:clear-test-data` (`scripts/clear-test-data.ts`)
+was rebuilt around a tested module, `src/server/launch/clear-test-data.ts`
+(`clearTargetProblem`, `countTestData`, `clearTestData`).
+- **Dry run by default** (`--dry-run` also accepted). It lists what would be
+  removed (accounts by type, orders with Launch orders, payments, invoices,
+  quiz attempts, coin entries, threads, notifications, bug reports, error log
+  entries, stock holds, files) and what is kept (admin emails, products,
+  quizzes, e-books, courses).
+- **`--delete`** shows the same list, then asks the person to type the
+  database name. Anything else cancels. With no terminal (piped input) it
+  refuses. Unknown options (including the old `--yes`) stop with a message.
+- **Refuses** unless the database name contains `test` or `staging` (the
+  `testishName` rule, now exported from `src/server/site-check.ts`), the
+  settings are not the live site's (server address with no team password),
+  and the live connection's `SELECT DATABASE()` matches the setting.
+- Fixed while there: unpaid and Launch orders' **stock holds are given back**
+  before their orders are deleted (before, Launch component holds, which
+  never lapse, stayed reserved for ever). Also removes quiz attempts and coin
+  entries of every account, all notifications, error groups (not only
+  occurrences), and bug-report screenshots on disk.
+- Docs: `docs/LAUNCH_1_NOVEMBER.md` section 3 (what it removes and keeps,
+  the safety locks, sample output, steps), and `docs/DEPLOY.md` section 6.
+
+**Decisions**
+- Kept it in TypeScript (the task suggested a Python script). It reuses the
+  Prisma client and runs with the `pnpm` the server already has; Python and a
+  MySQL driver may not be on the Hostinger plan.
+- "Test" means everything on the test address except admin accounts. All
+  admins are kept and listed in the dry run; testing-only admins are removed
+  by hand in Admin > Admins.
+- Because it now refuses the live database, the **launch-morning rehearsal
+  order is cleaned up by hand**: cancel it in Admin > Orders (it stays as
+  Cancelled, never paid) and delete testers' accounts in Admin > Users.
+  `docs/LAUNCH_1_NOVEMBER.md` sections 3 and 6 say so.
+- Courses can't be bought yet (only course teasers), so there are no course
+  purchases to clear; paid e-books are orders and go with them.
+- Stock taken by **paid** test orders is not put back (as before): set the
+  real stock in Admin > Inventory afterwards.
+
+**Checked.** New Vitest file `src/server/launch/clear-test-data.test.ts` (8
+tests: allowed and refused settings, connection check, dry run changes
+nothing, real run removes accounts, orders, attempts, coins, holds and files
+and keeps the admin, the admin's thread, quizzes and products). On a copy of
+the local database (`saatvik_vaidya_copy_test`, dropped afterwards): the dry
+run listed 2 accounts, 13 orders (5 Launch), 2 quiz attempts, 19 files and
+changed nothing; the real local database `saatvik_vaidya` was refused; with a
+fake terminal a wrong name cancelled and the right name cleared the copy (171
+products and 2 quizzes kept, files removed from a temporary folder only).
+`pnpm typecheck`, `pnpm lint`, `pnpm test` (918 tests) and `pnpm build` pass.
+`pnpm test:e2e` was not run: no screen changed.
+
+**Later**
+- If course purchases are added, add them to `clearTestData` and its test.
+- `tests/setup/content-db.ts` `clearAuthTables` doesn't empty bug reports or
+  error groups; the new test clears them itself.

@@ -178,15 +178,20 @@ Use the test address on a phone and a computer. Tick each line.
 2. **Clear test data.** The live site gets its own new database (section 7),
    so test accounts and orders never reach it; the site refuses to start if
    the live address points at a database named like a test one. Clear the
-   test database when testing ends:
+   test database when testing ends (full steps and what it prints:
+   `docs/LAUNCH_1_NOVEMBER.md` section 3):
    ```
-   pnpm db:clear-test-data          # only counts what it would remove
-   pnpm db:clear-test-data --yes    # removes it
+   pnpm db:clear-test-data --dry-run   # only lists what it would remove
+   pnpm db:clear-test-data --delete    # asks you to type the database name, then removes it
    ```
-   It removes all orders, invoices, bug reports, error log entries and every
-   non-admin account (with their carts, coins, threads and uploaded files). It
-   keeps admins, the catalogue, content and settings. It does **not** put
-   stock back: set the real stock in Admin > Inventory afterwards.
+   It removes all orders, invoices, quiz attempts, coins, notifications, bug
+   reports, error log entries and every non-admin account (with their carts,
+   threads and uploaded files), and gives back stock held by unpaid orders.
+   It keeps admins, the catalogue, quizzes, courses, content and settings. It
+   does **not** put back stock that paid test orders took: set the real stock
+   in Admin > Inventory afterwards. It refuses to run unless the database name
+   contains `test` or `staging` and the settings are the test address's, so
+   it can't be used on the live site.
 3. Admin > Settings: payment details, seller details (legal name, address,
    GSTIN for invoices), phone number, delivery fee, discount. Turn off any
    announcement used for testing.
