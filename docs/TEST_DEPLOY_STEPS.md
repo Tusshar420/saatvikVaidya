@@ -537,4 +537,4 @@ and give them the testing checklist in `docs/DEPLOY.md` section 3.
 - Security checks for the developer (headers, rate limits, backups):
   `docs/DEPLOY.md` section 5.
 - Clearing test accounts and orders before launch, and switching the main
-  address on 1 November: `docs/DEPLOY.md` sections 6 and 7.
+  address on 1 November: `docs/LAUNCH_1_NOVEMBER.md`.

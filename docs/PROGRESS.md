@@ -4873,3 +4873,34 @@ Nothing was uploaded and no server was contacted.
 **Decision:** the package is source code, built on Hostinger, as the guide
 already says. A ready-built package (if the plan can't finish `pnpm build`,
 risk 2 in `docs/SITE_OVERVIEW.md`) would be a separate change.
+
+## Launch day plan for 1 November (2026-10-25)
+
+**What was done.** Added `docs/LAUNCH_1_NOVEMBER.md`: roles, before-launch
+checklist (29 to 31 October), clearing test data, the live settings file,
+the launch-morning switch (Sunday 1 November, quiet window 07:00 to about
+11:00), HTTPS on the main address, launch-day checks and a three-level
+rollback. Linked from `docs/DEPLOY.md` section 7 and
+`docs/TEST_DEPLOY_STEPS.md`. Documentation only; nothing was run against a
+server.
+
+**Decisions**
+- The live site gets a new app and a new, empty database; test data can't
+  reach it. The test address is emptied with `pnpm db:clear-test-data` on
+  31 October and kept for later testing.
+- On launch morning the site's Maintenance mode is switched on straight after
+  `admin:create`, so visitors see a "back soon" page while the team checks
+  the live site and places one rehearsal order (cleared before opening).
+  Rollback level 1 is Maintenance mode back on (1 minute); level 2 restores
+  the backed-up Coming soon page.
+
+**Needs a person / risks**
+- Find out how the current Coming soon page is hosted and how hPanel replaces
+  it with a Node.js app (30 October). This sets how fast a full rollback is.
+- Owner decisions by 29 October: launching without "forgot password" emails,
+  phone-code sign-in and order emails (no email or SMS provider yet), and
+  `yourdomain.com` vs `www.` (sign-in only works on the `BETTER_AUTH_URL`
+  address, so the other must forward to it).
+- The maintenance page says "Maintenance / We'll be back very soon"; only the
+  message is editable. When the planned Coming soon page phase is done,
+  update the rollback section.

@@ -194,6 +194,9 @@ Use the test address on a phone and a computer. Tick each line.
 
 ## 7. 1 November: the main address
 
+The full launch-day plan (checklists, who does what, timings and rollback) is
+`docs/LAUNCH_1_NOVEMBER.md`. Summary:
+
 Until then the main address keeps its "Coming soon" page. To switch:
 
 1. Create the live app and live database for the main domain (as in section 1,
