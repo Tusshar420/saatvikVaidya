@@ -8,6 +8,9 @@
 /out/
 /build
 next-env.d.ts
+
+# Hostinger upload package (scripts/package_for_hostinger.sh)
+/dist/
 *.tsbuildinfo
 
 # generated Prisma client (rebuilt by `pnpm install` / `pnpm db:generate`)
