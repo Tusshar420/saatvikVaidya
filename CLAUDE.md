@@ -10,7 +10,8 @@ firm. Work here is often done by unattended Octopus runs, one chunk at a time.
 2. `docs/DESIGN.md`: the design system. Every screen follows it.
 3. `docs/PROGRESS.md`: what earlier chunks did and left behind.
 4. `docs/CHUNKS.md`: the chunk list; each task names its chunk.
-5. `docs/mockup-v2/`: the client's current UI for every screen (October
+5. `docs/BACKLOG.md`: ideas and work agreed for later (for example U.17).
+6. `docs/mockup-v2/`: the client's current UI for every screen (October
    2026), with screenshots in `screens/`. It replaces the older
    `docs/mockup/`. Both are read-only references; never edit them.
 

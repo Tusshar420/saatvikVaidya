@@ -4821,5 +4821,5 @@ all pass.
 - Check on Hostinger: Node 24 available, and that its proxy overwrites
   `x-forwarded-for` (rate limits).
 - Real UPI ID and bank details must be entered in Admin > Settings.
-- U.17 (full mockup comparison and Lighthouse pass) was not done.
+- U.17 (full mockup comparison and Lighthouse pass) was not done; moved to `docs/BACKLOG.md` by owner decision.
 - `/launch` being public still needs the owner's confirmation (see earlier entry).
