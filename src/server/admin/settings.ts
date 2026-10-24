@@ -14,13 +14,14 @@ import { blankToNull, checkbox, fieldErrorsOf, optionalLinkTarget } from "./form
 // the cached settings so the site shows the change at once. Call it from a
 // server action (updateTag only works there).
 
-export type SettingsGroup = "contact" | "announcement" | "shipping" | "discount" | "seller" | "switches";
+export type SettingsGroup = "contact" | "announcement" | "shipping" | "discount" | "payment" | "seller" | "switches";
 
 export const settingsGroups: readonly SettingsGroup[] = [
   "contact",
   "announcement",
   "shipping",
   "discount",
+  "payment",
   "seller",
   "switches",
 ];
@@ -78,6 +79,14 @@ const forms = {
       .regex(/^\d{1,2}$/, errors.percent)
       .transform(Number)
       .pipe(z.number().min(0, errors.percent).max(90, errors.percent)),
+  }),
+  payment: z.object({
+    payeeName: text(80, errors.text),
+    upiId: z.string({ error: errors.upi }).trim().max(80, errors.upi),
+    bankName: z.string({ error: errors.text }).trim().max(80, errors.text),
+    accountNumber: z.string({ error: errors.account }).trim().max(24, errors.account),
+    ifsc: z.string({ error: errors.ifsc }).trim().toUpperCase().max(11, errors.ifsc),
+    note: z.string({ error: errors.text }).trim().max(300, errors.text),
   }),
   seller: z.object({
     legalName: text(120, errors.text),
@@ -139,6 +148,9 @@ export function parseSettingsForm(
       changes["pricing.discount"] = { percent: v.percent };
       break;
     }
+    case "payment":
+      changes["payment.manual"] = parsed.data as z.infer<typeof forms.payment>;
+      break;
     case "seller": {
       const v = parsed.data as z.infer<typeof forms.seller>;
       changes["invoice.seller"] = v;
@@ -175,6 +187,11 @@ function groupField(key: SettingKey, property: string): string {
 }
 
 function errorFor(key: SettingKey, property: string): string {
+  if (key === "payment.manual") {
+    if (property === "upiId") return errors.upi;
+    if (property === "accountNumber") return errors.account;
+    if (property === "ifsc") return errors.ifsc;
+  }
   if (key === "invoice.seller") {
     if (property === "stateCode") return errors.state;
     if (property === "pincode") return errors.pincode;
@@ -264,7 +281,7 @@ export async function readSettingHistory(take = 12) {
 
 /** Everything the settings page shows, read straight through getSetting(). */
 export async function readSettingsForAdmin() {
-  const [phone, supportNote, popular, tagline, shipping, discount, seller, announcement, checkout, coins, ebooks, maintenance] =
+  const [phone, supportNote, popular, tagline, shipping, discount, seller, announcement, checkout, coins, ebooks, maintenance, payment] =
     await Promise.all([
       getSetting("contact.phone"),
       getSetting("contact.supportNote"),
@@ -278,6 +295,7 @@ export async function readSettingsForAdmin() {
       getSetting("coins.rules"),
       getSetting("ebooks.downloads"),
       getSetting("site.maintenance"),
+      getSetting("payment.manual"),
     ]);
-  return { phone, supportNote, popular, tagline, shipping, discount, seller, announcement, checkout, coins, ebooks, maintenance };
+  return { phone, supportNote, popular, tagline, shipping, discount, seller, announcement, checkout, coins, ebooks, maintenance, payment };
 }

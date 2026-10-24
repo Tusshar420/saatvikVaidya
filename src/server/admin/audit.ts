@@ -31,6 +31,7 @@ export type AdminAction =
   | "product.image.update"
   | "product.image.delete"
   | "order.cancel"
+  | "order.mark_paid"
   | "shipment.create"
   | "shipment.update"
   | "brand.proof.upload"

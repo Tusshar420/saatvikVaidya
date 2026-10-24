@@ -59,6 +59,10 @@ export async function saveDiscountAction(_: FormState, formData: FormData) {
   const { user } = await requireAdmin("settings", "/admin/settings");
   return save(user.id, "discount", formData);
 }
+export async function savePaymentAction(_: FormState, formData: FormData) {
+  const { user } = await requireAdmin("settings", "/admin/settings");
+  return save(user.id, "payment", formData);
+}
 export async function saveSellerAction(_: FormState, formData: FormData) {
   const { user } = await requireAdmin("settings", "/admin/settings");
   return save(user.id, "seller", formData);

@@ -8,6 +8,7 @@ import { orderIdPattern } from "@/lib/orders";
 import { shipmentStatuses } from "@/lib/shipping";
 import type { FormState } from "@/server/admin/form";
 import { cancelOrder } from "@/server/admin/orders";
+import { markOrderPaid } from "@/server/admin/order-payment";
 import { requireAdmin } from "@/server/auth/session";
 import { ShippingProviderUnavailableError } from "@/server/shipping";
 import { createShipment, simulateShipmentStep, type ShipmentResult } from "@/server/shipping/shipments";
@@ -96,4 +97,14 @@ export async function cancelOrderAction(_: FormState, formData: FormData): Promi
   refresh(parsed.data.orderId);
   if (!result.ok) return { status: "error", message: text.cancelFailed };
   return { status: "success", message: text.cancelled(result.restocked) };
+}
+
+export async function markPaidAction(_: FormState, formData: FormData): Promise<FormState> {
+  const { user } = await requireAdmin("orders");
+  const orderId = orderIdSchema.safeParse(formData.get("orderId"));
+  if (!orderId.success) return { status: "error", message: text.markPaid.errors.not_found };
+  const result = await markOrderPaid(user.id, orderId.data);
+  refresh(orderId.data);
+  if (!result.ok) return { status: "error", message: text.markPaid.errors[result.error] };
+  return { status: "success", message: result.changed ? text.markPaid.done : text.markPaid.unchanged };
 }

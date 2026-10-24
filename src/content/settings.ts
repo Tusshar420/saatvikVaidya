@@ -70,6 +70,20 @@ export type SettingValues = {
    * Whole percent, 0 to 90; 0 turns it off. Editable in /admin/settings.
    */
   "pricing.discount": { percent: number };
+  /**
+   * Where customers pay when PAYMENT_PROVIDER=manual: they place the order,
+   * then pay by UPI QR code or bank transfer, and an admin marks it paid.
+   * `upiId` makes the QR code (amount and order number filled in); empty
+   * fields are left out of the payment screen.
+   */
+  "payment.manual": {
+    payeeName: string;
+    upiId: string;
+    bankName: string;
+    accountNumber: string;
+    ifsc: string;
+    note: string;
+  };
   /** Checkout switch (P1.9): off stops new orders; carts still work. */
   "checkout.enabled": { enabled: boolean };
   /**
@@ -122,6 +136,15 @@ export const settingDefaults: SettingValues = {
   "ebooks.downloads": { enabled: true },
   "site.announcement": { enabled: false, text: "", href: null },
   "pricing.discount": { percent: 20 },
+  // Placeholders until the client sends the firm's UPI and bank details.
+  "payment.manual": {
+    payeeName: "Saatvik Vaidya",
+    upiId: "",
+    bankName: "",
+    accountNumber: "",
+    ifsc: "",
+    note: "",
+  },
   "checkout.enabled": { enabled: true },
   "site.maintenance": {
     enabled: false,

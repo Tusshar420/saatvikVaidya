@@ -3,7 +3,7 @@
 // to checkout: it would create a Razorpay order in createPayment() and check
 // the signature (or webhook) in verifyPayment().
 
-export type PaymentProviderName = "test";
+export type PaymentProviderName = "test" | "manual";
 
 export type CreatePaymentInput = {
   orderId: string;

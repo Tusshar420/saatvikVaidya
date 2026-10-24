@@ -141,6 +141,7 @@ export const admin = {
       "product.image.update": "Edited product image",
       "product.image.delete": "Deleted product image",
       "order.cancel": "Cancelled order",
+      "order.mark_paid": "Marked order paid",
       "shipment.create": "Created shipment",
       "shipment.update": "Moved shipment on",
       "brand.proof.upload": "Sent a label proof",
@@ -831,6 +832,20 @@ export const admin = {
     },
     paymentsTitle: "Payments",
     paymentsEmpty: "No payment attempts.",
+    markPaid: {
+      title: "Waiting for payment by QR or bank transfer",
+      line: "Check that the money has arrived in the account, then mark this order paid. The customer gets a confirmation, the invoice is made and the stock is taken.",
+      button: "Mark as paid",
+      done: "Marked as paid. The invoice and confirmation are on their way.",
+      unchanged: "This order was already paid.",
+      errors: {
+        not_found: "That order could not be found.",
+        not_manual: "This payment was not made by QR or bank transfer, so it can't be marked paid here.",
+        not_pending: "This order is no longer waiting for payment. Refresh the page.",
+        out_of_stock:
+          "An item in this order ran out of stock, so it could not be marked paid. Check the stock, then ask the customer to try again.",
+      },
+    },
     payment: (attempt: number, provider: string) =>
       `Attempt ${attempt} · ${provider === "test" ? "test payment" : provider}`,
     paymentStatus: {

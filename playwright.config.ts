@@ -7,6 +7,9 @@ const exclusive = /\.exclusive\.spec\.ts$/;
 // Quiz & Win: one open quiz shows on the homepage, so this spec runs alone,
 // after the exclusive ones (they change site-wide settings at the same time).
 const last = /\.last\.spec\.ts$/;
+// Pay by QR / bank transfer needs PAYMENT_PROVIDER=manual, so it has its own
+// server and config: playwright.manual.config.ts.
+const manual = /\.manual\.spec\.ts$/;
 
 const phone = {
   ...devices["Pixel 7"],
@@ -42,12 +45,12 @@ export default defineConfig({
   projects: [
     {
       name: "phone",
-      testIgnore: [exclusive, last],
+      testIgnore: [exclusive, last, manual],
       use: phone,
     },
     {
       name: "desktop",
-      testIgnore: [exclusive, last],
+      testIgnore: [exclusive, last, manual],
       use: desktop,
     },
     // Specs that change site-wide settings (maintenance mode, checkout off,

@@ -69,6 +69,9 @@ export const checkout = {
   place: {
     button: "Place order and pay",
     note: "You'll see the payment screen next. Prices are checked again when you place the order.",
+    manualButton: "Place order",
+    manualNote:
+      "You'll see how to pay by QR code or bank transfer next. Prices are checked again when you place the order.",
     needAddress: "Choose or add a delivery address first.",
     errors: {
       address: "Choose a delivery address.",
@@ -103,6 +106,27 @@ export const checkout = {
     failure: "Simulate failure",
     start: "Continue to payment",
     noAttempt: "This order isn't waiting for a payment right now.",
+    manual: {
+      badge: "Pay by QR or bank transfer",
+      title: "Your order is placed. Now pay to confirm it.",
+      line: "Pay the amount below using the QR code or the bank details. Your order goes ahead as soon as we see the payment.",
+      scanTitle: "Scan with any UPI app",
+      scanLabel: (amount: string) => `UPI QR code for ${amount}`,
+      upiId: "UPI ID",
+      bankTitle: "Or pay by bank transfer",
+      payee: "Name",
+      bankName: "Bank",
+      accountNumber: "Account number",
+      ifsc: "IFSC code",
+      reference: "Write this order number in the payment note",
+      note: "Good to know",
+      afterTitle: "What happens next",
+      after:
+        "We check the payment and mark your order paid, usually within a few working hours. You'll get a confirmation and can follow it on your orders page.",
+      notReady: (phone: string) =>
+        `Our payment details are not set up yet. Please call ${phone} and we will share them.`,
+      viewOrders: "View my orders",
+    },
   },
 
   confirmation: {

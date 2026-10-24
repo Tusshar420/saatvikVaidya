@@ -19,7 +19,7 @@ import { checkoutOffer } from "@/server/coins/ledger";
 import { computeTotals } from "@/server/checkout/totals";
 import { listAddresses } from "@/server/checkout/addresses";
 import { getSetting } from "@/server/content/settings";
-import { paymentsAvailable } from "@/server/payments";
+import { getPaymentProvider, paymentsAvailable } from "@/server/payments";
 import { getPricingViewer } from "@/server/pricing";
 
 export const metadata: Metadata = {
@@ -118,6 +118,9 @@ export default async function CheckoutPage() {
               totalPaise: line.lineTotalPaise,
             })),
           ]}
+          {...(getPaymentProvider().name === "manual"
+            ? { placeLabel: copy.place.manualButton, placeNote: copy.place.manualNote }
+            : {})}
           paymentsOff={
             paymentsAvailable() ? null : (
               <ComingSoon

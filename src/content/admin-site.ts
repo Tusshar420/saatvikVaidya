@@ -51,6 +51,19 @@ export const adminSettings = {
       percentHelp:
         "Taken off every price for everyone, including professional and bulk prices. Shown on the site as a percentage off with the old price struck through. Enter 0 to turn it off.",
     },
+    payment: {
+      title: "Payment details (QR and bank)",
+      payeeName: "Name shown to customers",
+      upiId: "UPI ID",
+      upiIdHelp:
+        'For example "saatvik@okaxis". Customers get a QR code for it with the amount and order number filled in. Leave empty to show no QR code.',
+      bankName: "Bank name",
+      accountNumber: "Account number",
+      ifsc: "IFSC code",
+      ifscHelp: "For example HDFC0001234.",
+      note: "Note for customers",
+      noteHelp: "Optional. Shown under the payment details, up to 300 characters.",
+    },
     seller: {
       title: "Seller details on invoices",
       legalName: "Legal name",
@@ -90,6 +103,9 @@ export const adminSettings = {
     addressLines: "Add one to three lines, each up to 120 characters.",
     state: "Choose a state.",
     pincode: "Enter a 6-digit PIN code.",
+    upi: 'Enter a UPI ID such as "name@bank", or leave empty.',
+    account: "Enter 6 to 24 digits, or leave empty.",
+    ifsc: "Enter an IFSC code such as HDFC0001234, or leave empty.",
     gstin: "Enter a valid GSTIN that starts with the state's GST code.",
   },
 };

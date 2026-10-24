@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { ActivityList } from "@/components/admin/activity-list";
 import { CancelOrder } from "@/components/admin/cancel-order";
+import { MarkPaid } from "@/components/admin/mark-paid";
 import {
   DataTable,
   TBody,
@@ -213,6 +214,11 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
             <h2 id="order-payments" className="text-h3 text-ink">
               {text.paymentsTitle}
             </h2>
+            {order.status === "pending_payment" && order.payments.some((p) => p.status === "created" && p.provider === "manual") && (
+              <div className="mt-3">
+                <MarkPaid orderId={order.id} />
+              </div>
+            )}
             {order.payments.length === 0 ? (
               <p className="mt-3 text-sm text-muted">{text.paymentsEmpty}</p>
             ) : (

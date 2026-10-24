@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { FlaskConical } from "lucide-react";
 import { retryPaymentAction, simulatePaymentAction } from "@/app/(site)/checkout/actions";
 import { OrderItemsSummary } from "@/components/site/checkout/order-items-summary";
+import { ManualPayment } from "@/components/site/checkout/manual-payment";
 import { SubmitButton } from "@/components/site/checkout/submit-button";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 
@@ -42,7 +43,7 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
 
   const provider = getPaymentProvider();
   const live = order.payment?.status === "created" ? order.payment : null;
-  const phone = await getSetting("contact.phone");
+  const [phone, manualDetails] = await Promise.all([getSetting("contact.phone"), getSetting("payment.manual")]);
 
   return (
     <div className="shell py-8 sm:py-12">
@@ -70,6 +71,13 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
               title={copy.paymentsOff.title}
               description={copy.paymentsOff.line(phone)}
               className="mt-5"
+            />
+          ) : provider.name === "manual" ? (
+            <ManualPayment
+              details={manualDetails}
+              amountPaise={order.totalPaise}
+              orderNumber={order.number}
+              phone={phone}
             />
           ) : live ? (
             <div className="mt-5 rounded-lg border-2 border-dashed border-orange/60 bg-orange-soft/50 p-4 sm:p-5">

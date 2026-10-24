@@ -56,6 +56,15 @@ export const settingSchemas = {
     href: linkTargetSchema.nullable(),
   }),
   "pricing.discount": z.object({ percent: z.number().int().min(0).max(90) }),
+  "payment.manual": z.object({
+    payeeName: z.string().trim().min(1).max(80),
+    // name@bank: letters, digits, dots, dashes and underscores.
+    upiId: z.string().trim().max(80).regex(/^([\w.-]{2,60}@[a-zA-Z][\w.-]{1,30})?$/),
+    bankName: z.string().trim().max(80),
+    accountNumber: z.string().trim().max(24).regex(/^(\d{6,24})?$/),
+    ifsc: z.string().trim().max(11).regex(/^([A-Z]{4}0[A-Z0-9]{6})?$/),
+    note: z.string().trim().max(300),
+  }),
   "checkout.enabled": z.object({ enabled: z.boolean() }),
   "site.maintenance": z.object({
     enabled: z.boolean(),

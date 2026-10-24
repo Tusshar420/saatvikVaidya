@@ -71,7 +71,7 @@ import {
 } from "@/server/brand/profiles";
 import { listAddresses } from "@/server/checkout/addresses";
 import { getSetting } from "@/server/content/settings";
-import { paymentsAvailable } from "@/server/payments";
+import { getPaymentProvider, paymentsAvailable } from "@/server/payments";
 
 export const metadata: Metadata = {
   title: copy.launch.metaTitle,
@@ -1193,8 +1193,8 @@ async function ReviewStep({
           }))}
           placeAction={placeBrandOrderAction}
           saveAddress={saveBrandAddressAction}
-          placeLabel={text.place}
-          placeNote={text.note}
+          placeLabel={getPaymentProvider().name === "manual" ? checkoutCopy.place.manualButton : text.place}
+          placeNote={getPaymentProvider().name === "manual" ? checkoutCopy.place.manualNote : text.note}
           paymentsOff={
             paymentsAvailable() ? null : (
               <ComingSoon

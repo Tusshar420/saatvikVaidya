@@ -5,6 +5,7 @@ import {
   saveAnnouncementAction,
   saveContactAction,
   saveDiscountAction,
+  savePaymentAction,
   saveSellerAction,
   saveShippingAction,
   saveSwitchesAction,
@@ -63,6 +64,14 @@ export type SettingsFormsProps = {
   announcement: { enabled: boolean; text: string; href: string };
   shipping: { fee: string; freeFrom: string };
   discount: { percent: string };
+  payment: {
+    payeeName: string;
+    upiId: string;
+    bankName: string;
+    accountNumber: string;
+    ifsc: string;
+    note: string;
+  };
   seller: {
     legalName: string;
     addressLines: string;
@@ -80,7 +89,7 @@ export type SettingsFormsProps = {
   };
 };
 
-export function SettingsForms({ contact, announcement, shipping, discount, seller, switches }: SettingsFormsProps) {
+export function SettingsForms({ contact, announcement, shipping, discount, payment, seller, switches }: SettingsFormsProps) {
   const g = copy.groups;
   return (
     <div className="mt-6 flex max-w-4xl flex-col gap-8">
@@ -176,6 +185,26 @@ export function SettingsForms({ contact, announcement, shipping, discount, selle
       <SettingsForm action={saveDiscountAction} title={g.discount.title} initial={discount}>
         {(values) => (
           <TextField name="percent" label={g.discount.percent} help={g.discount.percentHelp} values={values} inputMode="numeric" maxLength={2} required />
+        )}
+      </SettingsForm>
+
+      <SettingsForm action={savePaymentAction} title={g.payment.title} initial={payment}>
+        {(values) => (
+          <>
+            <TextField name="payeeName" label={g.payment.payeeName} values={values} maxLength={80} required />
+            <TextField name="upiId" label={g.payment.upiId} help={g.payment.upiIdHelp} values={values} maxLength={80} optional />
+            <TextField name="bankName" label={g.payment.bankName} values={values} maxLength={80} optional />
+            <TextField name="accountNumber" label={g.payment.accountNumber} values={values} inputMode="numeric" maxLength={24} optional />
+            <TextField name="ifsc" label={g.payment.ifsc} help={g.payment.ifscHelp} values={values} maxLength={11} optional />
+            <TextAreaField
+              name="note"
+              label={g.payment.note}
+              help={g.payment.noteHelp}
+              values={values}
+              maxLength={300}
+              className="sm:col-span-2"
+            />
+          </>
         )}
       </SettingsForm>
 
