@@ -5,7 +5,7 @@ import { admin as adminCopy } from "../../src/content/admin";
 import { cart } from "../../src/content/cart";
 import { checkout } from "../../src/content/checkout";
 import { stockCreate } from "../setup/stock-create";
-import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
+import { E2E_CONTENT_PREFIX, e2eDb, signInAs } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 // Paying by QR code or bank transfer (PAYMENT_PROVIDER=manual): the admin
