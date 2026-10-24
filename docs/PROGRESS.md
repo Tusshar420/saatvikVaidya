@@ -4962,3 +4962,53 @@ products and 2 quizzes kept, files removed from a temporary folder only).
 - If course purchases are added, add them to `clearTestData` and its test.
 - `tests/setup/content-db.ts` `clearAuthTables` doesn't empty bug reports or
   error groups; the new test clears them itself.
+
+## Standalone Coming soon page (2026-10-25)
+
+**What was done.** There was no Coming soon page in the project (only the
+in-app "coming soon" states and the Maintenance page, which both need the
+app and its database). Added `coming-soon/`, a standalone static page for
+the main address until 1 November:
+- `index.html` and `styles.css`: the logo, "Coming soon", the heading
+  "Saatvik Vaidya opens on 1 November 2026." (the date in orange, in a
+  `<time datetime="2026-11-01">`), a short line, three pills (top-brand
+  medicines, launch your own brand, courses and Quiz & Win) and a dark green
+  contact card with the orange "Call +91 92203 58400" button.
+- Same look as the full site: the colours, type sizes, eyebrow, button, the
+  dark green card with the dotted texture, copied from `src/app/globals.css`
+  into `:root` variables. Manrope and DM Sans (Latin only) are in `fonts/`;
+  the logo and favicon are copies. Phone first, with no sideways scrolling
+  at 360 px; tap target 48 px; focus ring; reduced motion respected.
+- No scripts and nothing from other websites; a Content-Security-Policy
+  meta tag allows only the folder's own files.
+- `docs/COMING_SOON.md`: what it is and the owner's steps to put it on the
+  main domain's `public_html`. `docs/LAUNCH_1_NOVEMBER.md` rollback level 2
+  now points to it. `scripts/package_for_hostinger.sh` leaves the folder out
+  of the app ZIP.
+- The full website's design and code are unchanged.
+
+**Decisions**
+- Plain HTML and CSS rather than a Next.js route, so it works on the main
+  domain's ordinary web hosting with no Node.js app or database, and can be
+  put back in minutes in a rollback.
+- The contact line is the support phone already used on the site
+  (`contact.phone` default). There is no public email address in the project.
+- Text lives in `index.html`, not `src/content/`, because the page is outside
+  the app.
+- No font preload: it made fonts fail when the file is opened straight from
+  the computer (double-click). Fonts are small and use `font-display: swap`.
+
+**Checked.** New Playwright spec `tests/e2e/coming-soon.spec.ts` (phone and
+desktop projects) serves the folder on a made-up address with no app server
+behind it: title, heading with the date, logo loads, `tel:` link, 44 px+
+button, both fonts load, no sideways scroll (also at 360 px), no failed
+requests, no console errors and no axe WCAG A/AA violations. Looked at
+screenshots at 375 and 1280 px. Opened as a local file in Chromium and
+WebKit: styles, logo and fonts load with no errors.
+
+**Needs a person**
+- The owner decides whether this page replaces the Coming soon page now on
+  the main address (back that one up first, 30 October). Uploading is a
+  manual step in hPanel; nothing was uploaded.
+- If the firm wants an email address or WhatsApp link on it, add it to
+  `index.html`.

@@ -506,8 +506,8 @@ customer who ordered that their order is kept.
 
 This page says "Maintenance" and "We'll be back very soon"; only the message
 under it can be changed. It is a stand-in for the Coming soon page, not the
-same page. (A proper Coming soon page is planned in the next phase; update
-this plan when it exists.)
+same page. The standalone Coming soon page (`coming-soon/`, see
+`docs/COMING_SOON.md`) is the one for level 2.
 
 ### Level 2: the old Coming soon page (15 to 60 minutes)
 
@@ -520,7 +520,10 @@ shows the app crashing), so Level 1 isn't possible.
    described on 30 October:
    - plain files: recreate the website for the domain, then File Manager >
      `public_html` > **Upload** the backup ZIP > **Extract**;
-   - Website Builder or WordPress: restore from hPanel > Backups.
+   - Website Builder or WordPress: restore from hPanel > Backups;
+   - or, if there is no backup to hand, upload the standalone page from the
+     project's `coming-soon/` folder (`docs/COMING_SOON.md`). It needs no
+     database or app.
 3. Check the **padlock** still shows on `https://yourdomain.com`. Browsers
    that already visited the live site will only accept `https://` for six
    months, so the Coming soon page must have working SSL too.

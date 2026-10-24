@@ -67,12 +67,15 @@ fi
 
 # Development-only files: tests and their settings, linters, notes for
 # developers and assistants. The site does not need them to install, build
-# or run. tests/ and the test settings files go together: vitest.config.ts
-# and the *.test.ts files import from tests/, and the build type-checks every
-# .ts file it finds, so leaving one without the other breaks the build.
+# or run. coming-soon/ is a separate static page, uploaded on its own
+# (docs/COMING_SOON.md). tests/ and the test settings files go together:
+# vitest.config.ts and the *.test.ts files import from tests/, and the build
+# type-checks every .ts file it finds, so leaving one without the other
+# breaks the build.
 EXCLUDE=(
   docs
   tests
+  coming-soon
   .claude
   .github
   vitest.config.ts
