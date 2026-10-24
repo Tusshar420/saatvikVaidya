@@ -4764,3 +4764,62 @@ redesign).
 - "Updates" in the rail and the header bell go to the same place, as do
   "My Account" and the profile menu; drop the rail ones if the client finds
   that repetitive.
+
+## Staging readiness: commit, QR payment, team gate, deploy guide (2026-10-25)
+
+Work was split into chunks S1 to S6 and done in order (S5 before S4, because it
+is what unblocks the test address).
+
+**S1 Commit.** The uncommitted v2 site UI, Dr. Talk threads, notifications and
+navigation went in as one commit (the files were too tangled to split).
+
+**S2 e2e.** Full suite green. The 40 old failures were already fixed; the one
+left (`quiz.last` monthly leaderboard) failed because the dev database has
+older quiz attempts this month; the test now checks only the first rows.
+
+**S3 Site screens (U.14, part).** `/ebooks` and the four policy pages now use
+`PageHero`. Reset password, admin invite, maintenance and error pages already
+use the v2 tokens and components and were left as they are.
+
+**S5 Staging (done before S4).**
+- **Pay by QR / bank transfer** (`PAYMENT_PROVIDER=manual`, new
+  `server/payments/manual-provider.ts`): checkout places the order, then
+  `/checkout/pay/[id]` shows a UPI QR (amount and order number filled in,
+  drawn server-side with `qrcode`), UPI ID and bank details from the new
+  setting `payment.manual` (Admin > Settings > Payment details). Admin order
+  page has **Mark as paid** (`server/admin/order-payment.ts`, uses
+  `completePayment`, audit action `order.mark_paid`). Works for store and
+  Launch orders. Razorpay can replace it behind the same interface.
+- **Team gate:** `STAGING_ACCESS_USER` / `STAGING_ACCESS_PASSWORD` make
+  `proxy.ts` ask every request for a Basic-auth password and send
+  `X-Robots-Tag: noindex`. Unset = off. The proxy now runs on all routes
+  except built assets; protected-path rules are unchanged.
+- **HSTS** sent when `BETTER_AUTH_URL` is https. `pnpm db:deploy`
+  (`prisma migrate deploy`). `pnpm db:clear-test-data` (dry run unless
+  `--yes`): removes orders, invoices, bug reports, error log and non-admin
+  accounts; keeps admins, catalogue, content, settings and stock.
+- **`docs/DEPLOY.md`:** step-by-step Hostinger guide, env table for test and
+  live, team testing checklist, security checks, clean-up and 1 November
+  steps.
+- Tests: Vitest for the provider, Mark as paid, setting and UPI link, gate,
+  proxy and HSTS; Playwright `manual-payment.manual.spec.ts` on its own server
+  (`playwright.manual.config.ts`, port 3101). `pnpm test:e2e` now runs both.
+
+**S4 Admin portal (U.15, U.16).** Checked all 23 admin list pages at 375 and
+1280 px: no errors, no sideways scroll, and they already use the v2 tokens
+(green, orange, rounded cards). No restyle was needed.
+
+**Results:** typecheck, lint, 902 Vitest tests, build, 305 e2e + 2 manual e2e
+all pass.
+
+**Needs a person / known gaps**
+- Phone-code (OTP) sign-in, emails (including forgot password) and shipping
+  steps cannot work on a server until MSG91, an email provider and Shiprocket
+  exist; testers use email and password. Documented in DEPLOY.md.
+- Stock is held 30 minutes for an unpaid order; a late "Mark as paid" can fail
+  with "ran out of stock".
+- Check on Hostinger: Node 24 available, and that its proxy overwrites
+  `x-forwarded-for` (rate limits).
+- Real UPI ID and bank details must be entered in Admin > Settings.
+- U.17 (full mockup comparison and Lighthouse pass) was not done.
+- `/launch` being public still needs the owner's confirmation (see earlier entry).
