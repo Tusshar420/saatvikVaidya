@@ -38,9 +38,11 @@ transfer (see "Payments").
    `mysql://USER:PASSWORD@HOST:3306/DATABASE` (URL-encode special characters
    in the password).
 3. **Node.js app** for the subdomain. Upload the code either from the GitHub
-   repository (_Import Git repository_, branch chosen by the owner) or as a
-   ZIP of the project **without** `node_modules`, `.next`, `.env.local`,
-   `storage` and `test-results`.
+   repository (_Import Git repository_, branch chosen by the owner) or as the
+   ZIP made by `scripts/package_for_hostinger.sh` (only committed files, no
+   development files, secrets, uploads or local databases; it refuses to
+   finish if any slip in). `--verify` also installs and builds the ZIP in a
+   temporary folder. Contents and options: `docs/TEST_DEPLOY_STEPS.md` step 4a.
 4. **Settings in the Node.js app screen:**
    - Framework: Next.js. Node version: 24 (or the newest at least 24).
    - Install: `pnpm install --frozen-lockfile --prod=false` (if pnpm is

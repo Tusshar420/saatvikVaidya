@@ -61,8 +61,14 @@ Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:e2e`.
 - `src/generated/`: rebuilt on install.
 - `.env.local`: your own computer's secrets.
 - `storage/`: local test uploads.
-- `test-results/`, `playwright-report/`, `tests/`.
+- `test-results/`, `playwright-report/`.
+- `tests/` **together with** `vitest.config.ts`, `playwright*.config.ts`,
+  `src/**/*.test.ts(x)` and `scripts/db-test-prepare.ts`, which import from
+  it. Leaving out `tests/` alone breaks the build.
 - `docs/`, `.claude/`, `.git/`.
+
+`scripts/package_for_hostinger.sh` makes exactly this upload as a ZIP and
+checks it (see `docs/TEST_DEPLOY_STEPS.md` step 4a).
 
 **Made on the server:**
 

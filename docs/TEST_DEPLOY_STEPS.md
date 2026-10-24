@@ -150,31 +150,82 @@ mix with the real site's.
 
 ### 4a. Make the upload file (a ZIP)
 
-The site's code is on your Mac. You will upload one ZIP file of about 5 MB.
+The site's code is on your Mac. You will upload one ZIP file of about
+4.5 MB, made by the packaging script `scripts/package_for_hostinger.sh`.
 
 1. Open the **Terminal** app on the Mac.
 2. Copy and paste these two lines, then press Enter:
 
    ```
    cd "/Users/work/Data/Other/KodeAura7/Projects/SaatvikVaidya"
-   git archive --format=zip -o ~/Desktop/saatvik-test.zip dev -- . ':(exclude)docs' ':(exclude).claude'
+   git switch dev && scripts/package_for_hostinger.sh --out ~/Desktop
    ```
 
-3. A file called `saatvik-test.zip` appears on your Desktop.
+3. After a few seconds it prints `Done. Nothing was uploaded.` and a file
+   called `saatvik-vaidya-hostinger.zip` appears on your Desktop. Upload
+   that one.
 
 What the second line does, in plain words:
 
-- `git archive ... dev`: packs the **latest saved version** of the site (the
-  `dev` version). Unsaved edits are not included.
-- `-o ~/Desktop/saatvik-test.zip`: saves the ZIP on your Desktop.
-- `':(exclude)docs' ':(exclude).claude'`: leaves out the planning documents
-  and the assistant's settings. The site doesn't need them.
-- Your secret settings (`.env.local`), your local test uploads and the
-  1 GB of downloaded packages are **left out automatically**. The server
-  downloads its own packages.
+- `git switch dev`: makes sure the `dev` version (the latest one) is the one
+  being packed.
+- `scripts/package_for_hostinger.sh`: packs the **latest saved version** of
+  the site, leaves out everything only the developer needs, and checks that
+  nothing secret got in.
+- `--out ~/Desktop`: saves the ZIP on your Desktop. Without it, the ZIP goes
+  to the project's `dist/hostinger/` folder.
+- Next to the ZIP it also leaves a folder with the same files, and
+  `saatvik-vaidya-hostinger.files.txt`, a list of every file in it.
 
-It only reads the project and writes the one ZIP file. Nothing else
-changes.
+It only reads the project and writes the ZIP, the folder and the list.
+Nothing else changes, and nothing is sent anywhere.
+
+**If it prints `WARNING: some files have unsaved (uncommitted) changes`:**
+the ZIP holds the last saved version, without those changes. That is usually
+what you want. If you're not sure, ask the developer before uploading.
+
+**If it prints `STOPPED: the package is not safe to upload`** and a reason:
+don't upload anything. Send the message to the developer. It means a secrets
+file, a database file or a secret value from your Mac's settings was about to
+go into the ZIP.
+
+**For the developer:** `scripts/package_for_hostinger.sh --verify` also
+unpacks the ZIP in a temporary folder and runs the same install and build as
+Hostinger, with made-up server settings and no database. It takes about two
+minutes and ends with `Check passed`. Run it after code changes, before
+handing over a new ZIP.
+
+#### What is in the ZIP
+
+Checked on 25 October 2026 (commit `72ffc8f`): **561 files, 4.5 MB.** The
+`--verify` check passed: it installed and built on its own, without a
+database.
+
+| In the ZIP | What it is |
+| --- | --- |
+| `package.json`, `pnpm-lock.yaml` | The list of packages the server downloads, with exact versions. |
+| `.npmrc` | Tells the install to use Node 24. |
+| `next.config.ts`, `tsconfig.json`, `postcss.config.mjs` | Build settings. |
+| `prisma.config.ts`, `prisma/` (28 files) | The database layout (`schema.prisma`), the table changes `pnpm db:deploy` applies (`migrations/`), and the starting content (`seed.ts`). |
+| `src/` (513 files) | All the site's code: pages, admin, server logic and the site's wording. |
+| `public/` (7 files) | Logo, pictures and videos shown on the site. |
+| `scripts/` (4 files) | `admin-create.ts` (first admin), `seed-catalogue.ts` (real product list), `clear-test-data.ts` (clearing test data before launch), `seed-demo.ts` (sample data for testing). |
+| `.env.example` | The list of setting names with safe example values. **No real secrets.** Use it as a reminder when filling in `.env.local` in step 6. |
+| `PACKAGE_INFO.txt` | Which saved version this is, and when the ZIP was made. |
+
+Left out on purpose:
+
+| Left out | Why |
+| --- | --- |
+| `.env.local` and any other `.env` file except the example | Your Mac's secret settings. The server gets its own in step 6. |
+| `storage/` | Test uploads on your Mac. The server gets its own uploads folder in step 6a. |
+| Local databases and dumps (`.sql`, `.db`, `.sqlite`, except the table changes in `prisma/migrations`) | Your Mac's data. The test address gets its own empty database. |
+| `node_modules/`, `.next/`, `src/generated/` | Downloaded packages and build results. The server makes them itself during install and build. |
+| `tests/`, `src/**/*.test.ts(x)`, `vitest.config.ts`, `playwright*.config.ts`, `scripts/db-test-prepare.ts` | Automatic tests and their settings. They are left out **together**; leaving out only some of them breaks the build. |
+| `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore` | Code-style checkers for the developer. |
+| `docs/`, `README.MD`, `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.git/`, `.gitignore` | Planning documents and notes for the developer and the assistant. |
+| `test-results/`, `playwright-report/`, `coverage/`, `*.tsbuildinfo`, `.DS_Store` | Leftovers from test runs and the Mac. |
+| Files with unsaved changes | Only the last saved (committed) version is packed. |
 
 **Why a ZIP and not "Import from GitHub":** the copy on GitHub is out of
 date. Its `dev` version was last updated on 30 September, 122 changes behind
@@ -182,9 +233,9 @@ this Mac, and `main` is even older. Importing from GitHub would put an old
 version of the site online. Use GitHub only if the developer has brought it
 up to date first.
 
-**Do not remove the `tests` folder from the ZIP.** The site's build checks
-some files that use it, and the build fails without it. (`docs/SITE_OVERVIEW.md`
-says to leave `tests/` out; that is wrong, please ignore it.)
+**Don't take files out of the ZIP, or add any, by hand.** The script knows
+which files go together. For example, removing only the `tests` folder makes
+the build fail, because the test settings files still point at it.
 
 ### 4b. Make the secret key
 
@@ -221,7 +272,7 @@ The first admin account is created by a command in step 7. Pick:
 
 1. In hPanel, open **Websites > Add website > Node.js Apps**.
 2. Choose **Upload your website files** (not "Import Git repository") and
-   upload `saatvik-test.zip` from your Desktop.
+   upload `saatvik-vaidya-hostinger.zip` from your Desktop (step 4a).
 3. When asked for the address, choose **`test.yourdomain.com`**.
 4. Build settings (Hostinger may fill some in by itself; check each one):
 

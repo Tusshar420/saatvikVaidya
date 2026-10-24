@@ -4844,3 +4844,32 @@ in the log, and with the right one answered 200.
 
 **Needs a person:** when creating the Hostinger databases, give the test one a
 name with `test` or `staging` in it and the live one a name without.
+
+## Hostinger upload package script (2026-10-25)
+
+**What was done.** Added `scripts/package_for_hostinger.sh`. It packs the
+committed code (`git archive`, default `HEAD`, `--ref` for another), removes
+development-only files (`docs/`, `tests/` with `vitest.config.ts`,
+`playwright*.config.ts`, `src/**/*.test.ts(x)` and
+`scripts/db-test-prepare.ts`, linters, notes), then writes
+`dist/hostinger/saatvik-vaidya-hostinger/`, the `.zip` and a `.files.txt`
+list (`--out` for another folder). It stops without a package if it finds an
+`.env` file other than `.env.example`, keys or certificates, database files
+outside `prisma/migrations`, uploads, `node_modules`/`.next`/`src/generated`,
+or any secret value from `.env.local` (values are never printed). `--verify`
+unzips into a temporary folder and runs `pnpm install --frozen-lockfile
+--prod=false` and `pnpm build` with made-up server settings and an
+unreachable database. `dist/` is ignored by git, ESLint, tsc and Prettier.
+Docs: `docs/TEST_DEPLOY_STEPS.md` step 4a (new command, contents table),
+`docs/DEPLOY.md` section 1, `docs/SITE_OVERVIEW.md` section 3.
+
+**Checked:** at `72ffc8f` the ZIP is 561 files, 4.5 MB, with `package.json`
+at the top; `--verify` passed (install and build in about 80 seconds, no
+database needed). In a throwaway clone, a committed `.env.production`, a
+`backup.sql` and a source file holding a fake `.env.local` secret were each
+reported and no package was left. `pnpm typecheck` and `pnpm lint` pass.
+Nothing was uploaded and no server was contacted.
+
+**Decision:** the package is source code, built on Hostinger, as the guide
+already says. A ready-built package (if the plan can't finish `pnpm build`,
+risk 2 in `docs/SITE_OVERVIEW.md`) would be a separate change.
