@@ -1,4 +1,5 @@
 import { test, expect, type Browser, type TestInfo } from "@playwright/test";
+import { account } from "../../src/content/account";
 import { shell } from "../../src/content/shell";
 import { horizontalOverflow } from "./helpers";
 
@@ -61,11 +62,17 @@ test.describe("A9 screenshots", () => {
     runOnce(testInfo);
     for (const width of widths) {
       const { context, page } = await atWidth(browser, width);
-      await page.goto("/");
-      await page
-        .getByRole("banner")
-        .getByRole("button", { name: shell.header.profileTitle })
-        .click();
+      if (width < 560) {
+        // Phones sign in from the dock's "You" page.
+        await page.goto("/account");
+        await page.getByRole("main").getByRole("button", { name: account.guest.signIn }).click();
+      } else {
+        await page.goto("/");
+        await page
+          .getByRole("banner")
+          .getByRole("button", { name: shell.header.profileTitle })
+          .click();
+      }
       await expect(page.getByRole("dialog")).toBeVisible();
       await page.screenshot({
         path: testInfo.outputPath(`sign-in-modal-${width}px.png`),
@@ -74,15 +81,14 @@ test.describe("A9 screenshots", () => {
     }
   });
 
-  test("/account sends a signed-out visitor to sign-in at every width", async ({
+  test("/account shows the signed-out account page at every width", async ({
     browser,
   }, testInfo) => {
     runOnce(testInfo);
     for (const width of widths) {
       const { context, page } = await atWidth(browser, width);
       await page.goto("/account");
-      await expect(page).toHaveURL(/auth=sign-in/);
-      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
       await page.screenshot({
         path: testInfo.outputPath(`account-signed-out-${width}px.png`),
       });

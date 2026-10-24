@@ -356,8 +356,17 @@ export default async function DesignPage() {
               </Button>
             </div>
             <div className="rounded-xl p-5 bg-forest">
-              <Button variant="light" arrow>
-                {copy.buttons.light}
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="light" arrow>
+                  {copy.buttons.light}
+                </Button>
+                <Button variant="ghost-dark">{copy.buttons.ghostDark}</Button>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="dark">{copy.buttons.dark}</Button>
+              <Button size="lg" arrow>
+                {copy.buttons.large}
               </Button>
             </div>
             <div>
@@ -499,6 +508,14 @@ export default async function DesignPage() {
               <h4 className="text-h3">{copy.cards.interactiveTitle}</h4>
               <p className="mt-2 text-muted">{copy.cards.interactiveBody}</p>
             </Card>
+            <Card tone="gold">
+              <h4 className="text-h3">{copy.cards.goldTitle}</h4>
+              <p className="mt-2">{copy.cards.goldBody}</p>
+            </Card>
+            <Card tone="forest">
+              <h4 className="text-h3">{copy.cards.forestTitle}</h4>
+              <p className="mt-2 text-forest-ink">{copy.cards.forestBody}</p>
+            </Card>
           </div>
         </Demo>
         <Demo title={s.badge}>
@@ -510,6 +527,8 @@ export default async function DesignPage() {
               <Badge variant="gold">{copy.badges.gold}</Badge>
               <Badge variant="live">{copy.badges.live}</Badge>
               <Badge variant="soon">{copy.badges.soon}</Badge>
+              <Badge variant="success">{copy.badges.success}</Badge>
+              <Badge variant="dark">{copy.badges.dark}</Badge>
             </div>
             <Eyebrow>{copy.badges.eyebrow}</Eyebrow>
             <Eyebrow bar>{copy.badges.eyebrowBar}</Eyebrow>
@@ -569,6 +588,8 @@ export default async function DesignPage() {
             <CoinPill balance={copy.people.coinBalance} />
             <CoinPill balance={copy.people.coinBalanceLarge} href="/design" />
             <CoinPill balance={copy.people.coinBalance} compactBelow="lg" />
+            <CoinPill variant="wallet" balance={null} href="/design" walletLabel={copy.people.walletLabel} />
+            <CoinPill variant="wallet" balance={copy.people.coinBalanceLarge} href="/design" />
           </div>
         </Demo>
       </Group>
@@ -604,6 +625,20 @@ export default async function DesignPage() {
         <Demo title={s.tabs}>
           <Tabs defaultValue={copy.tabs.items[0].value}>
             <TabsList aria-label={copy.tabs.label}>
+              {copy.tabs.items.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {copy.tabs.items.map((tab) => (
+              <TabsContent key={tab.value} value={tab.value}>
+                <p className="text-muted">{tab.body}</p>
+              </TabsContent>
+            ))}
+          </Tabs>
+          <Tabs defaultValue={copy.tabs.items[0].value} className="mt-8">
+            <TabsList aria-label={copy.tabs.pillLabel} variant="pill">
               {copy.tabs.items.map((tab) => (
                 <TabsTrigger key={tab.value} value={tab.value}>
                   {tab.label}

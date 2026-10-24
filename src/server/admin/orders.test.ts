@@ -126,6 +126,13 @@ describe("listAdminOrders", () => {
     const byName = await listAdminOrders(orderFiltersSchema.parse({ q: "meera" }));
     expect(byName.orders.map((order) => order.id)).toEqual([first.orderId]);
 
+    // A phone-like query searches phones; the digits inside an order number
+    // don't (both test orders share the phone 98765 43210).
+    const byPhone = await listAdminOrders(orderFiltersSchema.parse({ q: "43210" }));
+    expect(byPhone.total).toBe(2);
+    const digitNumber = await listAdminOrders(orderFiltersSchema.parse({ q: "SV-AAA876BB" }));
+    expect(digitNumber.total).toBe(0);
+
     const september = await listAdminOrders(orderFiltersSchema.parse({ from: "2026-09-10", to: "2026-09-10" }));
     expect(september.orders.map((order) => order.id)).toEqual([first.orderId]);
 

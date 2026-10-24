@@ -3,8 +3,8 @@
 // user-facing text here so Hindi can be added later.
 
 export const signIn = {
-  eyebrow: "My profile",
-  title: "One profile. Your complete Saatvik journey.",
+  eyebrow: "Welcome to Saatvik Vaidya",
+  title: "One profile. Every opportunity.",
   description:
     "Sign in with your mobile number or email to save products, track orders, access courses and earn Saatvik Coins.",
   tabs: {

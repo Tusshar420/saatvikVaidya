@@ -26,6 +26,8 @@ export type QuantityStepperProps = {
   onAdjusted?: (typed: number, value: number) => void;
   /** Ids of text that explains the limits (MOQ, stock). */
   describedBy?: string;
+  /** `joined`: one bordered box with grey − and + ends (the v2 `.qty-stepper`). */
+  look?: "separate" | "joined";
   className?: string;
 };
 
@@ -48,6 +50,7 @@ export function QuantityStepper({
   onCommit,
   onAdjusted,
   describedBy,
+  look = "separate",
   className,
 }: QuantityStepperProps) {
   const [draft, setDraft] = useState(String(value));
@@ -71,13 +74,26 @@ export function QuantityStepper({
     if (next !== value) onCommit(next);
   };
 
+  const joined = look === "joined";
+  const endClasses = joined
+    ? "size-auto h-full w-8 rounded-none bg-surface-alt sm:w-9 text-ink hover:bg-brand-soft [&_svg]:size-4"
+    : undefined;
+
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div
+      className={cn(
+        joined
+          ? "grid h-11 grid-cols-[auto_minmax(1.75rem,1fr)_auto] overflow-hidden rounded-sm border border-line bg-surface"
+          : "flex items-center gap-1",
+        className,
+      )}
+    >
       <IconButton
         label={decreaseLabel}
-        variant="outline"
+        variant={joined ? "ghost" : "outline"}
         disabled={disabled || value <= min}
         onClick={() => onCommit(clamp(value - step))}
+        className={endClasses}
       >
         <Minus aria-hidden />
       </IconButton>
@@ -100,13 +116,19 @@ export function QuantityStepper({
             commitDraft();
           }
         }}
-        className={cn(inputClasses, "h-11 w-16 px-1 text-center font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none")}
+        className={cn(
+          joined
+            ? "h-full w-full min-w-0 bg-transparent px-1 text-center text-small font-extrabold text-ink outline-none focus-visible:bg-brand-soft disabled:opacity-50"
+            : cn(inputClasses, "h-11 w-16 px-1 text-center font-bold"),
+          "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none",
+        )}
       />
       <IconButton
         label={increaseLabel}
-        variant="outline"
+        variant={joined ? "ghost" : "outline"}
         disabled={disabled || value >= max}
         onClick={() => onCommit(clamp(value + step))}
+        className={endClasses}
       >
         <Plus aria-hidden />
       </IconButton>

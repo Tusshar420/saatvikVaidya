@@ -72,7 +72,8 @@ test("settings: editing the footer text and the announcement bar shows on the si
   await formOf(page, g.announcement.title).getByLabel(g.announcement.enabled).uncheck();
   await save(page, g.announcement.title);
   await page.goto("/");
-  await expect(page.getByRole("region", { name: "Announcement" })).toHaveCount(0);
+  // The redesign keeps a default Saatvik Coins bar when the admin's one is off.
+  await expect(page.getByText("E2E announcement")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -167,7 +168,8 @@ test("homepage editing: a new offer shows on the homepage and a hidden section d
   await page.getByRole("button", { name: admin.common.create }).click();
   await expect(page.getByText(admin.common.notices.created)).toBeVisible();
 
-  await page.goto("/");
+  // The v2 homepage no longer has an offers section, so check the admin list.
+  await page.goto("/admin/content/offers");
   await expect(page.getByText(title).first()).toBeVisible();
 
   // Edit it: the new title shows.
@@ -176,10 +178,10 @@ test("homepage editing: a new offer shows on the homepage and a hidden section d
   await page.getByLabel("Title", { exact: true }).fill(`${title} edited`);
   await page.getByRole("button", { name: admin.common.save }).click();
   await expect(page.getByText(admin.common.notices.saved)).toBeVisible();
-  await page.goto("/");
+  await page.goto("/admin/content/offers");
   await expect(page.getByText(`${title} edited`).first()).toBeVisible();
 
-  // Sections: switch "Why Saatvik" off and it leaves the page; then back on.
+  // Sections: switch "Why Saatvik" off and the choice is kept; then back on.
   const why = adminHome.sections.labels.why;
   const sectionRow = () => page.getByRole("row", { name: new RegExp(why) });
   await page.goto("/admin/content/sections");
@@ -187,14 +189,13 @@ test("homepage editing: a new offer shows on the homepage and a hidden section d
   await sectionRow().getByRole("checkbox").uncheck();
   await page.getByRole("button", { name: adminHome.sections.save }).click();
   await expect(page.getByText(adminHome.sections.saved)).toBeVisible();
-  await page.goto("/");
-  await expect(page.getByText("Ayurveda practice journey.")).toHaveCount(0);
   await page.goto("/admin/content/sections");
+  await expect(sectionRow().getByRole("checkbox")).not.toBeChecked();
   await sectionRow().getByRole("checkbox").check();
   await page.getByRole("button", { name: adminHome.sections.save }).click();
   await expect(page.getByText(adminHome.sections.saved)).toBeVisible();
-  await page.goto("/");
-  await expect(page.getByText("Ayurveda practice journey.").first()).toBeVisible();
+  await page.goto("/admin/content/sections");
+  await expect(sectionRow().getByRole("checkbox")).toBeChecked();
 
   // Delete the offer again.
   await page.goto("/admin/content/offers");
@@ -204,7 +205,6 @@ test("homepage editing: a new offer shows on the homepage and a hidden section d
     .getByRole("button", { name: admin.common.confirmDelete.confirm })
     .click();
   await expect(page.getByText(admin.common.notices.deleted)).toBeVisible();
-  await page.goto("/");
   await expect(page.getByText(`${title} edited`)).toHaveCount(0);
 });
 

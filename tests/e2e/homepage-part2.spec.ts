@@ -9,10 +9,8 @@ const sections = [
   ["brands", "Selected ranges for professional buying"],
   ["courses", "Clinical learning, designed for application."],
   ["coins", "Growth should feel rewarding."],
-  ["quiz", "How strong is your Ayurveda knowledge?"],
   ["feedback", "Real experiences. Original words."],
-  ["community", "Vaidya Community"],
-  ["partner", "Complete your professional profile."],
+  ["track", "Know exactly where your order is."],
   ["why", "One platform for your Ayurveda practice journey."],
 ] as const;
 
@@ -26,20 +24,35 @@ test.describe("Homepage part 2 (bottom half)", () => {
         section.getByRole("heading", { level: 2, name: title }),
       ).toBeVisible();
     }
+    // Quiz & Win is now a card (h3) inside the "explore" community section.
+    const quiz = page.locator("#quiz");
+    await quiz.scrollIntoViewIfNeeded();
+    await expect(
+      quiz.getByRole("heading", { level: 3, name: "Quiz & Win" }),
+    ).toBeVisible();
   });
 
   test("nav rail includes all sections", async ({ page }) => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: /sections/i });
 
-    await expect(nav.getByRole("link", { name: /launch your brand/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /top brands/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /courses/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /saatvik coins/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /quiz/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /verified feedback/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /partner/i })).toBeVisible();
-    await expect(nav.getByRole("link", { name: /why saatvik/i })).toBeVisible();
+    // v2 rail links to pages, not to homepage sections.
+    for (const name of [
+      "Dr. Talk",
+      "Quiz & Win",
+      "Launch Your Brand",
+      "Top Brands",
+      "Courses",
+      "Saatvik Coins",
+      "Track Order",
+      "Real Feedback",
+      "Partner & Grow",
+      "Why Saatvik",
+    ]) {
+      await expect(
+        nav.getByRole("link", { name, exact: true }),
+      ).toBeVisible();
+    }
   });
 
   test("signed out: no coin pill, and the coins section shows the equation", async ({
@@ -52,23 +65,27 @@ test.describe("Homepage part 2 (bottom half)", () => {
 
     const coins = page.locator("#coins");
     await coins.scrollIntoViewIfNeeded();
-    await expect(coins.getByText("10 Coins", { exact: true })).toBeVisible();
+    // v2 shows the order value -> coins -> redemption value strip.
+    await expect(coins.getByText("Order value", { exact: true })).toBeVisible();
+    await expect(coins.getByText("Redemption value", { exact: true })).toBeVisible();
   });
 
-  test("launch catalogue switches between form and practice area", async ({
-    page,
-  }) => {
+  test("launch preview switches between quantity options", async ({ page }) => {
     await page.goto("/");
-    const catalogue = page.locator("#launch-catalogue");
-    await catalogue.scrollIntoViewIfNeeded();
-    const byForm = catalogue.getByRole("button", { name: "By Form" });
-    const byArea = catalogue.getByRole("button", { name: "By Practice Area" });
-
-    await expect(byForm).toHaveAttribute("aria-pressed", "true");
-    await expect(byArea).toHaveAttribute("aria-pressed", "false");
-    await byArea.click();
-    await expect(byArea).toHaveAttribute("aria-pressed", "true");
-    await expect(byForm).toHaveAttribute("aria-pressed", "false");
+    // v2 replaced the By Form / By Practice Area catalogue toggle with a live
+    // product preview whose quantity buttons change the price.
+    const launch = page.locator("#launch");
+    await launch.scrollIntoViewIfNeeded();
+    const group = launch.getByRole("radiogroup");
+    await expect(group).toBeVisible();
+    const radios = group.getByRole("radio");
+    expect(await radios.count()).toBeGreaterThan(1);
+    const first = radios.first();
+    const second = radios.nth(1);
+    await expect(first).toHaveAttribute("aria-checked", "true");
+    await second.click();
+    await expect(second).toHaveAttribute("aria-checked", "true");
+    await expect(first).toHaveAttribute("aria-checked", "false");
   });
 
   test("doesn't scroll sideways", async ({ page }) => {

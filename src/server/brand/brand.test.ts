@@ -34,7 +34,7 @@ import {
   readBrandOrderForUser,
 } from "./orders";
 
-// Launch Your Brand (P2.1) with the Launch cart: products and quantities in
+// Build Your Brand (P2.1) with the Launch cart: products and quantities in
 // the cart (the minimum-step rule and bulk tiers on the server), the
 // packaging draft, brand orders priced from the database and paid through
 // the test provider, access to logos, and the admin CSV import.

@@ -16,7 +16,7 @@ export type LogoPreviewProps = {
 };
 
 /**
- * A Launch Your Brand logo (P2.1): the image itself for PNG and JPEG, or a
+ * A Build Your Brand logo (P2.1): the image itself for PNG and JPEG, or a
  * file tile with a download link for a PDF. Files come from private routes
  * that check who is asking.
  */

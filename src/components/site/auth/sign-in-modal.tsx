@@ -3,7 +3,7 @@
 import { Mail, Smartphone } from "lucide-react";
 import { ModalContent } from "@/components/ui/modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { shell } from "@/content/shell";
+import { Logo } from "../logo";
 import { signIn as copy } from "@/content/sign-in";
 import type { SignUpUserType } from "@/server/content/user-types";
 import { EmailFlow } from "./email-flow";
@@ -36,9 +36,8 @@ export function SignInModal({
       eyebrow={copy.eyebrow}
       title={copy.title}
       description={copy.description}
-      icon={
-        <span className="text-base tracking-[-1px]">{shell.brand.mark}</span>
-      }
+      centered
+      logo={<Logo asLink={false} imageClassName="h-17 w-33.75 sm:h-17 sm:w-33.75 md:h-17 md:w-33.75" />}
       onOpenAutoFocus={(event) => {
         // Start in the phone field rather than on the close button.
         const phone = document.getElementById(phoneInputId);
@@ -50,15 +49,15 @@ export function SignInModal({
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <Tabs defaultValue="mobile">
-        <TabsList aria-label={copy.tabs.label} className="gap-6">
+        <TabsList aria-label={copy.tabs.label} variant="pill" className="grid grid-cols-2">
           <TabsTrigger
             value="mobile"
-            className="inline-flex items-center gap-2"
+            className="inline-flex items-center justify-center gap-2"
           >
             <Smartphone aria-hidden className="size-4.5" />
             {copy.tabs.mobile}
           </TabsTrigger>
-          <TabsTrigger value="email" className="inline-flex items-center gap-2">
+          <TabsTrigger value="email" className="inline-flex items-center justify-center gap-2">
             <Mail aria-hidden className="size-4.5" />
             {copy.tabs.email}
           </TabsTrigger>
@@ -74,7 +73,7 @@ export function SignInModal({
           <EmailFlow userTypes={userTypes} onSignedIn={onSignedIn} />
         </TabsContent>
       </Tabs>
-      <p className="mt-5 text-small text-muted">{copy.privacyNote}</p>
+      <p className="mt-4 text-center text-[11px] text-muted">{copy.privacyNote}</p>
     </ModalContent>
   );
 }

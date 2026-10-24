@@ -18,7 +18,7 @@ import {
   uploadProof,
 } from "./stages";
 
-// Launch Your Brand label proof and production (P2.2): the stage rules on
+// Build Your Brand label proof and production (P2.2): the stage rules on
 // the server, proof versions and who can see them, the customer's decision,
 // the production steps with the test shipping provider, and cancelling with
 // a test refund.
@@ -216,12 +216,18 @@ describe("the customer's decision", () => {
 });
 
 describe("production", () => {
-  it("can't start before a proof is approved", async () => {
+  it("starts straight from a paid order, without a proof", async () => {
     const ctx = await setup();
-    expect(await advance(ctx, "awaiting_proof", "in_production")).toEqual({ ok: false, error: "not_allowed" });
+    expect(await advance(ctx, "awaiting_proof", "quality_check")).toEqual({ ok: false, error: "not_allowed" });
+    expect(await advance(ctx, "awaiting_proof", "in_production")).toEqual({ ok: true, changed: true, stage: "in_production" });
+    expect((await db.order.findUniqueOrThrow({ where: { id: ctx.orderId } })).status).toBe("processing");
+  });
+
+  it("can also start while a proof is out with the customer", async () => {
+    const ctx = await setup();
     await send(ctx);
-    expect(await advance(ctx, "proof_sent", "in_production")).toEqual({ ok: false, error: "not_allowed" });
-    expect(await stageOf(ctx.orderId)).toBe("proof_sent");
+    expect(await advance(ctx, "proof_sent", "in_production")).toEqual({ ok: true, changed: true, stage: "in_production" });
+    expect(await stageOf(ctx.orderId)).toBe("in_production");
   });
 
   it("goes through each step in order, with the test courier at dispatch", async () => {

@@ -4442,3 +4442,325 @@ again at 375 and 1280 px: v2 colours and fonts, no sideways scroll.
 **Next:** U.2 (UI primitives in the v2 style). The BLOCKED entries for U.2 to
 U.17 above (waiting on U.1) are now out of date; each is replaced when its
 chunk runs.
+
+## Notifications: the header bell (2026-10-20, Den task 1252)
+
+A request outside the chunk list: a notification section behind a bell at the
+top right, showing read and unread notifications, each opening the page it is
+about.
+
+**Built**
+- **Data:** a `Notification` table (migration `20261020120000_notifications`):
+  user (cascade on delete), kind (`order`, `brand`, `verification`, `admin`),
+  title, body, `href` and `readAt` (null while unread).
+- **Server:** `src/server/notifications/notifications.ts`: create (Zod; links
+  must be a same-site path, checked by `isSitePath` in
+  `src/lib/notifications.ts`; long text is clipped; never throws, so a failed
+  insert can't undo the payment or decision it reports), list newest first by
+  All / Unread / Read, unread count, mark one read, mark all read. Every call
+  takes the user id from the session.
+- **Where notifications come from:** the senders in `src/server/notify/` save
+  one next to each SMS/email, whatever the user's SMS/email preferences:
+  - store order confirmed, shipment steps, cancelled → `/orders/<id>`;
+  - brand order paid, label proof ready, production stages →
+    `/my-brand/<id>` (a brand order's shipment and cancel messages go there
+    too);
+  - document received and verification approved/rejected → `/account`;
+  - admins: new paid brand order and the customer's proof decision → their
+    `/admin/brand-orders/<id>` (orders and super admins only); a
+    professional's upload → `/admin/approvals/detail/<id>` (approvals and
+    super admins only).
+- **API:** `GET /api/notifications?filter=&limit=` (signed in, no-store),
+  `POST /api/notifications/<id>/read` (404 for someone else's) and
+  `POST /api/notifications/read-all`; both POSTs are same-origin only.
+- **The bell** (`components/site/notifications/notification-bell.tsx`), in the
+  header before the bag, only when signed in. An orange count badge (99+
+  cap; the layout passes the first count), refreshed every minute while the tab
+  is visible, on focus, and whenever one is read. It opens a panel: a bottom
+  sheet on phones, a card hanging under the bell from 560 px, with the latest
+  8, pill filters All / Unread / Read, "Mark all as read", and "See all
+  notifications". Unread ones have an orange left edge, a bold title, a dot and
+  "Unread" for screen readers. Clicking one opens its page and marks it read
+  (a `keepalive` request, so it lands during navigation).
+- **`/notifications`:** the latest 50 with the same filters (`?show=unread` /
+  `read`, the Unread pill shows the count), "Mark all as read" and the empty
+  states. It's signed-in only (`requireUser`, plus the proxy matcher and
+  `protectedPathPrefixes`).
+- Text in `src/content/notifications.ts`.
+
+**Tests:** Vitest `server/notifications/notifications.test.ts` (lists and
+filters, read once, unsafe links refused, clipping, never throws, only your own,
+deleted with the account, and the order/brand/verification events) and
+`lib/notifications.test.ts`. `src/proxy.test.ts` lists `/notifications`.
+`tests/setup/content-db.ts` clears notifications. Playwright
+`notifications.spec.ts` (8 tests, 375 and 1280 px, all pass): no bell signed
+out, the panel's filters, opening one marks it read and moves the badge, Esc
+returns focus, mark all read, the page and its filters, axe and no sideways
+scroll, and someone else's notification or a cross-site request is refused.
+Screens checked at 375 and 1280 px.
+
+typecheck, unit tests (882) and build pass. Lint has one warning, not from
+this change: `src/content/brand.ts:171` `max: (_n: number)` in the
+uncommitted Build Your Brand work. Full e2e: 224 passed, 40 failed in the
+phone/desktop projects, all in specs that the uncommitted redesign changed
+(homepage, homepage-part2, catalogue, brand, a9/p1-12/p2-4 axe contrast, the
+design modal sheet, account `target-size` on the Courses / Dr. Talk links).
+The site-settings exclusive spec failed because the orange bar now shows the
+Coins message when the announcement is off, and quiz.last failed because the
+homepage `#quiz` heading is missing. Those projects stop at their first
+failure, so 19 tests in them didn't run. None of these failures involve the
+header actions or notifications.
+
+**Not committed.** The bell is built on the uncommitted redesign in the
+working tree (U.1 is still staged, and the later shell work that changed
+`header.tsx`, `layout.tsx`, `tabs.tsx` is still unstaged, as is the untracked
+`page-hero.tsx`). Committing only these files would leave `dev` unable to
+build. Commit them together once the redesign work is committed.
+
+**Later**
+- This local MySQL (26.7, `lower_case_table_names=2`) doesn't enforce the new
+  `Notification_userId_fkey` on insert (an orphan row went in), though
+  delete-cascade works and the older `BugReport` key does refuse orphans. The
+  code always uses real user ids. Check on the production MySQL before deploy.
+- Messages are saved in English when created; for Hindi, store a key and
+  parameters and render them on read.
+- No pruning yet: old read notifications could be removed after, say, 180
+  days.
+- Task 1253 (section badges) can use `kind` and the unread count; add kinds
+  (courses, Dr. Talk, quiz, products) when those sections send notifications.
+- The admin portal header has no bell yet; admins see theirs in the site
+  header.
+- The orders admin list test (`server/admin/orders.test.ts:125`) failed once
+  and passed on rerun: two orders with the same `createdAt` can come back in
+  either order.
+
+## Site UI v2: U.2 to U.13, site screens only (2026-10-19, interactive session)
+
+Built in one evening for a client demo, straight from `docs/mockup-v2/` (the
+client's design from https://saatvik-vaidya-platform.brahm-ayurved.chatgpt.site/).
+It builds on U.1's staged tokens and fonts. **The admin portal (U.15, U.16),
+U.14 and U.17 were not touched.** The BLOCKED entries for U.2 to U.13 above are
+out of date: that work is now in the working tree, **uncommitted** and **not
+yet e2e-tested** (see "Not committed" below).
+
+**Built**
+- **Shell (U.2 part, U.4):** the orange announcement bar (coin rule from
+  settings; an admin announcement takes over), the header with the client logo
+  (`public/brand/logo.png`), search with the ⌘K hint, the gold "Coins / MY
+  WALLET" pill and "My Profile"; the nav rail (Home, green Dr. Talk pill,
+  orange Quiz & Win pill, then Launch Your Brand, Top Brands, Courses, Saatvik
+  Coins, Track Order, Real Feedback, Partner & Grow, Why Saatvik); the mobile
+  dock (Home, Dr. Talk, Launch, Orders, Profile); the dark green footer; the v2
+  sign-in modal (bottom sheet on phones). `shell.ts` exports `siteNav` and
+  `footerColumns`.
+- **Primitives (U.2 part):** Button (`dark`, `ghost-dark`, `size="lg"`, orange
+  gradient primary), Badge (`success`, `dark`, pill shape), Eyebrow, Card
+  (`gold`, `forest`), Tabs (`pill`), Modal (`logo`, `centered`), CoinPill
+  (`wallet`), Avatar. Existing props all still work.
+- **Shared (U.3 part):** `src/components/site/page-hero.tsx` (`PageHero`: dark
+  green hero, dots, ring, gold eyebrow, "Built for professionals" note) and
+  `src/components/site/portal/page-hero.tsx` for the new pages. Two hero
+  components exist; merge them (and `brand/launch-hero.tsx`) later.
+- **Homepage (U.5, U.6):** hero with the "Your Saatvik journey" console and
+  stat strip, community (Dr. Talk "coming next" + the real open quiz), reels,
+  Launch Your Brand with a live preview built from a real launch product, Top
+  Brands (3 real products, "Add +" uses `addToCartAction`), clinical learning,
+  the gold coins band (worked out from coin settings), feedback, a Track Order
+  banner, Why Saatvik and a final CTA. Copy in `src/content/home.ts`; data in
+  `src/server/content/home-live.ts`. Offers, quick actions, trust and partner
+  are no longer rendered (files kept, unused).
+- **Top Brands (U.7) and the cart (U.9 part):** PageHero, the v2 filter bar
+  (still the GET form "Filter and sort products"), v2 product cards (pack
+  panel, stock and sample pills, struck MRP, net rate with "20% off", stepper +
+  "Add to Order"), a 4/3/2 grid and a phone snap row, the floating "Order List"
+  button (links to `/cart`), and the product, search and cart pages restyled.
+  `product-pack.tsx` draws the mockup bottle when a product has no photo.
+- **Launch Your Brand (U.8):** hero, 4-step bar, toolbar and side filters,
+  coloured pack cards, a label preview on step 3, and the v2 look on
+  `/my-brand` and `/my-brand/[id]`.
+- **Quiz (U.10), Coins and Profile (U.11), Track Order (U.9 part):** quiz
+  challenge card plus a leaderboard card (`quiz/leaderboard-card.tsx`, real
+  `readLeaderboard` data), coins wallet card, earning example and history,
+  `/track` with a one-row form (`variant="page"`) and recent orders, and the
+  profile page with a side card, completion bar and menu.
+- **New pages (U.12, U.13):** `/courses`, `/doctor-talk`, `/feedback`,
+  `/why-saatvik`, `/partner`. They read the same database rows as the
+  homepage (`src/server/content/pages.ts`); copy in
+  `src/content/portal-pages.ts`.
+
+**Decisions**
+- **`/launch` is public now.** Signed-out visitors see the landing view, the
+  brand catalogue and brand prices; `?step=2` to `4` and every server action
+  still require sign-in. Before, P2.1 showed it only to signed-in users. **The
+  owner still has to confirm this.**
+- Routes are `/doctor-talk` and `/why-saatvik`; `docs/CHUNKS.md` says
+  `/dr-talk` and `/why`. Update CHUNKS.md and DESIGN.md to match.
+- Mockup text below 11 px is raised to the DESIGN.md minimums, tap targets
+  stay 44 px, and the orange stays the AA-safe step.
+- Where the database has no data (Dr. Talk posts, partner leads, practice
+  interests), the block shows a "coming next" state, never mockup sample data.
+- On `/quiz` and `/account` the h1 stays the quiz title or the user's name,
+  because e2e looks for it as the level-1 heading.
+
+**Tests:** typecheck and lint are clean across the project, and every site page
+returns 200. e2e was not run in this session. Den task 1252's full run (entry
+above) found 40 failures, all in specs the redesign changed: homepage,
+homepage-part2, catalogue, brand, the axe contrast specs, the design modal
+sheet, account `target-size`, the site-settings announcement and quiz.last.
+`shell.spec.ts` and `brand.spec.ts` were updated for the new shell and the
+public `/launch`, but those updates haven't been run. No new Vitest or
+Playwright tests were added for the new pages.
+
+**Not committed.** This work sits in the working tree on top of U.1, which is
+still staged and is being finished by Den task 1217 in `/tmp/sv-u1`. Many files
+hold both U.1's staged change and this work's unstaged change (the account,
+quiz, coins, track, launch, my-brand and products pages, `ui/*`, `content/*`).
+- **Committing U.1:** commit the index as it is staged. Don't `git add` those
+  shared files again, or this work goes into the U.1 commit.
+- **Commit order:** U.1 first, then this work, then the bell (above), which
+  depends on the new header.
+- **Unrelated edits:** the 13 Oct proof and discount edits (`brand-stage`,
+  `stages`, `cart.ts`, `products.ts`, the admin brand-order page,
+  `brand-proof.spec.ts`) are separate. Keep them out of these commits.
+
+**Known gaps**
+- Homepage section headings and the Why steps come from the database, which
+  still holds v1 text (for example "From clinical insight / to a market-ready
+  identity.") and 3 Why steps where v2 shows 6. Update the seed or edit them in
+  the admin.
+- The quiz shows every question on one page; v2 shows one at a time.
+- "Order List" opens `/cart`, not a drawer. Cards don't show "Only N left",
+  and there is no wishlist.
+- The partner callback form is shown but switched off. U.13's `PartnerLead`
+  table, rate-limited action and `/admin/partner-leads` are not built.
+- Live sessions show an icon instead of a date (the data is free text).
+- The signed-in views of `/account`, `/coins`, `/launch` steps 2 to 4 and
+  `/my-brand` were not checked in a browser; typecheck and lint only.
+- Input, checkbox, chips, toast, skeleton, empty state, icon tile, carousel and
+  the shared Stepper (no gold connecting line) didn't get a v2 pass.
+- The homepage editor in admin still lists the v1 sections (U.6).
+- Checkout still says "Super Coins" (`coins.checkout`, `coins.order`).
+
+**Next:** after task 1217 commits U.1, run the full e2e suite and fix the
+specs listed above. Fill the gaps, write tests for the new pages, then commit
+this work on `dev`.
+
+## Notifications: section badges (2026-10-20, Den task 1253)
+
+**Built**
+- `NotificationKind` gains `course`, `doctor_talk`, `quiz`, `top_brands`
+  (migration `20261020150000_notification_section_kinds`). `sectionKinds` in
+  `lib/notifications.ts` maps each to its nav link (`/courses`,
+  `/doctor-talk`, `/quiz`, `/products`).
+- `unreadBySection(userId)` (server) counts unread per section;
+  `GET /api/notifications` now also returns `sections`.
+- The nav rail shows a small orange count badge on Courses, Dr. Talk, Quiz &
+  Win and Top Brands while that section has unread notifications (screen
+  readers hear "N new"). The layout passes the first counts; the rail
+  refreshes every minute, on focus and whenever a notification is read. The
+  badge clears when its notifications are read (opening one, or "Mark all as
+  read"). The bell badge (all unread) already existed. Notification rows for
+  the new kinds get their own icons.
+- Tests: Vitest `unreadBySection`; Playwright (phone + desktop) badges per
+  section, clears on opening one, none signed out. typecheck, notifications
+  Vitest and e2e (12) and build pass.
+
+**Not committed**, same reason as the bell entry above: it sits on the
+uncommitted redesign (`header.tsx`, `nav-rail.tsx`, `layout.tsx`). Full e2e was
+not rerun; the redesign's 40 known failures are unchanged.
+
+**Later**
+- Nothing creates `course`, `doctor_talk`, `quiz` or `top_brands`
+  notifications yet; call `createNotifications` when an admin publishes a
+  course, a Dr. Talk thread, a quiz or a new brand (one row per user).
+- The phone bottom dock's Dr. Talk item has no badge.
+
+## Threads on Dr. Talk + new navigation (2026-10-20)
+
+**Built**
+- **Thread section** (a Chatter-style feed) replaces the "Coming next" stub on
+  `/doctor-talk`. Signed-in members read; **approved Ayurveda doctors** start
+  threads (Question / Case discussion / Expert talk), reply and like. Signed
+  out: a sign-in prompt. `/doctor-talk/[id]` shows one thread with its replies.
+  Filter pills (`?filter=`) are links, so they work without JavaScript.
+- Tables `Thread`, `ThreadReply`, `ThreadLike` (migration
+  `20261020082757_threads`, both have a `hidden` flag for later moderation).
+  Code: `src/server/threads/threads.ts` (the only place that checks "may
+  write", read fresh from the database), `src/lib/threads.ts`,
+  `src/content/threads.ts`, actions in `app/(site)/doctor-talk/actions.ts`
+  (Zod, session user as author, `threadWritePerUser` rate limit of 60/hour).
+- **Navigation, as the client asked.** Phone dock: Coins, Updates
+  (`/notifications`), Courses, Order, You (`/account`). Desktop nav rail: Home,
+  Dr Talk, Quiz and Win, Build your brand, Top Brands, Reels. Courses, Track
+  Order, Partner & Grow and Why Saatvik left the rail (the footer still links
+  to them).
+- Tests: Vitest `threads.test.ts` (permissions, validation, hiding, counts,
+  likes); Playwright `threads.spec.ts` (doctor posts/replies/likes, customer
+  read-only, signed out) on phone and desktop; `shell.spec.ts` and
+  `notifications.spec.ts` updated for the new nav. Those three specs, typecheck
+  and build pass; lint fails only on an existing warning (`content/brand.ts:171`).
+  The full e2e suite was not run (known redesign failures, see above).
+
+**Not committed.** Same reason as the entries above: `shell.ts`,
+`mobile-dock.tsx`, `schema.prisma` and the doctor-talk files sit on top of the
+uncommitted redesign, so committing them alone would pull that work in. Commit
+after U.1 and the redesign.
+
+**Later**
+- The Courses unread badge no longer shows on the rail; the dock's Courses and
+  Updates items have no badge yet.
+- No admin screen to hide threads/replies; notify doctors on replies
+  (`doctor_talk` notifications); the "Verified Doctors" sidebar is still empty.
+- Likes and replies have no pagination beyond 20 threads / 200 replies.
+
+## Home hero: shorter, illustrated, no big button (2026-10-20)
+
+**Built**
+- The client asked to cut the empty space under the hero button and make the
+  hero more attractive. The full-width "Join Saatvik Vaidya" / slide buttons
+  are now small gold text links whose tap area stretches over the whole slide.
+  The carousel no longer has a fixed height: it is as tall as its tallest slide
+  and the dots sit just below (phone hero about 225 px, was about 250 px plus
+  the empty gap).
+- Each slide has an SVG illustration on the right (`hero-art.tsx`: mortar and
+  pestle, chat bubbles with a verified tick, trophy and coins, a branded
+  bottle, growth bars), drawn with colour tokens only.
+- Checked at 375 and 1280 px. Typecheck and lint pass; in `homepage.spec.ts`
+  the carousel tests pass. 8 tests fail, and none of them is caused by this
+  change: they expect the old hero heading and sections the redesign removed
+  (reels, offers, quick actions).
+
+**Not committed**, same reason as the entries above (sits on the uncommitted
+redesign).
+
+**Later**
+- Swap the drawings for real photos (clinic, herbs, products) once the client
+  sends them.
+
+## Top menu shows the dock's links on bigger screens (2026-10-20)
+
+**Built**
+- The client asked: if there is no bottom bar (bigger screens), the top menu
+  should show every link; where the bottom bar shows (phones), those links
+  should not repeat in the top menu. From 560 px up the nav rail now ends
+  with a thin divider and Coins, Updates, Courses, My Orders and My Account.
+  Under 560 px they are hidden in the rail, and the dock shows them as
+  before. Both use one list, `dockNav` in `content/shell.ts`, and the same
+  560 px breakpoint, so they can't drift apart.
+- The Courses unread badge is back on the rail on bigger screens.
+- At 1280 px the whole rail fits on one line; at 560 to 1100 px it scrolls
+  sideways with the edge fade, like the phone rail.
+- Checked at 375, 640, 1280 and 1440 px. Typecheck passes; lint fails only on
+  the old `content/brand.ts:171` warning. `shell.spec.ts` gained a check for
+  the new links (passes on phone and desktop); the badge test in
+  `notifications.spec.ts` was updated and passes. 5 shell tests still fail,
+  none from this change: the phone profile trigger is hidden by the redesign
+  header (4 tests) and the popular-search wording differs from the seed (1).
+
+**Not committed**, same reason as the entries above (sits on the uncommitted
+redesign).
+
+**Later**
+- "Updates" in the rail and the header bell go to the same place, as do
+  "My Account" and the profile menu; drop the rail ones if the client finds
+  that repetitive.

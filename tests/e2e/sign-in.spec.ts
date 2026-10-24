@@ -16,7 +16,7 @@ import {
 } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
-// The sign-in / register modal, the signed-in header and dock, /account and
+// The sign-in / register modal, the signed-in header, /account and
 // the reset-password page, on phone and desktop, against the real API.
 
 /**
@@ -33,8 +33,6 @@ const unexpected = (errors: string[]) =>
   );
 
 const header = (page: Page) => page.getByRole("banner");
-const dock = (page: Page) =>
-  page.getByRole("navigation", { name: shell.dock.label });
 const dialog = (page: Page) => page.getByRole("dialog", { name: signIn.title });
 const profileButton = (page: Page) =>
   header(page).getByRole("button", { name: shell.header.profileTitle });
@@ -46,9 +44,30 @@ const firstDigit = (page: Page) =>
   dialog(page).getByRole("textbox", { name: "Digit 1 of 6" });
 const otpGroup = (page: Page) =>
   dialog(page).getByRole("group", { name: signIn.otp.label });
+/** The bell shows only when signed in, on every width. */
+const bell = (page: Page) => page.getByTestId("notification-bell");
+const youTab = (page: Page) =>
+  page
+    .getByRole("navigation", { name: shell.dock.label })
+    .getByRole("link", { name: shell.dock.you });
+
+/**
+ * Under 560 px the header has no profile button or account menu: sign-in,
+ * the account and signing out live on the dock's "You" tab (/account).
+ */
+const onPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 560;
 
 async function openSignIn(page: Page) {
-  await profileButton(page).click();
+  if (onPhone(page)) {
+    await youTab(page).click();
+    await expect(page).toHaveURL(/\/account$/);
+    await page
+      .getByRole("main")
+      .getByRole("button", { name: account.guest.signIn })
+      .click();
+  } else {
+    await profileButton(page).click();
+  }
   await expect(dialog(page)).toBeVisible();
   await expect(phoneField(page)).toBeFocused();
 }
@@ -72,28 +91,40 @@ async function typeCode(page: Page, code: string) {
   await page.keyboard.type(code);
 }
 
-async function expectSignedIn(page: Page, name: string, isMobile: boolean) {
+async function expectSignedIn(page: Page, name: string) {
   await expect(dialog(page)).toBeHidden();
   await expect(
     page.getByRole("status").filter({ hasText: signIn.welcome(name) }),
   ).toBeVisible();
+  await expect(bell(page)).toBeVisible();
+  if (onPhone(page)) return;
   await expect(accountMenu(page, name)).toBeVisible();
   await expect(profileButton(page)).toHaveCount(0);
-  if (isMobile) {
-    await expect(
-      dock(page).getByRole("link", { name: shell.dock.profile }),
-    ).toHaveAttribute("href", "/account");
-  }
 }
 
+async function expectSignedOut(page: Page) {
+  await expect(bell(page)).toHaveCount(0);
+  if (onPhone(page)) await expect(youTab(page)).toBeVisible();
+  else await expect(profileButton(page)).toBeVisible();
+}
+
+/** Signs out from the account menu, or from /account's button on phones. */
 async function signOutFromMenu(page: Page, name: string) {
-  await accountMenu(page, name).click();
-  await page.getByRole("menuitem", { name: signIn.menu.signOut }).click();
+  if (onPhone(page)) {
+    if (!/\/account$/.test(page.url())) await youTab(page).click();
+    await page
+      .getByRole("main")
+      .getByRole("button", { name: account.signOut })
+      .click();
+  } else {
+    await accountMenu(page, name).click();
+    await page.getByRole("menuitem", { name: signIn.menu.signOut }).click();
+  }
   await expect(
     page.getByRole("status").filter({ hasText: signIn.menu.signedOut }),
   ).toBeVisible();
-  await expect(profileButton(page)).toBeVisible();
-  await expect(profileButton(page)).toBeFocused();
+  await expectSignedOut(page);
+  if (!onPhone(page)) await expect(profileButton(page)).toBeFocused();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -103,7 +134,6 @@ test.beforeEach(async ({ page }) => {
 
 test("register by phone as a doctor, sign out, then sign in with a code", async ({
   page,
-  isMobile,
 }) => {
   const errors = collectErrors(page);
   const phone = freshPhone();
@@ -161,13 +191,14 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
   expect(await axeViolations(page)).toEqual([]);
   await submit.click();
 
-  await expectSignedIn(page, name, isMobile);
-  // Focus lands on the new account button, not lost on the page.
-  await expect(accountMenu(page, name)).toBeFocused();
-
-  // The account page from the menu.
-  await accountMenu(page, name).click();
-  await page.getByRole("menuitem", { name: signIn.menu.account }).click();
+  await expectSignedIn(page, name);
+  if (!onPhone(page)) {
+    // Focus lands on the new account button, not lost on the page.
+    await expect(accountMenu(page, name)).toBeFocused();
+    // The account page from the menu (phones signed in on it already).
+    await accountMenu(page, name).click();
+    await page.getByRole("menuitem", { name: signIn.menu.account }).click();
+  }
   await expect(page).toHaveURL(/\/account$/);
   const main = page.getByRole("main");
   await expect(main.getByRole("heading", { level: 1 })).toContainText(name);
@@ -185,13 +216,9 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
   ).toContainText(verification.missing);
   expect(await axeViolations(page)).toEqual([]);
   expect(await horizontalOverflow(page)).toBe(0);
-  if (isMobile) {
-    await expect(
-      dock(page).getByRole("link", { name: shell.dock.profile }),
-    ).toHaveAttribute("aria-current", "page");
-  }
 
-  // Sign out from the menu: /account is left for the homepage.
+  // Sign out from the menu (phones: /account's button): /account is left for
+  // the homepage.
   await signOutFromMenu(page, name);
   await expect(page).toHaveURL(/\/$/);
 
@@ -199,13 +226,12 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
   await openSignIn(page);
   await requestCode(page, phone);
   await typeCode(page, await latestOtp(phone));
-  await expectSignedIn(page, name, isMobile);
+  await expectSignedIn(page, name);
   expect(unexpected(errors)).toEqual([]);
 });
 
 test("register by email as a customer, then sign in and sign out", async ({
   page,
-  isMobile,
 }) => {
   const errors = collectErrors(page);
   const email = freshEmail();
@@ -256,7 +282,7 @@ test("register by email as a customer, then sign in and sign out", async ({
 
   await passwordField.fill(password);
   await submit.click();
-  await expectSignedIn(page, name, isMobile);
+  await expectSignedIn(page, name);
 
   await signOutFromMenu(page, name);
 
@@ -277,7 +303,7 @@ test("register by email as a customer, then sign in and sign out", async ({
     .getByLabel(signIn.email.password, { exact: true })
     .fill(password);
   await dialog(page).getByRole("button", { name: signIn.email.submit }).click();
-  await expectSignedIn(page, name, isMobile);
+  await expectSignedIn(page, name);
 
   // The account page shows the email account; sign out from there.
   await page.goto("/account");
@@ -288,7 +314,7 @@ test("register by email as a customer, then sign in and sign out", async ({
   await expect(main).toContainText(account.notAdded);
   await main.getByRole("button", { name: account.signOut }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(profileButton(page)).toBeVisible();
+  await expectSignedOut(page);
   expect(unexpected(errors)).toEqual([]);
 });
 
@@ -347,11 +373,10 @@ test("a wrong code, an expired code and too many sends each explain themselves",
   expect(await axeViolations(page)).toEqual([]);
 });
 
-test("/account sends a signed-out visitor to sign-in, then back", async ({
+test("a signed-in page sends a signed-out visitor to sign-in, then back", async ({
   page,
   request,
   baseURL,
-  isMobile,
 }) => {
   const email = freshEmail();
   const password = "Tulsi-and-ginger-77";
@@ -363,11 +388,20 @@ test("/account sends a signed-out visitor to sign-in, then back", async ({
     userType: "clinic",
   });
 
+  // Bare /account is open: a signed-out visitor gets a sign-in prompt there
+  // (the dock's "You" tab), with nothing from any account.
   await page.goto("/account");
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(
+    page.getByRole("main").getByRole("heading", { level: 1 }),
+  ).toHaveText(account.guest.title);
+
+  // Pages under it still need a session.
+  await page.goto("/account/addresses");
   const url = new URL(page.url());
   expect(url.pathname).toBe("/");
   expect(url.searchParams.get("auth")).toBe("sign-in");
-  expect(url.searchParams.get("next")).toBe("/account");
+  expect(url.searchParams.get("next")).toBe("/account/addresses");
   await expect(dialog(page)).toBeVisible();
 
   await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
@@ -379,21 +413,17 @@ test("/account sends a signed-out visitor to sign-in, then back", async ({
     .fill(password);
   await dialog(page).getByRole("button", { name: signIn.email.submit }).click();
 
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("main")).toContainText("Clinic / Hospital");
-  await expect(accountMenu(page, name)).toBeVisible();
-  if (isMobile) {
-    await expect(
-      dock(page).getByRole("link", { name: shell.dock.profile }),
-    ).toHaveAttribute("aria-current", "page");
-  }
+  await expect(page).toHaveURL(/\/account\/addresses$/);
+  await expect(
+    page.getByRole("main").getByRole("heading", { level: 1 }),
+  ).toContainText(account.addresses.title);
+  await expect(bell(page)).toBeVisible();
 });
 
 test("forgot password: the emailed link sets a new password", async ({
   page,
   request,
   baseURL,
-  isMobile,
 }) => {
   const email = freshEmail();
   const name = "Kiran Rao";
@@ -450,7 +480,7 @@ test("forgot password: the emailed link sets a new password", async ({
     .getByLabel(signIn.email.password, { exact: true })
     .fill(newPassword);
   await dialog(page).getByRole("button", { name: signIn.email.submit }).click();
-  await expectSignedIn(page, name, isMobile);
+  await expectSignedIn(page, name);
 
   // The same link doesn't work twice.
   await page.goto(

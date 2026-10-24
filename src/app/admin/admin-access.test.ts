@@ -116,7 +116,7 @@ describe("every admin page, action and route checks its area", () => {
       .filter((path) => /\.(ts|tsx)$/.test(path) && !/\.test\./.test(path))
       .filter((path) => /user\.role !== "admin"|user\?\.role !== "admin"/.test(readFileSync(path, "utf8")))
       .map(rel);
-    // The maintenance banner, checkout and Launch Your Brand (any signed-in
+    // The maintenance banner, checkout and Build Your Brand (any signed-in
     // admin may order), and the two-factor setup (any admin, before they
     // have admin access).
     expect(offenders.sort()).toEqual([

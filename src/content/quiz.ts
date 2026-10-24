@@ -6,6 +6,25 @@ const count = (n: number) => new Intl.NumberFormat("en-IN").format(n);
 export const quiz = {
   metaTitle: "Quiz & Win",
   eyebrow: "QUIZ & WIN",
+  hero: {
+    title: "Learn Ayurveda. Earn rewards.",
+    description:
+      "A short weekly knowledge challenge for Ayurveda professionals, with clear explanations after you finish.",
+    status: "Built for professionals",
+    thisWeek: (title: string) => `This week: ${title}`,
+    noQuiz: "A new quiz every week",
+    facts: (questions: number, minutes: number) =>
+      `${questions} questions · ${minutes} minutes · Score first, completion time only as a tie-breaker.`,
+    noQuizText: "Score first, completion time only as a tie-breaker.",
+  },
+  challenge: "Weekly challenge",
+  board: {
+    eyebrow: "Leaderboard",
+    title: "Top scores this week",
+    titleMonth: "Top scores this month",
+    note: "Ranked by score first, then by time taken. Only first names and a last initial are shown.",
+    full: "See full leaderboard",
+  },
   title: "How strong is your Ayurveda knowledge?",
   facts: (questions: number, minutes: number) => `${questions} questions • ${minutes} minutes • One attempt`,
   endsOn: (when: string) => `Open until ${when}`,
@@ -15,7 +34,7 @@ export const quiz = {
     "You can play each weekly quiz once.",
   ],
   coinsLine: (coins: number, percent: number) =>
-    coins > 0 ? `Score ${percent}% or more to earn ${count(coins)} Super Coins.` : null,
+    coins > 0 ? `Score ${percent}% or more to earn ${count(coins)} Saatvik Coins.` : null,
   signIn: "Sign in to play",
   signInNote: "You need an account to play and to appear on the leaderboard.",
   start: "Start quiz",
@@ -43,7 +62,7 @@ export const quiz = {
     score: (score: number, max: number) => `${count(score)} / ${count(max)} points`,
     correct: (n: number, total: number) => `${n} of ${total} correct`,
     time: (time: string) => `Time taken ${time}`,
-    earned: (coins: number) => `You earned ${count(coins)} Super Coins.`,
+    earned: (coins: number) => `You earned ${count(coins)} Saatvik Coins.`,
     notEarned: (percent: number) => `Score ${percent}% or more to earn coins. Better luck next week.`,
     review: "Answers and explanations",
     yourAnswer: "Your answer",
@@ -52,7 +71,7 @@ export const quiz = {
     right: "Correct",
     wrong: "Not correct",
     leaderboard: "See the leaderboard",
-    coins: "My Super Coins",
+    coins: "My Saatvik Coins",
   },
   leaderboard: {
     metaTitle: "Quiz leaderboard",

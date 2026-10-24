@@ -13,6 +13,10 @@ export async function axeViolations(page: Page) {
   // Move the pointer off whatever was just clicked: axe would otherwise read
   // the colours of a button in the middle of its hover transition.
   await page.mouse.move(0, 0);
+  // The scroll reveal fades sections in as they enter the screen; axe would
+  // read a half-entered section's colours mid-fade. Reduced motion turns the
+  // reveal off, so axe sees the final colours (it stays off afterwards).
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.waitForTimeout(250);
   const results = await new AxeBuilder({ page })
     .withTags(WCAG_TAGS)

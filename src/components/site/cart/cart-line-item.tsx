@@ -37,7 +37,7 @@ export function CartLineItem({ line }: { line: CartLine }) {
   return (
     <li
       className={cn(
-        "rounded-xl border bg-surface p-4 shadow-card sm:p-5",
+        "rounded-lg border bg-surface p-4 shadow-card sm:p-5 md:rounded-[21px]",
         line.issue ? "border-danger/50" : "border-line",
       )}
     >
@@ -46,7 +46,7 @@ export function CartLineItem({ line }: { line: CartLine }) {
           href={href}
           tabIndex={-1}
           aria-hidden
-          className="size-20 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-alt sm:size-24"
+          className="size-20 shrink-0 overflow-hidden rounded-md border border-line bg-cream sm:size-24"
         >
           <ProductVisual image={line.image} glyph={line.glyph} className="text-3xl sm:text-4xl" />
         </Link>
@@ -54,8 +54,8 @@ export function CartLineItem({ line }: { line: CartLine }) {
           <p className="text-small text-muted">
             {[line.brandName, line.formName].filter(Boolean).join(" · ")}
           </p>
-          <h3 className="text-base font-extrabold text-ink">
-            <Link href={href} className="hover:text-teal hover:underline">
+          <h3 className="font-heading text-base font-extrabold tracking-[-0.01em] text-ink">
+            <Link href={href} className="hover:text-brand hover:underline">
               {line.name}
             </Link>
           </h3>

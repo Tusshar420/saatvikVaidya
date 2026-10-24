@@ -63,10 +63,12 @@ export const rateLimitRules = {
   trackOrderPerNumber: { name: "track-order:number", windowSeconds: 60 * 60, max: 10 },
   /** Wrong-password guesses on "change password": 5 per 15 minutes per account. */
   passwordChangePerUser: { name: "password-change:user", windowSeconds: 15 * 60, max: 5 },
-  /** Launch Your Brand logo uploads by one account: 20 per hour (P2.1). */
+  /** Build Your Brand logo uploads by one account: 20 per hour (P2.1). */
   brandLogoUploadPerUser: { name: "brand-logo-upload:user", windowSeconds: 60 * 60, max: 20 },
   /** Label proof uploads by one admin: 60 per hour (P2.2). */
   brandProofUploadPerAdmin: { name: "brand-proof-upload:user", windowSeconds: 60 * 60, max: 60 },
+  /** Dr. Talk threads, replies and likes by one account: 60 per hour. */
+  threadWritePerUser: { name: "thread-write:user", windowSeconds: 60 * 60, max: 60 },
   /** Ebook downloads by one account: 20 per hour. */
   ebookDownloadPerUser: { name: "ebook-download:user", windowSeconds: 60 * 60, max: 20 },
   /** Browser error reports from one IP: 30 per 10 minutes (Phase 4). */

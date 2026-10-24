@@ -20,7 +20,7 @@ export async function makeProduct(
     moq?: number;
     active?: boolean;
     bulkTiers?: { minQuantity: number; pricePaise: number }[];
-    /** Launch Your Brand terms (P2.1); the product is then open for branding. */
+    /** Build Your Brand terms (P2.1); the product is then open for branding. */
     brand?: {
       minQty: number;
       unitPricePaise: number;

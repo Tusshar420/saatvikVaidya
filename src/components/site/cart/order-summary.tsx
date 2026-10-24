@@ -43,9 +43,9 @@ export function OrderSummary({
   return (
     <section
       aria-labelledby="order-summary-title"
-      className={cn("rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6", className)}
+      className={cn("rounded-lg border border-line bg-surface p-5 shadow-card sm:p-6 md:rounded-[21px]", className)}
     >
-      <h2 id="order-summary-title" className="text-h3 text-ink">
+      <h2 id="order-summary-title" className="font-heading text-[22px] leading-[1.15] font-extrabold tracking-[-0.03em] text-ink">
         {title}
       </h2>
 

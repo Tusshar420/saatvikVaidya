@@ -29,7 +29,7 @@ export function CancelOrder({
   allowed: boolean;
   /** Whether cancelling puts stock back (the order was paid). */
   restock: boolean;
-  /** A Launch Your Brand order (P2.2): its own wording, and the payment is refunded. */
+  /** A Build Your Brand order (P2.2): its own wording, and the payment is refunded. */
   brand?: boolean;
 }) {
   const [open, setOpen] = useState(false);

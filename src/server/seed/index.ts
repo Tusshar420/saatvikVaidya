@@ -219,7 +219,7 @@ function brandFields(brand: NonNullable<ProductSeed["brand"]>) {
 }
 
 /**
- * Launch Your Brand sample values (P2.1) for sample products made before
+ * Build Your Brand sample values (P2.1) for sample products made before
  * they existed. Only products still marked sample whose brand minimum was
  * never set are changed, so the admin's (or the CSV import's) values stay.
  * Sample bulk tiers are added the same way: only to a sample product that

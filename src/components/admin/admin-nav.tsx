@@ -122,14 +122,14 @@ export function AdminNav({
           className={cn(
             "flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap transition",
             current
-              ? "bg-brand-soft font-extrabold text-brand"
+              ? "bg-orange-soft font-extrabold text-orange-ink"
               : "text-ink/80 hover:bg-surface-alt hover:text-brand",
           )}
         >
           <Icon aria-hidden className="size-4.5 shrink-0" />
           {link.label}
           {link.href === "/admin/approvals" && pendingCount > 0 && (
-            <span className="ml-auto grid min-w-6 place-items-center rounded-full bg-orange-strong px-1.5 text-xs font-extrabold text-white">
+            <span className="ml-auto grid min-w-6 place-items-center rounded-sm bg-orange-strong px-1.5 text-xs font-extrabold text-white">
               {pendingCount}
             </span>
           )}

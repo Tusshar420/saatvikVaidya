@@ -15,7 +15,7 @@ import {
   usableBrandTiers,
 } from "./brand";
 
-// Launch Your Brand quantity rules (P2.1): the minimum is also the step.
+// Build Your Brand quantity rules (P2.1): the minimum is also the step.
 
 const four = { minQty: 4, unitPricePaise: 26_000 };
 

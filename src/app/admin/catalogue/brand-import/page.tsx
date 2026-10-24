@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: copy.import.metaTitle };
 
 const text = copy.import;
 
-/** Launch Your Brand terms from a CSV (P2.1), with a preview before applying. */
+/** Build Your Brand terms from a CSV (P2.1), with a preview before applying. */
 export default async function BrandImportPage() {
   await requireAdmin("catalogue", "/admin/catalogue/brand-import");
   return (

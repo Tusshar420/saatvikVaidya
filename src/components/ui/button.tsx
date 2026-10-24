@@ -3,21 +3,34 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Spinner } from "./spinner";
 
-export type ButtonVariant = "primary" | "secondary" | "light" | "link";
-export type ButtonSize = "md" | "sm";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "light"
+  | "link"
+  | "dark"
+  | "ghost-dark";
+export type ButtonSize = "md" | "sm" | "lg";
 
 const variantClasses: Record<ButtonVariant, string> = {
+  // v2 `.btn-primary`: orange gradient with a soft glow (AA-safe stops).
   primary:
-    "bg-orange-strong text-white shadow-cta hover:bg-orange-ink motion-safe:hover:-translate-y-0.5 active:translate-y-0",
+    "bg-cta text-white shadow-cta hover:brightness-95 motion-safe:hover:-translate-y-0.5 active:translate-y-0",
   secondary:
     "border border-line-strong bg-white/70 text-brand hover:bg-surface hover:border-brand",
   light: "bg-surface text-brand-dark hover:bg-brand-soft",
   link: "min-h-11 px-1 text-brand underline-offset-4 hover:underline",
+  // v2 `.btn-green`: solid forest green.
+  dark: "bg-brand text-white hover:bg-brand-mid motion-safe:hover:-translate-y-0.5 active:translate-y-0",
+  // v2 `.btn-ghost`: white outline on dark green.
+  "ghost-dark":
+    "border border-white/32 bg-white/5 text-white hover:bg-white/12 motion-safe:hover:-translate-y-0.5 active:translate-y-0",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  md: "min-h-12 px-5 text-sm",
-  sm: "min-h-10 px-4 text-small",
+  md: "min-h-12 px-5 text-small",
+  sm: "min-h-11 px-3.75 text-xs",
+  lg: "min-h-14 px-6.5 text-sm",
 };
 
 export type ButtonStyleOptions = {

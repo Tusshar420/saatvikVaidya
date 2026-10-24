@@ -27,7 +27,7 @@ export type ProductSeed = {
   featured?: boolean;
   sortOrder: number;
   /**
-   * Launch Your Brand sample values (P2.1): the minimum (also the step), the
+   * Build Your Brand sample values (P2.1): the minimum (also the step), the
    * branded price per unit and the unit's name. Placeholders until the
    * client's sheet of eligible products arrives (load it through the admin
    * CSV import at /admin/catalogue/brand-import).

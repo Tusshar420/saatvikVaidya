@@ -3,7 +3,14 @@
 import { useRef } from "react";
 import Link from "next/link";
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, LayoutDashboard, LifeBuoy, LogOut, Package, UserRound } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  LifeBuoy,
+  LogOut,
+  Package,
+  UserRound,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { shell } from "@/content/shell";
 import { signIn as copy } from "@/content/sign-in";
@@ -13,8 +20,6 @@ import { formatIndianPhone } from "@/lib/phone";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { useSignOut } from "./auth/use-sign-out";
 import { SiteModalButton, useClaimFocus, useSiteModal } from "./site-modals";
-
-const focusKey = "profile-header";
 
 /** The phone number, or the email if there's no phone, for display. */
 export function contactOf(user: AuthUser): string {
@@ -32,7 +37,16 @@ const itemClasses =
  * admins (which checks the role and two-factor itself). While the session is
  * loading it shows the signed-out look.
  */
-export function ProfileMenu({ className }: { className?: string }) {
+export function ProfileMenu({
+  className,
+  variant = "header",
+}: {
+  className?: string;
+  /** "dock" is the phone bottom bar's "You" item: icon over label, menu opens upward. */
+  variant?: "header" | "dock";
+}) {
+  const dock = variant === "dock";
+  const focusKey = dock ? "profile-dock" : "profile-header";
   const { data } = useAuthSession();
   const user = data?.user;
   const ref = useRef<HTMLButtonElement>(null);
@@ -48,24 +62,33 @@ export function ProfileMenu({ className }: { className?: string }) {
         ref={ref}
         modal="signIn"
         data-focus-key={focusKey}
-        className={cn(className, "text-ink lg:pr-1 lg:pl-1.5")}
+        className={cn(className, dock ? "text-muted" : "text-ink")}
       >
-        <span
-          aria-hidden
-          className="grid size-9.75 place-items-center rounded-[11px] bg-brand text-white lg:size-8.75"
-        >
-          <UserRound className="size-5" />
-        </span>
-        <span className="flex flex-col items-start leading-none max-lg:sr-only">
-          <span className="text-xs font-bold">{shell.header.profileTitle}</span>{" "}
-          <span className="mt-0.75 text-[11px] font-medium text-muted">
-            {shell.header.profileSubtitle}
-          </span>
-        </span>
-        <ChevronDown
-          aria-hidden
-          className="size-4.25 text-muted max-lg:hidden"
-        />
+        {dock ? (
+          <>
+            <UserRound aria-hidden />
+            <span className="text-[11px] leading-tight font-bold">
+              {shell.dock.you}
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              aria-hidden
+              className="grid size-8.5 place-items-center rounded-[10px] text-white bg-avatar sm:size-10 sm:rounded-md lg:size-9.5"
+            >
+              <UserRound className="size-4.5 sm:size-5" />
+            </span>
+            <span className="flex flex-col items-start leading-[1.05] max-lg:sr-only">
+              <span className="text-xs font-bold whitespace-nowrap">
+                {shell.header.profileTitle}
+              </span>{" "}
+              <span className="mt-0.75 text-[11px] font-medium text-muted">
+                {shell.header.profileSubtitle}
+              </span>
+            </span>
+          </>
+        )}
       </SiteModalButton>
     );
   }
@@ -79,33 +102,49 @@ export function ProfileMenu({ className }: { className?: string }) {
           type="button"
           data-focus-key={focusKey}
           aria-label={copy.menu.trigger(user.name)}
-          className={cn(className, "text-ink lg:pr-1 lg:pl-1.5")}
+          className={cn(className, dock ? "text-muted" : "text-ink")}
         >
-          <Avatar
-            name={user.name}
-            decorative
-            className="size-9.75 lg:size-8.75"
-          />
-          <span
-            aria-hidden
-            className="flex max-w-32 flex-col items-start leading-none max-lg:hidden"
-          >
-            <span className="w-full truncate text-left text-xs font-bold">
-              {user.name}
-            </span>
-            <span className="mt-0.75 text-[11px] font-medium text-muted">
-              {copy.menu.subtitle}
-            </span>
-          </span>
-          <ChevronDown
-            aria-hidden
-            className="size-4.25 text-muted max-lg:hidden"
-          />
+          {dock ? (
+            <>
+              <Avatar
+                name={user.name}
+                decorative
+                className="size-5.5 text-[9px]"
+              />
+              <span aria-hidden className="text-[11px] leading-tight font-bold">
+                {shell.dock.you}
+              </span>
+            </>
+          ) : (
+            <>
+              <Avatar
+                name={user.name}
+                decorative
+                className="size-8.5 rounded-[10px] text-[11px] sm:size-10 sm:rounded-md lg:size-9.5"
+              />
+              <span
+                aria-hidden
+                className="flex max-w-32 flex-col items-start leading-none max-lg:hidden"
+              >
+                <span className="w-full truncate text-left text-xs font-bold">
+                  {user.name}
+                </span>
+                <span className="mt-0.75 text-[11px] font-medium text-muted">
+                  {copy.menu.subtitle}
+                </span>
+              </span>
+              <ChevronDown
+                aria-hidden
+                className="size-4.25 text-muted max-lg:hidden"
+              />
+            </>
+          )}
         </button>
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content
-          align="end"
+          align={dock ? "center" : "end"}
+          side={dock ? "top" : "bottom"}
           sideOffset={8}
           collisionPadding={12}
           onCloseAutoFocus={(event) => {

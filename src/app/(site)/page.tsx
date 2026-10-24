@@ -1,180 +1,80 @@
 import { HeroSection } from "@/components/site/hero-section";
-import { TrustSection } from "@/components/site/trust-section";
+import { CommunitySection } from "@/components/site/community-section";
 import { ReelsSection } from "@/components/site/reels-section";
-import { OffersSection } from "@/components/site/offers-section";
-import { QuickActionsSection } from "@/components/site/quick-actions-section";
 import { LaunchSection } from "@/components/site/launch-section";
 import { BrandsSection } from "@/components/site/brands-section";
 import { CoursesSection } from "@/components/site/courses-section";
 import { CoinsSection } from "@/components/site/coins-section";
-import { QuizSection } from "@/components/site/quiz-section";
 import { FeedbackSection } from "@/components/site/feedback-section";
-import { CommunitySection } from "@/components/site/community-section";
-import { PartnerSection } from "@/components/site/partner-section";
+import { TrackSection } from "@/components/site/track-section";
 import { WhySection } from "@/components/site/why-section";
-import { getHomeContent } from "@/server/content/home";
+import { FinalCtaSection } from "@/components/site/final-cta-section";
+import { getHomeContent, type HomeSection } from "@/server/content/home";
+import {
+  getCoinMaths,
+  getHomeQuizCard,
+  getLaunchPreview,
+  getTopProducts,
+} from "@/server/content/home-live";
 import { getSession } from "@/server/auth/session";
-import { getHomeQuiz } from "@/server/quiz/view";
 
 export const metadata = {
   title: "Saatvik Vaidya",
 };
 
+type SectionOf<K extends HomeSection["key"]> = Extract<HomeSection, { key: K }>;
+
+/**
+ * The v2 homepage (docs/mockup-v2/index.html), in the mockup's order. Each
+ * section's copy and items come from its admin-edited homepage section; a
+ * section switched off in the admin is left out. The v1 sections v2 dropped
+ * (offers, quick actions, partner) aren't shown, and neither are the trust
+ * stats (the client asked for them off the homepage; Why Saatvik shows them).
+ */
 export default async function HomePage() {
-  const [homeContent, session, homeQuiz] = await Promise.all([
-    getHomeContent(),
-    getSession(),
-    getHomeQuiz(),
+  const [homeContent, session] = await Promise.all([getHomeContent(), getSession()]);
+  const userId = session?.user.id ?? null;
+  const [quiz, preview, products, coinMaths] = await Promise.all([
+    getHomeQuizCard(userId),
+    getLaunchPreview(),
+    getTopProducts(),
+    getCoinMaths(),
   ]);
+
+  const find = <K extends HomeSection["key"]>(key: K) =>
+    homeContent.sections.find((s): s is SectionOf<K> => s.key === key);
+  const reels = find("reels");
+  const launch = find("launch");
+  const brands = find("brands");
+  const courses = find("courses");
+  const coins = find("coins");
+  const feedback = find("feedback");
+  const why = find("why");
+  const signedIn = !!session;
 
   return (
     <>
-      {homeContent.sections.map((section) => {
-        switch (section.key) {
-          case "hero":
-            return (
-              <section key="hero" id="top" className="section-y">
-                <div className="shell">
-                  <HeroSection slides={section.slides} />
-                </div>
-              </section>
-            );
-
-          case "trust":
-            return <TrustSection key="trust" stats={section.stats} />;
-
-          case "reels":
-            return (
-              <section key="reels" id="reels" className="section-y">
-                <ReelsSection
-                  heading={section.heading}
-                  filters={section.filters}
-                  reels={section.reels}
-                />
-              </section>
-            );
-
-          case "offers":
-            return (
-              <section key="offers" id="offers" className="section-y">
-                <OffersSection
-                  heading={section.heading}
-                  offers={section.offers}
-                />
-              </section>
-            );
-
-          case "quick-actions":
-            return (
-              <section key="quick-actions" id="quick-actions" className="section-y">
-                <QuickActionsSection
-                  heading={section.heading}
-                  actions={section.actions}
-                />
-              </section>
-            );
-
-          case "launch":
-            return (
-              <LaunchSection
-                key="launch"
-                heading={section.heading}
-                steps={section.steps}
-                categories={section.categories}
-                catalogueMeta={section.catalogue}
-              />
-            );
-
-          case "brands":
-            return (
-              <BrandsSection
-                key="brands"
-                heading={section.heading}
-                brands={section.brands}
-              />
-            );
-
-          case "courses":
-            return (
-              <CoursesSection
-                key="courses"
-                heading={section.heading}
-                courses={section.courses}
-                liveSessions={section.liveSessions}
-              />
-            );
-
-          case "coins":
-            return (
-              <CoinsSection
-                key="coins"
-                heading={section.heading}
-                equation={section.equation}
-                isSignedIn={!!session}
-              />
-            );
-
-          case "quiz":
-            return (
-              <QuizSection
-                key="quiz"
-                heading={section.heading}
-                badge={section.badge}
-                note={section.note}
-                live={homeQuiz}
-              />
-            );
-
-          case "feedback":
-            return (
-              <FeedbackSection
-                key="feedback"
-                heading={section.heading}
-                feedback={section.feedback}
-              />
-            );
-
-          case "community":
-            return (
-              <CommunitySection
-                key="community"
-                heading={section.heading}
-                points={section.points}
-              />
-            );
-
-          case "partner":
-            return (
-              <PartnerSection
-                key="partner"
-                heading={section.heading}
-                completion={section.completion}
-                isSignedIn={!!session}
-                profileData={
-                  session
-                    ? {
-                        mobileVerified: session.user.phoneNumberVerified ?? false,
-                        userTypeSelected: !!session.user.userTypeId,
-                        completionPercent: 40,
-                      }
-                    : undefined
-                }
-              />
-            );
-
-          case "why":
-            return (
-              <WhySection
-                key="why"
-                heading={section.heading}
-                steps={section.steps}
-              />
-            );
-
-          default:
-            return null;
-        }
-      })}
+      <HeroSection isSignedIn={signedIn} />
+      <CommunitySection quiz={quiz} />
+      {reels && reels.reels.length > 0 && (
+        <ReelsSection heading={reels.heading} filters={reels.filters} reels={reels.reels} />
+      )}
+      {launch && <LaunchSection heading={launch.heading} steps={launch.steps} preview={preview} />}
+      {brands && <BrandsSection heading={brands.heading} products={products} />}
+      {courses && (courses.courses.length > 0 || courses.liveSessions.length > 0) && (
+        <CoursesSection
+          heading={courses.heading}
+          courses={courses.courses}
+          liveSessions={courses.liveSessions}
+        />
+      )}
+      {coins && <CoinsSection heading={coins.heading} maths={coinMaths} />}
+      {feedback && feedback.feedback.length > 0 && (
+        <FeedbackSection heading={feedback.heading} feedback={feedback.feedback} />
+      )}
+      <TrackSection />
+      {why && why.steps.length > 0 && <WhySection heading={why.heading} steps={why.steps} />}
+      <FinalCtaSection isSignedIn={signedIn} />
     </>
   );
 }

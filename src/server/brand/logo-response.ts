@@ -3,7 +3,7 @@ import { isImageLogo } from "@/lib/brand";
 import { getStorage } from "@/server/storage";
 import { contentDisposition } from "@/server/storage/files";
 
-// Serving a Launch Your Brand logo (P2.1) to someone the caller has already
+// Serving a Build Your Brand logo (P2.1) to someone the caller has already
 // checked may see it. PNG and JPEG open in the browser (for the preview) or
 // download with ?download=1; PDFs always download, so no PDF viewer runs
 // under our CSP. Nothing is cached.

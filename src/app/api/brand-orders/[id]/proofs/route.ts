@@ -26,7 +26,6 @@ const failures: Record<ErrorCode, { status: number; message: string }> = {
   not_found: { status: 404, message: results.not_found },
   not_paid: { status: 409, message: results.not_paid },
   not_allowed: { status: 409, message: results.not_allowed },
-  no_proof: { status: 409, message: results.no_proof },
   invalid: { status: 400, message: results.invalid },
   empty: { status: 400, message: results.empty },
   tooLarge: { status: 413, message: results.tooLarge },

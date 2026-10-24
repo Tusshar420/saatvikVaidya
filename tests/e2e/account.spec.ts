@@ -138,7 +138,7 @@ test("a customer adds, edits and deletes a saved address", async ({ page, baseUR
   expect(errors).toEqual([]);
 });
 
-test("an admin sees the reports and downloads a logged CSV; others can't", async ({ page, baseURL, browser }, testInfo) => {
+test("an admin sees the reports and downloads a logged CSV; others can't", async ({ page, baseURL, browser, isMobile }, testInfo) => {
   const errors = collectErrors(page);
   const adminUser = await signInAs(page, baseURL!, { role: "admin" });
 
@@ -153,14 +153,17 @@ test("an admin sees the reports and downloads a logged CSV; others can't", async
   await adminLink.click();
   await expect(page).toHaveURL(/\/admin$/);
 
-  // So does the header's account menu.
-  await page.goto("/account");
-  await page
-    .getByRole("banner")
-    .getByRole("button", { name: signIn.menu.trigger(adminUser.name) })
-    .click();
-  await page.getByRole("menuitem", { name: signIn.menu.admin }).click();
-  await expect(page).toHaveURL(/\/admin$/);
+  // So does the header's account menu (from 560 px; phones have the
+  // account page's link above).
+  if (!isMobile) {
+    await page.goto("/account");
+    await page
+      .getByRole("banner")
+      .getByRole("button", { name: signIn.menu.trigger(adminUser.name) })
+      .click();
+    await page.getByRole("menuitem", { name: signIn.menu.admin }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+  }
 
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(admin.reports.title);

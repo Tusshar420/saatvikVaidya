@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { bugReportsAdmin, myReports, reportProblem as copy, reportStatusForUser } from "../../src/content/bug-reports";
 import { errorLog } from "../../src/content/errors";
+import { shell } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
 import { e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
@@ -118,7 +119,7 @@ test("a guest reports a problem from the footer, with a screenshot, linked to th
   }
 });
 
-test("a signed-in user reports from the account menu and follows the status in their account", async ({ page, baseURL }) => {
+test("a signed-in user reports from the account menu and follows the status in their account", async ({ page, baseURL, isMobile }) => {
   const tag = tagOf();
   const db = e2eDb();
   const errors = collectErrors(page);
@@ -127,8 +128,13 @@ test("a signed-in user reports from the account menu and follows the status in t
     await page.goto("/account/reports");
     await expect(page.getByRole("heading", { name: myReports.emptyTitle })).toBeVisible();
 
-    await page.getByRole("button", { name: signIn.menu.trigger(name) }).click();
-    await page.getByRole("menuitem", { name: signIn.menu.reportProblem }).click();
+    if (isMobile) {
+      // Phones have no account menu; the footer's link opens the same form.
+      await page.getByRole("contentinfo").getByRole("button", { name: shell.footer.reportProblem }).click();
+    } else {
+      await page.getByRole("button", { name: signIn.menu.trigger(name) }).click();
+      await page.getByRole("menuitem", { name: signIn.menu.reportProblem }).click();
+    }
     const dialog = page.getByRole("dialog", { name: copy.title });
     await expect(dialog).toBeVisible();
     // Signed in: no email box, and the account is mentioned in what's attached.

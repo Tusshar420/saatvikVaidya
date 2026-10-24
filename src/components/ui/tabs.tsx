@@ -14,14 +14,26 @@ export function Tabs({
   );
 }
 
+export type TabsVariant = "underline" | "pill";
+
+/**
+ * The tab row. `pill` (v2 `.talk-tabs` / `.portal-tabs`): a row of rounded
+ * pills, the active one solid brand green; its triggers pick the look up
+ * from the list, so they need no prop.
+ */
 export function TabsList({
   className,
+  variant = "underline",
   ...props
-}: ComponentProps<typeof TabsPrimitive.List>) {
+}: ComponentProps<typeof TabsPrimitive.List> & { variant?: TabsVariant }) {
   return (
     <TabsPrimitive.List
+      data-variant={variant}
       className={cn(
-        "scrollbar-none flex gap-5 overflow-x-auto border-b border-line",
+        "group/tabs scrollbar-none flex overflow-x-auto",
+        variant === "pill"
+          ? "gap-1.5"
+          : "gap-5 border-b border-line",
         className,
       )}
       {...props}
@@ -40,6 +52,9 @@ export function TabsTrigger({
         "focus-visible:-outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand after:opacity-0 after:transition-opacity",
         "data-[state=active]:text-brand data-[state=active]:after:opacity-100",
+        // Pill look, when the list has variant="pill".
+        "group-data-[variant=pill]/tabs:rounded-[11px] group-data-[variant=pill]/tabs:bg-cream group-data-[variant=pill]/tabs:px-3.5 group-data-[variant=pill]/tabs:text-small group-data-[variant=pill]/tabs:after:hidden",
+        "group-data-[variant=pill]/tabs:data-[state=active]:bg-brand group-data-[variant=pill]/tabs:data-[state=active]:text-white",
         className,
       )}
       {...props}

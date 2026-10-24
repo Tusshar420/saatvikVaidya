@@ -9,7 +9,7 @@ import { placeBrandOrder } from "@/server/brand/orders";
 import { createProfile, saveProfileLogo } from "@/server/brand/profiles";
 import { makeProduct, makeUser, validAddress } from "./shop";
 
-// A Launch Your Brand order for the P2.2 tests, made through the real P2.1
+// A Build Your Brand order for the P2.2 tests, made through the real P2.1
 // code (Launch cart, draft, placeBrandOrder, test payment), so it looks
 // like a real one.
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { catalogue as copy } from "@/content/catalogue";
 import { cn } from "@/lib/cn";
 import type { ProductImageView } from "@/server/catalogue/products";
+import { ProductPack } from "./product-pack";
 import { ProductVisual } from "./product-visual";
 
 const text = copy.product.gallery;
@@ -15,17 +16,33 @@ const text = copy.product.gallery;
 export function ProductGallery({
   images,
   glyph,
+  name,
+  brandName = null,
 }: {
   images: ProductImageView[];
   glyph: string | null;
+  /** With a name, a product without photos shows the drawn v2 pack. */
+  name?: string;
+  brandName?: string | null;
 }) {
   const [index, setIndex] = useState(0);
   const current = images[Math.min(index, images.length - 1)] ?? null;
 
   return (
     <div role="group" aria-label={text.label} className="flex flex-col gap-3">
-      <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-surface-alt">
-        <ProductVisual image={current} glyph={glyph} loading="eager" />
+      <div className="relative aspect-square overflow-hidden rounded-lg border border-line bg-cream shadow-card md:rounded-[21px]">
+        {name ? (
+          <ProductPack
+            image={current}
+            brandName={brandName}
+            name={name}
+            size="lg"
+            loading="eager"
+            className="size-full"
+          />
+        ) : (
+          <ProductVisual image={current} glyph={glyph} loading="eager" />
+        )}
         {!current && (
           <p className="absolute inset-x-0 bottom-4 text-center text-small font-semibold text-brand">
             {text.noImage}
@@ -42,7 +59,7 @@ export function ProductGallery({
                 aria-label={text.show(position + 1, images.length)}
                 aria-pressed={position === index}
                 className={cn(
-                  "block size-16 overflow-hidden rounded-md border-2 bg-surface-alt transition sm:size-20",
+                  "block size-16 overflow-hidden rounded-md border-2 bg-cream transition sm:size-20",
                   position === index
                     ? "border-brand"
                     : "border-line hover:border-brand/60",

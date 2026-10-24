@@ -62,10 +62,11 @@ test.describe("/design showcase", () => {
     expect(box && viewport).toBeTruthy();
     if (box && viewport) {
       if (isMobile) {
-        // Full width, anchored to the bottom edge.
-        expect(Math.round(box.x)).toBe(0);
-        expect(Math.round(box.width)).toBe(viewport.width);
-        expect(Math.round(box.y + box.height)).toBe(viewport.height);
+        // v2 (mockup .modal-card): a sheet floating 10 px in from the left,
+        // right and bottom edges.
+        expect(Math.round(box.x)).toBe(10);
+        expect(Math.round(box.width)).toBe(viewport.width - 20);
+        expect(Math.round(box.y + box.height)).toBe(viewport.height - 10);
       } else {
         expect(box.width).toBeLessThanOrEqual(530);
         expect(

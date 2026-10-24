@@ -10,11 +10,9 @@ const request = (path: string, cookie?: string) =>
 describe("proxy", () => {
   it("sends signed-out visitors of protected pages to sign-in", () => {
     for (const [path, next] of [
-      ["/account", "%2Faccount"],
       ["/account/orders?page=2", "%2Faccount%2Forders%3Fpage%3D2"],
       ["/checkout", "%2Fcheckout"],
       ["/checkout/pay/abc", "%2Fcheckout%2Fpay%2Fabc"],
-      ["/orders", "%2Forders"],
       ["/orders/abc", "%2Forders%2Fabc"],
       ["/admin", "%2Fadmin"],
       ["/admin/users/42", "%2Fadmin%2Fusers%2F42"],
@@ -32,24 +30,23 @@ describe("proxy", () => {
       "sv.session_token=abc.def",
       "__Secure-sv.session_token=abc.def",
     ]) {
-      const response = proxy(request("/account", cookie));
+      const response = proxy(request("/account/addresses", cookie));
       expect(response.headers.get("x-middleware-next")).toBe("1");
     }
   });
 
   it("ignores other apps' cookies", () => {
-    const response = proxy(request("/account", "better-auth.session_token=x"));
+    const response = proxy(request("/account/addresses", "better-auth.session_token=x"));
     expect(response.status).toBe(307);
   });
 
-  it("only runs on /account, /checkout, /orders and /admin", () => {
+  it("only runs on /account, /checkout, /orders, /notifications and /admin", () => {
     expect(config.matcher).toEqual([
-      "/account",
-      "/account/:path*",
+      "/account/:path+",
       "/checkout",
       "/checkout/:path*",
-      "/orders",
-      "/orders/:path*",
+      "/orders/:path+",
+      "/notifications",
       "/admin",
       "/admin/:path*",
     ]);

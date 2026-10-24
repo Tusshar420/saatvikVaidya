@@ -13,30 +13,52 @@ test.describe("Homepage sections (A7)", () => {
     const hero = page.locator("#top");
     await expect(hero).toBeVisible();
     await expect(
-      hero.getByRole("heading", { level: 1, name: /Build your Ayurveda brand/ }),
+      hero.getByRole("heading", { level: 1, name: /Learn\.\s*Connect\.\s*Build\.\s*Grow\./ }),
     ).toBeVisible();
   });
 
-  test("hero carousel has previous, next and slide buttons", async ({
+  test("hero carousel has slide dots and no arrow buttons", async ({
     page,
   }) => {
     const hero = page.locator("#top");
     await expect(
-      hero.getByRole("button", { name: ui.carousel.previous }),
-    ).toBeVisible();
-    await expect(
-      hero.getByRole("button", { name: ui.carousel.next }),
-    ).toBeVisible();
-    await expect(
       hero.getByRole("button", { name: ui.carousel.goTo(2) }),
     ).toBeVisible();
+    await expect(
+      hero.getByRole("button", { name: /^(Previous|Next) slide$/ }),
+    ).toHaveCount(0);
   });
 
-  test("trust strip shows its figures", async ({ page }) => {
+  test("dragging the hero left and right changes the slide", async ({
+    page,
+  }) => {
+    const hero = page.locator("#top");
+    await hero.getByRole("button", { name: ui.carousel.pause }).click();
+    const box = await hero.getByRole("heading", { level: 1 }).boundingBox();
+    if (!box) throw new Error("hero heading has no box");
+    const y = box.y + box.height / 2;
+    const drag = async (from: number, to: number) => {
+      await page.mouse.move(from, y);
+      await page.mouse.down();
+      await page.mouse.move(to, y, { steps: 5 });
+      await page.mouse.up();
+    };
+    const dot = (n: number) =>
+      hero.getByRole("button", { name: ui.carousel.goTo(n) });
+
+    await drag(box.x + 200, box.x + 20);
+    await expect(dot(2)).toHaveAttribute("aria-current", "true");
+    await expect(page).toHaveURL("/");
+
+    await drag(box.x + 20, box.x + 200);
+    await expect(dot(1)).toHaveAttribute("aria-current", "true");
+  });
+
+  test("hero no longer shows the stat strip", async ({ page }) => {
     await expect(
       page.getByText("Classical formulations", { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText("Low MOQ", { exact: true })).toBeVisible();
+    ).toHaveCount(0);
+    await expect(page.getByText("Low MOQ", { exact: true })).toHaveCount(0);
   });
 
   test("reels section renders reel cards", async ({ page }) => {
@@ -45,26 +67,16 @@ test.describe("Homepage sections (A7)", () => {
     await expect(
       reels.getByRole("heading", { level: 2, name: "Saatvik Reels" }),
     ).toBeVisible();
-    expect(await reels.locator("article").count()).toBeGreaterThan(0);
+    expect(await reels.getByRole("list", { name: "Reels" }).locator("li").count()).toBeGreaterThan(0);
   });
 
-  test("offers section renders", async ({ page }) => {
-    const offers = page.locator("#offers");
-    await offers.scrollIntoViewIfNeeded();
-    await expect(
-      offers.getByRole("heading", { level: 2, name: "Offers worth acting on" }),
-    ).toBeVisible();
-  });
-
-  test("quick actions section renders", async ({ page }) => {
-    const actions = page.locator("#quick-actions");
-    await actions.scrollIntoViewIfNeeded();
-    await expect(
-      actions.getByRole("heading", {
-        level: 2,
-        name: "What would you like to do?",
-      }),
-    ).toBeVisible();
+  // The v2 redesign removed the Offers and Quick actions sections from the
+  // homepage, so the tests for them are gone; this checks they stay gone.
+  test("offers and quick actions sections are no longer on the homepage", async ({
+    page,
+  }) => {
+    await expect(page.locator("#offers")).toHaveCount(0);
+    await expect(page.locator("#quick-actions")).toHaveCount(0);
   });
 
   test("doesn't scroll sideways", async ({ page }) => {

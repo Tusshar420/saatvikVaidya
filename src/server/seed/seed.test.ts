@@ -194,6 +194,16 @@ describe("seedDatabase", () => {
       .map((piece) =>
         piece
           .replaceAll("&amp;", "&")
+          // The mockup predates the rename to "Build Your Brand".
+          .replace(/launch your brand/gi, (m) =>
+            m.replace(/launch/i, (w) =>
+              w === "LAUNCH"
+                ? "BUILD"
+                : w[0] === "L" && w === "Launch"
+                  ? "Build"
+                  : "build",
+            ),
+          )
           // Leading/trailing decoration that components draw as icons. An
           // arrow inside text ("₹10,000 order → 1,000 Coins") is content.
           .replace(/^[→←✓▶]\s*|\s*[→←✓▶]$/g, "")

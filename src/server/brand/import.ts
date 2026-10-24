@@ -5,7 +5,7 @@ import { rupeesToPaise } from "@/lib/format";
 import { diffFields, logAdminAction } from "@/server/admin/audit";
 import { db } from "@/server/db";
 
-// The admin's CSV import of Launch Your Brand terms (docs/CHUNKS.md, P2.1):
+// The admin's CSV import of Build Your Brand terms (docs/CHUNKS.md, P2.1):
 // one row per product with its minimum (also the step), branded price per
 // unit and unit name. The file is checked row by row and shown as a
 // preview; applying parses the same text again against the catalogue as

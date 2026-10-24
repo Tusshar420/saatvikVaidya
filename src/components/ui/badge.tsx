@@ -2,7 +2,14 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 export type BadgeVariant =
-  "brand" | "orange" | "blue" | "gold" | "live" | "soon";
+  | "brand"
+  | "orange"
+  | "blue"
+  | "gold"
+  | "live"
+  | "soon"
+  | "success"
+  | "dark";
 
 const variantClasses: Record<BadgeVariant, string> = {
   brand: "bg-brand-soft text-brand",
@@ -11,6 +18,10 @@ const variantClasses: Record<BadgeVariant, string> = {
   gold: "bg-gold-soft text-gold-ink",
   live: "bg-danger-soft text-danger",
   soon: "border border-orange/50 bg-surface text-orange-ink",
+  // "In stock" / "Verified" (`.stock`, `.verified`).
+  success: "bg-success-soft text-success",
+  // The dark reward pill ("+100 Coins", `.reward-badge`).
+  dark: "bg-ink text-white",
 };
 
 export type BadgeProps = ComponentProps<"span"> & { variant?: BadgeVariant };
@@ -25,7 +36,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex w-fit items-center gap-2 rounded-sm px-2 py-1 text-label uppercase",
+        "inline-flex w-fit items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-[11px] leading-none font-extrabold tracking-[0.06em] uppercase",
         variantClasses[variant],
         className,
       )}
@@ -60,13 +71,13 @@ export function Eyebrow({
   return (
     <p
       className={cn(
-        "flex items-center gap-2 text-label uppercase",
-        tone === "brand" ? "text-brand" : "text-brand-soft",
+        "flex items-center gap-2.25 font-heading text-label uppercase",
+        tone === "brand" ? "text-brand-mid" : "text-brand-soft",
         className,
       )}
       {...props}
     >
-      {bar && <span aria-hidden className="h-0.5 w-6 shrink-0 bg-orange" />}
+      {bar && <span aria-hidden className="h-0.5 w-7 shrink-0 rounded-full bg-orange" />}
       {children}
     </p>
   );

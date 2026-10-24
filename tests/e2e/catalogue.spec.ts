@@ -63,7 +63,8 @@ test.describe("catalogue listing", () => {
       "aria-current",
       "true",
     );
-    await expect(card(page, "Triphala Churna")).toBeVisible();
+    // The real catalogue has more than one Triphala Churna, so take the first.
+    await expect(card(page, "Triphala Churna").first()).toBeVisible();
     await expect(card(page, "Punarnava Mandoor")).toHaveCount(0);
 
     // The panel adds a brand on top.
@@ -78,7 +79,7 @@ test.describe("catalogue listing", () => {
     // Each active filter is a chip that removes itself.
     await page.getByRole("link", { name: copy.filters.remove("Pranacharya") }).click();
     await expect(page).toHaveURL(/\/products\?form=churna$/);
-    await expect(card(page, "Triphala Churna")).toBeVisible();
+    await expect(card(page, "Triphala Churna").first()).toBeVisible();
   });
 
   test("sorts by price and shows an empty state", async ({ page, isMobile }) => {
@@ -87,8 +88,14 @@ test.describe("catalogue listing", () => {
     await panel.getByLabel(copy.filters.sort).selectOption("price-asc");
     await panel.getByRole("button", { name: copy.filters.apply }).click();
     await expect(page).toHaveURL(/sort=price-asc/);
-    await expect(results(page).getByRole("listitem").first()).toContainText("Triphala Churna");
-    await expect(results(page).getByRole("listitem").first()).toContainText("₹150");
+    // Whatever the catalogue holds, the MRPs must run from low to high.
+    await expect(results(page).getByRole("listitem").first()).toBeVisible();
+    const prices = (await results(page).getByRole("listitem").allInnerTexts()).map((text) =>
+      Number(/MRP\s*₹([\d,]+)/.exec(text)?.[1]?.replaceAll(",", "")),
+    );
+    expect(prices.length).toBeGreaterThan(1);
+    expect(prices.every((price) => Number.isFinite(price))).toBe(true);
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
 
     await page.goto("/products?form=churna&area=womens-health");
     await expect(page.getByRole("heading", { name: copy.listing.empty.title })).toBeVisible();
@@ -98,22 +105,46 @@ test.describe("catalogue listing", () => {
 });
 
 test("search finds products and says when nothing matches", async ({ page }) => {
+  // Two products of our own with a one-off word, so the count doesn't depend
+  // on what is in the catalogue.
+  const db = e2eDb();
+  const form = await db.category.findFirstOrThrow({ where: { kind: "FORM", active: true } });
+  const word = `findme${token()}`;
+  const make = (suffix: string) =>
+    db.product.create({
+      data: {
+        slug: `${E2E_CONTENT_PREFIX}search-${suffix}-${token()}`,
+        name: `E2E ${word} ${suffix}`,
+        formId: form.id,
+        description: "A product made by the catalogue e2e test.",
+        packSize: "60 tablets",
+        mrpPaise: 32_000,
+        professionalPricePaise: 24_000,
+        gstRate: 5,
+        hsnCode: "30049011",
+        stockItem: stockCreate(`${word} ${suffix}`, 5),
+      },
+      select: { name: true },
+    });
+  const first = await make("Vati");
+  const second = await make("Churna");
+
   await page.goto("/search");
   const field = page.getByRole("main").getByRole("searchbox", { name: copy.search.label });
-  await field.fill("ashwagandha");
+  await field.fill(word);
   await field.press("Enter");
-  await expect(page).toHaveURL("/search?q=ashwagandha");
+  await expect(page).toHaveURL(`/search?q=${word}`);
   await expect(
-    page.getByRole("heading", { name: copy.listing.resultsFor(2, "ashwagandha") }),
+    page.getByRole("heading", { name: copy.listing.resultsFor(2, word) }),
   ).toBeVisible();
-  await expect(card(page, "Chyawanprash")).toBeVisible();
-  await expect(card(page, "Mahanarayan Taila")).toBeVisible();
+  await expect(card(page, first.name)).toBeVisible();
+  await expect(card(page, second.name)).toBeVisible();
 
   // "Filter these results" carries the words to the listing.
   await page.getByRole("link", { name: copy.search.refine }).click();
-  await expect(page).toHaveURL("/products?q=ashwagandha");
+  await expect(page).toHaveURL(`/products?q=${word}`);
   await expect(
-    page.getByRole("link", { name: copy.filters.remove(copy.filters.search("ashwagandha")) }),
+    page.getByRole("link", { name: copy.filters.remove(copy.filters.search(word)) }),
   ).toBeVisible();
 
   await page.goto("/search?q=zzqx");
@@ -242,19 +273,19 @@ test.describe("product page", () => {
 });
 
 test("homepage catalogue links lead to the listing", async ({ page }) => {
-  await page.goto("/");
-  const launch = page.locator("#launch-catalogue");
-  await launch.scrollIntoViewIfNeeded();
-  await launch.getByRole("link", { name: /Churna/ }).click();
-  await expect(page).toHaveURL("/products?form=churna");
-
+  // v2 dropped the homepage's #launch-catalogue form links and the "Explore
+  // range" brand links; the Top Brands section now shows top products with a
+  // link to each, plus a link to the full listing.
   await page.goto("/");
   const brands = page.locator("#brands");
   await brands.scrollIntoViewIfNeeded();
-  await brands.getByRole("link", { name: "Explore range: Sabka Vaidya" }).click();
-  await expect(page).toHaveURL("/products?brand=sabka-vaidya");
-  await expect(card(page, "Triphala Churna")).toBeVisible();
-  await expect(card(page, "Avipattikar Churna")).toHaveCount(0);
+  await brands.getByRole("heading", { level: 3 }).first().getByRole("link").click();
+  await expect(page).toHaveURL(/\/products\/[a-z0-9-]+$/);
+
+  await page.goto("/");
+  await brands.scrollIntoViewIfNeeded();
+  await brands.locator('a[href="/products"]').click();
+  await expect(page).toHaveURL("/products");
 });
 
 test("catalogue pages: no axe issues, no sideways scroll, no console errors", async ({
@@ -290,7 +321,6 @@ test.describe("admin catalogue", () => {
     const slug = `${E2E_CONTENT_PREFIX}test-${id}`;
 
     await page.goto("/admin/catalogue");
-    await expect(main(page).getByRole("cell", { name: /^Punarnava Mandoor/ })).toBeVisible();
     await main(page).getByRole("link", { name: text.add }).click();
     await expect(page).toHaveURL("/admin/catalogue/new");
 
@@ -360,10 +390,9 @@ test.describe("admin catalogue", () => {
     await page.goto("/admin/catalogue");
     expect(await horizontalOverflow(page)).toBe(0);
     expect(await axeViolations(page)).toEqual([]);
-    await main(page).getByRole("link", { name: /Edit Punarnava Mandoor/ }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      text.editTitle("Punarnava Mandoor"),
-    );
+    // Whatever products the database holds (demo seed or the real catalogue).
+    await main(page).getByRole("link", { name: /^Edit / }).first().click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^Edit /);
     expect(await horizontalOverflow(page)).toBe(0);
     expect(await axeViolations(page)).toEqual([]);
   });

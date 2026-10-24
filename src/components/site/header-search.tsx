@@ -78,7 +78,7 @@ export function HeaderSearch({
       <Link
         href="/search"
         aria-label={shell.search.openSearch}
-        className="grid size-11 place-items-center rounded-md bg-surface-alt text-brand transition hover:bg-brand-soft md:hidden"
+        className="grid size-11 place-items-center rounded-md text-brand transition hover:bg-brand-soft md:hidden [&_svg]:max-sm:size-4.5"
       >
         <Search aria-hidden className="size-5" />
       </Link>
@@ -88,9 +88,9 @@ export function HeaderSearch({
         action="/search"
         method="get"
         aria-label={shell.search.label}
-        className="flex h-11.5 items-center gap-2.5 rounded-[14px] border border-line bg-surface-alt pr-3 pl-3.75 transition focus-within:border-brand max-md:hidden"
+        className="flex h-11.5 items-center gap-3 rounded-[14px] border border-line bg-surface px-3.5 transition focus-within:border-brand max-md:hidden"
       >
-        <Search aria-hidden className="size-4.75 shrink-0 text-brand" />
+        <Search aria-hidden className="size-4.5 shrink-0 text-muted" />
         <input
           ref={inputRef}
           type="search"
@@ -116,7 +116,7 @@ export function HeaderSearch({
         />
         <kbd
           aria-hidden
-          className="rounded-[6px] border border-line-strong bg-surface px-1.5 py-0.5 font-sans text-[11px] leading-[1.4] whitespace-nowrap text-muted"
+          className="rounded-[7px] border border-line bg-cream px-1.75 py-1 font-sans text-[11px] leading-none whitespace-nowrap text-muted"
         >
           {shell.search.shortcutHint}
         </kbd>

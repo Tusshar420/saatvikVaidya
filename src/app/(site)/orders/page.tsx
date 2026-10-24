@@ -8,7 +8,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { orders as copy } from "@/content/orders";
 import { formatDate, formatPaise } from "@/lib/format";
 import { checkoutPathFor } from "@/lib/orders";
-import { requireUser } from "@/server/auth/session";
+import { GuestOrders } from "@/components/site/orders/guest-orders";
+import { getSession } from "@/server/auth/session";
 import { listOrdersForUser } from "@/server/orders/history";
 
 const text = copy.list;
@@ -26,7 +27,9 @@ function pageOf(value: string | string[] | undefined): number {
 
 /** The signed-in buyer's orders, newest first. */
 export default async function OrdersPage({ searchParams }: PageProps<"/orders">) {
-  const { user } = await requireUser("/orders");
+  const session = await getSession();
+  if (!session) return <GuestOrders />;
+  const { user } = session;
   const { orders, page, pageCount } = await listOrdersForUser(user.id, pageOf((await searchParams).page));
   const pageHref = (target: number) => (target > 1 ? `/orders?page=${target}` : "/orders");
 

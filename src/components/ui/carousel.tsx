@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
+import { Pause, Play } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { ui } from "@/content/ui";
@@ -20,9 +20,10 @@ export type CarouselProps = {
 };
 
 /**
- * Cross-fading slides with previous/next, dots and a pause button. It
- * auto-advances (every 6.5 s by default) but pauses on hover, on keyboard
- * focus, when the tab is hidden, and under reduced motion. Swipe on touch.
+ * Cross-fading slides with dots and a pause button; swipe (touch) or drag
+ * (mouse) left or right to move between them. It auto-advances (every 6.5 s
+ * by default) but pauses on hover, on keyboard focus, when the tab is hidden,
+ * and under reduced motion.
  */
 export function Carousel({
   label,
@@ -39,6 +40,9 @@ export function Carousel({
   const [userPlaying, setUserPlaying] = useState<boolean | null>(null);
   const reducedMotion = useReducedMotion();
   const swipeStart = useRef<number | null>(null);
+  // Set after a swipe so the click that ends a mouse drag doesn't follow a
+  // link or press a button inside the slide.
+  const swiped = useRef(false);
 
   const playing =
     autoAdvanceMs > 0 && count > 1 && (userPlaying ?? !reducedMotion);
@@ -77,21 +81,33 @@ export function Carousel({
       }}
     >
       <div
-        className="grid touch-pan-y"
+        className="grid touch-pan-y select-none"
         aria-live={running ? "off" : "polite"}
         onPointerDown={(event) => {
-          if (event.pointerType !== "mouse") swipeStart.current = event.clientX;
+          swiped.current = false;
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          swipeStart.current = event.clientX;
         }}
         onPointerUp={(event) => {
           if (swipeStart.current === null) return;
           const delta = event.clientX - swipeStart.current;
           swipeStart.current = null;
-          if (Math.abs(delta) >= SWIPE_THRESHOLD_PX)
+          if (Math.abs(delta) >= SWIPE_THRESHOLD_PX) {
+            swiped.current = true;
             go(index + (delta < 0 ? 1 : -1));
+          }
         }}
         onPointerCancel={() => {
           swipeStart.current = null;
         }}
+        onClickCapture={(event) => {
+          if (!swiped.current) return;
+          swiped.current = false;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        // Stops the browser dragging a link or image instead of the slide.
+        onDragStart={(event) => event.preventDefault()}
       >
         {slides.map((slide, i) => (
           <div
@@ -112,15 +128,7 @@ export function Carousel({
 
       {count > 1 && (
         <div className={cn("mt-4 flex items-center gap-1", controlsClassName)}>
-          <IconButton
-            label={ui.carousel.previous}
-            variant="outline"
-            shape="round"
-            onClick={() => go(index - 1)}
-          >
-            <ArrowLeft aria-hidden />
-          </IconButton>
-          <div className="flex items-center">
+          <div className="-ml-2.5 flex items-center">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -140,14 +148,6 @@ export function Carousel({
               </button>
             ))}
           </div>
-          <IconButton
-            label={ui.carousel.next}
-            variant="outline"
-            shape="round"
-            onClick={() => go(index + 1)}
-          >
-            <ArrowRight aria-hidden />
-          </IconButton>
           {autoAdvanceMs > 0 && (
             <IconButton
               label={playing ? ui.carousel.pause : ui.carousel.play}

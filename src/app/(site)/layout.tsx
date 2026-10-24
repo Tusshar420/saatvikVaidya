@@ -4,19 +4,18 @@ import { Footer } from "@/components/site/footer";
 import { Header } from "@/components/site/header";
 import { MaintenancePage } from "@/components/site/maintenance-page";
 import { MobileDock } from "@/components/site/mobile-dock";
+import { StickyActions } from "@/components/site/sticky-actions";
 import { SiteModalsProvider } from "@/components/site/site-modals";
 import { SkipLink } from "@/components/site/skip-link";
-import { navItems } from "@/content/shell";
-import { sectionPages } from "@/lib/section-links";
+import { shell } from "@/content/shell";
+import { formatNumber } from "@/lib/format";
 import { getSetting } from "@/server/content/settings";
-import { getEnabledSectionKeys } from "@/server/content/home";
 import { getSignUpUserTypes } from "@/server/content/user-types";
 import { isDevOtpVisible } from "@/server/env";
 import { getSession } from "@/server/auth/session";
 import { cartCount } from "@/server/cart/cart";
-import { coinSummary } from "@/server/coins/ledger";
-import { db } from "@/server/db";
 import { currentCartOwner } from "@/server/cart/request";
+import { unreadBySection, unreadCount } from "@/server/notifications/notifications";
 
 // Every public page: skip link, header with nav rail, footer, and the dock on
 // phones. The /design showcase sits outside this group on purpose.
@@ -27,24 +26,20 @@ export default async function SiteLayout({
 }) {
   const [
     phone,
-    supportNote,
     popularSearches,
     tagline,
     userTypes,
     session,
-    enabledSections,
     bagCount,
     coinRules,
     maintenance,
     announcement,
   ] = await Promise.all([
     getSetting("contact.phone"),
-    getSetting("contact.supportNote"),
     getSetting("search.popular"),
     getSetting("footer.tagline"),
     getSignUpUserTypes(),
     getSession(),
-    getEnabledSectionKeys(),
     currentCartOwner().then(cartCount),
     getSetting("coins.rules"),
     getSetting("site.maintenance"),
@@ -64,14 +59,25 @@ export default async function SiteLayout({
       </SiteModalsProvider>
     );
   }
-  const coinBalance =
-    session && coinRules.enabled ? (await coinSummary(db, session.user.id)).balance : null;
-
-  // A section with its own page (Launch Your Brand) stays in the nav even
-  // when its homepage section is hidden.
-  const filteredNavItems = navItems.filter(
-    (item) => item.id in sectionPages || enabledSections.includes(item.id),
-  );
+  const [notificationCount, sectionBadges] = session
+    ? await Promise.all([unreadCount(session.user.id), unreadBySection(session.user.id)])
+    : [0, {}];
+  // The orange bar: the admin's announcement when it's on, otherwise the
+  // Saatvik Coins message built from the coin rules (U.4).
+  const bar =
+    announcement.enabled && announcement.text
+      ? { text: announcement.text, href: announcement.href }
+      : coinRules.enabled
+        ? {
+            text: shell.announcement.earn(
+              formatNumber(10_000),
+              formatNumber(coinRules.earnPerThousandRupees * 10),
+            ),
+            detail: `${shell.announcement.rate(formatNumber(coinRules.coinsPerRupee))} · ${shell.announcement.validity(coinRules.expiryMonths)}`,
+            href: "/coins",
+            linkLabel: shell.announcement.cta,
+          }
+        : null;
 
   return (
     <SiteModalsProvider
@@ -82,21 +88,18 @@ export default async function SiteLayout({
       devShowOtp={isDevOtpVisible()}
     >
       <SkipLink />
-      {announcement.enabled && announcement.text && (
-        <AnnouncementBar text={announcement.text} href={announcement.href} />
-      )}
+      {bar && <AnnouncementBar {...bar} />}
       <Header
         popularSearches={popularSearches}
-        phone={phone}
-        navItems={filteredNavItems}
-        // The ledger balance when signed in; no pill when signed out or the programme is off
-        coinBalance={coinBalance}
         bagCount={bagCount}
+        notificationCount={notificationCount}
+        sectionBadges={sectionBadges}
       />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
         {children}
       </main>
-      <Footer tagline={tagline} supportNote={supportNote} phone={phone} />
+      <Footer tagline={tagline} phone={phone} />
+      <StickyActions phone={phone} />
       <MobileDock />
     </SiteModalsProvider>
   );

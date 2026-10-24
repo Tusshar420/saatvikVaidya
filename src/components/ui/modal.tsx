@@ -25,6 +25,10 @@ export type ModalContentProps = Omit<
   icon?: ReactNode;
   /** Small uppercase label above the title ("MY PROFILE"). */
   eyebrow?: ReactNode;
+  /** A logo above everything (the v2 sign-in modal shows the client's logo). */
+  logo?: ReactNode;
+  /** Centre the header (logo, eyebrow, title, description), as in v2 sign-in. */
+  centered?: boolean;
 };
 
 /**
@@ -36,22 +40,24 @@ export function ModalContent({
   description,
   icon,
   eyebrow,
+  logo,
+  centered = false,
   className,
   children,
   ...props
 }: ModalContentProps) {
   return (
     <Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-300 bg-backdrop backdrop-blur-sm data-[state=open]:animate-fade-in" />
+      <Dialog.Overlay className="fixed inset-0 z-300 bg-backdrop backdrop-blur-[8px] data-[state=open]:animate-fade-in" />
       <Dialog.Content
         // Without a description Radix wants aria-describedby explicitly unset.
         {...(description ? {} : { "aria-describedby": undefined })}
         className={cn(
           "fixed z-300 overflow-y-auto bg-surface shadow-modal focus:outline-none data-[state=open]:animate-rise-in",
-          // Phones: bottom sheet.
-          "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-modal px-5 pt-6.5 pb-[max(24px,env(safe-area-inset-bottom))]",
+          // Phones: a bottom sheet floating 10 px in (v2 `.modal-card`).
+          "inset-x-2.5 bottom-2.5 max-h-[92dvh] rounded-[24px_24px_15px_15px] px-5 pt-6.75 pb-[max(27px,env(safe-area-inset-bottom))]",
           // 560 px and up: centred card.
-          "sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-[calc(100dvh-40px)] sm:w-[min(530px,calc(100%-40px))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-modal sm:p-8",
+          "sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-[calc(100dvh-40px)] sm:w-[min(520px,calc(100%-40px))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[25px] sm:p-8.75",
           className,
         )}
         {...props}
@@ -65,25 +71,46 @@ export function ModalContent({
             label={ui.close}
             variant="soft"
             shape="round"
-            className="absolute top-3 right-3 sm:top-3.5 sm:right-4"
+            className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3.5"
           >
             <X aria-hidden />
           </IconButton>
         </Dialog.Close>
+        {logo && <div className="mb-3.75 flex justify-center">{logo}</div>}
         {icon && (
           <span
             aria-hidden
-            className="mb-5 grid size-12 place-items-center rounded-button bg-brand text-white [&_svg]:size-6"
+            className={cn(
+              "mb-5 grid size-12 place-items-center rounded-button bg-avatar text-white [&_svg]:size-6",
+              centered && "mx-auto",
+            )}
           >
             {icon}
           </span>
         )}
-        {eyebrow && <Eyebrow className="mb-2 pr-12">{eyebrow}</Eyebrow>}
-        <Dialog.Title className="pr-12 text-2xl leading-[1.15] font-extrabold tracking-[-0.03em] text-ink sm:text-3xl">
+        {eyebrow &&
+          (centered ? (
+            <p className="mb-2.25 text-center font-heading text-[11px] font-extrabold tracking-[0.12em] text-orange-ink uppercase">
+              {eyebrow}
+            </p>
+          ) : (
+            <Eyebrow className="mb-2 pr-12">{eyebrow}</Eyebrow>
+          ))}
+        <Dialog.Title
+          className={cn(
+            "text-[27px] leading-[1.1] font-extrabold tracking-[-0.04em] text-ink sm:text-[31px]",
+            centered ? "px-6 text-center" : "pr-12",
+          )}
+        >
           {title}
         </Dialog.Title>
         {description && (
-          <Dialog.Description className="mt-2 text-sm text-muted">
+          <Dialog.Description
+            className={cn(
+              "mt-2.5 text-sm text-muted",
+              centered && "mx-auto max-w-97.5 text-center",
+            )}
+          >
             {description}
           </Dialog.Description>
         )}

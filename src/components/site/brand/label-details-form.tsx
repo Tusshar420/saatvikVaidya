@@ -50,6 +50,7 @@ export function LabelDetailsForm({ lines, notes }: { lines: LabelLineView[]; not
   );
   const noteValues = useFormValues({ notes }, state);
 
+  /* eslint-disable @typescript-eslint/no-unused-vars -- used again when the per-product labels return */
   const overCount = lines.filter(
     (line) => labelProblems(typed[line.productId] ?? line.values, line.spec).length > 0,
   ).length;
@@ -58,15 +59,18 @@ export function LabelDetailsForm({ lines, notes }: { lines: LabelLineView[]; not
     setTyped((all) => ({ ...all, [productId]: { ...all[productId], [field]: value } }));
   }
 
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+
   return (
-    <form action={action} noValidate aria-labelledby="label-details-title" className="flex flex-col gap-5">
+    <form action={action} noValidate aria-label={copy.packaging.title} className="flex flex-col gap-5">
+      {state.status === "error" && state.message && <FormAlert>{state.message}</FormAlert>}
+      {/* "Label for each product" is switched off for now: the client only needs the brand details.
       <div>
         <h3 id="label-details-title" className="text-h3 text-ink">
           {text.title}
         </h3>
         <p className="mt-1.5 max-w-2xl text-body text-muted">{text.line}</p>
       </div>
-      {state.status === "error" && state.message && <FormAlert>{state.message}</FormAlert>}
       {overCount > 0 && (
         <p role="status" className="text-sm font-bold text-danger">
           {text.summaryOver(overCount)}
@@ -84,6 +88,7 @@ export function LabelDetailsForm({ lines, notes }: { lines: LabelLineView[]; not
           />
         ))}
       </ul>
+      */}
       <TextAreaField
         name="notes"
         label={copy.packaging.notes}
@@ -106,6 +111,7 @@ export function LabelDetailsForm({ lines, notes }: { lines: LabelLineView[]; not
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for when the per-product labels return
 function LabelLine({
   line,
   values,

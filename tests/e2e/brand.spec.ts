@@ -3,13 +3,12 @@ import { randomBytes, randomInt } from "node:crypto";
 import { test, expect, type Page } from "@playwright/test";
 import { brand } from "../../src/content/brand";
 import { checkout } from "../../src/content/checkout";
-import { shell } from "../../src/content/shell";
 import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { labelSpecSeed } from "../../src/server/seed/label-specs";
 import { png, writeStorageFile } from "./brand-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
-// Launch Your Brand (P2.1) with the Launch cart, end to end on phone and
+// Build Your Brand (P2.1) with the Launch cart, end to end on phone and
 // desktop: add several products to the Launch cart, step their quantities by
 // each product's minimum (a bulk tier kicks in), remove one, upload a logo
 // and the label text, then pay for the whole cart as one brand order with
@@ -53,7 +52,7 @@ async function makeBrandProduct(
       slug: `${E2E_CONTENT_PREFIX}brand-${token}`,
       name: `E2E Brand ${overrides.label ?? "Avaleha"} ${token}`,
       formId: form.id,
-      description: "A product made by the Launch Your Brand e2e test.",
+      description: "A product made by the Build Your Brand e2e test.",
       packSize: "250 g",
       mrpPaise: 32_000,
       professionalPricePaise: 24_000,
@@ -82,7 +81,6 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   page,
   browser,
   baseURL,
-  isMobile,
 }) => {
   await useFreshIp(page);
   const errors = collectErrors(page);
@@ -97,9 +95,15 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   });
   const extra = await makeBrandProduct({ label: "Vati" });
 
-  // Signed out, /launch asks to sign in first.
+  // Signed out, /launch shows the catalogue with a sign-in prompt; ordering
+  // (any later step) asks to sign in first.
   await page.goto("/launch");
-  await expect(page).toHaveURL(/next=%2Flaunch/);
+  await expect(page.getByRole("heading", { name: brand.launch.guest.title })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: brand.launch.guest.signIn }),
+  ).toHaveAttribute("href", /next=%2Flaunch/);
+  await page.goto("/launch?step=2");
+  await expect(page).toHaveURL(/next=%2Flaunch%3Fstep%3D2/);
 
   // Any account type can order: here a doctor still waiting for approval.
   const buyer = await signInAs(page, baseURL!, {
@@ -235,43 +239,17 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(brands).toContainText(brand.profiles.badgeDefault);
   await expect(brands).toContainText(brand.profiles.badgeSelected);
 
-  // Each product's label starts from the brand, fitted to its pack (no pack type: the general one).
-  const labels = page.getByRole("form", { name: brand.labels.title });
-  const labelOf = (name: string) => labels.getByRole("listitem").filter({ hasText: name });
-  const firstLabel = labelOf(product.name);
-  await expect(firstLabel.getByLabel(brand.labels.fields.brandName, { exact: true })).toHaveValue("Asha Ayurveda");
-  await expect(firstLabel.getByLabel(brand.labels.fields.tagline, { exact: true })).toHaveValue("Classical care, made simple");
-  await expect(firstLabel.getByLabel(brand.labels.fields.description, { exact: true })).toHaveValue("Classical Ayurveda for every home.");
-  await expect(firstLabel).toContainText(brand.labels.area("General pack", 80, 50));
-  await expect(labelOf(bulk.name).getByLabel(brand.labels.fields.tagline, { exact: true })).toHaveValue("Classical care, made simple");
-  await checkPage(page, errors);
-
-  // Text too long for the pack is warned about at once and blocks the step.
-  const tagline = firstLabel.getByLabel(brand.labels.fields.tagline, { exact: true });
-  await tagline.fill("x".repeat(90));
-  await expect(firstLabel.getByText(brand.labels.over(10, 80))).toBeVisible();
-  await expect(firstLabel.getByText(brand.labels.overBadge, { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: brand.launch.continue }).click();
-  await expect(page.getByText(brand.packaging.errors.labels)).toBeVisible();
-  await expect(page).toHaveURL("/launch?step=3");
-  // Fix it for this product only: the other product and the saved brand are unchanged.
-  await tagline.fill("Made for the first jar");
-  await expect(firstLabel.getByRole("button", { name: brand.labels.resetLabel(brand.labels.fields.tagline, product.name) })).toBeVisible();
-  await expect(firstLabel.getByText(brand.labels.changedBadge, { exact: true })).toBeVisible();
-  await expect(labelOf(bulk.name).getByLabel(brand.labels.fields.tagline, { exact: true })).toHaveValue("Classical care, made simple");
-  // Typing in a field that is already on screen doesn't scroll, so on phones
-  // the tagline can sit half under the sticky header; axe would then read it
-  // as an obscured target. Bring it into view, as a user would.
-  await tagline.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  // The per-product "Label for each product" editor is switched off in v2
+  // (the client only needs the brand details), so there is nothing to edit
+  // here; the saved brand fills the label preview instead.
+  await expect(page.getByRole("form", { name: brand.labels.title })).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "Label preview" })).toContainText("Asha Ayurveda");
   await checkPage(page, errors);
   await page.getByRole("button", { name: brand.launch.continue }).click();
   await expect(page).toHaveURL("/launch?step=4");
 
   // Step 4: the summary, an address, then the test payment.
   await expect(page.getByRole("region", { name: brand.review.packaging })).toContainText("Asha Ayurveda");
-  const reviewLabels = page.getByRole("region", { name: brand.labels.review.title });
-  await expect(reviewLabels).toContainText(product.name);
-  await expect(reviewLabels).toContainText(brand.labels.review.edited);
   const reviewProducts = page.getByRole("region", { name: brand.review.products });
   await expect(reviewProducts).toContainText(brand.review.itemDetail(4, "jars", "₹260"));
   await expect(reviewProducts).toContainText(brand.review.itemDetail(50, "packs", "₹90"));
@@ -310,12 +288,12 @@ test("add several products to the launch cart, set bulk quantities, pay for them
     licenceNumbers: "Lic. No. AYU/2024/118",
     shortDescription: "Classical Ayurveda for every home.",
   });
-  // The label as approved is saved on each line; only the first product's tagline was changed.
+  // The label as approved is saved on each line; with per-product editing off, every line takes the brand's values.
   const [firstItem, secondItem] = order.items.sort((a, b) => a.id - b.id);
   expect(firstItem?.labelDetails).toMatchObject({
     spec: { key: "general", widthMm: 80, heightMm: 50 },
-    values: { brandName: "Asha Ayurveda", tagline: "Made for the first jar" },
-    overridden: ["tagline"],
+    values: { brandName: "Asha Ayurveda", tagline: "Classical care, made simple" },
+    overridden: [],
   });
   expect(secondItem?.labelDetails).toMatchObject({
     values: { tagline: "Classical care, made simple" },
@@ -343,23 +321,15 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(timeline.getByRole("listitem").first()).toHaveAttribute("aria-current", "step");
   await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Asha Ayurveda") })).toBeVisible();
   const ordered = page.getByRole("region", { name: brand.detail.labelsTitle });
-  await expect(ordered).toContainText("Made for the first jar");
+  await expect(ordered).toContainText("Classical care, made simple");
   await expect(ordered).toContainText(brand.labels.area("General pack", 80, 50));
   await checkPage(page, errors);
   // Made to order: the store's stock (2) didn't change.
   expect((await e2eDb().stockItem.findUniqueOrThrow({ where: { productId: product.id } })).onHand).toBe(2);
   expect((await e2eDb().order.findUniqueOrThrow({ where: { id: orderId } })).status).toBe("paid");
 
-  // My Brand lists it; on phones the dock leads there.
-  if (isMobile) {
-    await page.goto("/");
-    await page
-      .getByRole("navigation", { name: shell.dock.label })
-      .getByRole("link", { name: shell.dock.myBrand })
-      .click();
-  } else {
-    await page.goto("/my-brand");
-  }
+  // My Brand lists it (the v2 dock has Launch, not My Brand).
+  await page.goto("/my-brand");
   await expect(page).toHaveURL("/my-brand");
   const list = page.getByRole("list", { name: brand.myBrand.listLabel });
   await expect(list).toContainText("Asha Ayurveda");
@@ -392,7 +362,7 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   const adminProducts = adminPage.getByRole("list", { name: brand.admin.detail.products });
   await expect(adminProducts).toContainText(product.name);
   await expect(adminProducts).toContainText(bulk.name);
-  await expect(adminPage.getByRole("region", { name: brand.admin.detail.labelsTitle })).toContainText("Made for the first jar");
+  await expect(adminPage.getByRole("region", { name: brand.admin.detail.labelsTitle })).toContainText("Classical care, made simple");
   await expect(adminPage.getByRole("link", { name: brand.admin.detail.downloadLogo })).toHaveAttribute(
     "href",
     `/api/brand-orders/${orderId}/logo?download=1`,
@@ -465,53 +435,19 @@ test("saved brands: pick, set the default, edit and delete them, and each pack g
   await expect(kesari).not.toContainText(brand.profiles.badgeSelected);
   await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Ayush Herbals") })).toBeVisible();
 
-  // Different packs, different label details.
-  const labels = page.getByRole("form", { name: brand.labels.title });
-  const tubeLabel = labels.getByRole("listitem").filter({ hasText: tube.name });
-  const bottleLabel = labels.getByRole("listitem").filter({ hasText: bottle.name });
-  const text = brand.labels;
-  await expect(tubeLabel).toContainText(text.area("Tube", 90, 40));
-  await expect(tubeLabel.getByLabel(text.fields.description, { exact: true })).toHaveValue("Ayush Herbals short text.");
-  await expect(tubeLabel.getByLabel(text.fields.ingredients, { exact: true })).toHaveCount(0);
-  await expect(tubeLabel).toContainText(text.notPrinted("ingredients, how to use, marketed by: address"));
-  await expect(bottleLabel).toContainText(text.area("Syrup or tablet bottle", 100, 60));
-  await expect(bottleLabel.getByLabel(text.fields.description, { exact: true })).toHaveValue(
-    "Ayush Herbals long text that goes on a bottle and tells the whole story.",
-  );
-  await expect(bottleLabel.getByLabel(text.fields.ingredients, { exact: true })).toHaveValue("Haritaki, Amalaki, Bibhitaki");
-  await expect(bottleLabel.getByLabel(text.fields.usage, { exact: true })).toHaveValue("1 tsp twice a day.");
+  // The per-pack "Label for each product" editor is switched off in v2, so
+  // the pack-specific label checks are gone; the brand shows in the label preview.
+  const preview = page.getByRole("complementary", { name: "Label preview" });
+  await expect(page.getByRole("form", { name: brand.labels.title })).toHaveCount(0);
+  await expect(preview).toContainText("Ayush Herbals");
   await checkPage(page, errors);
-
-  // A long description is too long for the tube: it can be shortened there only.
-  const tubeDescription = tubeLabel.getByLabel(text.fields.description, { exact: true });
-  await tubeDescription.fill("y".repeat(100));
-  await expect(tubeLabel.getByText(text.over(10, 90))).toBeVisible();
-  await tubeDescription.fill("Short tube text");
-  await tubeLabel.getByLabel(text.fields.tagline, { exact: true }).fill("Tube only");
-  await page.getByRole("button", { name: brand.launch.continue }).click();
-  await expect(page).toHaveURL("/launch?step=4");
-  const saved = await db.brandCartItem.findMany({ where: { userId: buyer.id }, orderBy: { id: "asc" } });
-  expect(saved.map((line) => line.labelOverrides)).toEqual([
-    { tagline: "Tube only", description: "Short tube text" },
-    null,
-  ]);
-  await checkPage(page, errors);
-
-  // Back on step 3 the changes are there, and one field can go back to the brand.
-  await page.goto("/launch?step=3");
-  await expect(tubeLabel.getByLabel(text.fields.tagline, { exact: true })).toHaveValue("Tube only");
-  await expect(tubeLabel.getByText(text.changedBadge, { exact: true })).toBeVisible();
-  await tubeLabel.getByRole("button", { name: text.resetLabel(text.fields.tagline, tube.name) }).click();
-  await expect(tubeLabel.getByLabel(text.fields.tagline, { exact: true })).toHaveValue("Ayush Herbals tagline");
 
   // Pick the other brand: the labels start from it (the tube keeps its own description).
   await kesari.getByRole("button", { name: brand.profiles.useLabel("Kesari range") }).click();
   await expect(page.getByText(brand.profiles.messages.chosen)).toBeVisible();
   await expect(kesari).toContainText(brand.profiles.badgeSelected);
   await expect(ayush).not.toContainText(brand.profiles.badgeSelected);
-  await expect(bottleLabel.getByLabel(text.fields.brandName, { exact: true })).toHaveValue("Kesari Care");
-  await expect(bottleLabel.getByLabel(text.fields.tagline, { exact: true })).toHaveValue("Kesari Care tagline");
-  await expect(tubeLabel.getByLabel(text.fields.description, { exact: true })).toHaveValue("Short tube text");
+  await expect(preview).toContainText("Kesari Care");
   // Make it the default.
   await kesari.getByRole("button", { name: brand.profiles.makeDefaultLabel("Kesari range") }).click();
   await expect(kesari).toContainText(brand.profiles.badgeDefault);
@@ -525,7 +461,7 @@ test("saved brands: pick, set the default, edit and delete them, and each pack g
   await editForm.getByRole("button", { name: brand.profiles.form.save }).click();
   await expect(page.getByText(brand.profiles.messages.saved)).toBeVisible();
   await expect(kesari).toContainText("Kesari Wellness");
-  await expect(bottleLabel.getByLabel(text.fields.brandName, { exact: true })).toHaveValue("Kesari Wellness");
+  await expect(preview).toContainText("Kesari Wellness");
 
   // Delete the first one (after a confirmation); orders aren't affected.
   await ayush.getByRole("button", { name: brand.profiles.removeLabel("Ayush range") }).click();
@@ -622,7 +558,7 @@ test("the brand catalogue filters by branded price and product type, like the st
   await panel.getByRole("button", { name: text.filters.apply }).click();
   await expect(page).toHaveURL(/minPrice=200/);
   await expect(choices.getByRole("listitem")).toHaveCount(1);
-  await expect(choices).toContainText(text.catalogueTag);
+  await expect(choices).toContainText(brand.launch.preview.yourBrand);
   await checkPage(page, errors);
 
   // The active chip drops just the price filter.

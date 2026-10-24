@@ -15,6 +15,7 @@ export function FormChips({
   hrefFor,
   allLabel = copy.filters.allForms,
   label = copy.filters.formsLabel,
+  pills = false,
 }: {
   forms: FacetOption[];
   filters: { form?: string };
@@ -22,6 +23,8 @@ export function FormChips({
   hrefFor?: (form: string | undefined) => string;
   allLabel?: string;
   label?: string;
+  /** Round, lighter pills (the v2 Top Brands listing). */
+  pills?: boolean;
 }) {
   if (forms.length === 0) return null;
   const storeParams = hrefFor ? null : filterParams(filters as CatalogueFilters);
@@ -34,8 +37,9 @@ export function FormChips({
           aria-current={current ? "true" : undefined}
           className={cn(
             "inline-flex min-h-11 items-center rounded-sm border px-3.5 text-sm font-semibold whitespace-nowrap transition",
+            pills && "min-h-10 rounded-md px-3.5 text-small font-bold",
             current
-              ? "border-brand bg-brand-soft font-extrabold text-brand"
+              ? "border-orange bg-orange-soft font-extrabold text-orange-ink"
               : "border-line bg-surface text-ink hover:border-brand/60",
           )}
         >

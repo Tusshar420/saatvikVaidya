@@ -188,7 +188,7 @@
 @utility bg-forest {
   background: linear-gradient(130deg, var(--color-brand), #095f4e);
 }
-/* Pale green wash behind the Launch Your Brand section. */
+/* Pale green wash behind the Build Your Brand section. */
 @utility bg-brand-wash {
   background: linear-gradient(180deg, #edf5f0, #f8fbf8);
 }

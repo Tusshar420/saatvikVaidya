@@ -49,7 +49,7 @@ export function PriceBox({ product }: { product: ProductPage }) {
   return (
     <section
       aria-label={text.price.label}
-      className="rounded-xl border border-line bg-surface-alt p-4 sm:p-5"
+      className="rounded-lg border border-line bg-cream p-4 sm:p-5"
     >
       <PriceTag price={price} size="lg" />
       <p className="mt-1 text-small text-muted">{text.price.inclusive(product.gstRate)}</p>

@@ -6,7 +6,7 @@ import { E2E_CONTENT_PREFIX, e2eDb } from "./auth-helpers";
 import { ORDER_PHONE } from "./order-helpers";
 import { ORDER_NUMBER_ALPHABET } from "../../src/lib/orders";
 
-// Launch Your Brand fixtures for the e2e specs (P2.2, P2.4): a tiny PNG and a
+// Build Your Brand fixtures for the e2e specs (P2.2, P2.4): a tiny PNG and a
 // paid brand order written straight into the database, as in order-helpers.ts.
 
 /** A 1 × 1 PNG, used as the logo and as a proof. */

@@ -79,6 +79,9 @@ export const designPage = {
     loading: "Saving",
     disabled: "Disabled",
     groupNote: "In a ButtonGroup, buttons go full width under 560 px.",
+    dark: "View course",
+    ghostDark: "Explore platform",
+    large: "Create free profile",
   },
   iconButtons: {
     search: "Search",
@@ -133,6 +136,10 @@ export const designPage = {
     staticBody: "150+ formulations made to classical references.",
     interactiveTitle: "Interactive card",
     interactiveBody: "Lifts on hover. Use when the whole card is a link.",
+    goldTitle: "Quiz & Win",
+    goldBody: 'tone="gold": the Quiz & Win panel.',
+    forestTitle: "Saatvik Live",
+    forestBody: 'tone="forest": dark green cards and bands.',
   },
   badges: {
     brand: "Verified",
@@ -141,6 +148,8 @@ export const designPage = {
     gold: "Coins",
     live: "Saatvik Live",
     soon: "Coming in Phase 2",
+    success: "In stock",
+    dark: "+100 Coins",
     eyebrow: "Watch & explore",
     eyebrowBar: "Built for Ayurveda professionals",
   },
@@ -161,6 +170,7 @@ export const designPage = {
     darkEmphasis: "designed for application.",
   },
   people: {
+    walletLabel: "Saatvik Coins, my wallet",
     names: ["Abhishek Sharma", "Meera", "राधा कृष्ण"],
     coinBalance: 1250,
     coinBalanceLarge: 125000,
@@ -185,6 +195,7 @@ export const designPage = {
   },
   tabs: {
     label: "Catalogue",
+    pillLabel: "Catalogue (pill tabs)",
     items: [
       {
         value: "forms",
@@ -217,7 +228,7 @@ export const designPage = {
     label: "Featured",
     slides: [
       {
-        eyebrow: "Launch your brand",
+        eyebrow: "Build your brand",
         title: "From clinical insight to a market-ready identity.",
       },
       {

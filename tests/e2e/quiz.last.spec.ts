@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { test, expect, type Browser, type BrowserContextOptions, type Page } from "@playwright/test";
 import { admin } from "../../src/content/admin";
 import { coins } from "../../src/content/coins";
+import { home } from "../../src/content/home";
 import { quiz } from "../../src/content/quiz";
 import { E2E_EMAIL_DOMAIN, E2E_QUIZ_PREFIX, e2eDb, signInAs } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
@@ -72,8 +73,8 @@ test("play through: answers, score, coins once, explanations, leaderboard", asyn
   // The homepage shows the live quiz.
   await page.goto("/");
   const section = page.locator("#quiz");
-  await expect(section.getByRole("heading", { name: open.title })).toBeVisible();
-  await section.getByRole("link", { name: quiz.home.open }).click();
+  await expect(section.getByText(home.community.quiz.leadOpen(open.title))).toBeVisible();
+  await section.getByRole("link", { name: home.community.quiz.start }).click();
 
   await expect(page).toHaveURL(/\/quiz$/);
   await expect(page.getByRole("heading", { level: 1, name: open.title })).toBeVisible();
@@ -211,8 +212,8 @@ test("signed out: the quiz can be read but needs sign-in; no quiz open shows the
   await e2eDb().quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } });
   await openQuiz({ startsInDays: 3 });
   await page.goto("/");
-  await expect(page.locator("#quiz").getByText(/Next quiz starts/)).toBeVisible();
-  await expect(page.locator("#quiz").getByRole("button", { name: quiz.home.open })).toBeDisabled();
+  await expect(page.locator("#quiz").getByText(/^Opens /)).toBeVisible();
+  await expect(page.locator("#quiz").getByRole("link", { name: home.community.quiz.start })).toHaveCount(0);
   await page.goto("/quiz");
   await expect(page.getByRole("heading", { name: quiz.none.title })).toBeVisible();
   await expect(page.getByText(/Next quiz starts/)).toBeVisible();

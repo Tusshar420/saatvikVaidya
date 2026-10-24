@@ -72,10 +72,15 @@ export function filtersWhere(
     where.OR = [
       { number: { contains: q.toUpperCase() } },
       { shipName: { contains: q } },
-      { shipPhone: { contains: q.replace(/\D/g, "") || q } },
       { user: { is: { email: { contains: q } } } },
       { user: { is: { name: { contains: q } } } },
     ];
+    // Only a phone-like query searches phones: the digits inside an order
+    // number ("SV-AB3C7DEF" → "37") would otherwise match unrelated orders.
+    const digits = q.replace(/\D/g, "");
+    if (/^[\d\s+()-]+$/.test(q) && digits.length >= 3) {
+      where.OR.push({ shipPhone: { contains: digits } });
+    }
   }
   return where;
 }

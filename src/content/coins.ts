@@ -6,12 +6,40 @@ import type { CoinReason } from "@/generated/prisma/client";
 const count = (n: number) => n.toLocaleString("en-IN");
 
 export const coins = {
-  metaTitle: "Super Coins",
+  metaTitle: "Saatvik Coins",
   eyebrow: "Saatvik Coins",
   title: "Growth should feel rewarding.",
+  hero: {
+    description:
+      "Earn Saatvik Coins through eligible orders, learning activities and verified profile completion. Use them on upcoming orders.",
+    status: "Built for professionals",
+    noteTitle: "Simple and transparent",
+    noteText: (coinsPerRupee: number, months: number) =>
+      `${count(coinsPerRupee)} Coins = ₹1 · ${months > 0 ? `Coins remain valid for ${count(months)} months from the date they are earned.` : "Coins never expire."}`,
+  },
+  wallet: {
+    eyebrow: "Your Saatvik wallet",
+    signedOutTitle: "Sign in to view balance",
+    signedInLine: "Your available, used and expiring Coins in one place.",
+    formulaOrder: "Eligible order",
+    formulaCoins: (n: number) => `${count(n)} Coins`,
+    formulaWorth: (rupees: string) => `Worth ${rupees}`,
+    signIn: "Continue with Mobile OTP",
+  },
+  rules: {
+    earnIcon: "+S",
+    useIcon: "₹",
+    validityTitle: "Validity",
+    validity: (months: number) =>
+      months > 0 ? `Each Coin entry remains valid for ${count(months)} months from its earning date.` : "Coins never expire.",
+    historyIcon: "↺",
+    historyTitle: "Clear history",
+    historyText: "See earned, used, returned and expired entries after signing in.",
+    historyTextSignedIn: "Every entry you earn, use, get back or lose to expiry is listed below.",
+  },
   signedOutLine: "Sign in to see your coins, earn them on orders and use them at checkout.",
   signIn: "Sign in",
-  paused: "Super Coins are paused right now. Your balance is safe and will be here when they return.",
+  paused: "Saatvik Coins are paused right now. Your balance is safe and will be here when they return.",
 
   balance: {
     label: "Your balance",
@@ -27,6 +55,15 @@ export const coins = {
     interests: (n: number) => `${count(n)} coins for adding your practice interests.`,
     quiz: (n: number) => `${count(n)} coins for a qualifying score in the weekly Quiz & Win.`,
     details: (n: number) => `${count(n)} coins once your professional details are approved.`,
+    /** Short form for the rule card: "Also 100 for the weekly quiz, 250 for practice interests." */
+    extras: (quiz: number, interests: number, details: number) => {
+      const parts = [
+        quiz > 0 ? `${count(quiz)} for the weekly quiz` : null,
+        interests > 0 ? `${count(interests)} for practice interests` : null,
+        details > 0 ? `${count(details)} for approved professional details` : null,
+      ].filter(Boolean);
+      return parts.length ? `Also ${parts.join(", ")}.` : null;
+    },
     expiry: (months: number) =>
       months > 0 ? `Coins are valid for ${count(months)} months.` : "Coins never expire.",
   },
@@ -39,7 +76,15 @@ export const coins = {
   },
 
   history: {
-    title: "History",
+    title: "Coin history",
+    signInRequired: "Sign in required",
+    entries: (n: number) => `${count(n)} ${n === 1 ? "entry" : "entries"}`,
+    kinds: [
+      { title: "Eligible order reward", text: "Visible after order delivery", amount: "+ Coins", note: "Order reward" },
+      { title: "Quiz & Win reward", text: "Once per qualifying weekly quiz", amount: "+ Coins", note: "Activity reward" },
+      { title: "Coins used on order", text: "Shown with order reference", amount: "− Coins", note: "Order benefit" },
+    ],
+    noExpiry: "No expiry",
     empty: "No coin activity yet. Your first order will show here.",
     columns: { when: "Date", what: "What", coins: "Coins" },
     expiresOn: (date: string) => `Expires ${date}`,

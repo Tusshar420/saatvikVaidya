@@ -30,7 +30,7 @@ export function Avatar({
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
       className={cn(
-        "inline-grid shrink-0 place-items-center bg-brand font-extrabold text-white select-none",
+        "inline-grid shrink-0 place-items-center bg-avatar font-extrabold text-white select-none",
         sizeClasses[size],
         className,
       )}

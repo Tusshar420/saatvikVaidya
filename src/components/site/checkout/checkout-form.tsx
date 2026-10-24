@@ -33,7 +33,7 @@ export type CheckoutFormProps = {
   /** Shown instead of "Place order" when online payment can't be taken. */
   paymentsOff: ReactNode | null;
   /**
-   * For Launch Your Brand's review step (P2.1): its own place and
+   * For Build Your Brand's review step (P2.1): its own place and
    * save-address actions and button text. The store's are the defaults.
    */
   placeAction?: (state: FormState, formData: FormData) => Promise<FormState>;

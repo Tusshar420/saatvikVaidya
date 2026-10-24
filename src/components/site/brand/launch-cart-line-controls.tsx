@@ -75,7 +75,7 @@ export function LaunchCartLineControls({
             normalize={(typed) => snapBrandQuantity(Math.floor(typed), terms)}
             onAdjusted={(typed, value) => {
               adjusted.current = value !== quantity;
-              setNote(value === max && typed > max ? text.max(max) : text.snapped(value, terms.minQty));
+              setNote(value === max && typed > max ? text.max : text.snapped(value, terms.minQty));
             }}
             onCommit={(value) => {
               if (!adjusted.current) setNote(null);

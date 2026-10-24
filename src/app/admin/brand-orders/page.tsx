@@ -30,7 +30,7 @@ export const metadata: Metadata = { title: brandCopy.admin.metaTitle };
 const text = copy.orders;
 const brandText = brandCopy.admin;
 
-/** Launch Your Brand orders (P2.1), newest first, with search and filters by status and date. */
+/** Build Your Brand orders (P2.1), newest first, with search and filters by status and date. */
 export default async function AdminBrandOrdersPage({
   searchParams,
 }: PageProps<"/admin/brand-orders">) {

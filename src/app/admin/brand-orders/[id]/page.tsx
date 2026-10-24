@@ -4,12 +4,10 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Download } from "lucide-react";
 import { VerificationBadge } from "@/components/admin/badges";
 import { BrandProductionPanel } from "@/components/admin/brand-production-panel";
-import { BrandProofUpload } from "@/components/admin/brand-proof-upload";
 import { CancelOrder } from "@/components/admin/cancel-order";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { OrderLabels } from "@/components/site/brand/order-labels";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
-import { ProofList } from "@/components/site/brand/proof-list";
 import { OrderDocuments } from "@/components/site/orders/order-documents";
 import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +17,7 @@ import { admin as adminCopy } from "@/content/admin";
 import { brand as copy } from "@/content/brand";
 import { addressLines } from "@/lib/address";
 import { isImageLogo } from "@/lib/brand";
-import { canUploadProof, nextProductionStage } from "@/lib/brand-stage";
+import { nextProductionStage } from "@/lib/brand-stage";
 import { formatDateTime, formatPaise } from "@/lib/format";
 import { isOrderId } from "@/lib/orders";
 import { formatIndianPhone } from "@/lib/phone";
@@ -40,7 +38,8 @@ const paymentVariant = { created: "orange", succeeded: "brand", failed: "live" }
 /**
  * One brand order (P2.1): the logo (view and download), what goes on the
  * label, the products and quantities, payment, and the customer's contact (P2.1);
- * and the label proofs, production steps, stage history and cancelling (P2.2).
+ * and one "Update status" button that moves it to the next stage, and
+ * cancelling (P2.2).
  */
 export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/brand-orders/[id]">) {
   const { id } = await params;
@@ -175,75 +174,27 @@ export default async function AdminBrandOrderPage({ params }: PageProps<"/admin/
             </dl>
           </Card>
 
-          <Card as="section" aria-labelledby="brand-proofs">
-            <h2 id="brand-proofs" className="text-h3 text-ink">
-              {text.proofs}
+          <Card as="section" aria-labelledby="brand-status">
+            <h2 id="brand-status" className="text-h3 text-ink">
+              {text.status}
             </h2>
-            <p className="mt-1 text-sm text-muted">{text.proofsLine}</p>
-            {stages.proofs.length === 0 ? (
-              <p className="mt-4 text-sm text-muted">{text.noProofs}</p>
-            ) : (
-              <div className="mt-4">
-                <ProofList orderId={order.id} proofs={stages.proofs} commentLabel={text.customerComment} />
-              </div>
-            )}
-            {paid && (canUploadProof(stage) || stage === "proof_sent") ? (
-              <div className="mt-5 border-t border-line pt-5">
-                <h3 className="text-base font-extrabold text-ink">{text.uploadTitle}</h3>
-                {stage === "proof_sent" && <p className="mt-1 text-sm text-muted">{text.replaceLine}</p>}
-                <div className="mt-3">
-                  <BrandProofUpload orderId={order.id} />
-                </div>
-              </div>
-            ) : (
-              paid && <p className="mt-4 text-sm text-muted">{text.uploadClosed}</p>
-            )}
-          </Card>
-
-          <Card as="section" aria-labelledby="brand-production">
-            <h2 id="brand-production" className="text-h3 text-ink">
-              {text.production}
-            </h2>
-            <div className="mt-3 flex flex-col gap-3 text-sm">
+            <div className="mt-3 text-sm">
               {stage === "cancelled" ? (
                 <p className="text-muted">{text.cancelled}</p>
               ) : stage === "delivered" ? (
                 <p className="text-muted">{text.finished}</p>
               ) : !paid ? (
                 <p className="text-muted">{text.results.not_paid}</p>
-              ) : nextStep ? (
-                <>
-                  <p className="text-muted">{text.productionLine}</p>
-                  <BrandProductionPanel orderId={order.id} stage={stage} next={nextStep as "in_production" | "quality_check" | "dispatched" | "delivered"} />
-                </>
               ) : (
-                <p className="text-muted">{stage === "proof_sent" ? text.waiting : text.needProof}</p>
-              )}
-              {stages.order.shipment && (
-                <p className="text-ink">
-                  <span className="font-bold">{text.tracking}: </span>
-                  {copy.proof.courier(stages.order.shipment.courierName, stages.order.shipment.awb)}
-                </p>
+                nextStep && (
+                  <BrandProductionPanel
+                    orderId={order.id}
+                    stage={stage}
+                    next={nextStep as "in_production" | "quality_check" | "dispatched" | "delivered"}
+                  />
+                )
               )}
             </div>
-          </Card>
-
-          <Card as="section" aria-labelledby="brand-history">
-            <h2 id="brand-history" className="text-h3 text-ink">
-              {text.history}
-            </h2>
-            <ol className="mt-3 flex flex-col gap-2 text-sm text-ink">
-              {stages.stageEvents.map((event) => (
-                <li key={event.id} className="break-words">
-                  {copy.proof.historyLine(
-                    detailText.stageLabels[event.toStage],
-                    formatDateTime(event.createdAt),
-                    copy.proof.actors[event.actorKind as keyof typeof copy.proof.actors] ?? copy.proof.actors.system,
-                  )}
-                  {event.note ? ` · ${event.note}` : ""}
-                </li>
-              ))}
-            </ol>
           </Card>
 
           <Card as="section" aria-labelledby="brand-cancel">

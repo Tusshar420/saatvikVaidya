@@ -60,6 +60,8 @@ export function AddToCart({ productId, name, moq, left, outOfStock, phone }: Add
           </label>
           <QuantityStepper
             id="add-to-cart-quantity"
+            look="joined"
+            className="w-40"
             label={copy.line.quantityFor(name)}
             decreaseLabel={copy.line.decrease(name)}
             increaseLabel={copy.line.increase(name)}

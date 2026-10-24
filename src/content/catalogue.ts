@@ -10,11 +10,22 @@ export const catalogue = {
     metaTitle: "Products",
     metaDescription:
       "Classical Ayurveda formulations from Saatvik Vaidya's selected brands, with clear retail and professional prices.",
-    eyebrow: "Product catalogue",
-    title: "Classical formulations.",
+    eyebrow: "Top Brands",
+    title: "Professional ordering, made simple.",
     titleEmphasis: "Clear, fair prices.",
     description:
-      "Browse by form, practice area or brand. Approved Ayurveda professionals see their professional price on every product.",
+      "Browse selected Ayurveda brands, see live availability and build one order from each product's minimum quantity onward.",
+    note: {
+      status: "Built for professionals",
+      title: "Professional Net Rate",
+      text: "Approved Ayurveda professionals see their net rate on every product, with the MRP alongside.",
+    },
+    sectionTitle: "Available products",
+    sectionLine: "Order from the minimum quantity. Increase one unit at a time.",
+    livePill: "Live stock preview",
+    orderList: "Order List",
+    orderListLabel: (n: number) =>
+      n === 1 ? "Order List: 1 item. Open the cart" : `Order List: ${count(n)} items. Open the cart`,
     results: (n: number) =>
       n === 1 ? "1 product" : `${count(n)} products`,
     resultsFor: (n: number, q: string) =>
@@ -34,6 +45,11 @@ export const catalogue = {
     area: "Practice area",
     brand: "Brand",
     any: "All",
+    allBrands: "All brands",
+    allProductForms: "All product forms",
+    allAreas: "All practice areas",
+    searchLabel: "Search products",
+    searchPlaceholder: "Search products or brands",
     sort: "Sort by",
     apply: "Apply",
     clear: "Clear all",
@@ -58,6 +74,9 @@ export const catalogue = {
     mrp: "MRP",
     yourPrice: "Your price",
     percentOff: (n: number) => `${n}% off`,
+    inStock: "In stock",
+    netRate: "Professional Net Rate",
+    ourPrice: "Our price",
   },
 
   pagination: {
@@ -140,6 +159,7 @@ export const catalogue = {
     metaTitleFor: (q: string) => `Search: ${q}`,
     eyebrow: "Search",
     title: "Find a product",
+    description: "Search every brand in the catalogue by product name, brand, form or ingredient.",
     label: "Search products",
     placeholder: "Search by name, brand, form or ingredient",
     submit: "Search",

@@ -3,7 +3,7 @@ import { bugReportsAdmin as copy } from "@/content/bug-reports";
 import { cn } from "@/lib/cn";
 
 const tabClasses =
-  "relative inline-flex min-h-11 shrink-0 items-center gap-2 px-0.5 text-sm font-extrabold whitespace-nowrap transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand after:transition-opacity focus-visible:-outline-offset-2";
+  "relative inline-flex min-h-11 shrink-0 items-center gap-2 px-0.5 text-sm font-extrabold whitespace-nowrap transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-orange after:transition-opacity focus-visible:-outline-offset-2";
 
 /**
  * The error log's two sections, automatic errors and problem reports, as
@@ -27,12 +27,12 @@ export function ErrorLogTabs({ active, newReports }: { active: "errors" | "repor
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   tabClasses,
-                  current ? "text-brand after:opacity-100" : "text-muted after:opacity-0 hover:text-ink",
+                  current ? "text-orange-ink after:opacity-100" : "text-muted after:opacity-0 hover:text-ink",
                 )}
               >
                 {tab.label}
                 {tab.count > 0 && (
-                  <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-extrabold text-danger">
+                  <span className="rounded-sm bg-danger-soft px-2 py-0.5 text-xs font-extrabold text-danger">
                     {copy.tabs.newCount(tab.count)}
                   </span>
                 )}

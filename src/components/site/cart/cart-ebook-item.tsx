@@ -31,7 +31,7 @@ export function CartEbookItem({ line }: { line: CartEbookLine }) {
   return (
     <li
       className={cn(
-        "rounded-xl border bg-surface p-4 shadow-card sm:p-5",
+        "rounded-lg border bg-surface p-4 shadow-card sm:p-5 md:rounded-[21px]",
         line.issue ? "border-danger/50" : "border-line",
       )}
     >

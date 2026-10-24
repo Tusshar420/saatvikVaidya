@@ -21,9 +21,11 @@ export type BrandStageKey = (typeof brandStages)[number];
 export type StageActor = "admin" | "customer" | "system";
 
 export const brandStageTransitions: Record<BrandStageKey, readonly BrandStageKey[]> = {
-  awaiting_proof: ["proof_sent", "cancelled"],
-  proof_sent: ["proof_approved", "changes_requested", "cancelled"],
-  changes_requested: ["proof_sent", "cancelled"],
+  // The team may start production straight away: proofs are optional, and
+  // the admin page offers no proof step any more (only "Update status").
+  awaiting_proof: ["proof_sent", "in_production", "cancelled"],
+  proof_sent: ["proof_approved", "changes_requested", "in_production", "cancelled"],
+  changes_requested: ["proof_sent", "in_production", "cancelled"],
   proof_approved: ["in_production", "cancelled"],
   in_production: ["quality_check"],
   quality_check: ["dispatched"],
@@ -60,9 +62,12 @@ export function canUploadProof(stage: BrandStageKey): boolean {
   return canMoveBrandStage(stage, "proof_sent");
 }
 
-/** The step the team takes next in production, or null while a proof is in play. */
+/** The stage the team's "Update status" moves a paid order to, or null once it's closed. */
 export function nextProductionStage(stage: BrandStageKey): BrandStageKey | null {
   switch (stage) {
+    case "awaiting_proof":
+    case "proof_sent":
+    case "changes_requested":
     case "proof_approved":
       return "in_production";
     case "in_production":

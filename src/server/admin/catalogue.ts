@@ -164,7 +164,7 @@ const productFormSchema = z
       bulkTiers.push({ minQuantity, pricePaise });
     });
 
-    // Launch Your Brand terms (P2.1): optional, but each filled one must be
+    // Build Your Brand terms (P2.1): optional, but each filled one must be
     // valid, and all three are needed to open the product for branding.
     const brandMinQty =
       data.brandMinQty === null

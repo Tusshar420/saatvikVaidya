@@ -19,11 +19,13 @@ describe("brand stage rules", () => {
     }
   });
 
-  it("follows the proof then production order, with no skipping", () => {
+  it("follows the production order, with an optional proof before it and no skipping after", () => {
     expect(canMoveBrandStage("awaiting_proof", "proof_sent")).toBe(true);
-    expect(canMoveBrandStage("awaiting_proof", "in_production")).toBe(false);
+    expect(canMoveBrandStage("awaiting_proof", "in_production")).toBe(true);
+    expect(canMoveBrandStage("awaiting_proof", "quality_check")).toBe(false);
     expect(canMoveBrandStage("proof_sent", "proof_approved")).toBe(true);
-    expect(canMoveBrandStage("proof_sent", "in_production")).toBe(false);
+    expect(canMoveBrandStage("proof_sent", "in_production")).toBe(true);
+    expect(canMoveBrandStage("changes_requested", "in_production")).toBe(true);
     expect(canMoveBrandStage("changes_requested", "proof_sent")).toBe(true);
     expect(canMoveBrandStage("changes_requested", "proof_approved")).toBe(false);
     expect(canMoveBrandStage("proof_approved", "in_production")).toBe(true);
@@ -66,13 +68,15 @@ describe("brand stage rules", () => {
     expect(actorMayMoveTo("admin", "proof_sent")).toBe(true);
   });
 
-  it("names the next production step", () => {
-    expect(nextProductionStage("proof_approved")).toBe("in_production");
+  it("names the stage \"Update status\" moves to", () => {
+    for (const stage of ["awaiting_proof", "proof_sent", "changes_requested", "proof_approved"] as const) {
+      expect(nextProductionStage(stage)).toBe("in_production");
+    }
     expect(nextProductionStage("in_production")).toBe("quality_check");
     expect(nextProductionStage("quality_check")).toBe("dispatched");
     expect(nextProductionStage("dispatched")).toBe("delivered");
-    expect(nextProductionStage("proof_sent")).toBeNull();
     expect(nextProductionStage("delivered")).toBeNull();
+    expect(nextProductionStage("cancelled")).toBeNull();
   });
 
   it("keeps the order status in step", () => {

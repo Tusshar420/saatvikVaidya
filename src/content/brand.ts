@@ -1,4 +1,4 @@
-// Strings for Launch Your Brand (P2.1): /launch, /my-brand, the admin
+// Strings for Build Your Brand (P2.1): /launch, /my-brand, the admin
 // brand-order pages, the CSV import and the brand messages. Keep
 // user-facing text here so Hindi can be added later.
 
@@ -6,14 +6,71 @@ const count = (n: number) => n.toLocaleString("en-IN");
 
 export const brand = {
   launch: {
-    metaTitle: "Launch Your Brand",
-    eyebrow: "Launch Your Brand",
+    metaTitle: "Build Your Brand",
+    eyebrow: "Build Your Brand",
     title: "Your product, your label.",
     titleEmphasis: "We'll make the rest.",
     intro:
       "Add the products you want to your launch cart and set how many of each. Then add your logo and packaging details once for the whole order, and pay. Your cart is saved to your account.",
-    stepsLabel: "Launch Your Brand steps",
+    stepsLabel: "Build Your Brand steps",
     steps: ["Products", "Launch cart", "Packaging", "Review and pay"] as const,
+    /** Second line under each step in the steps bar. */
+    stepDetails: [
+      "Product type or practice area",
+      "Quantities and bulk prices",
+      "Your logo and label details",
+      "Address and payment",
+    ] as const,
+    /** The v2 page hero: kicker, title, line and the side note. */
+    hero: {
+      kicker: "Build Your Brand",
+      title: "Your product. Your label.",
+      line: "Choose your formulations, set the quantities and add your label details once for the whole order. Review everything before you pay.",
+      noteStatus: "Built for professionals",
+      noteTitle: "Every order is reviewed",
+      noteLine:
+        "Our team checks the product, quantity and label details and sends you a label proof before anything is printed.",
+    },
+    /** Signed-out visitors see the catalogue and a prompt to sign in. */
+    guest: {
+      title: "Sign in to start your brand",
+      line: "Browse the formulations and prices freely. Sign in or register to add products to your launch cart, upload your logo and place the order.",
+      signIn: "Sign in to start",
+      cardAction: "Sign in to customise",
+      cardActionLabel: (name: string) => `Sign in to customise ${name}`,
+    },
+    /** The live product preview card on the signed-out view. */
+    preview: {
+      eyebrow: "Live product preview",
+      badge: "GMP",
+      yourLogo: "Your logo",
+      kicker: (form: string) => `${form} · Private label`,
+      title: "Your product. Your identity.",
+      line: "Upload your logo, add your Marketed By details and order in simple steps of the minimum.",
+      quantity: "Select quantity",
+      quantityLabel: (name: string) => `Quantity for ${name}`,
+      minimumNote: (n: number, unit: string) => `Minimum ${count(n)} ${unit}`,
+      branded: "Branded price",
+      perUnit: "/unit",
+      total: "Estimated total",
+      units: (n: number, unit: string) => `${count(n)} ${unit}`,
+      footnote: "Minimums and prices vary by formulation and pack size. GST included.",
+      labelTitle: "Label preview",
+      yourBrand: "Your brand",
+      marketedBy: (name: string) => `Marketed by ${name}`,
+      product: "Product",
+      products: (n: number) => (n === 1 ? "1 product" : `${count(n)} products`),
+      brand: "Brand",
+      labelNote:
+        "A guide to how your details sit on the pack. Our team checks the final label text before production.",
+    },
+    catalogueTitle: "Featured formulations",
+    yourBrand: (form: string) => `Your brand · ${form}`,
+    sideForm: "Product form",
+    sideArea: "Practice area",
+    allFormulations: "All formulations",
+    allAreas: "All practice areas",
+    allFormsOption: "All product forms",
     stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
     back: "Back",
     continue: "Save and continue",
@@ -111,7 +168,7 @@ export const brand = {
     increase: (name: string, n: number) => `More ${name}, add ${count(n)}`,
     steps: (n: number, unit: string) => `Minimum ${count(n)} ${unit}, in steps of ${count(n)}`,
     snapped: (n: number, min: number) => `Quantities go in steps of ${count(min)}, so this is now ${count(n)}.`,
-    max: (n: number) => `${count(n)} is the most we can take online. Call us for larger orders.`,
+    max: "Your entered price is too high",
     each: (price: string) => `${price} each`,
     bulkApplied: "Bulk price",
     lineTotal: "Line total",
@@ -129,7 +186,7 @@ export const brand = {
         : "This product is out of stock for now. Remove it to continue, or call us.",
     invalid: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
     overLimit:
-      "This order is above ₹1 crore, the most we take online. Lower some quantities, or call us for larger orders.",
+      "Your entered price is too high",
     tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products. Place this order first, then start another.`,
     summaryTitle: "Cart total",
     itemsLabel: "Products",
@@ -144,7 +201,7 @@ export const brand = {
           ? `We can make up to ${count(n)} of this right now.`
           : "This product is out of stock for now.",
       tooLarge:
-        "That would take the order above ₹1 crore, the most we take online. Call us for larger orders.",
+        "Your entered price is too high",
       tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products.`,
       generic: "We couldn't update your launch cart. Please try again.",
     },
@@ -152,7 +209,7 @@ export const brand = {
 
   packaging: {
     title: "Your packaging",
-    line: "Pick the brand to print, then check the label for each product. Our team checks it with you before printing.",
+    line: "Pick the brand to print. Our team checks it with you before printing.",
     logo: {
       label: "Logo",
       help: "PNG, JPG or PDF, up to 5 MB.",
@@ -351,6 +408,13 @@ export const brand = {
     eyebrow: "My Brand",
     title: "Your branded orders.",
     titleEmphasis: "Every label, in one place.",
+    heroLine:
+      "Follow each branded order from payment to label proof, production and dispatch, and pick up an unfinished launch cart where you left it.",
+    note: {
+      status: "Built for professionals",
+      title: "Every order is reviewed",
+      line: "We send a label proof for your approval before anything is printed.",
+    },
     start: "Start your brand",
     continueDraft: "Continue your order",
     draftLine: (products: number) =>
@@ -388,7 +452,7 @@ export const brand = {
     },
     /** What happens next, by stage of a paid order. */
     stageNext: {
-      awaiting_proof: "Our team is preparing your label proof. We'll share it with you to approve before printing.",
+      awaiting_proof: "Your order is confirmed. Our team will start making it soon.",
       proof_sent: "Your label proof is ready. Please check it below and approve it, or ask for changes.",
       changes_requested: "We've got your changes. Our team will send a new proof soon.",
       proof_approved: "Proof approved. Printing will start soon.",
@@ -399,7 +463,7 @@ export const brand = {
       cancelled: "This order was cancelled.",
     },
     stageLabels: {
-      awaiting_proof: "Preparing proof",
+      awaiting_proof: "Confirmed",
       proof_sent: "Proof ready",
       changes_requested: "Changes requested",
       proof_approved: "Proof approved",
@@ -434,7 +498,6 @@ export const brand = {
   proof: {
     title: "Label proof",
     line: "This is how your label will be printed. Nothing is printed until you approve a proof.",
-    none: "We'll share your proof here as soon as it's ready.",
     version: (n: number) => `Version ${n}`,
     latest: "Latest",
     sentOn: (date: string) => `Sent ${date}`,
@@ -476,7 +539,7 @@ export const brand = {
   admin: {
     nav: "Brand orders",
     metaTitle: "Brand orders",
-    eyebrow: "Launch Your Brand",
+    eyebrow: "Build Your Brand",
     title: "Brand orders",
     description: "Orders in the customer's own packaging, with their logo and label details.",
     searchLabel: "Search",
@@ -509,7 +572,7 @@ export const brand = {
       logo: "Logo",
       downloadLogo: "Download logo",
       labelsTitle: "Labels as ordered",
-      labelsLine: "The approved label text for each product. Make the proofs from exactly this.",
+      labelsLine: "The approved label text for each product. Print exactly this.",
       noLabel: "No label details were saved with this order.",
       products: "Products",
       product: "Product",
@@ -521,9 +584,6 @@ export const brand = {
       attempt: (n: number) => `Attempt ${count(n)}`,
       deliverTo: "Deliver to",
       fullOrder: "Payment, invoice and delivery",
-      stage: "Stage",
-      proofs: "Label proofs",
-      proofsLine: "Upload a PDF, PNG or JPG (up to 10 MB). The customer is told and can approve it or ask for changes. Every version is kept.",
       uploadTitle: "Send a new proof",
       uploadHelp: "PDF, PNG or JPG, up to 10 MB.",
       fileLabel: "Proof file",
@@ -532,24 +592,10 @@ export const brand = {
       upload: "Send proof",
       uploading: "Sending...",
       uploaded: (version: number) => `Version ${version} sent to the customer.`,
-      noProofs: "No proof sent yet.",
-      uploadClosed: "A new proof can't be sent at this stage.",
-      waiting: "Waiting for the customer to approve or ask for changes.",
-      replaceLine: "Sending another proof replaces the one waiting for the customer.",
-      customerComment: "Customer's changes",
-      production: "Production",
-      productionLine: "Move the order along. The customer is told at each step.",
-      noteField: "Note (optional)",
-      steps: {
-        in_production: "Start production",
-        quality_check: "Move to quality check",
-        dispatched: "Dispatch (test courier)",
-        delivered: "Mark delivered",
-      },
-      needProof: "Production can start once the customer approves a proof.",
+      status: "Status",
+      updateStatus: (label: string) => `Update status to ${label}`,
       finished: "This order is finished.",
       cancelled: "This order was cancelled.",
-      history: "Stage history",
       cancelTitle: "Cancel order",
       cancelLine: "Possible until production starts. The payment is refunded (a test refund here) and the customer is told.",
       cancel: "Cancel order",
@@ -557,7 +603,6 @@ export const brand = {
       cancelNotAllowed: "This order can't be cancelled: production has started or it is already closed.",
       cancelConfirmBody: "The payment is refunded (a test refund here) and the customer is told. This can't be undone.",
       cancelDone: "Order cancelled and the payment refunded.",
-      tracking: "Delivery",
       refund: (reference: string) => `Refund ${reference}`,
       results: {
         moved: (label: string) => `Moved to ${label}.`,
@@ -565,7 +610,6 @@ export const brand = {
         not_found: "That order wasn't found.",
         not_paid: "The order isn't paid, so it can't go ahead.",
         not_allowed: "That step isn't allowed from where the order is now.",
-        no_proof: "Production needs an approved proof first.",
         invalid: "Check the note: it's too long.",
         empty: "That file is empty.",
         tooLarge: "That file is too big (10 MB at most).",
@@ -579,7 +623,7 @@ export const brand = {
   },
 
   catalogue: {
-    section: "Launch Your Brand",
+    section: "Build Your Brand",
     help: "Let customers order this product in their own packaging. The minimum is also the step: a minimum of 4 allows 4, 8, 12 and so on.",
     eligible: "Open for branded orders",
     minQty: "Minimum (and step)",

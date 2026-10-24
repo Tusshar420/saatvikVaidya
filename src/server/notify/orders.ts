@@ -7,12 +7,20 @@ import { formatPaise } from "@/lib/format";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { db } from "@/server/db";
 import { authEnv } from "@/server/env";
+import { createNotification } from "@/server/notifications/notifications";
+import { notifications as inApp } from "@/content/notifications";
 import { getNotifier } from "./index";
 
 // Order messages (dev log for now). Text lives in src/content/checkout.ts.
 // Phone-only accounts (placeholder email) get an SMS instead of an email.
 // Each buyer's notification preferences (P1.10) decide whether the email or
-// the SMS is sent at all.
+// the SMS is sent at all. The in-app notification (the header's bell) is
+// always saved: it isn't a message sent anywhere.
+
+/** The buyer's page for an order: brand orders have their own. */
+export function orderPagePath(order: { id: string; type: string }): string {
+  return order.type === "brand" ? `/my-brand/${order.id}` : `/orders/${order.id}`;
+}
 
 export const recipientSelect = {
   name: true,
@@ -31,10 +39,17 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
       items: { orderBy: { id: "asc" } },
     },
   });
-  if (!order?.user) return;
+  if (!order?.user || !order.userId) return;
   const { user } = order;
   const { subject, body, item, sms } = copy.messages.confirmed;
   const total = formatPaise(order.totalPaise);
+  await createNotification({
+    userId: order.userId,
+    kind: "order",
+    title: inApp.messages.orderConfirmed.title(order.number),
+    body: inApp.messages.orderConfirmed.body(total),
+    href: orderPagePath(order),
+  });
 
   if (!isPlaceholderEmail(user.email)) {
     if (!user.notifyOrderEmail) return;
@@ -98,14 +113,24 @@ export async function sendShipmentUpdate(orderId: string, status: ShipmentStatus
   const order = await db.order.findUnique({
     where: { id: orderId },
     select: {
+      id: true,
+      type: true,
       number: true,
+      userId: true,
       user: { select: recipientSelect },
       shipment: { select: { courierName: true, awb: true } },
     },
   });
-  if (!order?.user) return;
+  if (!order?.user || !order.userId) return;
   const text = ordersCopy.messages.shipment;
   const line = text.lines[status];
+  await createNotification({
+    userId: order.userId,
+    kind: order.type === "brand" ? "brand" : "order",
+    title: inApp.messages.shipment.title(order.number, ordersCopy.shipmentStatus[status]),
+    body: line,
+    href: orderPagePath(order),
+  });
   const courier =
     order.shipment && status !== "created" && status !== "cancelled"
       ? text.courier(order.shipment.courierName, order.shipment.awb)
@@ -126,13 +151,23 @@ export async function sendOrderCancelled(orderId: string): Promise<void> {
   const order = await db.order.findUnique({
     where: { id: orderId },
     select: {
+      id: true,
+      type: true,
       number: true,
       paidAt: true,
+      userId: true,
       user: { select: recipientSelect },
     },
   });
-  if (!order?.user) return;
+  if (!order?.user || !order.userId) return;
   const text = ordersCopy.messages.cancelled;
+  await createNotification({
+    userId: order.userId,
+    kind: order.type === "brand" ? "brand" : "order",
+    title: inApp.messages.orderCancelled.title(order.number),
+    body: inApp.messages.orderCancelled.body(order.paidAt !== null),
+    href: orderPagePath(order),
+  });
   await sendToBuyer(
     order.user,
     {

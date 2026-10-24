@@ -33,7 +33,7 @@ A mobile-first website for Saatvik Vaidya, an Ayurveda firm. It has:
 - An online store for their medicines.
 - Super Coins rewards, like Flipkart SuperCoins.
 - An ebook section.
-- A private-label service ("Launch Your Brand").
+- A private-label service ("Build Your Brand").
 - Learning features (quiz, and later courses).
 
 The site is used by customers and Ayurveda professionals, and it is managed from
@@ -52,7 +52,7 @@ an admin panel. The client mockup sets the look; this plan sets the features.
 | Delivery | Shiprocket, with live tracking (later) |
 | Super Coins | Fully dynamic: admin-defined earning and redeeming rules, and a ledger (later) |
 | Ebooks | Free and paid; paid only for buyers; downloads switchable site-wide and per book by admin (later) |
-| Launch Your Brand | Private-label request, quote and label-proof flow (Phase 2) |
+| Build Your Brand | Private-label request, quote and label-proof flow (Phase 2) |
 | Quiz & Win | Weekly quiz with coins and leaderboards (Phase 2) |
 | Courses | YouTube-based (Phase 3) |
 | Vaidya Community | Phase 3 |
@@ -153,5 +153,5 @@ others, as listed in the full plan.
   - My account, and ebooks.
   - The admin panel (catalogue, orders, users, settings and content, reports).
   - Finishing, a mobile pass and a security review, then deployment.
-- **Phase 2:** Launch Your Brand, and Quiz & Win.
+- **Phase 2:** Build Your Brand, and Quiz & Win.
 - **Phase 3:** courses, Vaidya Community, WhatsApp integration and Hindi.

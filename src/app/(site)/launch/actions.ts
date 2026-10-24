@@ -29,7 +29,7 @@ import { placeBrandOrder, type PlaceBrandOrderError } from "@/server/brand/order
 import { saveAddressFromForm, type AddressFormState } from "@/server/checkout/addresses";
 import { getSetting } from "@/server/content/settings";
 
-// Server actions for /launch (Launch Your Brand, P2.1, and the Launch
+// Server actions for /launch (Build Your Brand, P2.1, and the Launch
 // cart). Each checks the session itself (requireUser) and validates its
 // input with Zod. The browser sends ids, text and quantities; the server
 // checks the products, the quantity steps and the prices, and never takes a

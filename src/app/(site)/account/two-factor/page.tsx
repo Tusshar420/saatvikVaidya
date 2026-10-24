@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
+import { PageHero } from "@/components/site/page-hero";
 import { notFound } from "next/navigation";
 import {
   BackupCodesForm,
   OpenAdminLink,
   TwoFactorSetup,
 } from "@/components/site/account/two-factor-setup";
-import { Eyebrow } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { adminSecurity } from "@/content/admin-security";
 import { requireUser } from "@/server/auth/session";
@@ -26,11 +26,11 @@ export default async function TwoFactorPage() {
   if (user.role !== "admin") notFound();
 
   return (
-    <div className="shell section-y">
-      <div className="mx-auto max-w-3xl">
-        <Eyebrow>{copy.metaTitle}</Eyebrow>
-        <h1 className="mt-2 text-h2 text-ink">{copy.title}</h1>
-        <Card className="mt-6">
+    <>
+      <PageHero eyebrow={copy.metaTitle} title={copy.title} />
+      <div className="bg-cream pt-5 pb-19 sm:pt-7 md:pb-24">
+      <div className="shell mx-auto max-w-3xl">
+        <Card>
           {user.twoFactorEnabled ? (
             <div className="flex flex-col gap-5">
               <p className="text-sm text-muted">{copy.introEnabled}</p>
@@ -46,6 +46,7 @@ export default async function TwoFactorPage() {
           )}
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -11,7 +11,7 @@ import { makePaidBrandOrder, png, writeStorageFile } from "./brand-helpers";
 import { axeViolations, horizontalOverflow } from "./helpers";
 import { ORDER_PHONE } from "./order-helpers";
 
-// P2.4: the Launch Your Brand screens (all four /launch steps, My Brand, an
+// P2.4: the Build Your Brand screens (all four /launch steps, My Brand, an
 // order with a proof waiting for a decision) and their admin screens fit
 // every width from 360 to 1280 px and have no axe issues at 360 and 1280 px.
 // The quiz screens are checked the same way in quiz.last.spec.ts, which
@@ -139,7 +139,7 @@ async function checkScreens(browser: Browser, paths: string[], state: StorageSta
 }
 
 test.describe("P2.4 quality pass", () => {
-  test("Launch Your Brand and My Brand fit every width", async ({ browser, baseURL }, testInfo) => {
+  test("Build Your Brand and My Brand fit every width", async ({ browser, baseURL }, testInfo) => {
     runOnce(testInfo);
     const { user, state } = await signedIn(browser, baseURL!, "user");
     const order = await brandCustomer(user.id);

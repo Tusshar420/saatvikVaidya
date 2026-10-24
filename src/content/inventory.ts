@@ -9,7 +9,7 @@ export const inventory = {
   eyebrow: "Stock",
   title: "Inventory",
   description:
-    "One stock engine, two inventories: finished goods the shop sells (B2C), and the packaging and product base we fill and brand for Launch Your Brand orders (B2B).",
+    "One stock engine, two inventories: finished goods the shop sells (B2C), and the packaging and product base we fill and brand for Build Your Brand orders (B2B).",
   tabs: { label: "Inventory sections", b2c: "B2C Inventory", b2b: "B2B Inventory" },
 
   unitLabel: "Unit",
@@ -151,7 +151,7 @@ export const inventory = {
   b2b: {
     metaTitle: "B2B Inventory",
     intro:
-      "Components for Launch Your Brand: blank bottles, tubes, jars, caps, boxes, label stock and the product base. Each Launch product has a recipe; what can be ordered is what the components can make.",
+      "Components for Build Your Brand: blank bottles, tubes, jars, caps, boxes, label stock and the product base. Each Launch product has a recipe; what can be ordered is what the components can make.",
     components: {
       title: "Components",
       add: "Add a component",
@@ -176,7 +176,7 @@ export const inventory = {
       lines: (n: number) => count(n, "component", "components"),
       edit: "Edit recipe",
       editLabel: (name: string) => `Edit the recipe of ${name}`,
-      empty: "No products are open for Launch Your Brand yet.",
+      empty: "No products are open for Build Your Brand yet.",
       units: (n: number, unit: string) => `${n.toLocaleString("en-IN")} ${unit}`,
     },
     recent: "Recent component movements",
@@ -237,7 +237,7 @@ export const inventory = {
     makeable: (n: number | null, unit: string) =>
       n === null ? "Nothing limits the stock of this product." : `Can make up to ${n.toLocaleString("en-IN")} ${unit} now.`,
     submit: "Save recipe",
-    notLaunch: "This product isn't open for Launch Your Brand, so its recipe isn't used yet.",
+    notLaunch: "This product isn't open for Build Your Brand, so its recipe isn't used yet.",
     availableNow: (n: string) => `${n} available`,
   },
 

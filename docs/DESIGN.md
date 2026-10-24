@@ -106,7 +106,7 @@ Named utilities in `globals.css`, never written inline:
 | `bg-hero` | Home hero, dark forest green |
 | `bg-page-hero` | Inner-page hero (PageHero) |
 | `bg-forest` | Dark green cards and bands: Track Order, final CTA, course art, wallet |
-| `bg-brand-wash` | Pale green wash behind Launch Your Brand |
+| `bg-brand-wash` | Pale green wash behind Build Your Brand |
 | `bg-quiz` | Gold Quiz & Win panel (text in `ink`/`gold-ink`) |
 | `bg-coins-band` | Gold coins strip |
 | `bg-coin` | The coin itself |
@@ -169,7 +169,9 @@ orange line.
   - `modal` 24 px (modals and bottom sheets)
   - `2xl` 28 px (hero console, product studio)
   - `3xl` 30 px (final CTA)
-  - `full` (pills, coin, dots)
+  - `full` only for true circles: dots, progress bars, avatars, round icon buttons. Client
+    decision (2026-10-20): text pills, chips, badges, count bubbles and nav links are never
+    fully rounded; use `sm` (8 px) for badges and nav links, `md` (12 px) for chips.
 - Shadow tokens:
   - `card`: `0 16px 44px rgb(18 49 41 / .07)`, cards
   - `raised`: `0 24px 70px rgb(9 49 42 / .12)`, feature panels, hover
@@ -219,10 +221,10 @@ brings it to v2.
 | **OtpInput** | 6 boxes, numeric, paste support, `autocomplete="one-time-code"`, auto-advance. | U.2 |
 | **PasswordInput** | Show/hide toggle, strength hint on sign-up. | U.2 |
 | **Checkbox** | Terms and marketing consent lines; checked in `brand`. | U.2 |
-| **ChoiceChips** | Rounded pills; selected is solid `brand` with white text. `role="radiogroup"`. (`.filter-pills`, `.role-options`, `.moq-options`) | U.2 |
+| **ChoiceChips** | Chips with `sm` radius (not fully rounded); selected is solid `brand` with white text. `role="radiogroup"`. (`.filter-pills`, `.role-options`, `.moq-options`) | U.2 |
 | **PillTabs** | Pill tab group, active solid `brand`. Used on Dr. Talk, Courses, Feedback, leaderboard. (`.portal-tabs`) | U.2/U.3 |
 | **Card** | White, `line` border, radius `xl`, padding 24–26 (18 on phones), `card` shadow; `interactive` lifts on hover; `featured` gold (`bg-quiz`) and dark green (`bg-forest`) variants. (`.portal-card`, `.feature-panel`) | U.2 |
-| **Badge / Pill** | Rounded pill, 11 px uppercase: `brand`, `success` ("In stock"), `orange`, `blue`, `gold`, `live` (red dot), `soon` ("Coming next"). (`.pill`, `.stock`) | U.2 |
+| **Badge / Pill** | `sm`-radius tag (not fully rounded), 11 px uppercase: `brand`, `success` ("In stock"), `orange`, `blue`, `gold`, `live` (red dot), `soon` ("Coming next"). (`.pill`, `.stock`) | U.2 |
 | **Eyebrow** | See [Eyebrow](#typography): orange line plus `brand-mid` label; `light` on dark. (`.eyebrow`, `.portal-kicker`) | U.2 |
 | **IconTile** | Rounded square (37–56 px) with a soft tint: `brand`, `orange`, `blue`, `gold`. (`.feature-icon`, `.partner-icon`) | U.2 |
 | **Avatar** | Initials on `bg-avatar`, rounded 12 px square. (`.avatar`) | U.2 |
@@ -241,27 +243,41 @@ brings it to v2.
 
 ### Site-level pieces
 
-The shell is rebuilt to v2 in U.4; until then the current shell stays.
+The shell is v2 (U.4). Its strings, nav links and footer columns live in
+`src/content/shell.ts` (`siteNav`, `footerColumns`).
 
-- **Announcement bar** (`.announcement`): `bg-announcement`, white 13 px text,
-  the coins message from settings.
+- **Announcement bar** (`.announcement`): `bg-announcement`, white 13 px text
+  (11 px under 560 px), 34 px tall (30 under 560). It shows the admin's
+  announcement when that setting is on, otherwise the coins message built
+  from the coin rules ("₹10,000 order = 1,000 Saatvik Coins · 10 Coins = ₹1 ·
+  Valid for 60 months | View Coins →"); the detail hides under 820 px.
 - **Header** (`.site-header`): sticky, `paper` at 94% with an 18 px blur and a
   `line` bottom border; 82 px bar (70 under 820, 65 under 560) with the
   client's logo image, search with a ⌘K hint (icon only under 820 px), the
-  "MY WALLET" coin pill, the bag, and "My Profile / Sign in / Register" or the
-  avatar. Every target stays 44 px.
+  "MY WALLET" coin pill (`CoinPill variant="wallet"`; "Coins" signed out, the
+  balance signed in), the bag (a count badge only when it has items), and
+  "My Profile / Sign in / Register" or the avatar. Track Order moved to the
+  nav rail and the phone number to the footer. Every target stays 44 px.
 - **Nav rail** (`.nav-rail`): 46 px row of pill links (12 px/700, radius 9),
   active `brand-soft`; Dr. Talk is a solid `brand` pill and Quiz & Win a solid
-  orange pill (`orange-strong` for AA). Scrolls sideways on phones with an
-  edge fade and marks the active page.
+  orange pill (`orange-strong` for AA). Links: Home, Dr. Talk, Quiz & Win,
+  Build Your Brand, Top Brands, Courses, Saatvik Coins, Track Order, Real
+  Feedback, Partner & Grow, Why Saatvik, each a real page. Labels are 11 px
+  on phones (mockup 10 px). Scrolls sideways on phones with an edge fade and
+  marks the current page with `aria-current="page"`.
 - **MobileDock** (`.mobile-dock`): fixed bottom bar under 560 px, `paper` with
-  blur and the `dock` shadow. Today: Home, My Brand, Orders, Coins, Profile;
-  v2 (U.4): Home, Dr. Talk, Launch, Orders, Profile. Labels are 11 px (not the
+  blur and the `dock` shadow: Home, Dr. Talk, Launch, Orders, Profile
+  (My Brand is reached from My account). Labels are 11 px (not the
   mockup's 8 px), active in `brand`. It respects `safe-area-inset-bottom`, and
   the body gets bottom padding so content is not hidden behind it.
-- **Footer** (`.footer`): `night` band with the logo, tagline, Community /
-  Products / Support columns, the phone number, the legal row and the policy
-  links; text in `night-ink`.
+- **Footer** (`.footer`): `night` band with the white logo, tagline (setting)
+  and gold Hindi line; Explore / Products / Support columns (Support: phone,
+  Partner & Grow, Why Saatvik, Report a problem in place of the mockup's
+  WhatsApp button, which has no integration yet); the legal row with the
+  policy links. Links are 13 px (mockup 10 px) and 44 px tall on phones.
+- **Sign-in modal**: the client's logo, centred orange kicker, centred title
+  (`ModalContent centered logo`), Mobile / Email as pill tabs, and the
+  orange "Continue with OTP" button. Flows and validation are unchanged.
 - **SkipLink** to `#main`.
 
 ## Differences from the mockup

@@ -14,8 +14,6 @@ import type { BrandFilterOption, BrandProductFilters } from "@/server/brand/draf
 const copy = brand.product.filters;
 
 export type LaunchFilterPanelProps = {
-  forms: BrandFilterOption[];
-  areas: BrandFilterOption[];
   makers: BrandFilterOption[];
   filters: BrandProductFilters & { sort: BrandSort };
   /** Whole rupees, the cheapest and dearest branded price. */
@@ -24,14 +22,13 @@ export type LaunchFilterPanelProps = {
 };
 
 /**
- * Filters for the Launch product catalogue: product type, practice area,
- * brand, a branded-price range and the sort, as a plain GET form so the URL
+ * More filters for the Launch product catalogue: brand, a branded-price
+ * range and the sort (product form and practice area are in the toolbar
+ * and the side lists), as a plain GET form so the URL
  * holds them. Always open in the sidebar from 1100 px; a button shows and
  * hides it on smaller screens.
  */
 export function LaunchFilterPanel({
-  forms,
-  areas,
   makers,
   filters,
   priceRange,
@@ -101,13 +98,14 @@ export function LaunchFilterPanel({
         method="get"
         aria-label={copy.label}
         className={cn(
-          "mt-3 flex flex-col gap-4 rounded-xl border border-brand/30 bg-brand-soft/40 p-4 shadow-card lg:mt-0 lg:p-5",
+          "mt-3 flex flex-col gap-4 rounded-xl border border-line bg-surface p-4.5 shadow-card",
           !open && "max-lg:hidden",
         )}
       >
         {filters.q && <input type="hidden" name="q" value={filters.q} />}
-        {select("form", copy.form, forms)}
-        {select("area", copy.area, areas)}
+        {/* Product form and practice area are chosen in the toolbar and the side lists. */}
+        {filters.form && <input type="hidden" name="form" value={filters.form} />}
+        {filters.area && <input type="hidden" name="area" value={filters.area} />}
         {select("maker", copy.maker, makers)}
         {hasRange && (
           <fieldset className="flex flex-col gap-2">

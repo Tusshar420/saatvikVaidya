@@ -88,7 +88,7 @@ export const settingDefaults: SettingValues = {
   "search.popular": [
     "Punarnava Mandoor",
     "Kidney Care Course",
-    "Launch Your Brand",
+    "Build Your Brand",
   ],
   "footer.tagline":
     "A B2B Ayurveda platform for products, professional learning and practice growth.",

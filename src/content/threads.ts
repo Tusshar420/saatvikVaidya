@@ -1,0 +1,62 @@
+// Strings for Dr. Talk threads. Keep user-facing text here so Hindi can be
+// added later.
+
+export const threads = {
+  filters: {
+    latest: "Latest",
+    question: "Questions",
+    case_discussion: "Case discussions",
+    expert_talk: "Expert talks",
+  },
+  kindLabel: {
+    question: "Question",
+    case_discussion: "Case discussion",
+    expert_talk: "Expert talk",
+  },
+  filtersLabel: "Discussion categories",
+  doctorBadge: "Verified doctor",
+  signedOutTitle: "Sign in to read Dr. Talk",
+  signedOutText: "Discussions are open to signed-in members. Verified Ayurveda doctors can post and reply.",
+  signIn: "Sign in",
+  readOnlyNote:
+    "You can read every discussion. Posting, replying and liking are for verified Ayurveda doctors.",
+  emptyTitle: "No discussions yet",
+  emptyText: "Be the first verified doctor to start a conversation.",
+  emptyReadOnlyText: "Verified doctors will start the first conversations here.",
+  ask: "Start a thread",
+  form: {
+    kind: "Type",
+    title: "Title",
+    titleHint: "A short, clear question or topic.",
+    body: "Details",
+    bodyHint: "Do not share patient names, photographs or identifying details.",
+    submit: "Post thread",
+    posting: "Posting…",
+    cancel: "Cancel",
+  },
+  reply: {
+    label: "Your reply",
+    placeholder: "Add to the discussion…",
+    submit: "Reply",
+    posting: "Replying…",
+    listLabel: "Replies",
+    count: (n: number) => `${n} ${n === 1 ? "reply" : "replies"}`,
+    none: "No replies yet.",
+  },
+  like: (n: number) => `${n} ${n === 1 ? "like" : "likes"}`,
+  likeAction: "Like this thread",
+  unlikeAction: "Remove your like",
+  open: "Open thread",
+  back: "All discussions",
+  notFoundTitle: "Thread not found",
+  notFoundText: "It may have been removed.",
+  errors: {
+    kind: "Choose a thread type.",
+    title: "Enter a title of 3 to 160 characters.",
+    body: "Enter details of 10 to 5000 characters.",
+    reply: "Enter a reply of up to 2000 characters.",
+    forbidden: "Only verified Ayurveda doctors can do this.",
+    generic: "Something went wrong. Please try again.",
+    rateLimited: "You are posting too fast. Please wait a minute.",
+  },
+} as const;

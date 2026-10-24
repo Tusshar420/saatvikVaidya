@@ -387,7 +387,7 @@ export async function retryPayment(userId: string, orderId: string): Promise<Liv
 export type OrderView = {
   id: string;
   number: string;
-  /** "brand" for a Launch Your Brand order (P2.1). */
+  /** "brand" for a Build Your Brand order (P2.1). */
   type: OrderType;
   status: OrderStatus;
   createdAt: Date;

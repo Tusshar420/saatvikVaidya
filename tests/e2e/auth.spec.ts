@@ -5,7 +5,7 @@ import { collectErrors } from "./helpers";
 // flows are in sign-in.spec.ts.
 
 test.describe("protected pages", () => {
-  for (const path of ["/account", "/admin", "/admin/users"]) {
+  for (const path of ["/account/addresses", "/admin", "/admin/users"]) {
     test(`${path} sends a signed-out visitor to sign-in`, async ({ page }) => {
       const errors = collectErrors(page);
       await page.goto(path);
@@ -26,14 +26,42 @@ test.describe("protected pages", () => {
     await context.addCookies([
       { name: "sv.session_token", value: "forged.value", url: baseURL! },
     ]);
-    await page.goto("/account");
+    await page.goto("/account/addresses");
     // The proxy lets it through (cookie present); the page itself checks the
     // session and sends the visitor to sign-in.
     const url = new URL(page.url());
     expect(url.pathname).toBe("/");
     expect(url.searchParams.get("auth")).toBe("sign-in");
-    expect(url.searchParams.get("next")).toBe("/account");
+    expect(url.searchParams.get("next")).toBe("/account/addresses");
     await expect(page.locator("main#main")).not.toContainText("Namaste");
+  });
+});
+
+test.describe("guest account page", () => {
+  test("/account shows a sign-in prompt instead of redirecting", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/account");
+    expect(new URL(page.url()).pathname).toBe("/account");
+    await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Orders & Requests/ })).toHaveAttribute(
+      "href",
+      /auth=sign-in/,
+    );
+    await page.locator("main#main").getByRole("button", { name: "Sign in / Register" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe("guest orders page", () => {
+  test("/orders shows a sign-in prompt instead of redirecting", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/orders");
+    expect(new URL(page.url()).pathname).toBe("/orders");
+    await expect(page.getByRole("heading", { name: "Sign in to see your orders" })).toBeVisible();
+    await page.locator("main#main").getByRole("button", { name: "Track an order" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    expect(errors).toEqual([]);
   });
 });
 

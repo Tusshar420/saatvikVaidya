@@ -7,7 +7,7 @@ import { OrderSummary } from "@/components/site/cart/order-summary";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Eyebrow } from "@/components/ui/badge";
+import { PageHero } from "@/components/site/page-hero";
 import { cart as copy } from "@/content/cart";
 import { signInPath } from "@/lib/auth-routes";
 import { getSession } from "@/server/auth/session";
@@ -57,16 +57,14 @@ export default async function CartPage() {
   }
 
   return (
-    <div className="shell py-8 sm:py-12">
-      <Eyebrow>{copy.eyebrow}</Eyebrow>
-      <h1 className="mt-2 text-h2 text-ink">
-        {copy.title} <em className="block text-teal not-italic">{copy.titleEmphasis}</em>
-      </h1>
-      <p className="mt-2 text-body text-muted">
-        {copy.itemCount(cart.lines.length + cart.ebooks.length)}
-      </p>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
+    <>
+    <PageHero
+      eyebrow={copy.eyebrow}
+      title={copy.title}
+      description={`${copy.itemCount(cart.lines.length + cart.ebooks.length)}. ${copy.titleEmphasis}`}
+    />
+    <div className="shell pt-7 pb-24 md:pt-13.5">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
         <div className="flex flex-col gap-4">
           {cart.lines.length > 0 && (
             <ul aria-label={copy.listLabel} className="flex flex-col gap-4">
@@ -109,5 +107,6 @@ export default async function CartPage() {
         </OrderSummary>
       </div>
     </div>
+    </>
   );
 }

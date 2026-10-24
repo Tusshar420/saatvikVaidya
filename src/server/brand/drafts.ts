@@ -17,7 +17,7 @@ import { saveLabelDetails } from "./labels";
 import { orderNotesSchema } from "./packaging";
 import { chosenProfile, listProfiles } from "./profiles";
 
-// Launch Your Brand drafts (docs/CHUNKS.md, P2.1): the packaging of the
+// Build Your Brand drafts (docs/CHUNKS.md, P2.1): the packaging of the
 // order a signed-in user is putting together on /launch, one per user: which
 // saved brand profile it uses (./profiles.ts), the notes for the team and
 // whether the label details were confirmed (./labels.ts). The products and quantities are in the Launch cart

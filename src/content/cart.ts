@@ -7,9 +7,9 @@ const units = (n: number) => (n === 1 ? "1 unit" : `${count(n)} units`);
 
 export const cart = {
   metaTitle: "Cart",
-  eyebrow: "Your cart",
-  title: "Your cart.",
-  titleEmphasis: "Check it, then check out.",
+  eyebrow: "My Order List",
+  title: "Review your products.",
+  titleEmphasis: "Check quantities, then check out.",
   itemCount: (n: number) => (n === 1 ? "1 product" : `${count(n)} products`),
   listLabel: "Products in your cart",
 
@@ -73,10 +73,13 @@ export const cart = {
 
   /** The "Add to cart" button on product cards in listings. */
   quickAdd: {
-    button: "Add to cart",
-    buttonLabel: (name: string) => `Add ${name} to cart`,
+    button: "Add to Order",
+    buttonLabel: (name: string) => `Add to Order: ${name}`,
+    quantityFor: (name: string) => `Quantity of ${name} to add`,
+    decrease: (name: string) => `One less ${name}`,
+    increase: (name: string) => `One more ${name}`,
     added: "Added",
-    addedLabel: (name: string) => `Add another ${name} to cart`,
+    addedLabel: (name: string) => `Added: add more ${name}`,
     addedLine: (name: string) => `${name} is in your cart.`,
     viewCart: "View cart",
     outOfStock: "Out of stock",

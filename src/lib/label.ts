@@ -1,4 +1,4 @@
-// Label rules for Launch Your Brand, shared by the /launch page (live
+// Label rules for Build Your Brand, shared by the /launch page (live
 // counters and warnings) and the server (which checks everything again).
 // No "server-only" import: client components use it too.
 //

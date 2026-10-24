@@ -11,7 +11,8 @@ import { OrderSummary } from "@/components/site/cart/order-summary";
 import { SubmitButton } from "@/components/site/checkout/submit-button";
 import { OrderDocuments } from "@/components/site/orders/order-documents";
 import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
-import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import { LaunchHero } from "@/components/site/brand/launch-hero";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Stepper } from "@/components/ui/stepper";
@@ -85,7 +86,25 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
   };
 
   return (
-    <div className="shell py-8 sm:py-12">
+    <>
+    <LaunchHero
+      kicker={text.eyebrow}
+      title={<span className="break-words">{order.brandName}</span>}
+      line={
+        <>
+          <span className="font-mono font-bold text-white">{order.number}</span> ·{" "}
+          {copy.myBrand.placedOn(formatDate(order.createdAt))}
+        </>
+      }
+      aside={
+        <div className="flex flex-col items-start gap-2">
+          {paid ? <Badge variant={stage === "cancelled" ? "live" : "brand"}>{text.stageLabels[stage]}</Badge> : <OrderStatusBadge status={order.status} />}
+          <p className="text-xs leading-normal text-forest-ink">{copy.myBrand.note.line}</p>
+        </div>
+      }
+    />
+    <div className="bg-cream pt-4 pb-19 sm:pt-6 md:pb-24">
+    <div className="shell">
       <Link
         href="/my-brand"
         className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand hover:underline"
@@ -93,19 +112,8 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
         <ChevronLeft aria-hidden className="size-4" />
         {text.back}
       </Link>
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <Eyebrow>{text.eyebrow}</Eyebrow>
-          <h1 className="mt-2 text-h2 break-words text-ink">{order.brandName}</h1>
-          <p className="mt-1 text-body text-muted">
-            <span className="font-mono font-bold text-ink">{order.number}</span> ·{" "}
-            {copy.myBrand.placedOn(formatDate(order.createdAt))}
-          </p>
-        </div>
-        {paid ? <Badge variant={stage === "cancelled" ? "live" : "brand"}>{text.stageLabels[stage]}</Badge> : <OrderStatusBadge status={order.status} />}
-      </div>
 
-      <Card className="mt-6">
+      <Card className="mt-2">
         {stage !== "cancelled" && order.status !== "cancelled" && order.status !== "returned" && (
           <Stepper
             label={text.timelineLabel}
@@ -143,19 +151,16 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-8">
         <div className="flex min-w-0 flex-col gap-6">
-          {paid && (
+          {/* The team no longer sends proofs; orders that got one still show it. */}
+          {paid && stages.proofs.length > 0 && (
             <Card as="section" aria-labelledby="brand-proof">
               <h2 id="brand-proof" className="text-h3 text-ink">
                 {proofText.title}
               </h2>
               <p className="mt-1 text-body text-muted">{proofText.line}</p>
-              {stages.proofs.length === 0 ? (
-                <p className="mt-4 text-body text-ink">{proofText.none}</p>
-              ) : (
-                <div className="mt-4">
-                  <ProofList orderId={order.id} proofs={stages.proofs} />
-                </div>
-              )}
+              <div className="mt-4">
+                <ProofList orderId={order.id} proofs={stages.proofs} />
+              </div>
               {decidable && latestProof && (
                 <div className="mt-5 border-t border-line pt-5">
                   <ProofDecision orderId={order.id} proofId={latestProof.id} />
@@ -280,5 +285,7 @@ export default async function BrandOrderPage({ params }: PageProps<"/my-brand/[i
         </OrderSummary>
       </div>
     </div>
+    </div>
+    </>
   );
 }

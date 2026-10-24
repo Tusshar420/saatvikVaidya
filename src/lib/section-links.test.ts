@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pageForSectionLink, sectionHref } from "./section-links";
 
-// Launch Your Brand has its own page, so no link to it may be a homepage
+// Build Your Brand has its own page, so no link to it may be a homepage
 // anchor (a "/#launch" link only scrolled the homepage).
 
 describe("sectionHref", () => {

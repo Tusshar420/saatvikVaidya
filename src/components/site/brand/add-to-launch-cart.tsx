@@ -47,13 +47,13 @@ export function AddToLaunchCart({
       </div>
       <Button
         type="button"
-        variant="secondary"
+        variant="dark"
         size="sm"
         loading={pending}
         icon={inCart === null ? <ShoppingBag aria-hidden className="size-4" /> : <Plus aria-hidden className="size-4" />}
         aria-label={inCart === null ? text.addLabel(productName) : text.addMoreLabel(productName, minQty)}
         onClick={add}
-        className="w-full px-3"
+        className="h-11 w-full rounded-sm px-3"
       >
         {inCart === null ? text.add : text.addMore(minQty)}
       </Button>

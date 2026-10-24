@@ -87,7 +87,7 @@ export default async function CheckoutPage() {
     <div className="shell py-8 sm:py-12">
       <Eyebrow>{copy.eyebrow}</Eyebrow>
       <h1 className="mt-2 text-h2 text-ink">
-        {copy.title} <em className="block text-teal not-italic">{copy.titleEmphasis}</em>
+        {copy.title} <em className="block text-orange-title not-italic">{copy.titleEmphasis}</em>
       </h1>
 
       {cart.hasIssues ? (
@@ -141,7 +141,7 @@ export default async function CheckoutPage() {
         <p className="mt-6">
           <Link
             href="/cart"
-            className="inline-flex min-h-11 items-center text-sm font-bold text-teal hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline"
           >
             {copy.summary.editCart}
           </Link>

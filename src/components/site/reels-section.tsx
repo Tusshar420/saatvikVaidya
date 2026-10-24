@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { ChoiceChips } from "@/components/ui/choice-chips";
-import { HScroller } from "@/components/ui/hscroller";
-import { hasDevanagari } from "@/lib/detect-hindi";
+import { CirclePlay, X } from "lucide-react";
+import { home as copy } from "@/content/home";
 import { cn } from "@/lib/cn";
 import type { ReelItem, SectionHeading as SectionHeadingData } from "@/server/content/home";
+import { HomeHead } from "./home-parts";
 
 export type ReelsSectionProps = {
   heading: SectionHeadingData;
@@ -15,196 +15,159 @@ export type ReelsSectionProps = {
   reels: ReelItem[];
 };
 
+const reelBackground: Record<ReelItem["type"], string> = {
+  PRODUCT: "bg-pack-green",
+  FEEDBACK: "bg-pack-saffron",
+  LEARNING: "bg-pack-blue",
+  OFFER: "bg-pack-gold",
+};
+
+/** v2 "Watch & explore" (`.reels-section`): filter pills and four tall reel cards. */
 export function ReelsSection({ heading, filters, reels }: ReelsSectionProps) {
-  const [selectedFilter, setSelectedFilter] = useState("all");
-
-  const filterOptions = [
-    { label: filters.all, value: "all" },
-    { label: filters.PRODUCT, value: "PRODUCT" },
-    { label: filters.FEEDBACK, value: "FEEDBACK" },
-    { label: filters.LEARNING, value: "LEARNING" },
-    { label: filters.OFFER, value: "OFFER" },
-  ];
-
-  const filteredReels =
-    selectedFilter === "all"
-      ? reels
-      : reels.filter((reel) => reel.type === selectedFilter);
-
-  const reelCards = filteredReels.map((reel) => (
-    <ReelCard key={reel.key} reel={reel} />
-  ));
+  const [filter, setFilter] = useState("all");
+  const types = new Set(reels.map((reel) => reel.type));
+  const options = Object.entries(filters).filter(
+    ([value]) => value === "all" || types.has(value as ReelItem["type"]),
+  );
+  const shown = filter === "all" ? reels : reels.filter((reel) => reel.type === filter);
 
   return (
-    <section className="section-y">
+    <section id="reels" aria-labelledby="reels-title" className="bg-surface py-14.5 md:py-21.25">
       <div className="shell">
-        <SectionHeading {...heading} />
+        <HomeHead
+          compact
+          eyebrow={heading.eyebrow}
+          title={<span id="reels-title">{heading.title}</span>}
+          emphasis={heading.titleEmphasis}
+          aside={
+            options.length > 2 ? (
+              <div
+                role="group"
+                aria-label={filters.filtersLabel ?? "Filter reels"}
+                className="scrollbar-none flex max-w-full gap-1.25 overflow-auto"
+              >
+                {options.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={filter === value}
+                    onClick={() => setFilter(value)}
+                    className={cn(
+                      "min-h-11 rounded-md border px-3.5 text-xs font-bold whitespace-nowrap transition md:min-h-9",
+                      filter === value
+                        ? "border-brand bg-brand text-white"
+                        : "border-line bg-surface text-ink hover:border-brand",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null
+          }
+        />
 
-        <div className="mb-8 mt-8">
-          <ChoiceChips
-            label="Filter reels"
-            hideLabel
-            layout="wrap"
-            value={selectedFilter}
-            onValueChange={setSelectedFilter}
-            options={filterOptions}
-          />
-        </div>
-
-        {/* Desktop grid, phone scroller */}
-        <div className="hidden md:grid gap-6 grid-cols-2 lg:grid-cols-3">
-          {reelCards}
-        </div>
-        <HScroller label="Reels scroller" className="md:hidden">{reelCards}</HScroller>
+        <ul
+          aria-label={copy.reels.scroller}
+          tabIndex={0}
+          className="scrollbar-none -mr-3.25 flex snap-x snap-mandatory gap-3.75 overflow-x-auto pb-2 sm:mr-0"
+        >
+          {shown.map((reel) => (
+            <li key={reel.key} className="w-54.5 shrink-0 snap-start sm:w-61.25 md:w-[calc((100%-45px)/4)]">
+              <ReelCard reel={reel} />
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
 }
 
 function ReelCard({ reel }: { reel: ReelItem }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const isVideo = reel.mediaKind === "VIDEO" && reel.mediaSrc;
+  const image = reel.mediaKind === "IMAGE" ? reel.mediaSrc : reel.posterSrc;
+  const label = reel.badge ?? reel.poster?.kicker ?? null;
 
-  return (
-    <article className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 shadow-card transition-shadow hover:shadow-raised">
-      <div
-        className={cn(
-          "relative aspect-video overflow-hidden rounded-md",
-          "bg-surface-alt"
-        )}
-      >
-        {reel.mediaKind === "VIDEO" && (
-          <>
-            {reel.posterSrc ? (
-              <Image
-                src={reel.posterSrc}
-                alt={reel.title}
-                fill
-                className="absolute inset-0 object-cover"
-                sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-surface-alt" />
-            )}
-            <video
-              preload="none"
-              muted
-              playsInline
-              className="absolute inset-0 h-full w-full object-cover"
-              poster={reel.posterSrc || undefined}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-            >
-              {reel.mediaSrc && <source src={reel.mediaSrc} type="video/mp4" />}
-            </video>
-            {!isPlaying && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  (e.currentTarget.parentElement?.querySelector(
-                    "video",
-                  ) as HTMLVideoElement | null)?.play?.();
-                }}
-                className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors hover:bg-black/30"
-                aria-label={`Play ${reel.title} video`}
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-xl text-ink">
-                  ▶
-                </span>
-              </button>
-            )}
-            {reel.mediaLabel && (
-              <span className="absolute top-3 right-3 rounded-sm bg-orange-strong px-2 py-1 text-xs font-700 text-surface">
-                {reel.mediaLabel}
-              </span>
-            )}
-            {reel.metaLabel && (
-              <span className="absolute bottom-3 right-3 text-xs font-500 text-surface/90 bg-black/40 rounded px-2 py-1">
-                {reel.metaLabel}
-              </span>
-            )}
-          </>
-        )}
-        {reel.mediaKind === "IMAGE" && reel.mediaSrc && (
-          <>
-            <Image
-              src={reel.mediaSrc}
-              alt={reel.title}
-              fill
-              className="object-cover"
-              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-            />
-            {reel.badge && (
-              <span
-                className={cn(
-                  "absolute top-3 right-3 rounded-sm px-2 py-1 text-xs font-700 text-surface shadow-md",
-                  reel.badgeTone === "ORANGE"
-                    ? "bg-orange-strong"
-                    : reel.badgeTone === "GOLD"
-                      ? // White on gold is under 2:1; dark ink passes AA.
-                        "bg-gold text-ink"
-                      : "bg-brand",
-                )}
-              >
-                {reel.badge}
-              </span>
-            )}
-            {reel.valueLabel && (
-              <span className="absolute bottom-3 right-3 text-xs font-500 text-gold-ink bg-gold-soft rounded px-2 py-1">
-                {reel.valueLabel}
-              </span>
-            )}
-          </>
-        )}
-        {reel.mediaKind === "POSTER" && reel.poster && (
-          <div
-            className={cn(
-              "absolute inset-0 flex flex-col gap-3 justify-center items-center px-4 py-6 text-center text-surface",
-              "bg-forest"
-            )}
-          >
-            {reel.poster.kicker && (
-              <p className="text-label font-700 flex items-center justify-center gap-2">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-danger text-xs">
-                  ●
-                </span>
-                {reel.poster.kicker}
-              </p>
-            )}
-            <p
-              className={cn("text-h3", {
-                "font-serif-hindi": hasDevanagari(reel.poster.text),
-              })}
-              lang={hasDevanagari(reel.poster.text) ? "hi" : undefined}
-            >
-              {reel.poster.text}
-            </p>
-            {reel.poster.byline && (
-              <p className="text-small text-surface/90">{reel.poster.byline}</p>
-            )}
-            {reel.metaLabel && (
-              <span className="text-small font-500 text-surface/90">
-                {reel.metaLabel}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h3 className="text-small font-700 text-ink">{reel.title}</h3>
-        {reel.link.href !== null ? (
-          <a
-            href={reel.link.href}
-            className="text-small font-500 text-brand hover:underline"
-          >
-            {reel.link.label} →
-          </a>
-        ) : (
-          <span className="text-small font-500 text-muted">
-            {reel.link.label} →
-          </span>
-        )}
-      </div>
-    </article>
+  const body = (
+    <>
+      {image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          sizes="(min-width: 820px) 25vw, 245px"
+          className="object-cover opacity-35 mix-blend-luminosity"
+        />
+      )}
+      <span
+        aria-hidden
+        className="absolute top-10 left-1/2 size-55 -translate-x-1/2 rounded-full border-[34px] border-white/14"
+      />
+      <span aria-hidden className="absolute inset-0 bg-linear-to-b from-transparent from-20% to-black/78" />
+      {label && (
+        <span className="absolute top-4 left-4 z-1 rounded-[7px] bg-white/15 px-2 py-1.5 font-heading text-[11px] font-extrabold tracking-[0.11em] uppercase backdrop-blur-sm">
+          {label}
+        </span>
+      )}
+      <span aria-hidden className="absolute inset-0 z-1 grid place-items-center">
+        <CirclePlay className="size-13 fill-white/12 stroke-[1.8]" />
+      </span>
+      <span className="relative z-1 max-w-47.5 font-heading text-base leading-tight font-bold">
+        {reel.title}
+      </span>
+      {(reel.metaLabel ?? reel.valueLabel) && (
+        <span className="relative z-1 mt-2 text-[11px] opacity-80">{reel.metaLabel ?? reel.valueLabel}</span>
+      )}
+    </>
   );
+
+  const cardClasses = cn(
+    "relative flex min-h-75.5 w-full flex-col items-start justify-end overflow-hidden rounded-[21px] p-5 text-left text-white shadow-card transition motion-safe:hover:-translate-y-0.75 md:min-h-82.5",
+    reelBackground[reel.type],
+  );
+
+  if (isVideo) {
+    if (playing) {
+      return (
+        <div className={cn(cardClasses, "p-0")}>
+          <video
+            src={reel.mediaSrc ?? undefined}
+            autoPlay
+            controls
+            playsInline
+            className="absolute inset-0 size-full bg-ink object-cover"
+            aria-label={reel.mediaLabel ?? reel.title}
+          />
+          <button
+            type="button"
+            onClick={() => setPlaying(false)}
+            aria-label={copy.reels.close}
+            className="absolute top-2 right-2 z-1 grid size-11 place-items-center rounded-full bg-ink/60 text-white"
+          >
+            <X aria-hidden className="size-5" />
+          </button>
+        </div>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => setPlaying(true)}
+        aria-label={copy.reels.play(reel.title)}
+        className={cardClasses}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  if (reel.link.href) {
+    return (
+      <Link href={reel.link.href} className={cardClasses}>
+        {body}
+      </Link>
+    );
+  }
+  return <div className={cardClasses}>{body}</div>;
 }

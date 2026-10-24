@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import type { LabelField } from "@/lib/label";
 
-// Label specs (Launch Your Brand): what each kind of pack can print. The
+// Label specs (Build Your Brand): what each kind of pack can print. The
 // sizes are working figures for the first packs; the client confirms the
 // real printable areas with the printer.
 

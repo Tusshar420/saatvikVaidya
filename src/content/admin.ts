@@ -883,7 +883,7 @@ export const admin = {
     keep: "Keep order",
     cancelled: (restocked: boolean) =>
       restocked ? "Order cancelled and its stock put back." : "Order cancelled.",
-    brandShipment: "Launch Your Brand orders are dispatched from the brand order page, once the label proof is approved and production is done.",
+    brandShipment: "Build Your Brand orders are dispatched from the brand order page, once the label proof is approved and production is done.",
     openBrandOrder: "Open brand order",
     cancelFailed: "This order can't be cancelled any more. Refresh the page.",
     activityTitle: "Admin activity",

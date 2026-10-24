@@ -24,6 +24,19 @@ export const orders = {
     page: (current: number, total: number) => `Page ${current} of ${total}`,
   },
 
+  /** The signed-out /orders page. */
+  guest: {
+    title: "Sign in to see your orders",
+    description:
+      "Your orders, delivery tracking, invoices and payment reminders are saved to your account.",
+    perks: ["Live delivery tracking", "Invoices & documents", "Complete pending payments"],
+    signIn: "Sign in / Register",
+    trackTitle: "Ordered without an account?",
+    trackText: "Check an order with its number and the mobile number or email used for it.",
+    trackOrder: "Track an order",
+    shop: "Browse products",
+  },
+
   detail: {
     metaTitle: (number: string) => `Order ${number}`,
     eyebrow: "Order",
@@ -104,7 +117,21 @@ export const orders = {
     eyebrow: "Track order",
     title: "Know exactly",
     titleEmphasis: "what happens next.",
+    heroTitle: "Every order, clearly tracked.",
     description: "Enter your order number and the mobile number or email used for the order.",
+    heroDescription:
+      "Check current progress and review previous orders, using your order number and the mobile number or email on it.",
+    noteStatus: "Built for professionals",
+    noteTitle: "Two clear journeys",
+    noteText:
+      "Build Your Brand includes label approval and production. Top Brands follows packing and dispatch.",
+    resultEyebrow: "Order status",
+    previousTitle: "Previous orders",
+    previousSignedOut: "Sign in to access your complete history.",
+    previousSignedIn: "Your latest orders. Open one for its full timeline and documents.",
+    previousEmpty: "No orders yet. When you place one, it shows here.",
+    signIn: "Sign In",
+    viewAll: "View all orders",
     number: "Order number",
     numberPlaceholder: "Example: SV-7K2Q9F4M",
     numberHelp: "It's in your order confirmation, starting SV-.",

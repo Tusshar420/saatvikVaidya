@@ -5,12 +5,24 @@ import { formatPaise } from "@/lib/format";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { db } from "@/server/db";
 import { authEnv } from "@/server/env";
+import { notifications as inApp } from "@/content/notifications";
+import { createNotifications } from "@/server/notifications/notifications";
 import { getNotifier } from "./index";
 import { recipientSelect, sendToBuyer } from "./orders";
 
-// Launch Your Brand messages (P2.1, dev log for now). Text lives in
+// Build Your Brand messages (P2.1, dev log for now). Text lives in
 // src/content/brand.ts. The buyer's order-notification preferences (P1.10)
-// apply, as for store orders.
+// apply, as for store orders. In-app notifications (the bell) are always
+// saved; admins get theirs only if their role covers orders.
+
+/** Admins whose role covers orders (super and orders admins). */
+async function orderAdmins() {
+  const admins = await db.user.findMany({
+    where: { role: "admin" },
+    select: { id: true, email: true, adminRole: true },
+  });
+  return admins.filter((admin) => roleCanAccess(admin.adminRole, "orders"));
+}
 
 /**
  * A brand order was paid: the buyer is told, and so is every admin who can
@@ -24,6 +36,7 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
       number: true,
       type: true,
       totalPaise: true,
+      userId: true,
       user: { select: recipientSelect },
       brandDetails: { select: { brandName: true } },
       items: {
@@ -39,6 +52,29 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
   const total = formatPaise(order.totalPaise);
   const base = authEnv().BETTER_AUTH_URL;
 
+  const brandName = order.brandDetails?.brandName ?? "";
+  const admins = await orderAdmins();
+  await createNotifications([
+    ...(order.userId
+      ? [
+          {
+            userId: order.userId,
+            kind: "brand" as const,
+            title: inApp.messages.brandPaid.title(order.number),
+            body: inApp.messages.brandPaid.body(total),
+            href: `/my-brand/${order.id}`,
+          },
+        ]
+      : []),
+    ...admins.map((admin) => ({
+      userId: admin.id,
+      kind: "admin" as const,
+      title: inApp.messages.adminBrandPaid.title(order.number),
+      body: inApp.messages.adminBrandPaid.body(order.user?.name ?? "", brandName, total),
+      href: `/admin/brand-orders/${order.id}`,
+    })),
+  ]);
+
   if (order.user) {
     const { subject, body, sms } = copy.messages.paid;
     const link = new URL(`/my-brand/${order.id}`, base).toString();
@@ -52,15 +88,10 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
     );
   }
 
-  const admins = await db.user.findMany({
-    where: { role: "admin" },
-    select: { email: true, adminRole: true },
-  });
   const link = new URL(`/admin/brand-orders/${order.id}`, base).toString();
-  const brandName = order.brandDetails?.brandName ?? "";
   const { subject, body } = copy.messages.admin;
   for (const admin of admins) {
-    if (!roleCanAccess(admin.adminRole, "orders") || isPlaceholderEmail(admin.email)) continue;
+    if (isPlaceholderEmail(admin.email)) continue;
     await getNotifier().send({
       channel: "email",
       to: admin.email,
@@ -78,11 +109,21 @@ export async function sendProofSent(orderId: string, version: number): Promise<v
       id: true,
       number: true,
       type: true,
+      userId: true,
       user: { select: recipientSelect },
       brandDetails: { select: { proofs: { where: { version }, select: { note: true } } } },
     },
   });
-  if (!order?.user || order.type !== "brand") return;
+  if (!order?.user || !order.userId || order.type !== "brand") return;
+  await createNotifications([
+    {
+      userId: order.userId,
+      kind: "brand",
+      title: inApp.messages.proofSent.title(order.number, version),
+      body: order.brandDetails?.proofs[0]?.note || inApp.messages.proofSent.body,
+      href: `/my-brand/${order.id}`,
+    },
+  ]);
   const text = copy.messages.proofSent;
   const link = new URL(`/my-brand/${order.id}`, authEnv().BETTER_AUTH_URL).toString();
   await sendToBuyer(
@@ -106,13 +147,23 @@ export async function sendStageUpdate(
       id: true,
       number: true,
       type: true,
+      userId: true,
       user: { select: recipientSelect },
       shipment: { select: { courierName: true, awb: true } },
     },
   });
-  if (!order?.user || order.type !== "brand") return;
+  if (!order?.user || !order.userId || order.type !== "brand") return;
   const text = copy.messages.stage;
   const line = text.lines[stage];
+  await createNotifications([
+    {
+      userId: order.userId,
+      kind: "brand",
+      title: inApp.messages.brandStage.title(order.number, copy.detail.stageLabels[stage]),
+      body: line,
+      href: `/my-brand/${order.id}`,
+    },
+  ]);
   const courier =
     order.shipment && (stage === "dispatched" || stage === "delivered")
       ? text.courier(order.shipment.courierName, order.shipment.awb)
@@ -151,12 +202,22 @@ export async function sendProofDecision(
   const customer = order.user?.name ?? "";
   const link = new URL(`/admin/brand-orders/${order.id}`, authEnv().BETTER_AUTH_URL).toString();
   const approved = decision === "approve";
-  const admins = await db.user.findMany({
-    where: { role: "admin" },
-    select: { email: true, adminRole: true },
-  });
+  const admins = await orderAdmins();
+  await createNotifications(
+    admins.map((admin) => ({
+      userId: admin.id,
+      kind: "admin" as const,
+      title: approved
+        ? inApp.messages.adminProofApproved.title(order.number)
+        : inApp.messages.adminProofChanges.title(order.number),
+      body: approved
+        ? inApp.messages.adminProofApproved.body(customer, version)
+        : inApp.messages.adminProofChanges.body(customer, version, comment ?? ""),
+      href: `/admin/brand-orders/${order.id}`,
+    })),
+  );
   for (const admin of admins) {
-    if (!roleCanAccess(admin.adminRole, "orders") || isPlaceholderEmail(admin.email)) continue;
+    if (isPlaceholderEmail(admin.email)) continue;
     await getNotifier().send({
       channel: "email",
       to: admin.email,

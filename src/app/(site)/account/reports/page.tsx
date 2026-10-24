@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { PageHero } from "@/components/site/page-hero";
 import Link from "next/link";
 import { ChevronLeft, ImageIcon, LifeBuoy } from "lucide-react";
 import { SiteModalButton } from "@/components/site/site-modals";
-import { Badge, Eyebrow, type BadgeVariant } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { myReports as copy, reportProblem, reportStatusForUser } from "@/content/bug-reports";
@@ -28,8 +29,10 @@ export default async function MyReportsPage() {
   const { user } = await requireUser("/account/reports");
   const reports = await listOwnReports(user.id);
   return (
-    <div className="shell section-y">
-      <div className="mx-auto max-w-3xl">
+    <>
+      <PageHero eyebrow={copy.eyebrow} title={copy.title} description={copy.intro} />
+      <div className="bg-cream pt-5 pb-19 sm:pt-7 md:pb-24">
+      <div className="shell mx-auto max-w-3xl">
         <Link
           href="/account"
           className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand underline-offset-4 hover:underline"
@@ -37,18 +40,13 @@ export default async function MyReportsPage() {
           <ChevronLeft aria-hidden className="size-4" />
           {copy.back}
         </Link>
-        <Eyebrow className="mt-2">{copy.eyebrow}</Eyebrow>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-h2 text-ink">{copy.title}</h1>
-            <p className="mt-2 text-body text-muted">{copy.intro}</p>
-          </div>
-          {reports.length > 0 && (
+        {reports.length > 0 && (
+          <div className="mt-2 flex justify-end">
             <SiteModalButton modal="reportProblem" className={buttonClasses({ variant: "secondary", className: "shrink-0 max-sm:w-full" })}>
               {reportProblem.trigger}
             </SiteModalButton>
-          )}
-        </div>
+          </div>
+        )}
 
         {reports.length === 0 ? (
           <EmptyState
@@ -112,6 +110,7 @@ export default async function MyReportsPage() {
           </>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

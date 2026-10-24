@@ -10,11 +10,14 @@ import { CataloguePagination } from "@/components/site/catalogue/catalogue-pagin
 import { FilterPanel } from "@/components/site/catalogue/filter-panel";
 import { FormChips } from "@/components/site/catalogue/form-chips";
 import { ProductGrid } from "@/components/site/catalogue/product-card";
+import { OrderListButton } from "@/components/site/catalogue/order-list-button";
 import { SampleNote } from "@/components/site/catalogue/sample-note";
+import { PageHero } from "@/components/site/page-hero";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { catalogue as copy } from "@/content/catalogue";
+import { cartCount } from "@/server/cart/cart";
+import { currentCartOwner } from "@/server/cart/request";
 import {
   catalogueFiltersSchema,
   listCatalogue,
@@ -32,10 +35,11 @@ export const metadata: Metadata = {
 export default async function ProductsPage({
   searchParams,
 }: PageProps<"/products">) {
-  const [params, viewer, discount] = await Promise.all([
+  const [params, viewer, discount, inCart] = await Promise.all([
     searchParams,
     getPricingViewer(),
     getSetting("pricing.discount"),
+    currentCartOwner().then(cartCount),
   ]);
   const listing = await listCatalogue(catalogueFiltersSchema.parse(params), viewer, discount.percent);
   const { filters, facets, products, total } = listing;
@@ -44,34 +48,40 @@ export default async function ProductsPage({
     : text.results(total);
 
   return (
-    <div className="shell py-8 sm:py-12">
-      <SectionHeading
-        as="h1"
+    <>
+      <PageHero
         eyebrow={text.eyebrow}
         title={text.title}
-        emphasis={text.titleEmphasis}
         description={text.description}
+        note={text.note}
       />
-      <FormChips forms={facets.forms} filters={filters} />
+      <div className="shell pt-7 pb-24 md:pt-13.5 md:pb-24">
+        <FilterPanel
+          facets={facets}
+          filters={filters}
+          activeCount={activeFilterCount(filters)}
+        />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
-        <aside className="lg:sticky lg:top-40 lg:self-start">
-          <FilterPanel
-            facets={facets}
-            filters={filters}
-            activeCount={activeFilterCount(filters)}
-          />
-        </aside>
+        <section aria-labelledby="catalogue-results" className="mt-5 min-w-0">
+          <div className="mb-5.5 flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
+            <div className="min-w-0">
+              <h2 id="catalogue-results" className="font-heading text-[24px] leading-[1.1] font-extrabold tracking-[-0.035em] text-ink md:text-[28px]">
+                {text.sectionTitle}
+              </h2>
+              <p className="mt-1.5 text-small text-muted">
+                {text.sectionLine}{" "}
+                <span aria-live="polite" className="font-bold text-ink">
+                  {resultsLabel}
+                </span>
+              </p>
+            </div>
+            <span className="inline-flex shrink-0 items-center rounded-sm bg-success-soft px-2.5 py-1.5 font-heading text-[11px] leading-none font-extrabold tracking-[0.04em] text-success uppercase">
+              {text.livePill}
+            </span>
+          </div>
 
-        <section aria-labelledby="catalogue-results" className="min-w-0">
-          <div className="mb-4 flex flex-col gap-3">
-            <h2
-              id="catalogue-results"
-              aria-live="polite"
-              className="text-base font-extrabold text-ink"
-            >
-              {resultsLabel}
-            </h2>
+          <div className="mb-5 flex flex-col gap-3">
+            <FormChips forms={facets.forms} filters={filters} pills />
             <ActiveFilters filters={filters} facets={facets} />
           </div>
 
@@ -102,6 +112,7 @@ export default async function ProductsPage({
           )}
         </section>
       </div>
-    </div>
+      <OrderListButton count={inCart} />
+    </>
   );
 }

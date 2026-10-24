@@ -122,6 +122,10 @@ model User {
   brandDraft              BrandDraft?
   brandProfiles           BrandProfile[]
   brandCartItems          BrandCartItem[]
+  notifications           Notification[]
+  threads                 Thread[]
+  threadReplies           ThreadReply[]
+  threadLikes             ThreadLike[]
 
   @@index([userTypeId])
 }
@@ -240,6 +244,41 @@ model AdminLog {
   @@index([resource, resourceId])
   @@index([createdAt])
   @@index([userId])
+}
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+// The in-app list behind the header's bell (src/server/notifications/). Rows
+// are written next to the SMS and email messages in src/server/notify/, so
+// they don't depend on the user's SMS/email preferences.
+
+/// What a notification is about; decides its icon (and later its badge).
+enum NotificationKind {
+  order
+  brand
+  verification
+  admin
+  course
+  doctor_talk
+  quiz
+  top_brands
+}
+
+/// One message to one user: a title, a short line and the page it opens.
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    String           @db.VarChar(64)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationKind
+  title     String           @db.VarChar(160)
+  body      String           @db.VarChar(500)
+  /// The site path it opens, e.g. "/orders/abc" (always a same-site path).
+  href      String           @db.VarChar(300)
+  /// Null while unread.
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 // ─── Error log (Phase 4) ────────────────────────────────────────────────────
@@ -1731,4 +1770,56 @@ model RecipeLine {
 
   @@unique([productId, componentId])
   @@index([componentId])
+}
+
+// ─── Threads (Dr. Talk) ─────────────────────────────────────────────────────
+// A Chatter-style feed where verified Ayurveda doctors post, reply and like.
+// Anyone signed in can read; only approved doctors write. Code:
+// src/server/threads/.
+
+enum ThreadKind {
+  question
+  case_discussion
+  expert_talk
+}
+
+model Thread {
+  id        Int           @id @default(autoincrement())
+  authorId  String        @db.VarChar(64)
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind      ThreadKind    @default(question)
+  title     String        @db.VarChar(160)
+  body      String        @db.Text
+  /// Admin moderation: a hidden thread is not shown to anyone.
+  hidden    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  replies   ThreadReply[]
+  likes     ThreadLike[]
+
+  @@index([hidden, createdAt])
+  @@index([kind, createdAt])
+}
+
+model ThreadReply {
+  id        Int      @id @default(autoincrement())
+  threadId  Int
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId  String   @db.VarChar(64)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String   @db.VarChar(2000)
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+model ThreadLike {
+  threadId  Int
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId    String   @db.VarChar(64)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([threadId, userId])
 }

@@ -25,7 +25,7 @@ export type BrandCartLine = {
   /** Name as it is now, also when the product is no longer open for branding. */
   name: string;
   quantity: number;
-  /** Null when the product was taken off Launch Your Brand or hidden. */
+  /** Null when the product was taken off Build Your Brand or hidden. */
   product: BrandProduct | null;
   /** The quantity is allowed for the product's current terms and what can be made. */
   valid: boolean;

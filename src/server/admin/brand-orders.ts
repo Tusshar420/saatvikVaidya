@@ -3,7 +3,7 @@ import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 import { ADMIN_ORDERS_PAGE_SIZE, filtersWhere, type OrderFilters } from "./orders";
 
-// Launch Your Brand orders in the admin panel (/admin/brand-orders, P2.1):
+// Build Your Brand orders in the admin panel (/admin/brand-orders, P2.1):
 // the same filters as /admin/orders, over brand orders only, and the search
 // also matches the brand name. Callers check the admin session ("orders").
 

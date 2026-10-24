@@ -17,7 +17,7 @@ import { labelSnapshot, parseLabelSnapshot, readLabelLines } from "./labels";
 import { orderNotesSchema, profileSchema } from "./packaging";
 import { chosenProfile, listProfiles } from "./profiles";
 
-// Launch Your Brand orders (docs/CHUNKS.md, P2.1). A brand order is an
+// Build Your Brand orders (docs/CHUNKS.md, P2.1). A brand order is an
 // Order of type "brand" with one line per product of the user's Launch cart
 // (./cart.ts) and a BrandOrderDetails row for the logo and label text (one
 // brand for the whole order, from the draft). It is priced again here from

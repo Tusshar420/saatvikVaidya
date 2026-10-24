@@ -54,6 +54,8 @@ export function CartLineControls({
       {!removeOnly && (
         <QuantityStepper
           id={`quantity-${productId}`}
+          look="joined"
+          className="w-36"
           label={copy.line.quantityFor(name)}
           decreaseLabel={copy.line.decrease(name)}
           increaseLabel={copy.line.increase(name)}

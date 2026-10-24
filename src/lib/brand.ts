@@ -1,4 +1,4 @@
-// Launch Your Brand rules (docs/CHUNKS.md, P2.1), shared by the /launch
+// Build Your Brand rules (docs/CHUNKS.md, P2.1), shared by the /launch
 // pages (to step the quantity and show prices) and the server (which checks
 // everything again). No "server-only" import: client components use it too.
 
@@ -84,7 +84,7 @@ export function snapBrandQuantity(quantity: number, terms: QuantityTerms): numbe
 /** A lower branded unit price from `minQty` units upwards. */
 export type BrandPriceTier = { minQty: number; unitPricePaise: number };
 
-/** What a product needs to be orderable on Launch Your Brand. */
+/** What a product needs to be orderable on Build Your Brand. */
 export type BrandTerms = {
   minQty: number;
   /** The base price, below the first tier. */
@@ -114,7 +114,7 @@ export function usableBrandTiers(
   return usable;
 }
 
-/** The product's brand terms, or null if it isn't set up for Launch Your Brand. */
+/** The product's brand terms, or null if it isn't set up for Build Your Brand. */
 export function brandTermsOf(product: {
   brandEligible: boolean;
   brandMinQty: number | null;

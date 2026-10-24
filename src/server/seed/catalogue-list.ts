@@ -4,8 +4,8 @@
 //
 // How the sheet maps onto the catalogue (loaded by `pnpm db:seed:catalogue`):
 // - "Your MRP" is the retail price; "Price for you" is both the professional
-//   price and the Launch Your Brand unit price; "MIN. ORDER Q." is the
-//   Launch Your Brand minimum (and step). Retail MOQ stays 1.
+//   price and the Build Your Brand unit price; "MIN. ORDER Q." is the
+//   Build Your Brand minimum (and step). Retail MOQ stays 1.
 // - Stock is 0 because the sheet has none: set it in /admin/catalogue.
 // - GST and HSN are the same placeholders as the sample catalogue; the admin
 //   confirms them per product.
@@ -52,7 +52,7 @@ export const areaWords: Record<string, string[]> = {
   ...Object.fromEntries(extraAreas.map((a) => [a.key, [...a.words]])),
 };
 
-/** What one unit is called on Launch Your Brand, by form. */
+/** What one unit is called on Build Your Brand, by form. */
 export const unitLabels: Record<string, string> = {
   avaleha: "jars",
   "asava-arishta": "bottles",

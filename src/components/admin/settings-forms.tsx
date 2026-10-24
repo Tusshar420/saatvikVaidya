@@ -46,7 +46,7 @@ function SettingsForm({
       <div role="status" aria-live="polite" className="empty:hidden">
         <FormError state={state} />
         {state.status === "success" && (
-          <p className="text-sm font-bold text-green">{state.message}</p>
+          <p className="text-sm font-bold text-success">{state.message}</p>
         )}
       </div>
       <div>

@@ -36,8 +36,6 @@ export const ui = {
     roleDescription: "carousel",
     slideRoleDescription: "slide",
     slideLabel: (index: number, total: number) => `${index} of ${total}`,
-    previous: "Previous slide",
-    next: "Next slide",
     goTo: (index: number) => `Show slide ${index}`,
     pause: "Pause slides",
     play: "Play slides",

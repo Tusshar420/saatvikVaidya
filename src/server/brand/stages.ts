@@ -37,7 +37,6 @@ export type StageError =
   | "not_found"
   | "not_paid"
   | "not_allowed"
-  | "no_proof"
   | "invalid"
   | "empty"
   | "tooLarge"
@@ -308,9 +307,9 @@ export type ProductionStep = "in_production" | "quality_check" | "dispatched" | 
 export type ProductionResult = StageResult<{ stage: BrandStage }>;
 
 /**
- * The team moves the order on: In production (needs an approved proof),
- * Quality check, Dispatched (books the parcel with the shipping provider:
- * the test one here) and Delivered. `from` is the stage the admin saw, so a
+ * The team moves the order on: In production (from any stage before it; a
+ * proof isn't needed), Quality check, Dispatched (books the parcel with the
+ * shipping provider: the test one here) and Delivered. `from` is the stage the admin saw, so a
  * double click doesn't skip a step.
  */
 export async function advanceProduction(options: {
@@ -362,10 +361,6 @@ export async function advanceProduction(options: {
     await stageTransaction(async (tx) => {
       const current = await lockOrder(tx, orderId);
       if (current.stage !== from) throw new Stale();
-      if (to === "in_production") {
-        const approved = await tx.brandProof.count({ where: { orderId, status: "approved" } });
-        if (approved === 0) throw new Refused("no_proof");
-      }
       await moveStage(tx, { orderId, from, to, actor: "admin", actorId, note });
       // Production uses up the components held for the order.
       if (to === "in_production") await consumeBrandOrder(tx, orderId);
