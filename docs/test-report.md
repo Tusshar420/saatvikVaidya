@@ -1,3 +1,24 @@
+# Test report: 25 October 2026 (fourth pass, final testing)
+
+Re-test of BUG-001 to BUG-008, the full test plan run locally, and a
+readiness check. Details: `docs/READINESS_REPORT.md`, `docs/BUG_LOG.md` and
+the "Local run by QA" section of `docs/TEST_PLAN.md`.
+
+- All eight bugs are now **Re-checked**. One of them, BUG-008 (the `/launch`
+  page too wide on phones), had **not** been fixed before: it failed in every
+  full phone run. Real cause found and fixed (commit `5df05b6`).
+- Checks: type check, lint, build, 934 unit tests pass. Browser tests: phone
+  146 pass, computer 154 pass, settings/quiz 27 pass, QR payment 2 pass.
+  One long Build Your Brand test times out only when the Mac is busy and
+  passes alone.
+- Added browser checks for BUG-006 and BUG-007; the width test now names the
+  wide element if it fails.
+- Not checked here: the Hostinger test address itself, real phones,
+  Safari/Firefox, scanning the QR in a UPI app, running the clear-test-data
+  script (not run on purpose).
+
+---
+
 # Test report: 25 October 2026 (third pass)
 
 A QA check of the site on `dev` against the project brief, before team

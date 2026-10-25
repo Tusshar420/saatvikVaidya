@@ -296,3 +296,29 @@ On every device, also check:
 | | | | | |
 | | | | | |
 | | | | | |
+
+---
+
+## Local run by QA: 25 October 2026
+
+The plan was run on the developer's computer (production build, test
+database, QR / bank-transfer payment on), by the automatic browser tests at
+phone (375 px) and computer (1280 px) size plus a hands-on check of the main
+jobs. It was **not** run on the Hostinger test address, so the team still
+does that. "Not tested" means a local run cannot show it.
+
+| Section | Result | How it was checked |
+| --- | --- | --- |
+| 1 Getting in | **Pass**, except 1.1 and 1.2 padlock: **Not tested** | Home, menu, 404 page: browser tests. Team password lock: unit tests (`src/proxy.test.ts`); the real padlock and password box need the test address. |
+| 2 Sign up and sign in | **Pass**, except 2.7 (second device): **Not tested** | `auth`, `sign-in`, `account` browser tests, all three account types. |
+| 3 Mistakes and empty forms | **Pass** (3.9 is a known limit) | `auth`, `sign-in`, `checkout`, `orders` tests. |
+| 4 Doctor and Dr. Talk | **Pass** | `verification` and `threads` tests: upload, approve, reject, post, reply, like, read-only buyer, signed out. |
+| 5 Courses | **Pass** | `courses` test: doctor creates, staff approve, buyer pays by QR, enrolled. 5.13 ebooks: `ebooks` test. |
+| 6 Medicine shop | **Pass** | `catalogue`, `checkout`, `orders` tests. |
+| 7 Bulk branded order | **Pass** | `brand`, `brand-proof` tests. |
+| 8 QR payment and staff orders | **Pass**, except 8.3 (scan with a real UPI app): **Not tested** | `manual-payment` test: QR, UPI ID, bank, account, IFSC, note, Mark as paid. 8.9 shipping is a known limit. |
+| 9 Quiz & Win | **Pass** | `quiz` tests: play, coins once, refresh, time out, leaderboard, staff form. |
+| 10 Devices and browsers | Phone and computer sizes **Pass**; real devices, Safari, Firefox: **Not tested** | Chrome only, widths 360, 375, 390, 414, 768, 1280 px: no sideways scroll, no console errors, no accessibility errors. |
+
+Problems found: BUG-008 had not really been fixed (see `docs/BUG_LOG.md`);
+fixed and passes. Nothing else failed.
