@@ -1,3 +1,20 @@
+# Is the test site live? (25 October 2026, answer: no)
+
+- No record anywhere shows the site was put on Hostinger. The guide
+  `docs/TEST_DEPLOY_STEPS.md` and the owner's list `docs/NEXT_STEPS.md` (steps
+  A1 to A10) are still to be done by a person. The real domain name is not
+  written down in the project.
+- The only address that answers is the design mockup
+  (`saatvik-vaidya-first-look...chatgpt.site`). It is a picture of the design,
+  not the working site.
+- The ZIP in `dist/hostinger` is old. Make a new one from committed files.
+- Seven wording files in `src/content/` are uncommitted. Commit or drop them
+  first, or the ZIP will miss them.
+- The brief wants the test site today. If the steps are not started today,
+  team testing slips toward 1 November.
+
+---
+
 # Test report: 25 October 2026 (fourth pass, final testing)
 
 Re-test of BUG-001 to BUG-008, the full test plan run locally, and a
