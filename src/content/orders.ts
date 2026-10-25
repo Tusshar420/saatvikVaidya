@@ -47,7 +47,7 @@ export const orders = {
     deliverTo: "Delivering to",
     payment: "Payment",
     paymentLine: (provider: string, attempt: number) =>
-      `${provider === "test" ? "Test payment" : provider} · attempt ${count(attempt)}`,
+      `${provider === "test" ? "Test payment" : provider === "manual" ? "QR or bank transfer" : provider === "request" ? "Arranged by our team" : provider} · attempt ${count(attempt)}`,
     paymentStatus: {
       created: "Waiting for payment",
       succeeded: "Paid",
@@ -106,7 +106,7 @@ export const orders = {
     historyLabel: "Tracking history, newest first",
     awaitingPayment: "This order is waiting for payment. Tracking starts once it's paid.",
     paymentFailed: "The payment for this order didn't go through, so it hasn't been sent.",
-    cancelled: "This order was cancelled. Anything paid for it is refunded to the original payment method.",
+    cancelled: "This order was cancelled. If you had already paid, our team will contact you about your refund.",
     undelivered: "The courier couldn't deliver this order. They'll try again, or call us to arrange it.",
     returned: "This order came back to us undelivered. Call us to arrange another delivery.",
     delivered: "Delivered. Thank you for ordering from Saatvik Vaidya.",
@@ -191,10 +191,10 @@ export const orders = {
           "",
           `Order ${number} has been cancelled.`,
           paid
-            ? "Anything you paid is refunded to the original payment method."
+            ? "You had already paid, so our team will contact you about your refund."
             : "No payment was taken for it.",
           "",
-          "Questions? Reply to this message or call us.",
+          "Questions? Please call us and we will help.",
           "",
           "Saatvik Vaidya",
         ].join("\n"),

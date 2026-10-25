@@ -64,7 +64,7 @@ export const footerColumns = [
       { href: "/doctor-talk", label: "Dr. Talk" },
       { href: "/quiz", label: "Quiz & Win" },
       { href: "/courses", label: "Courses" },
-      { href: "/feedback", label: "Satvik Reels" },
+      { href: "/feedback", label: "Saatvik Reels" },
     ],
   },
   {

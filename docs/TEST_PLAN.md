@@ -30,8 +30,8 @@ are **not sent yet** on the test address. So:
 - Write down each email and password you create.
 
 **Everything here is test data.** Accounts and orders are deleted before
-1 November. **Never pay real money.** When you see a QR code, check it, but
-do not complete the payment.
+1 November. **Never pay real money.** The site shows no payment options for
+now; never pay anyone who asks.
 
 **Words used in this plan**
 
@@ -47,7 +47,7 @@ do not complete the payment.
 | No. | What to set up | How | Done |
 | --- | --- | --- | --- |
 | S1 | Admin accounts for staff | The developer makes the **first** admin account. That admin then opens Admin panel → **Admins** → **Invite an admin**, types the staff member's email and role, and taps **Send invitation**. Emails aren't sent yet, so the page shows an **Invitation link**: tap **Copy link** and send it to the staff member on WhatsApp. It works once, within 72 hours. Each admin needs an **authenticator app** on their phone (Google Authenticator or Microsoft Authenticator). The site asks you to set it up at your first sign-in. | ☐ |
-| S2 | Payment details | Admin panel → **Settings** → **Payment details (QR and bank)**. Fill in the name, **UPI ID**, bank name, account number and IFSC code. Save. Without these, the pay screen only says "please call us". | ☐ |
+| S2 | Payment details | Admin panel → **Settings** → **Payment details (QR and bank)**. Fill in the name, **UPI ID**, bank name, account number and IFSC code. Save. **Leave empty for now:** the site shows no payment details to customers. | ☐ |
 | S3 | Stock | Admin panel → **Inventory**. Make sure at least 3 shop products have stock (10 or more each). | ☐ |
 | S4 | A course | Admin panel → **Courses** → **Add a course**. Add one test course called "TEST course" with a price (for example 499) under **Selling online**. | ☐ |
 | S5 | A quiz | Admin panel → **Quiz** → **Add quiz**. Title "TEST quiz". Tick **Published**. **Opens** = today, **Closes** = 6 days later. Add **exactly 10 questions** (the site insists on 10), each with 2–4 options and the correct answer ticked. Save. | ☐ |
@@ -197,15 +197,15 @@ listed.
 | 7.12 | Ask for changes, then approve | 1) Bulk buyer: **Ask for changes**, type a comment → **Send changes**. 2) Staff: send Version 2. 3) Bulk buyer: **Approve this proof**. | Staff see the comment. After approval: "Proof approved. We'll start printing soon." | ☐ Pass ☐ Fail |
 | 7.13 | Production steps | 1) Staff: use **Update status to …** to move the order through In production → Quality check → Dispatched → Delivered. 2) Bulk buyer: reload the order after each step. | The buyer sees each new status. | ☐ Pass ☐ Fail |
 
-## 8. QR payment details and staff order handling
+## 8. Order received and staff order handling
 
 | No. | Test | Steps | Expected result | Pass / Fail |
 | --- | --- | --- | --- | --- |
-| 8.1 | Pay screen shows | After 6.8 (or 7.8), look at the payment screen. | Heading "Pay for your order". "Pay by QR or bank transfer" and "Your order is placed. Now pay to confirm it." The order number and **Amount to pay** match the order. | ☐ Pass ☐ Fail |
-| 8.2 | Details are correct | Compare with what staff typed in set-up step S2. | The **UPI ID**, name, bank name, account number and IFSC code are exactly right. "Write this order number in the payment note" shows the order number. | ☐ Pass ☐ Fail |
-| 8.3 | QR code works | 1) Scan the QR code with a UPI app (Google Pay, PhonePe, Paytm). 2) **Stop before paying.** | The app shows the firm's name or UPI ID and the **same amount** as the screen. Cancel without paying. | ☐ Pass ☐ Fail |
-| 8.4 | Pay screen on a phone | 1) Open the payment screen on a phone. | The QR code is fully visible and big enough to scan from another phone. The details are readable without zooming. | ☐ Pass ☐ Fail |
-| 8.5 | Staff mark the order paid | 1) Staff: Admin panel → **Orders**. 2) Open the order. 3) Box "Waiting for payment by QR or bank transfer" → **Mark as paid**. | "Marked as paid. The invoice and confirmation are on their way." The status becomes Paid. | ☐ Pass ☐ Fail |
+| 8.1 | Order received screen | After 6.8 (or 7.8), look at the screen that opens. | Heading "Your order is received" and "Thank you. We have your order." The order number and **Order total** match the order. | ☐ Pass ☐ Fail |
+| 8.2 | No payment options | Look for any QR code, UPI ID, bank details or pay button. | None. The text says the team will call to confirm the order and share how to pay. | ☐ Pass ☐ Fail |
+| 8.3 | Screen on a phone | Open the same screen on a phone. | Everything is readable without zooming and nothing runs off the side. | ☐ Pass ☐ Fail |
+| 8.4 | Staff see the order | Staff: Admin panel → **Orders**. | The order shows as Waiting for payment, with the buyer's phone number and address, so the team can call. | ☐ Pass ☐ Fail |
+| 8.5 | Staff mark the order paid | 1) Staff: Admin panel → **Orders**. 2) Open the order. 3) Box "Waiting for payment" → **Mark as paid** (after the team has agreed payment with the buyer). | "Marked as paid. The invoice and confirmation are on their way." The status becomes Paid. | ☐ Pass ☐ Fail |
 | 8.6 | Buyer sees it paid | 1) Buyer: reload **My orders** and open the order. | Status Paid. A GST invoice can be downloaded (PDF opens). | ☐ Pass ☐ Fail |
 | 8.7 | Staff find orders | 1) Staff: **Orders**. 2) Search by order number, then filter by status. | The right orders show each time. | ☐ Pass ☐ Fail |
 | 8.8 | Staff cancel an order | 1) Place a second small order as the buyer. 2) Staff: open it and cancel it. | Status Cancelled for staff and for the buyer. The stock goes back (check **Inventory**). | ☐ Pass ☐ Fail |

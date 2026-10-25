@@ -45,9 +45,9 @@ export const home = {
       lead: "Discuss • Share • Learn",
       body: "Ask clinical questions, explore de-identified cases and learn from the experience of fellow Ayurveda doctors.",
       tabs: ["Latest", "Questions", "Case Discussions"],
-      soon: "Coming next",
-      soonTitle: "Doctor discussions open soon",
-      soonBody: "Verified Doctors will be able to ask questions and discuss de-identified cases here.",
+      soon: "For doctors",
+      soonTitle: "Join the conversation",
+      soonBody: "Verified Doctors can ask questions and discuss de-identified cases. Signed-in members can read along.",
       link: "Explore Dr. Talk",
     },
     quiz: {

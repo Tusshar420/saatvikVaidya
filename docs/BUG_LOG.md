@@ -4,7 +4,9 @@ One shared list of every problem found while testing. Add a row for each new
 problem. Don't delete rows: change the **Status** instead.
 
 The tests to run are in `docs/TEST_PLAN.md`. Last day to fix and re-check
-problems: **31 October 2026**.
+problems: **30 October 2026**. Team testing ends on 29 October; the final
+version is frozen after the fixes are re-checked (`docs/LAUNCH_1_NOVEMBER.md`
+section 2).
 
 ---
 
@@ -42,7 +44,7 @@ problems: **31 October 2026**.
   same device, and it now works. Only the finder (or another tester) moves a
   row to Re-checked, not the person who fixed it.
 
-All rows must be **Re-checked** before launch on 1 November. If a fix
+All rows must be **Re-checked** by 30 October, before launch on 1 November. If a fix
 doesn't work, set the row back to **Open** and add a note.
 
 ---

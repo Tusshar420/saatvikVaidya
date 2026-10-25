@@ -10,7 +10,7 @@ export const account = {
     title: "One profile. Every opportunity.",
     description: "Manage your orders, Coins, ebooks and professional details from one simple dashboard.",
     status: "Built for professionals",
-    noteTitle: "Progressive onboarding",
+    noteTitle: "Start simple",
     noteText:
       "Start with your mobile number and role. Add other details only when you use a service or choose to personalise your experience.",
   },

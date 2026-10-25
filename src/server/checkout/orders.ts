@@ -286,11 +286,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           where: { id: address.id },
           data: { lastUsedAt: new Date() },
         });
-        // A QR or bank payment is made later, outside the site, and staff
-        // mark it paid hours afterwards. A cart still full after "Your order
+        // A QR, bank or phone-arranged payment is made later, outside the site,
+        // and staff mark it paid hours afterwards. A cart still full after "Your order
         // is placed" looks like a failed order and invites a duplicate, so it
         // is emptied now (as brand orders do).
-        if (getPaymentProvider().name === "manual") {
+        if (getPaymentProvider().name !== "test") {
           await tx.cartItem.deleteMany({ where: { cart: { userId } } });
         }
         return id;

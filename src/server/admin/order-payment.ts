@@ -33,7 +33,7 @@ export async function markOrderPaid(actorId: string, orderId: string): Promise<M
   if (order.status === "paid") return { ok: true, changed: false };
   const payment = order.payments[0];
   if (order.status !== "pending_payment" || !payment) return { ok: false, error: "not_pending" };
-  if (payment.provider !== "manual") return { ok: false, error: "not_manual" };
+  if (payment.provider !== "manual" && payment.provider !== "request") return { ok: false, error: "not_manual" };
 
   const outcome = await completePayment({ reference: payment.reference, outcome: "succeeded" });
   if (!outcome) return { ok: false, error: "not_found" };

@@ -334,7 +334,7 @@ DATABASE_URL="mysql://DBUSER:DBPASSWORD@DBHOST:3306/DBNAME"
 BETTER_AUTH_URL="https://test.yourdomain.com"
 BETTER_AUTH_SECRET="SECRET KEY FROM STEP 4B"
 STORAGE_DIR="/home/u123456789/saatvik-test-uploads"
-PAYMENT_PROVIDER="manual"
+PAYMENT_PROVIDER="request"
 SHIPPING_PROVIDER="test"
 STAGING_ACCESS_USER="team"
 STAGING_ACCESS_PASSWORD="TEAM PASSWORD FROM STEP 4C"
@@ -359,7 +359,7 @@ What each line means:
 | `BETTER_AUTH_URL` | The test address, starting with `https://`. The site refuses to start with `http://`. |
 | `BETTER_AUTH_SECRET` | The secret key. Different from the one the main site will have. |
 | `STORAGE_DIR` | The uploads folder from 6a. |
-| `PAYMENT_PROVIDER="manual"` | Customers pay by UPI QR code or bank transfer, and an admin marks the order paid. No payment gateway is connected. |
+| `PAYMENT_PROVIDER="request"` | Customers place an order with no payment options. The team calls them to agree how to pay, then an admin marks the order paid. No payment gateway is connected. (`manual` shows a QR code and bank details instead; not used for now.) |
 | `SHIPPING_PROVIDER="test"` | No courier is connected yet, so "Create shipment" stays switched off on the server. |
 | `STAGING_ACCESS_USER` and `STAGING_ACCESS_PASSWORD` | **The lock on the test address.** With a password here, every page asks for the team name and password, and search engines are told not to list the site. |
 | `SHOW_DESIGN_PAGE`, `DEV_SHOW_OTP` | Developer-only pages. Must stay `"false"`. |

@@ -85,9 +85,9 @@ export const portalPages = {
   },
 
   feedback: {
-    metaTitle: "Satvik Reels",
+    metaTitle: "Saatvik Reels",
     hero: {
-      kicker: "Satvik Reels",
+      kicker: "Saatvik Reels",
       title: "Real experiences. Original words.",
       description:
         "Doctor videos, original letterheads and product-received feedback shared with consent, without rewriting what the contributor said.",

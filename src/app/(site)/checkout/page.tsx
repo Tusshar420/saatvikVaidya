@@ -130,8 +130,8 @@ export default async function CheckoutPage() {
               totalPaise: line.lineTotalPaise,
             })),
           ]}
-          {...(getPaymentProvider().name === "manual"
-            ? { placeLabel: copy.place.manualButton, placeNote: copy.place.manualNote }
+          {...(getPaymentProvider().name !== "test"
+            ? { placeLabel: copy.place.manualButton, placeNote: getPaymentProvider().name === "request" ? copy.place.requestNote : copy.place.manualNote }
             : {})}
           paymentsOff={
             paymentsAvailable() ? null : (

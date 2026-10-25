@@ -174,8 +174,8 @@ documents). Stock that unpaid test orders were holding is given back.
 
 **What it keeps:** admin (staff) accounts, the products and their stock
 levels, quizzes, e-books, courses, the home page content, settings and the
-admin log. (Courses can't be bought on the site yet, so there are no course
-purchases to clear; paid e-books are orders and are cleared with them.)
+admin log. (Course and e-book purchases are orders, so they are cleared with
+the orders; the courses and e-books themselves stay.)
 
 **Safety locks.** It does nothing unless all of these are true:
 
@@ -271,7 +271,7 @@ DATABASE_URL="mysql://LIVEDBUSER:LIVEDBPASSWORD@DBHOST:3306/LIVEDBNAME"
 BETTER_AUTH_URL="https://yourdomain.com"
 BETTER_AUTH_SECRET="THE NEW LIVE SECRET KEY"
 STORAGE_DIR="/home/u123456789/saatvik-live-uploads"
-PAYMENT_PROVIDER="manual"
+PAYMENT_PROVIDER="request"
 SHIPPING_PROVIDER="test"
 SHOW_DESIGN_PAGE="false"
 DEV_SHOW_OTP="false"
@@ -400,7 +400,7 @@ soon page is ever put back (section 7). It does not affect the test address.
 Signed in as admin, while Maintenance mode is on:
 
 1. **Admin > Settings:**
-   - Payment details (QR and bank): payee name, real UPI ID, bank name,
+   - Payment details (QR and bank): leave empty for now; customers are not shown them. Payee name, real UPI ID, bank name,
      account number, IFSC.
    - Seller details: legal name, address, GSTIN.
    - Support phone and WhatsApp number, delivery fee, discount.
@@ -445,8 +445,8 @@ the checks, see "Clean up the rehearsal" below). Check on **a phone (375 px wide
 - [ ] **Sign-up and sign-in** with email and password work for a new
       regular buyer, a bulk buyer and a doctor.
 - [ ] **Rehearsal order:** a tester adds one product to the cart, checks out
-      and sees the **QR payment screen** with the right amount, order number,
-      UPI ID and bank details. **Don't pay it and don't mark it paid.**
+      and sees the **"Your order is received"** screen with the right total and
+      order number, and no QR code or bank details. **Don't mark it paid.**
 - [ ] The firm admin sees that order in Admin > Orders as "Waiting for
       payment".
 - [ ] A doctor upload (a document) works, and the file shows in Admin >

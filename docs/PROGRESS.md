@@ -5328,3 +5328,34 @@ Phase "Final testing and launch readiness".
 - Left open: run the test plan on the real test address; rebuild
   `dist/hostinger` (stale); other session's uncommitted wording edits in
   `src/content/` still need review; clear-test-data not run by QA.
+
+## Order request: no payment options at launch (2026-10-25)
+
+Owner decision: until Razorpay is added, the site shows no payment options.
+The customer fills in their details and places the order; the team calls them
+and agrees how to pay; an admin then marks the order paid.
+
+- New provider `PAYMENT_PROVIDER=request` (`src/server/payments/request-provider.ts`).
+  Same shape as `manual` (stock held, cart emptied, order "waiting for
+  payment", admin "Mark as paid" works) but the pay screen shows "Your order is
+  received" with the order number and what happens next, and **no** QR code,
+  UPI ID or bank details. `manual` and `test` still exist and still work.
+- Checkout and Launch "Place order" notes say the team will call. Admin order
+  box title is now "Waiting for payment". Payment label on an order: "Arranged
+  by our team". Strings in `src/content/checkout.ts`, `orders.ts`, `admin.ts`.
+- `package_for_hostinger.sh`, `.env.example`, TEST_DEPLOY_STEPS, NEXT_STEPS,
+  LAUNCH_1_NOVEMBER, TEST_PLAN (section 8) and TEAM_TESTING_GUIDE now say
+  `PAYMENT_PROVIDER="request"` and no QR. Payment details in Admin > Settings
+  stay empty.
+- Razorpay later: add a provider next to these; checkout is unchanged.
+- The other session's wording edits (seven `src/content/` files,
+  `docs/TEXT_CHANGES.md`) were read and committed with this change.
+- Tests: unit for the provider and order placement; new e2e
+  `order-request.request.spec.ts` on its own server (`pnpm test:e2e:request`,
+  port 3102, part of `pnpm test:e2e`).
+- Checked: typecheck, lint, build, 935 unit tests, e2e phone 147 (8 skipped),
+  desktop 155, exclusive+last 27, manual 2, request 2.
+- Stock note: a held unit lapses after 30 minutes; marking paid later takes the
+  stock then, or fails with "out of stock" if it sold meanwhile.
+- Later: the 30-minute stock hold does not suit calls that take hours; consider
+  a longer hold for `request` orders.

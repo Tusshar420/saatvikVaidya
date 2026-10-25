@@ -40,7 +40,8 @@ busy with other work. It is not a site fault.
 ## Still open
 
 1. **Put the site on the test address** and run `docs/TEST_PLAN.md` there
-   with real phones and browsers. Last day for fixes: 31 October.
+   with real phones and browsers. Testing ends 29 October; last day to fix
+   and re-check: 30 October (then the version is frozen).
 2. **Rebuild the Hostinger package** (the one in `dist/` is old).
 3. **Uncommitted wording changes.** Another session left edits in seven
    `src/content/` files and `docs/TEXT_CHANGES.md`. They are not committed.

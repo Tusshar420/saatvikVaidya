@@ -76,13 +76,15 @@ export const checkout = {
     manualButton: "Place order",
     manualNote:
       "You'll see how to pay by QR code or bank transfer next. Prices are checked again when you place the order.",
+    requestNote:
+      "No payment is taken on the site. Our team will call you to confirm the order and share how to pay. Prices are checked again when you place the order.",
     needAddress: "Choose or add a delivery address first.",
     errors: {
       address: "Choose a delivery address.",
       empty: "Your cart is empty.",
       cartChanged:
         "Something in your cart changed (price, stock or availability). Check your cart and try again.",
-      paymentsOff: "Online payment is not available right now.",
+      paymentsOff: "We can't take payment for this order right now. Please call us.",
       checkoutOff: "We're not taking new orders right now. Please try again later.",
       coins: "Your coins changed, so they couldn't be used. Check the summary and try again.",
       generic: "We couldn't place your order. Please try again.",
@@ -90,9 +92,9 @@ export const checkout = {
   },
 
   paymentsOff: {
-    title: "Online payment is coming soon",
+    title: "We can't take this order online yet",
     line: (phone: string) =>
-      `You can't pay online yet. To place this order, call ${phone} and our team will take it from there.`,
+      `Please call ${phone} and our team will place the order with you.`,
   },
 
   pay: {
@@ -100,9 +102,9 @@ export const checkout = {
     eyebrow: "Payment",
     title: "Pay for your order",
     testBadge: "Test mode",
-    testTitle: "Test payment - no money is taken",
+    testTitle: "Test payment: no money is taken",
     testLine:
-      "Online payment isn't connected yet. Choose what should happen to see how the order continues.",
+      "This is a practice payment screen for testing. Choose what should happen to see how the order continues.",
     order: (number: string) => `Order ${number}`,
     amount: "Amount to pay",
     attempt: (n: number) => `Attempt ${count(n)}`,
@@ -110,10 +112,21 @@ export const checkout = {
     failure: "Simulate failure",
     start: "Continue to payment",
     noAttempt: "This order isn't waiting for a payment right now.",
+    request: {
+      pageTitle: "Your order is received",
+      amount: "Order total",
+      badge: "Order received",
+      title: "Thank you. We have your order.",
+      line: "You don't need to pay anything on this site. Our team will call you soon to confirm the order and tell you how you can pay.",
+      nextTitle: "What happens next",
+      next: "We will contact you on the phone number you gave for delivery. Your order is confirmed after we receive your payment. You can follow it under My orders.",
+      reference: "Your order number",
+      callUs: (phone: string) => `Not heard from us in a day? Please call ${phone}.`,
+    },
     manual: {
       badge: "Pay by QR or bank transfer",
       title: "Your order is placed. Now pay to confirm it.",
-      line: "Pay the amount below using the QR code or the bank details. Your order goes ahead as soon as we see the payment.",
+      line: "Your order is saved, but it is not confirmed until we receive your payment. Pay the exact amount shown, either by scanning the QR code or by bank transfer.",
       scanTitle: "Scan with any UPI app",
       scanLabel: (amount: string) => `UPI QR code for ${amount}`,
       upiId: "UPI ID",
@@ -122,11 +135,11 @@ export const checkout = {
       bankName: "Bank",
       accountNumber: "Account number",
       ifsc: "IFSC code",
-      reference: "Write this order number in the payment note",
+      reference: "Add this order number to the payment note",
       note: "Good to know",
-      afterTitle: "What happens next",
+      afterTitle: "After you pay",
       after:
-        "We check the payment and mark your order paid, usually within a few working hours. You'll get a confirmation and can follow it on your orders page.",
+        "You don't need to do anything else on this page. Our team checks payments by hand, usually within a few working hours. Once yours is found, your order shows as Confirmed under My orders. Still waiting after a day? Please call us.",
       notReady: (phone: string) =>
         `Our payment details are not set up yet. Please call ${phone} and we will share them.`,
       viewOrders: "View my orders",

@@ -48,15 +48,15 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
   return (
     <div className="shell py-8 sm:py-12">
       <Eyebrow>{text.eyebrow}</Eyebrow>
-      <h1 className="mt-2 text-h2 text-ink">{text.title}</h1>
+      <h1 className="mt-2 text-h2 text-ink">{provider.name === "request" && order.status !== "cancelled" ? text.request.pageTitle : text.title}</h1>
       <p className="mt-2 text-body text-muted">{text.order(order.number)}</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-8">
         <section
-          aria-label={text.amount}
+          aria-label={provider.name === "request" ? text.request.amount : text.amount}
           className="rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6"
         >
-          <p className="text-small font-bold text-muted">{text.amount}</p>
+          <p className="text-small font-bold text-muted">{provider.name === "request" ? text.request.amount : text.amount}</p>
           <p className="text-4xl font-extrabold tracking-[-0.02em] text-ink">
             {formatPaise(order.totalPaise)}
           </p>
@@ -72,6 +72,22 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
               description={copy.paymentsOff.line(phone)}
               className="mt-5"
             />
+          ) : provider.name === "request" ? (
+            <div className="mt-5 flex flex-col gap-4">
+              <div>
+                <Badge variant="soon">{text.request.badge}</Badge>
+                <h2 className="mt-3 text-h3 text-ink">{text.request.title}</h2>
+                <p className="mt-1.5 text-body text-ink">{text.request.line}</p>
+              </div>
+              <p className="rounded-lg bg-brand-soft p-3 text-sm text-ink">
+                {text.request.reference}: <strong className="font-mono">{order.number}</strong>
+              </p>
+              <div>
+                <h3 className="text-base font-extrabold text-ink">{text.request.nextTitle}</h3>
+                <p className="mt-1 text-sm text-muted">{text.request.next}</p>
+                <p className="mt-1 text-sm text-muted">{text.request.callUs(phone)}</p>
+              </div>
+            </div>
           ) : provider.name === "manual" ? (
             <ManualPayment
               details={manualDetails}
@@ -124,7 +140,7 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
           <Link href={`/my-brand/${order.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
             {brandCopy.checkout.backToMyBrand}
           </Link>
-        ) : provider.name === "manual" ? (
+        ) : provider.name !== "test" ? (
           // The cart was emptied when the order was placed.
           <Link href="/orders" className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
             {text.manual.viewOrders}

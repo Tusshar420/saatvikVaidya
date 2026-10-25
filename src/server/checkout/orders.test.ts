@@ -219,6 +219,20 @@ describe("placeOrder", () => {
   });
 });
 
+describe("placeOrder with PAYMENT_PROVIDER=request", () => {
+  it("places the order with no payment screen details, empties the cart and lets an admin mark it paid later", async () => {
+    vi.stubEnv("PAYMENT_PROVIDER", "request");
+    const product = await makeProduct(db, { stock: 10 });
+    const who = await shopper([{ productId: product.id, quantity: 2 }]);
+    const orderId = await placed(who);
+
+    const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { payments: true } });
+    expect(order.status).toBe("pending_payment");
+    expect(order.payments).toMatchObject([{ provider: "request", status: "created" }]);
+    expect((await readCart(who.owner, customer, shipping)).lines).toHaveLength(0);
+  });
+});
+
 describe("completePayment", () => {
   it("success: paid, stock down, ordered products leave the cart, confirmation sent", async () => {
     const ordered = await makeProduct(db, { stock: 10 });

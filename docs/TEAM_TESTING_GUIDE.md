@@ -42,8 +42,7 @@ Please remember:
 - **Accounts you make here are test accounts.**
 - **Orders you place here are test orders.**
 - We will **delete all of them** before the site opens on 1 November.
-- **Never pay real money.** When you see a QR code, look at it. Check the
-  name and the amount. **Do not pay.**
+- **Never pay real money.** The site shows no payment options for now.
 - Don't use someone's real private details. Use made-up names and addresses.
 - Don't share the test address or the team password with anyone outside
   the team.
@@ -127,8 +126,9 @@ Try these:
 - Add two or three medicines to your cart. Change how many you want. Remove one.
 - Tap **Check out**. Add a test address.
 - Place the order.
-- Look at the payment page. Check the **QR code** and the payment details.
-  They should show the right name and the right amount. **Do not pay.**
+- Look at the next page. It must say your order is received, with the right
+  total and order number. It must show **no** QR code or bank details; our
+  team will call to agree how to pay. **Do not pay.**
 - Open **Track Order** and look up the order you just placed.
 - Buy a course: open a course with a price, tap **Enrol**, then check out.
   Once staff mark it paid, the course page shows how to join.
@@ -246,7 +246,7 @@ Some things don't work on the test address yet. Please don't report these:
 - **No emails or text messages** are sent. This includes "forgot password" and
   order emails.
 - **Card and online payments (Razorpay)** come 2 to 3 months after launch.
-  For now, people pay by QR code or bank transfer.
+  For now, the site takes orders only. Our team calls the customer and agrees how to pay.
 - **Courier booking and live tracking** are not ready yet.
 - **Paying doctors their share** of course sales is done by staff outside
   the site.

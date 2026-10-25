@@ -8,8 +8,9 @@ const exclusive = /\.exclusive\.spec\.ts$/;
 // after the exclusive ones (they change site-wide settings at the same time).
 const last = /\.last\.spec\.ts$/;
 // Pay by QR / bank transfer needs PAYMENT_PROVIDER=manual, so it has its own
-// server and config: playwright.manual.config.ts.
-const manual = /\.manual\.spec\.ts$/;
+// server and config: playwright.manual.config.ts. The order-request flow
+// (PAYMENT_PROVIDER=request) is playwright.request.config.ts.
+const manual = /\.(manual|request)\.spec\.ts$/;
 
 const phone = {
   ...devices["Pixel 7"],

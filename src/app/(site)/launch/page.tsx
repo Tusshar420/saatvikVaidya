@@ -1193,8 +1193,8 @@ async function ReviewStep({
           }))}
           placeAction={placeBrandOrderAction}
           saveAddress={saveBrandAddressAction}
-          placeLabel={getPaymentProvider().name === "manual" ? checkoutCopy.place.manualButton : text.place}
-          placeNote={getPaymentProvider().name === "manual" ? checkoutCopy.place.manualNote : text.note}
+          placeLabel={getPaymentProvider().name !== "test" ? checkoutCopy.place.manualButton : text.place}
+          placeNote={getPaymentProvider().name === "request" ? checkoutCopy.place.requestNote : getPaymentProvider().name === "manual" ? checkoutCopy.place.manualNote : text.note}
           paymentsOff={
             paymentsAvailable() ? null : (
               <ComingSoon

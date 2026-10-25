@@ -71,6 +71,6 @@ export const invoices = {
     downloadLabel: (document: string, orderNumber: string) =>
       `Download the ${document.toLowerCase()} for order ${orderNumber} (PDF)`,
     unpaid: "The tax invoice is ready once the order is paid.",
-    creditNoteNote: "This order was cancelled after payment, so a credit note reverses the invoice.",
+    creditNoteNote: "This order was cancelled after payment, so this credit note cancels the invoice.",
   },
 };

@@ -214,7 +214,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
             <h2 id="order-payments" className="text-h3 text-ink">
               {text.paymentsTitle}
             </h2>
-            {order.status === "pending_payment" && order.payments.some((p) => p.status === "created" && p.provider === "manual") && (
+            {order.status === "pending_payment" && order.payments.some((p) => p.status === "created" && (p.provider === "manual" || p.provider === "request")) && (
               <div className="mt-3">
                 <MarkPaid orderId={order.id} />
               </div>
