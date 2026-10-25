@@ -54,10 +54,12 @@ afterAll(() => db.$disconnect());
 
 describe("admin invites", () => {
   it("emails a one-time link and creates the admin on acceptance", async () => {
-    expect(await inviteAdmin({ email: "New.Person@Example.com", role: "orders" }, boss)).toEqual({ ok: true });
+    const invited = await inviteAdmin({ email: "New.Person@Example.com", role: "orders" }, boss);
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ channel: "email", to: "new.person@example.com" });
     const token = lastToken();
+    // The same link is handed back to show the inviting admin.
+    expect(invited).toEqual({ ok: true, url: expect.stringMatching(new RegExp(`/admin-invite/${token}$`)) });
 
     // Only a hash of the token is stored.
     const [invite] = await db.adminInvite.findMany();

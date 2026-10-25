@@ -34,10 +34,13 @@ function finish(result: Done | Failure, notice: string): never {
   redirect(`/admin/admins?notice=${notice}`);
 }
 
+/** The form's state, plus the invitation link to pass on by hand. */
+export type InviteFormState = FormState & { inviteUrl?: string };
+
 export async function inviteAdminAction(
-  _previous: FormState,
+  _previous: InviteFormState,
   formData: FormData,
-): Promise<FormState> {
+): Promise<InviteFormState> {
   const { user } = await requireAdmin("admins");
   const values = formValues(formData);
   const result = await inviteAdmin(
@@ -53,7 +56,7 @@ export async function inviteAdminAction(
     };
   }
   refresh();
-  return { status: "success", message: copy.admins.notices.invited };
+  return { status: "success", message: copy.admins.notices.invited, inviteUrl: result.url };
 }
 
 export async function revokeInviteAction(formData: FormData): Promise<void> {

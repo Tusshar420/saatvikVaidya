@@ -444,6 +444,17 @@ test.describe("pages", () => {
     await expect(page.locator("#main")).toBeFocused();
   });
 
+  test("the side Feedback and WhatsApp buttons stay off the cart and checkout", async ({ page }) => {
+    const quickContact = page.getByRole("complementary", { name: shell.sticky.label });
+    await page.goto("/");
+    await expect(quickContact.getByRole("link", { name: shell.sticky.feedback })).toBeVisible();
+    // Prices sit at the right edge there, where the buttons would cover them.
+    await page.goto("/cart");
+    await expect(quickContact).toHaveCount(0);
+    await page.goto("/products");
+    await expect(quickContact).toBeVisible();
+  });
+
   test("/coins explains the rules to a signed-out visitor", async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto("/coins");

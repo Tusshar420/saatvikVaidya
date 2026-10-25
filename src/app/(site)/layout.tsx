@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AnnouncementBar } from "@/components/site/announcement-bar";
 import { Footer } from "@/components/site/footer";
 import { Header } from "@/components/site/header";
+import { HideOnPaths } from "@/components/site/hide-on-paths";
 import { MaintenancePage } from "@/components/site/maintenance-page";
 import { MobileDock } from "@/components/site/mobile-dock";
 import { StickyActions } from "@/components/site/sticky-actions";
@@ -99,7 +100,10 @@ export default async function SiteLayout({
         {children}
       </main>
       <Footer tagline={tagline} phone={phone} />
-      <StickyActions phone={phone} />
+      {/* Off where prices sit at the right edge of a phone screen. */}
+      <HideOnPaths paths={["/cart", "/checkout"]}>
+        <StickyActions phone={phone} />
+      </HideOnPaths>
       <MobileDock />
     </SiteModalsProvider>
   );

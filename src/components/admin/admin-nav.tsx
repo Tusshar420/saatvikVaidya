@@ -52,6 +52,12 @@ const main: NavLink[] = [
   { href: "/admin/catalogue", area: "catalogue", label: copy.nav.catalogue, icon: Pill },
   { href: "/admin/ebooks", area: "catalogue", label: copy.nav.ebooks, icon: BookOpen },
   { href: "/admin/inventory", area: "inventory", label: inventoryCopy.nav, icon: Boxes },
+  // Daily work comes before the home-page editing group, so staff don't
+  // scroll the menu to reach orders.
+  { href: "/admin/orders", area: "orders", label: copy.nav.orders, icon: Package },
+  { href: "/admin/brand-orders", area: "orders", label: brandCopy.admin.nav, icon: Sparkles },
+  { href: "/admin/coins", area: "orders", label: copy.nav.coins, icon: Coins },
+  { href: "/admin/reports", area: "reports", label: copy.nav.reports, icon: LineChart },
 ];
 
 const content: NavLink[] = [
@@ -75,10 +81,6 @@ const content: NavLink[] = [
 ];
 
 const rest: NavLink[] = [
-  { href: "/admin/orders", area: "orders", label: copy.nav.orders, icon: Package },
-  { href: "/admin/brand-orders", area: "orders", label: brandCopy.admin.nav, icon: Sparkles },
-  { href: "/admin/reports", area: "reports", label: copy.nav.reports, icon: LineChart },
-  { href: "/admin/coins", area: "orders", label: copy.nav.coins, icon: Coins },
   { href: "/admin/settings", area: "settings", label: copy.nav.settings, icon: Settings },
   { href: "/admin/database", area: "database", label: copy.nav.database, icon: Database },
   { href: "/admin/errors", area: "errors", label: errorLog.nav, icon: Bug },

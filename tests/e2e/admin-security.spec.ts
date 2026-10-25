@@ -177,15 +177,13 @@ test("a super admin invites an admin, who joins and must set up two-factor", asy
   expect(invite).toMatchObject({ adminRole: "content", invitedById: id });
   await expect(page.getByText(invited)).toBeVisible();
 
-  // The email's link carries a token that only the server knows; swap in one
-  // of ours (same hashing) to open the same page.
-  const token = randomBytes(24).toString("base64url");
-  await db.adminInvite.update({
-    where: { id: invite.id },
-    data: { tokenHash: createHash("sha256").update(token).digest("hex") },
-  });
+  // Emails aren't sent yet, so the page shows the one-time link to pass on.
+  const link = await page.getByLabel(copy.admins.notices.inviteLinkLabel).inputValue();
+  const token = link.split("/admin-invite/")[1]!;
+  expect(createHash("sha256").update(token).digest("hex")).toBe(invite.tokenHash);
+  expect(await axeViolations(page)).toEqual([]);
   await page.context().clearCookies();
-  await page.goto(`/admin-invite/${token}`);
+  await page.goto(new URL(link).pathname);
   await expect(page.getByRole("heading", { name: copy.invite.page.title })).toBeVisible();
   expect(await horizontalOverflow(page)).toBe(0);
   expect(await axeViolations(page)).toEqual([]);

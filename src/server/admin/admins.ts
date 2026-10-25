@@ -82,7 +82,7 @@ export async function listPendingInvites(): Promise<PendingInvite[]> {
 export async function inviteAdmin(
   input: { email: string; role: string },
   actor: { id: string; name: string },
-): Promise<Done | Failure> {
+): Promise<Done<{ url: string }> | Failure> {
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) {
     const field = String(parsed.error.issues[0]?.path[0] ?? "email");
@@ -130,7 +130,9 @@ export async function inviteAdmin(
     subject: copy.invite.emailSubject,
     text: copy.invite.emailBody(actor.name, copy.roles[role], url, inviteHours),
   });
-  return { ok: true };
+  // Emails aren't sent yet, so the inviting super admin gets the link to pass
+  // on themselves. It is shown once and only ever stored as a hash.
+  return { ok: true, url };
 }
 
 export async function revokeInvite(

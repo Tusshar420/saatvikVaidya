@@ -80,7 +80,12 @@ export const adminSecurity = {
     pendingExpires: (when: string) => `Expires ${when}`,
     revoke: "Cancel invitation",
     notices: {
-      invited: "Invitation sent. In development it is printed in the server log.",
+      invited: "Invitation made.",
+      inviteLinkLabel: "Invitation link",
+      inviteLinkHelp:
+        "Emails aren't sent yet, so send this link to the new admin yourself, for example on WhatsApp. It works once and expires in 72 hours. It is shown only now.",
+      copyLink: "Copy link",
+      copied: "Copied",
       revoked: "Invitation cancelled.",
       role: "Role changed. The admin was signed out everywhere.",
       reset: "Two-factor reset. The admin sets it up again at their next sign-in.",
