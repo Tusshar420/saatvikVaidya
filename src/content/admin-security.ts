@@ -11,7 +11,7 @@ export const adminSecurity = {
   roleHelp: {
     super: "Everything, including admins, users, settings and the database.",
     catalogue: "Products, product photos and ebooks.",
-    orders: "Orders, shipments, invoices, Super Coins and reports.",
+    orders: "Orders, shipments, invoices, Saatvik Coins and reports.",
     content: "Homepage content and the quiz.",
     approvals: "Professional verification and their documents.",
   },

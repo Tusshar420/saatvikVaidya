@@ -99,8 +99,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
               {profile.name}
             </h1>
             <p className="mt-0.75 text-small text-muted">
-              {profile.userTypeLabel} ·{" "}
-              {profile.phoneNumberVerified ? copy.summary.mobileVerified : copy.summary.mobileNotVerified}
+              {profile.userTypeLabel}
+              {/* Email-only accounts have no mobile to verify. */}
+              {profile.phoneNumber !== null &&
+                ` · ${profile.phoneNumberVerified ? copy.summary.mobileVerified : copy.summary.mobileNotVerified}`}
             </p>
             <div className="my-5.5 rounded-md bg-surface-alt p-3.75">
               <div className="flex justify-between text-small font-extrabold text-ink">

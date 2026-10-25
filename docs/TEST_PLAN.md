@@ -66,7 +66,9 @@ do not complete the payment.
 
 ## How to report a problem
 
-For every Fail, send the developer:
+For every Fail, add a row to the team's bug log, `docs/BUG_LOG.md`. It has
+the columns to fill in, a guide to describing a problem clearly, and how to
+take a screenshot on each phone and computer. In short, give:
 
 1. The **test number** (for example "3.4").
 2. The **device and browser** (for example "iPhone 13, Safari").

@@ -312,6 +312,8 @@ test("register by email as a customer, then sign in and sign out", async ({
   await expect(main).toContainText("Customer");
   await expect(main).toContainText(account.status.none.badge);
   await expect(main).toContainText(account.notAdded);
+  // No mobile number, so no "Mobile verification pending".
+  await expect(main).not.toContainText(account.summary.mobileNotVerified);
   await main.getByRole("button", { name: account.signOut }).click();
   await expect(page).toHaveURL(/\/$/);
   await expectSignedOut(page);

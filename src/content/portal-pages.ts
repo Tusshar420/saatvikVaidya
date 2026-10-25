@@ -75,7 +75,7 @@ export const portalPages = {
     doctorsTitle: "Verified Doctors",
     doctorsText: "Professional contributors",
     doctorsSoon:
-      "Doctor verification opens with Dr. Talk. Verified contributors will be listed here.",
+      "A list of verified doctors who post in Dr. Talk is coming soon.",
     standardTitle: "Professional discussion standard",
     standardText:
       "Do not share patient names, photographs or identifying details. Posts represent professional discussion and do not replace independent clinical judgment.",

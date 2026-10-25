@@ -5116,3 +5116,51 @@ errors or sideways scroll; screenshots of the fixes checked.
 **Later**
 - Playwright only runs Chromium; Safari and Firefox are checked by hand by
   the team (test plan section 10).
+
+## QA second pass and bug log (2026-10-25)
+
+**What was done.**
+- `docs/BUG_LOG.md`: table for the team (ID, page, what happened, steps,
+  device and browser, severity, status Open / Fixed / Re-checked, fixed by,
+  screenshot), with severity and status rules, a guide to describing a
+  problem, and how to take a screenshot on each device.
+  `docs/TEST_PLAN.md` "How to report a problem" points to it.
+- `docs/test-report.md` rewritten for this pass (B1 to B6 kept; B7, B8 new).
+- Fixed:
+  - `/account` said "Mobile verification pending" for email-only accounts
+    (every tester on the test address). The status now shows only when the
+    account has a phone number.
+  - "Super Coins" in checkout, order and admin copy renamed "Saatvik Coins",
+    the name used everywhere else (content files only; code comments kept).
+  - Dr. Talk's Verified Doctors placeholder no longer says verification
+    "opens with Dr. Talk".
+  - A missing product's tab title raced between "Product not found" (page
+    metadata) and "Page not found" (not-found boundary), failing
+    `shell.spec.ts` "a wrong address…" on slow runs. `generateMetadata` now
+    returns `notFoundScreen.metaTitle`; returning `{}` gave the bare site
+    name. `catalogue.product.notFoundTitle` removed.
+
+**Checked.** typecheck, lint, `pnpm test` (919) and build pass after the
+fixes. Full e2e before the fixes: phone + desktop 284 passed (8 skipped),
+exclusive + last 27 (1 skipped), manual QR 2. After the fixes: sign-in,
+account, threads, coins, checkout and admin specs 66/66; the not-found test
+6/6 with `--repeat-each=3`. Hands-on Playwright walk (temporary script,
+deleted) of ~60 routes per viewport as guest, customer, approved doctor,
+approved pharmacy and admin: all 200 (404 page 404), no console errors, no
+overflow; email sign-up as doctor, pharmacy and customer on both
+viewports; cart → address → place order → pay screen → My orders.
+
+**Not finished.** The full e2e run after the fixes. Mid-session the local
+MySQL died with nothing in its log (restarted with `mysql.server start`;
+disk is 98% full), and then Chromium stopped launching from this shell:
+`bootstrap_check_in … MachPortRendezvousServer` FATAL, `launchctl print
+gui/<uid>` fails. `--single-process` launches but crashes on a second page.
+Not a code problem; run `pnpm test:e2e` from a fresh terminal.
+
+**Needs a person**
+- Owner: B7 (phone side buttons cover the right edge slightly) and B8 (move
+  Orders up the admin menu), plus B1 to B6 from the first pass.
+- Free disk space on the Mac before packaging.
+
+**Later**
+- B7 and B8 if the owner agrees.

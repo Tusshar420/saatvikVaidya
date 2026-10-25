@@ -151,7 +151,6 @@ export const catalogue = {
       moq: "Minimum order",
     },
     dosageNote: "Take Ayurveda medicines under the guidance of a qualified physician.",
-    notFoundTitle: "Product not found",
   },
 
   search: {

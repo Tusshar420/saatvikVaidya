@@ -81,7 +81,7 @@ export const adminSettings = {
       checkout: "Checkout",
       checkoutHelp:
         "Off: nobody can place a new order. Carts and existing orders still work.",
-      coins: "Super Coins",
+      coins: "Saatvik Coins",
       coinsHelp: "Off: no earning or redeeming. The other coin rules are edited in Coins.",
       ebooks: "Ebook downloads",
       ebooksHelp: "Off: no ebook can be downloaded. Each book also has its own switch.",
@@ -145,7 +145,7 @@ export const adminHome = {
       launch: "Build Your Brand",
       brands: "Brands",
       courses: "Courses and Saatvik Live",
-      coins: "Super Coins",
+      coins: "Saatvik Coins",
       quiz: "Quiz & Win",
       feedback: "Feedback",
       community: "Community",

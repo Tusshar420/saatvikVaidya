@@ -266,7 +266,7 @@ export const admin = {
       rejected: "Rejected.",
     },
     coins: {
-      title: "Super Coins",
+      title: "Saatvik Coins",
       balance: (coins: string) => `${coins} coins`,
       viewLedger: "Recent coin activity",
       empty: "No coin activity yet.",
@@ -600,7 +600,7 @@ export const admin = {
       endsAt: "Closes (India time)",
       scheduleHelp: "Leave both blank to keep it unscheduled. A scheduled quiz needs exactly 10 questions. Players get 5 minutes from pressing Start.",
       passPercent: "Pass mark (% of points)",
-      passPercentHelp: "A score at or above this earns the Super Coins set in Super Coins rules.",
+      passPercentHelp: "A score at or above this earns the Saatvik Coins set in Saatvik Coins rules.",
       lockedNote: (n: number) =>
         `${n} ${n === 1 ? "person has" : "people have"} played this quiz, so its questions can no longer be changed. You can still change the schedule and pass mark.`,
       explanation: "Explanation (shown after the quiz)",
@@ -825,7 +825,7 @@ export const admin = {
     totals: {
       subtotal: "Items (incl. GST)",
       tax: "GST included",
-      coins: (n: number) => `Super Coins used (${n.toLocaleString("en-IN")})`,
+      coins: (n: number) => `Saatvik Coins used (${n.toLocaleString("en-IN")})`,
       shipping: "Delivery",
       free: "Free",
       total: "Total",
@@ -951,7 +951,7 @@ export const admin = {
       review: "Review approvals",
     },
     coins: {
-      title: "Super Coins",
+      title: "Saatvik Coins",
       note: "Coins moved in this period.",
       issued: "Issued",
       issuedHelp: "Order earnings, profile rewards and admin credits.",
@@ -968,14 +968,14 @@ export const admin = {
     },
   },
   coins: {
-    metaTitle: "Super Coins",
+    metaTitle: "Saatvik Coins",
     eyebrow: "Store",
-    title: "Super Coins",
+    title: "Saatvik Coins",
     description:
       "Rules for earning and using coins. Changes apply to new orders and rewards; coins already earned keep their expiry date.",
     rulesTitle: "Rules",
     fields: {
-      enabled: "Super Coins programme is on",
+      enabled: "Saatvik Coins programme is on",
       enabledHelp:
         "Off: nobody earns or uses coins and the checkout option is hidden. Balances are kept.",
       earnPerThousandRupees: "Coins earned per ₹1,000",

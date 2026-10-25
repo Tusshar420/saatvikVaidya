@@ -7,6 +7,7 @@ import { PriceBox } from "@/components/site/catalogue/price-box";
 import { ProductGallery } from "@/components/site/catalogue/product-gallery";
 import { SampleNote } from "@/components/site/catalogue/sample-note";
 import { catalogue as copy } from "@/content/catalogue";
+import { notFoundScreen } from "@/content/errors";
 import { catalogueHref } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import { readProductMeta, readProductPage } from "@/server/catalogue/products";
@@ -21,7 +22,8 @@ export async function generateMetadata({
   params,
 }: PageProps<"/products/[slug]">): Promise<Metadata> {
   const product = await readProductMeta((await params).slug);
-  if (!product) return { title: text.notFoundTitle };
+  // Same title as the not-found screen it shows.
+  if (!product) return { title: notFoundScreen.metaTitle };
   return { title: product.name, description: product.description.slice(0, 160) };
 }
 

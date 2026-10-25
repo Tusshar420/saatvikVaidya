@@ -1,4 +1,4 @@
-// Strings for Super Coins: /coins, the checkout option and the order lines.
+// Strings for Saatvik Coins: /coins, the checkout option and the order lines.
 // Keep user-facing text here so Hindi can be added later.
 
 import type { CoinReason } from "@/generated/prisma/client";
@@ -106,15 +106,15 @@ export const coins = {
   },
 
   checkout: {
-    title: "Super Coins",
+    title: "Saatvik Coins",
     label: (coinsUsed: number, rupees: string) => `Use ${count(coinsUsed)} coins (save ${rupees})`,
     help: (balance: number) => `You have ${count(balance)} coins. Some stay in your balance if the limit is lower.`,
     none: (balance: number) => `You have ${count(balance)} coins, but this order can't use them.`,
-    saved: (rupees: string) => `Super Coins (${rupees} off)`,
+    saved: (rupees: string) => `Saatvik Coins (${rupees} off)`,
   },
 
   order: {
-    row: "Super Coins used",
+    row: "Saatvik Coins used",
     used: (n: number) => `${count(n)} coins`,
   },
 } as const;
