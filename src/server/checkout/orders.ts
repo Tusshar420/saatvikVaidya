@@ -21,7 +21,7 @@ import { ownedEbookIds } from "@/server/ebooks/ebooks";
 import { db } from "@/server/db";
 import { sellableByProduct } from "@/server/inventory/availability";
 import { StockError } from "@/server/inventory/engine";
-import { reserveOrderStock } from "@/server/inventory/orders";
+import { HOLD_MINUTES, OFFLINE_HOLD_MINUTES, reserveOrderStock } from "@/server/inventory/orders";
 import { getPaymentProvider } from "@/server/payments";
 import type { PricingViewer } from "@/server/pricing/rules";
 import { holdCoins, ledgerTransaction, lockedSummary, lockUser } from "@/server/coins/ledger";
@@ -275,6 +275,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             tx,
             id,
             lines.map(({ line }) => ({ productId: line.productId, quantity: line.quantity })),
+            getPaymentProvider().name === "test" ? HOLD_MINUTES : OFFLINE_HOLD_MINUTES,
           );
         } catch (error) {
           if (error instanceof StockError && error.code === "insufficient") {

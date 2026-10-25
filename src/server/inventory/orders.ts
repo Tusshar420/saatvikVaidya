@@ -29,6 +29,9 @@ type Tx = Prisma.TransactionClient;
 /** How long a store order holds its stock while waiting for payment. */
 export const HOLD_MINUTES = 30;
 
+/** Orders paid outside the site (a call from the team, QR, bank transfer) hold their stock for a day. */
+export const OFFLINE_HOLD_MINUTES = 24 * 60;
+
 export const orderRef = (orderId: string): StockRef => ({ type: "order", id: orderId });
 export const brandOrderRef = (orderId: string): StockRef => ({ type: "brand_order", id: orderId });
 
@@ -48,9 +51,14 @@ async function itemIdsFor(tx: Tx, lines: readonly ProductLine[]): Promise<{ item
 }
 
 /** Holds the products' stock for an order whose payment is starting. */
-export async function reserveOrderStock(tx: Tx, orderId: string, lines: readonly ProductLine[]): Promise<void> {
+export async function reserveOrderStock(
+  tx: Tx,
+  orderId: string,
+  lines: readonly ProductLine[],
+  holdMinutes: number = HOLD_MINUTES,
+): Promise<void> {
   await reserveStock(tx, await itemIdsFor(tx, lines), orderRef(orderId), {
-    expiresAt: new Date(Date.now() + HOLD_MINUTES * 60_000),
+    expiresAt: new Date(Date.now() + holdMinutes * 60_000),
   });
 }
 

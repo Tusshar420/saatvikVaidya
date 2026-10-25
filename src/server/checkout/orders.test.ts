@@ -229,6 +229,10 @@ describe("placeOrder with PAYMENT_PROVIDER=request", () => {
     const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { payments: true } });
     expect(order.status).toBe("pending_payment");
     expect(order.payments).toMatchObject([{ provider: "request", status: "created" }]);
+    // The stock is held for a day, not the 30 minutes of an online payment.
+    const hold = await db.stockReservation.findFirstOrThrow({ where: { refId: orderId } });
+    const hours = ((hold.expiresAt?.getTime() ?? 0) - Date.now()) / 3_600_000;
+    expect(hours).toBeGreaterThan(23);
     expect((await readCart(who.owner, customer, shipping)).lines).toHaveLength(0);
   });
 });

@@ -5355,7 +5355,9 @@ and agrees how to pay; an admin then marks the order paid.
   port 3102, part of `pnpm test:e2e`).
 - Checked: typecheck, lint, build, 935 unit tests, e2e phone 147 (8 skipped),
   desktop 155, exclusive+last 27, manual 2, request 2.
-- Stock note: a held unit lapses after 30 minutes; marking paid later takes the
-  stock then, or fails with "out of stock" if it sold meanwhile.
-- Later: the 30-minute stock hold does not suit calls that take hours; consider
-  a longer hold for `request` orders.
+- Stock note: when a hold lapses, marking paid later takes the stock then, or
+  fails with "out of stock" if it sold meanwhile.
+- Follow-up (owner asked for one day): orders under `request` or `manual` now
+  hold their stock for 24 hours (`OFFLINE_HOLD_MINUTES`); the `test` provider
+  keeps 30 minutes. After 24 hours the hold lapses; marking paid still works if
+  stock remains. Orders are not auto-cancelled.
