@@ -144,7 +144,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[key]">
                       <p className="mt-1 text-sm text-muted">{text.awaitingText}</p>
                       <Link
                         href={`/checkout/pay/${course.awaitingPaymentOrderId}`}
-                        className={buttonClasses({ className: "mt-4 w-full" })}
+                        className={buttonClasses({ className: "mt-4 w-full max-sm:w-[calc(100%-1.75rem)]" })}
                       >
                         {text.awaitingPay}
                       </Link>
@@ -154,7 +154,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[key]">
                   ) : (
                     <Link
                       href={signInPath(courseHref(course.key))}
-                      className={buttonClasses({ className: "mt-4 w-full" })}
+                      className={buttonClasses({ className: "mt-4 w-full max-sm:w-[calc(100%-1.75rem)]" })}
                     >
                       {text.signInToEnrol}
                     </Link>
@@ -164,7 +164,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[key]">
                 <>
                   <p className="font-heading font-extrabold text-ink">{text.notForSaleTitle}</p>
                   <p className="mt-1 text-sm text-muted">{text.notForSaleText}</p>
-                  <a href={telHref(phone)} className={buttonClasses({ className: "mt-4 w-full" })}>
+                  <a href={telHref(phone)} className={buttonClasses({ className: "mt-4 w-full max-sm:w-[calc(100%-1.75rem)]" })}>
                     <Phone aria-hidden className="size-4" />
                     {text.call(phone)}
                   </a>

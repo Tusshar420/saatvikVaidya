@@ -308,6 +308,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Nothing should push the page sideways (BUG-008); clip keeps sticky working. */
+    overflow-x: clip;
     /* Section links land below the sticky header (bar + nav rail). */
     scroll-padding-top: 150px;
     @media (width < 820px) {

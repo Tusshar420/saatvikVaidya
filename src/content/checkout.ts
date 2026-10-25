@@ -9,9 +9,13 @@ export const checkout = {
   eyebrow: "Checkout",
   title: "Almost there.",
   titleEmphasis: "Where should we deliver?",
+  // Carts with only courses or ebooks: nothing is delivered, the address
+  // goes on the GST invoice.
+  digitalTitleEmphasis: "Where should we send the invoice?",
 
   steps: {
     address: "Delivery address",
+    addressDigital: "Billing address (for your invoice)",
     review: "Review and pay",
   },
 

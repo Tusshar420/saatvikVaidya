@@ -40,6 +40,8 @@ export type CheckoutFormProps = {
   saveAddress?: typeof saveAddressAction;
   placeLabel?: string;
   placeNote?: string;
+  /** Only courses or ebooks in the order: nothing is delivered. */
+  digitalOnly?: boolean;
 };
 
 /**
@@ -58,6 +60,7 @@ export function CheckoutForm({
   saveAddress = saveAddressAction,
   placeLabel = copy.place.button,
   placeNote = copy.place.note,
+  digitalOnly = false,
 }: CheckoutFormProps) {
   const [useCoins, setUseCoins] = useState(false);
   const canUseCoins = coinOffer !== null && coinOffer.coins > 0;
@@ -90,7 +93,7 @@ export function CheckoutForm({
       >
         <h2 id="checkout-address" className="flex items-center gap-2.5 text-h3 text-ink">
           <MapPin aria-hidden className="size-5 text-brand" />
-          {copy.steps.address}
+          {digitalOnly ? copy.steps.addressDigital : copy.steps.address}
         </h2>
 
         {addresses.length === 0 ? (

@@ -65,6 +65,7 @@ export default async function CheckoutPage() {
   ]);
   const cart = await readCart({ kind: "user", userId: user.id }, viewer, shipping, discount.percent);
   if (cart.lines.length === 0 && cart.ebooks.length === 0 && cart.courses.length === 0) redirect("/cart");
+  const digitalOnly = cart.lines.length === 0;
   // What the buyer's coins could take off this order, if they choose to use
   // them. The server works it out again when the order is placed.
   const offer = coinRules.enabled
@@ -88,7 +89,10 @@ export default async function CheckoutPage() {
     <div className="shell py-8 sm:py-12">
       <Eyebrow>{copy.eyebrow}</Eyebrow>
       <h1 className="mt-2 text-h2 text-ink">
-        {copy.title} <em className="block text-orange-title not-italic">{copy.titleEmphasis}</em>
+        {copy.title}{" "}
+        <em className="block text-orange-title not-italic">
+          {digitalOnly ? copy.digitalTitleEmphasis : copy.titleEmphasis}
+        </em>
       </h1>
 
       {cart.hasIssues ? (
@@ -101,6 +105,7 @@ export default async function CheckoutPage() {
         </div>
       ) : (
         <CheckoutForm
+          digitalOnly={digitalOnly}
           addresses={addresses}
           checkoutKey={randomUUID()}
           totals={cart.totals}
