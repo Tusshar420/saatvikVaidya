@@ -100,7 +100,7 @@ export type StatusCount = { status: OrderStatus; count: number };
 export type TopProduct = {
   slug: string;
   name: string;
-  kind: "product" | "ebook";
+  kind: "product" | "ebook" | "course";
   units: number;
   paise: number;
 };

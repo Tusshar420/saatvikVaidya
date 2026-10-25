@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { cart as copy } from "@/content/cart";
+import { courses as coursesCopy } from "@/content/courses";
 import {
+  addCourseToCart,
   addEbookToCart,
   addToCart,
   MAX_LINE_QUANTITY,
+  removeCourseFromCart,
   removeEbookFromCart,
   removeFromCart,
   setCartQuantity,
@@ -31,6 +34,7 @@ const lineSchema = z.object({
 });
 const removeSchema = lineSchema.pick({ productId: true });
 const ebookSchema = z.object({ ebookId: z.number().int().positive().max(2_147_483_647) });
+const courseSchema = z.object({ courseId: z.number().int().positive().max(2_147_483_647) });
 
 function messageFor(error: CartError): string {
   switch (error.kind) {
@@ -49,6 +53,8 @@ function messageFor(error: CartError): string {
       return copy.errors.invalid;
     case "owned":
       return copy.errors.ebookOwned;
+    case "enrolled":
+      return coursesCopy.page.errors.enrolled;
   }
 }
 
@@ -93,4 +99,17 @@ export async function removeEbookFromCartAction(input: unknown): Promise<CartAct
   const parsed = ebookSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: copy.errors.generic };
   return run((owner) => removeEbookFromCart(owner, parsed.data.ebookId));
+}
+
+/** Adds a seat on a course (one each; B1). */
+export async function addCourseToCartAction(input: unknown): Promise<CartActionResult> {
+  const parsed = courseSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: copy.errors.invalid };
+  return run((owner) => addCourseToCart(owner, parsed.data.courseId));
+}
+
+export async function removeCourseFromCartAction(input: unknown): Promise<CartActionResult> {
+  const parsed = courseSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: copy.errors.generic };
+  return run((owner) => removeCourseFromCart(owner, parsed.data.courseId));
 }

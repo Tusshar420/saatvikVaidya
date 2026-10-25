@@ -126,6 +126,7 @@ model User {
   threads                 Thread[]
   threadReplies           ThreadReply[]
   threadLikes             ThreadLike[]
+  coursesAuthored         CourseTeaser[]         @relation("CourseAuthor")
 
   @@index([userTypeId])
 }
@@ -720,8 +721,38 @@ model CourseTeaser {
   videoUrl   String?  @db.VarChar(300)
   linkLabel  String   @db.VarChar(80)
   linkHref   String?  @db.VarChar(200)
+  /// Online sales (B1). Null: not sold online (the card offers a call).
+  /// Otherwise the price including GST; buyers enrol through the cart.
+  pricePaise    Int?
+  /// GST percentage included in the price.
+  gstRate       Int          @default(18)
+  /// The longer description on the course page.
+  details       String?      @db.Text
+  /// Shown only to enrolled buyers, the author and staff: joining link,
+  /// schedule, materials.
+  accessDetails String?      @db.Text
+  /// The doctor who made it in their course area (B2); null for staff-made
+  /// courses, or once the doctor's account is deleted.
+  authorId      String?      @db.VarChar(64)
+  author        User?        @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  /// Doctors' courses wait for staff review; only published ones are listed.
+  status        CourseStatus @default(published)
+  /// Staff's reason when they send a course back.
+  reviewNote    String?      @db.VarChar(500)
+  submittedAt   DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([authorId])
+  @@index([status])
+}
+
+enum CourseStatus {
+  pending
+  published
+  rejected
 }
 
 /// Saatvik Live session teaser.
@@ -983,14 +1014,19 @@ model CartItem {
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   ebookId   Int?
   ebook     Ebook?   @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  /// A course seat (B1): one per course, like an ebook.
+  courseId  Int?
+  course    CourseTeaser? @relation(fields: [courseId], references: [id], onDelete: Cascade)
   quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([cartId, productId])
   @@unique([cartId, ebookId])
+  @@unique([cartId, courseId])
   @@index([productId])
   @@index([ebookId])
+  @@index([courseId])
 }
 
 /// A saved delivery address. Orders copy it, so editing an address never
@@ -1261,7 +1297,11 @@ model OrderItem {
   /// the ebook was deleted later (and for every product line).
   ebookId        Int?
   ebook          Ebook?        @relation(fields: [ebookId], references: [id], onDelete: SetNull)
-  /// "product" or "ebook"; stays even if the product or ebook is deleted.
+  /// Set for a course line (B1): a paid, uncancelled one enrols the buyer.
+  /// Null if the course was deleted later.
+  courseId       Int?
+  course         CourseTeaser? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  /// "product", "ebook" or "course"; stays even if the item is deleted.
   kind           OrderItemKind @default(product)
   productSlug    String        @db.VarChar(120)
   productName    String        @db.VarChar(160)
@@ -1287,11 +1327,13 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@index([ebookId])
+  @@index([courseId])
 }
 
 enum OrderItemKind {
   product
   ebook
+  course
 }
 
 enum PaymentStatus {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { rupeesToPaise } from "@/lib/format";
 import { linkTargetSchema, sitePathSchema } from "@/server/content/home-schema";
 
 // Zod building blocks for admin forms. Server actions receive FormData, so
@@ -56,6 +57,29 @@ export function optionalText(max: number, message: string) {
   return z.preprocess(
     blankToNull,
     z.string({ error: message }).trim().max(max, message).nullable(),
+  );
+}
+
+/**
+ * An optional price typed in rupees ("1,499" or "1499.50"), as paise; blank
+ * is null. Checked on the field itself, so its message shows next to any
+ * other field's.
+ */
+export function optionalPrice(message: string, maxPaise: number) {
+  return z.preprocess(
+    blankToNull,
+    z
+      .string({ error: message })
+      .nullable()
+      .transform((text, ctx) => {
+        if (text === null) return null;
+        const paise = rupeesToPaise(text);
+        if (paise === null || paise <= 0 || paise > maxPaise) {
+          ctx.addIssue({ code: "custom", message });
+          return z.NEVER;
+        }
+        return paise;
+      }),
   );
 }
 

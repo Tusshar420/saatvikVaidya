@@ -18,7 +18,7 @@ export default async function NewCoursePage() {
       <CourseForm
         mode="new"
         action={createCourseAction}
-        initial={{ sortOrder: 100, active: false }}
+        initial={{ sortOrder: 100, active: false, gstRate: "18" }}
       />
     </>
   );

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, BookOpen, ChevronRight, Coins, LayoutDashboard, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, Sparkles, UserRound, type LucideIcon } from "lucide-react";
+import { BadgeCheck, BookOpen, ChevronRight, Coins, GraduationCap, LayoutDashboard, Presentation, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, Sparkles, UserRound, type LucideIcon } from "lucide-react";
 import { PageHero } from "@/components/site/page-hero";
 import { NameForm, NotificationsForm, PasswordForm, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
@@ -14,8 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonArrow } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { account as copy } from "@/content/account";
+import { courses as coursesCopy } from "@/content/courses";
 import { verification as documents } from "@/content/verification";
 import { signInPath } from "@/lib/auth-routes";
+import { courseHref, doctorCoursesPath } from "@/lib/courses";
 import { cn } from "@/lib/cn";
 import { formatDate, formatNumber, initialsOf } from "@/lib/format";
 import { formatIndianPhone, telHref } from "@/lib/phone";
@@ -24,6 +26,7 @@ import { getSession } from "@/server/auth/session";
 import { GuestAccount } from "@/components/site/account/guest-account";
 import { getSetting } from "@/server/content/settings";
 import { coinSummary } from "@/server/coins/ledger";
+import { listMyEnrolments, userCanTeach, type MyCourse } from "@/server/courses/courses";
 import { db } from "@/server/db";
 import {
   readProfessionalVerification,
@@ -59,7 +62,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
     getSetting("contact.phone"),
     readProfessionalVerification(user.id),
   ]);
-  const ebooks = await listOwnedEbooks({ id: user.id, role: user.role ?? "user" });
+  const [ebooks, myCourses, teacher] = await Promise.all([
+    listOwnedEbooks({ id: user.id, role: user.role ?? "user" }),
+    listMyEnrolments(user.id),
+    userCanTeach(user.id),
+  ]);
   if (!profile) redirect(signInPath("/account"));
 
   const status = copy.status[profile.verificationStatus];
@@ -120,7 +127,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                 <div className="h-full rounded-full bg-brand" style={{ width: `${completion}%` }} />
               </div>
             </div>
-            <Shortcuts isAdmin={user.role === "admin"} />
+            <Shortcuts isAdmin={user.role === "admin"} teacher={teacher} />
             <SignOutButton className="mt-4 w-full" />
           </aside>
 
@@ -218,6 +225,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
 
             <MyEbooks ebooks={ebooks} className="scroll-mt-28 p-5 max-sm:rounded-lg sm:p-5.25" />
 
+            <MyCourses courses={myCourses} />
+
             <div className="grid gap-3.25 lg:grid-cols-2">
               <section aria-labelledby="account-password-title" className={cn(cardClass, "p-5 sm:p-5.25")}>
                 {profile.hasPassword ? (
@@ -251,6 +260,51 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
 }
 
 const cardClass = "rounded-xl border border-line bg-surface shadow-card max-sm:rounded-lg";
+
+/** "My courses" (B1): the courses this member enrolled in. */
+function MyCourses({ courses }: { courses: MyCourse[] }) {
+  const text = coursesCopy.account;
+  return (
+    <section
+      id="account-courses"
+      aria-labelledby="account-courses-title"
+      className={cn(cardClass, "scroll-mt-28 p-5 sm:p-5.25")}
+    >
+      <h2 id="account-courses-title" className={cardTitle}>
+        {text.title}
+      </h2>
+      {courses.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">
+          {text.empty}{" "}
+          <Link href="/courses" className="font-bold text-brand underline-offset-4 hover:underline">
+            {text.browse}
+          </Link>
+        </p>
+      ) : (
+        <ul className="mt-3 flex flex-col">
+          {courses.map((course) => (
+            <li
+              key={course.key}
+              className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-3 first:border-t-0"
+            >
+              <span className="min-w-0">
+                <span className="block font-bold break-words text-ink">{course.title}</span>
+                <span className="text-small text-muted">{text.enrolledOn(formatDate(course.enrolledAt))}</span>
+              </span>
+              <Link
+                href={courseHref(course.key)}
+                className="inline-flex min-h-11 items-center gap-1 text-sm font-extrabold text-brand hover:underline"
+              >
+                {text.open}
+                <ButtonArrow />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 const cardTitle = "mt-1.5 font-heading text-h4 text-ink";
 
 function CardEyebrow({ children }: { children: ReactNode }) {
@@ -312,6 +366,7 @@ const shortcutLinks: ShortcutLink[] = [
   { href: "/my-brand", icon: Sparkles, text: copy.shortcuts.brandOrders },
   { href: "/coins", icon: Coins, text: copy.shortcuts.coins },
   { href: "/account#account-ebooks", icon: BookOpen, text: copy.shortcuts.ebooks },
+  { href: "/account#account-courses", icon: GraduationCap, text: coursesCopy.account.shortcut },
   { href: "/account/addresses", icon: MapPin, text: copy.shortcuts.addresses },
   { href: "/account/brands", icon: Tag, text: copy.shortcuts.brands },
   { href: "/account#account-status", icon: ShieldCheck, text: copy.shortcuts.verification },
@@ -319,13 +374,15 @@ const shortcutLinks: ShortcutLink[] = [
 ];
 
 const adminLink: ShortcutLink = { href: "/admin", icon: LayoutDashboard, text: copy.shortcuts.admin };
+const teachLink: ShortcutLink = { href: doctorCoursesPath, icon: Presentation, text: coursesCopy.account.teachShortcut };
 
 /**
  * Links to the rest of the signed-in area. Admins also get a link to the
- * admin panel, which checks their role and two-factor itself.
+ * admin panel, which checks their role and two-factor itself; approved
+ * doctors get their course area (B2).
  */
-function Shortcuts({ isAdmin }: { isAdmin: boolean }) {
-  const links = isAdmin ? [adminLink, ...shortcutLinks] : shortcutLinks;
+function Shortcuts({ isAdmin, teacher }: { isAdmin: boolean; teacher: boolean }) {
+  const links = [...(isAdmin ? [adminLink] : []), ...(teacher ? [teachLink] : []), ...shortcutLinks];
   return (
     <nav aria-label={copy.shortcuts.title}>
       <ul className="flex flex-col">

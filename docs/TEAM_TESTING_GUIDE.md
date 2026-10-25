@@ -113,9 +113,9 @@ Try these:
 - Wait for staff to approve you. Then check that doctor prices show.
 - Open **Dr. Talk**. Start a thread and reply to another one.
 - Open **Courses**. Look at the courses and read the details.
-
-Good to know: buying a course online, and a place for doctors to make their
-own courses, are **not built yet**. Please don't report these as problems.
+- Make your own course: **My account**, then **Teach a course**, then
+  **Create a course**. Give it a price and a joining link. Staff check it
+  before it shows on the Courses page.
 
 ### Regular buyer
 
@@ -130,6 +130,8 @@ Try these:
 - Look at the payment page. Check the **QR code** and the payment details.
   They should show the right name and the right amount. **Do not pay.**
 - Open **Track Order** and look up the order you just placed.
+- Buy a course: open a course with a price, tap **Enrol**, then check out.
+  Once staff mark it paid, the course page shows how to join.
 
 ### Bulk buyer
 
@@ -146,7 +148,8 @@ Try these:
 
 ### Firm staff
 
-Staff use an **admin account**. The developer will make one for you.
+Staff use an **admin account**. The developer makes the first one; that
+person can then invite the rest of the staff.
 
 Try these:
 
@@ -154,6 +157,11 @@ Try these:
 - Check **Approvals**. Approve one document and reject one with a reason.
 - Open the **orders**. Open a test order. Mark it as paid.
 - Add a **course**. Check that it shows on the **Courses** page.
+- Check a doctor's course: open **Courses** in the admin panel, open the
+  course that is "Waiting for review", then approve it or send it back with
+  a note.
+- Invite another staff member: **Admins**, then **Invite an admin**. Copy the
+  link the page shows and send it on WhatsApp.
 - Make a **quiz** with exactly 10 questions. Then see the results.
 - Check the payment details in **Settings**.
 
@@ -240,8 +248,8 @@ Some things don't work on the test address yet. Please don't report these:
 - **Card and online payments (Razorpay)** come 2 to 3 months after launch.
   For now, people pay by QR code or bank transfer.
 - **Courier booking and live tracking** are not ready yet.
-- **Buying courses online** and **doctors making their own courses** are
-  not built yet.
+- **Paying doctors their share** of course sales is done by staff outside
+  the site.
 
 If you are locked out of your account, ask the developer. They can make you a
 new one.

@@ -5164,3 +5164,70 @@ Not a code problem; run `pnpm test:e2e` from a fresh terminal.
 
 **Later**
 - B7 and B8 if the owner agrees.
+
+## Owner's open points built: course sales, doctor courses, invites, side buttons, admin menu (2026-10-25)
+
+Asked for by the owner ("build the things that are pending") after the QA
+pass; outside the "Team testing preparation" phase on purpose.
+
+**What was built.**
+- **B8:** `admin-nav.tsx` lists Orders, Brand orders, Coins and Reports with
+  the main links, above the home-page content group.
+- **B7:** `HideOnPaths` (client, `usePathname`) leaves `StickyActions` out on
+  `/cart` and `/checkout/*`.
+- **B3:** `inviteAdmin` returns the invite URL; `inviteAdminAction` passes it
+  back and `InviteAdminForm` shows it once with Copy link. Only the token hash
+  is stored, as before.
+- **B1 course sales:** `CourseTeaser` gains `pricePaise` (null = not sold
+  online), `gstRate`, `details`, `accessDetails`, `authorId`, `status`
+  (`CourseStatus` pending/published/rejected), `reviewNote`, `submittedAt`;
+  `CartItem.courseId`, `OrderItem.courseId`, `OrderItemKind.course`
+  (migration `20261025120000_course_sales`, additive). Courses go through the
+  cart like ebooks (`addCourseToCart`, `CartCourseLine`, merge on sign-in),
+  become `kind: "course"` order lines (SAC 999293, no stock, no delivery),
+  and enrolment is a paid, uncancelled course line (`enrolledCourseIds`, as
+  `ownedEbookIds`). `/courses/[key]` shows the course, Enrol, and the joining
+  details to enrolled buyers, the author and content admins. `completePayment`
+  calls `notifyCourseEnrolments` (buyer and author). My courses on /account;
+  a Courses box on /orders/[id].
+- **B2 doctor area:** `/doctor/courses` (+ `new`, `[id]/edit`) for approved
+  doctors (`canTeach`/`userCanTeach`, read fresh); others get "For verified
+  doctors". `/doctor` added to the proxy's protected paths. Saves set
+  `status: pending` and notify content admins. Admin course edit has a
+  Review box (approve / send back with a note, `course.review` audit) and
+  shows author and paid enrolments; the list shows who made each course and
+  its review status. Courses with enrolments can't be deleted (admin or
+  doctor). Public lists (courses page, homepage) show only published ones.
+- Clear test data removes courses made by test accounts.
+- Text in `src/content/courses.ts` (a new file, so it doesn't clash with the
+  wording review in progress in other content files).
+
+**Decisions.** Every doctor edit goes back to review (unlisted meanwhile;
+buyers keep access). Doctor payouts stay offline. Paid courses only online.
+The video is a YouTube link, not an embed (CSP). Price is checked on its
+field (`optionalPrice` in `server/admin/form.ts`) so its error shows with
+the others; the e2e test caught it showing only after other fields passed.
+
+**Checked.** typecheck, lint, `pnpm test` (928) and build pass. e2e: phone
+150 (140 pass + 8 skipped on the first run; 2 failures: an admin label clash
+from the new "Full description" field, renamed "About this course", and the
+slow `brand.spec` test, both passing on re-run), desktop 149 pass + the same
+`brand.spec` timeout (passes alone; it also timed out earlier today before
+this work), exclusive + last 27 (1 skipped), manual QR 2. New
+`courses.spec.ts` (doctor → review → enrol → pay → access, non-doctor gate,
+signed-out redirect) and a shell test for the side buttons. Screens checked
+by eye at 375 and 1280 px; the doctor list's Delete link moved off the right
+edge.
+
+**Needs a person.** Upload a new package and run `pnpm db:deploy` on the
+test address. B4 (sign-up labels) still waits for the owner. The Mac's disk
+is 97% full.
+
+**Later.** See `docs/BACKLOG.md` "Courses". `brand.spec.ts` "add several
+products…" is close to its 60 s limit in full runs; worth `test.slow()` or a
+split.
+
+The other session's uncommitted wording edits (`src/content/account.ts`,
+`checkout.ts`, `home.ts`, `invoices.ts`, `orders.ts`, `portal-pages.ts`,
+`shell.ts`, `docs/TEXT_CHANGES.md`) were left alone and are not in this
+commit.

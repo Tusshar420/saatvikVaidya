@@ -53,6 +53,7 @@ Would remove:
   Quiz attempts:          ${r.quizAttempts}
   Super Coin entries:     ${r.coinEntries}
   Threads by them:        ${r.threads}
+  Courses by them:        ${r.courses}
   Notifications:          ${r.notifications}
   Bug reports:            ${r.bugReports}
   Error log entries:      ${r.errorGroups}

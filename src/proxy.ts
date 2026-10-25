@@ -27,6 +27,8 @@ const protectedPaths = [
   { prefix: "/orders", bare: false },
   { prefix: "/notifications", bare: true },
   { prefix: "/admin", bare: true },
+  // The doctor's course area (B2).
+  { prefix: "/doctor", bare: true },
 ] as const;
 
 // Keep in sync with protectedPathPrefixes in src/lib/auth-routes.ts.

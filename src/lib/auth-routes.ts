@@ -13,6 +13,7 @@ export const protectedPathPrefixes = [
   "/orders",
   "/notifications",
   "/admin",
+  "/doctor",
 ] as const;
 
 /**

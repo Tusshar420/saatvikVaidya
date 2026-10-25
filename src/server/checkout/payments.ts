@@ -2,6 +2,7 @@ import "server-only";
 import type { OrderStatus, OrderType, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 import { earnForOrder, ledgerTransaction, releaseCoins } from "@/server/coins/ledger";
+import { notifyCourseEnrolments } from "@/server/courses/courses";
 import { issueInvoice, issueQuietly } from "@/server/invoices/invoices";
 import { recordFirstStage } from "@/server/brand/stages";
 import { StockError } from "@/server/inventory/engine";
@@ -118,12 +119,12 @@ export async function completePayment(
 
       const items = await tx.orderItem.findMany({
         where: { orderId },
-        select: { productId: true, ebookId: true, kind: true, quantity: true },
+        select: { productId: true, ebookId: true, courseId: true, kind: true, quantity: true },
       });
       const lines: { productId: number; quantity: number }[] = [];
       for (const item of items) {
-        // Ebooks (P1.8) have no stock to take.
-        if (item.kind === "ebook") continue;
+        // Ebooks (P1.8) and course seats (B1) have no stock to take.
+        if (item.kind !== "product") continue;
         if (item.productId === null) throw new OutOfStock();
         lines.push({ productId: item.productId, quantity: item.quantity });
       }
@@ -154,6 +155,12 @@ export async function completePayment(
             ebookId: { in: items.flatMap((item) => (item.ebookId === null ? [] : [item.ebookId])) },
           },
         });
+        await tx.cartItem.deleteMany({
+          where: {
+            cart: { userId: owner.userId },
+            courseId: { in: items.flatMap((item) => (item.courseId === null ? [] : [item.courseId])) },
+          },
+        });
       }
       return true;
     });
@@ -178,6 +185,11 @@ export async function completePayment(
       await (isBrand ? sendBrandOrderPaid(orderId) : sendOrderConfirmation(orderId));
     } catch (error) {
       console.error("completePayment: confirmation not sent.", error);
+    }
+    if (!isBrand) {
+      await notifyCourseEnrolments(orderId).catch((error: unknown) => {
+        console.error("completePayment: course notifications not sent.", error);
+      });
     }
   }
   return current(changed);

@@ -21,7 +21,9 @@ import { getSetting } from "@/server/content/settings";
 import { readOrderDocuments } from "@/server/invoices/invoices";
 import { readTrackingForUser } from "@/server/orders/tracking";
 import { EbookCard } from "@/components/site/ebooks/ebook-card";
+import { courses as courseCopy } from "@/content/courses";
 import { ebooks as ebookCopy } from "@/content/ebooks";
+import { courseHref } from "@/lib/courses";
 import { readOrderEbooks } from "@/server/ebooks/ebooks";
 
 const text = copy.detail;
@@ -49,8 +51,10 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
     item.kind === "ebook" && item.ebookId !== null ? [item.ebookId] : [],
   );
   const ebookTitles = order.items.flatMap((item) => (item.kind === "ebook" ? [item.productName] : []));
-  // Ebooks only (P1.8): nothing to deliver, so no delivery timeline.
-  const digitalOnly = order.items.every((item) => item.kind === "ebook");
+  // Course lines keep the course's key in productSlug.
+  const courseLines = order.items.filter((item) => item.kind === "course");
+  // Ebooks and courses only: nothing to deliver, so no delivery timeline.
+  const digitalOnly = order.items.every((item) => item.kind !== "product");
   const delivered = order.paidAt !== null && order.status !== "cancelled";
   const [documents, orderEbooks] = await Promise.all([
     readOrderDocuments(order),
@@ -116,6 +120,38 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
                 </ul>
               )}
               {digitalOnly && unpaid && (
+                <Link href={checkoutPathFor(order.id, order.status)} className={buttonClasses({ className: "mt-5 max-sm:w-full" })}>
+                  {text.payNow}
+                </Link>
+              )}
+            </Card>
+          )}
+
+          {courseLines.length > 0 && (
+            <Card as="section" aria-labelledby="order-courses">
+              <h2 id="order-courses" className="text-h3 text-ink">
+                {courseCopy.order.title}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                {delivered
+                  ? courseCopy.order.ready
+                  : order.status === "cancelled"
+                    ? courseCopy.order.cancelled
+                    : courseCopy.order.unpaid}
+              </p>
+              <ul aria-label={courseCopy.order.title} className="mt-3 flex flex-col gap-2 text-sm">
+                {courseLines.map((item) => (
+                  <li key={item.productSlug} className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-ink">{item.productName}</span>
+                    {delivered && (
+                      <Link href={courseHref(item.productSlug)} className="font-bold text-brand underline-offset-2 hover:underline">
+                        {courseCopy.account.open}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {digitalOnly && unpaid && ebookTitles.length === 0 && (
                 <Link href={checkoutPathFor(order.id, order.status)} className={buttonClasses({ className: "mt-5 max-sm:w-full" })}>
                   {text.payNow}
                 </Link>

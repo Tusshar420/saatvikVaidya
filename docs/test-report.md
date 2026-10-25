@@ -13,11 +13,36 @@ new bug log, `docs/BUG_LOG.md`.
 - **The site works.** Every page opens for every account type, on phone and
   computer, with no errors and no sideways scrolling.
 - **4 small bugs found and fixed** (below).
-- **The 6 open points from this morning still need the owner** (B1 to B6).
-  Two new small suggestions added (B7, B8).
-- **One check is unfinished:** the full browser test run after the fixes.
-  Chrome stopped starting on this computer partway through (see "Not
-  finished"). Run it once more before uploading the next package.
+- **Update, later the same day:** the owner asked for the open points to be
+  built. **B1, B2, B3, B7 and B8 are now done** (see "Built after the
+  owner's go-ahead"). B4, B5 and B6 are set-up or wording points, not code.
+- **Every automatic check passes** after these changes (one long brand-order
+  test is slow and sometimes runs out of time in the full run; it passes on
+  its own).
+
+## Built after the owner's go-ahead (25 October)
+
+| No. | What was built | How to test |
+| --- | --- | --- |
+| B1 | **Buying courses.** Staff (or a doctor) give a course a price. The card shows the price; the course page has **Enrol**, which puts it in the cart. Checkout and the QR / bank payment are the same as for medicines, with a GST invoice (SAC 999293, 18%) and no delivery charge. Once paid, the buyer sees "You're enrolled" and the joining details, the course appears under **My courses**, and the buyer and doctor get a notification. Courses without a price still offer a call. | `docs/TEST_PLAN.md` 5.1, 5.2, 5.8 to 5.11 |
+| B2 | **Doctor's course area.** Approved doctors get **Teach a course** on My account: create and edit courses with price, format and joining details, see enrolments, and delete a course nobody has bought. Every new course or edit waits for staff: Admin → Courses shows "Waiting for review", and **Approve and list** or **Send back for changes** (with a note the doctor sees). Staff get a notification when a doctor sends one in. | 5.3 to 5.7 |
+| B3 | **Staff invites without email.** Inviting an admin now shows the one-time link with **Copy link**, to send on WhatsApp. Only the first admin needs `pnpm admin:create`. | Set-up step S1 |
+| B7 | **Side buttons on phones.** The round Feedback and WhatsApp buttons are left out on the cart, checkout and pay screens, so they never cover prices. | 6.4, 8.4 on a phone |
+| B8 | **Staff menu.** Orders, Brand orders, Coins and Reports now sit near the top, above the home-page editing items. | Open the admin panel on a laptop |
+
+Decisions made while building (easy to change later):
+
+- A doctor's course is listed only after staff approve it, and **every edit
+  goes back to review** (it is unlisted meanwhile; people who already paid
+  keep their access).
+- Paying doctors their share of sales happens outside the site (staff see
+  enrolments per course). The doctor's form says so.
+- Online courses are paid only. A free course can be listed without a price
+  (people call to join).
+- A course someone has paid for can't be deleted, only hidden.
+- The introduction video is a link to YouTube, not a player on the page.
+- Test courses made by test doctor accounts are removed by the "clear test
+  data" step before launch, with those accounts.
 
 ## What was checked
 
@@ -53,54 +78,70 @@ new bug log, `docs/BUG_LOG.md`.
    "Product not found" and "Page not found". It is now always "Page not
    found", matching the screen. (`src/app/(site)/products/[slug]/page.tsx`)
 
-## Bigger issues (not fixed, need a decision)
+## Bigger issues found (B1, B2, B3, B7, B8 are now built; see above)
 
 B1 to B6 are unchanged from this morning's report.
 
 | No. | Issue | Effect | Suggestion |
 | --- | --- | --- | --- |
-| B1 | **Courses can't be bought.** Cards say "Enrolment opens soon" with a Call button. The brief says "Courses: browse and buy". | Doctors can't sell courses online. | Owner decides: launch with enrolment by phone, or build course sales after launch. Building it now puts 1 November at risk. |
-| B2 | **No doctor area to create or manage courses.** Only staff add courses. | Same as B1. | Same as B1. Staff can add doctors' courses for them at launch. |
-| B3 | **Staff can't be invited on the test address.** Invitations go by email, which isn't sent yet. | Only the first admin can get in. | Developer runs `pnpm admin:create` once per staff tester on the server. |
+| B1 (built) | **Courses can't be bought.** Cards say "Enrolment opens soon" with a Call button. The brief says "Courses: browse and buy". | Doctors can't sell courses online. | Owner decides: launch with enrolment by phone, or build course sales after launch. Building it now puts 1 November at risk. |
+| B2 (built) | **No doctor area to create or manage courses.** Only staff add courses. | Same as B1. | Same as B1. Staff can add doctors' courses for them at launch. |
+| B3 (built) | **Staff can't be invited on the test address.** Invitations go by email, which isn't sent yet. | Only the first admin can get in. | Developer runs `pnpm admin:create` once per staff tester on the server. |
 | B4 | **No sign-up option called "bulk buyer".** Testers pick Pharmacy / Store or Stockist / Distributor. | Testers may be unsure what to pick. The test plan explains it. | Owner decides whether the labels are fine. |
 | B5 | **Locked-out testers.** No emails or phone codes, no admin password reset. | A tester who forgets a password needs a new account. | Fine for testing (the plan says to write passwords down). Real email is needed before many real customers sign up. |
 | B6 | **Payment details are empty until staff fill them in** (Admin → Settings). Until then the pay screen only says "please call us". Seen again today. | The QR test fails if skipped. | Set-up step S2 in the test plan, and again on the live site on 1 November. |
-| B7 (new) | **On phones, the Feedback and WhatsApp buttons on the right edge cover a little of the page.** For example, prices in the order summary pass under them while scrolling. They aren't in the client's phone design for My Profile. | Low. Nothing is blocked; scrolling shows the hidden part. | Owner or designer decides: keep, make them smaller, or hide them on cart, checkout and pay screens. |
-| B8 (new) | **Staff menu order.** Orders, Brand orders, Quiz and Settings sit below ten home-page editing items, so on a laptop staff scroll the menu to reach them. | Low. Slower daily work. | Move the Orders group to the top of the menu. A small change; it waits for an owner yes. |
+| B7 (built) | **On phones, the Feedback and WhatsApp buttons on the right edge cover a little of the page.** For example, prices in the order summary pass under them while scrolling. They aren't in the client's phone design for My Profile. | Low. Nothing is blocked; scrolling shows the hidden part. | Owner or designer decides: keep, make them smaller, or hide them on cart, checkout and pay screens. |
+| B8 (built) | **Staff menu order.** Orders, Brand orders, Quiz and Settings sit below ten home-page editing items, so on a laptop staff scroll the menu to reach them. | Low. Slower daily work. | Move the Orders group to the top of the menu. A small change; it waits for an owner yes. |
 
 Smaller notes from this morning still apply: the quiz page says "Built for
 professionals" though every account can play; "Create shipment" is off
 until the courier is connected; a scheduled quiz needs exactly 10
 questions.
 
-## Not finished
+## Checks after building B1 to B8
 
-- **Full browser test run after the fixes.** Partway through, Chrome stopped
-  starting from this session on the Mac (a macOS session problem, not the
-  site). The tests for every changed screen did pass first (table above),
-  and the fixes only change wording, one title and one line on the account
-  page. Next step: run `pnpm test:e2e` in a fresh terminal before making
-  the next upload package.
-- **The local database (MySQL) stopped on its own** during testing and was
-  started again. Nothing was lost. The Mac's disk is **98% full (about 5 GB
-  free)**, which can cause this. Free some space before building the
-  upload package.
+- Type check, lint, production build: pass.
+- Unit tests: 928 of 928 pass (new tests for course sales, doctor courses,
+  staff review, invite links and clearing test courses).
+- Browser tests, phone and computer: all pass, including the new
+  `courses.spec.ts` (a doctor creates a course, staff approve it, a buyer
+  enrols, pays and opens it) and a test that the side buttons stay off the
+  cart. The long brand-order test ran out of time once in the full run and
+  passed when re-run on its own (it did the same earlier today, before any
+  of this work).
+- Settings and quiz tests: 27 pass (1 skipped on purpose). QR payment test:
+  2 pass.
+- New screens checked by eye at 375 and 1280 px: course page, cart with a
+  course, doctor's course list and form, staff review, staff invite link.
+  One thing fixed from this: the doctor's Delete link sat under the phone
+  side buttons; it is now next to Edit.
+- The database change only adds columns, so it is safe for existing data.
+  The upload package must run the new migration (`pnpm db:deploy`, as in
+  `docs/DEPLOY.md`).
+
+## Still open
+
+- **B4, B5, B6** above: labels, locked-out testers, and filling in payment
+  details. These are set-up and wording points.
+- **The Mac's disk is nearly full** (97%, about 6 GB free). The local
+  database stopped once today, probably for this reason. Free some space
+  before building the upload package.
 - Real phones, Safari and Firefox, and the Hostinger server itself are for
   the team (`docs/TEST_PLAN.md` sections 1 and 10).
 
 ## Effect on dates
 
-- **1 November launch:** not at risk from anything found today.
-- **At risk only if** B1 and B2 must be built before launch.
-- **B3 blocks staff testing** until the developer creates the staff admin
-  accounts. Do it first on the day the test address goes up.
+- **1 November launch:** not at risk from anything found or built today, as
+  long as the new package goes up early enough for the team to test courses
+  (TEST_PLAN section 5) before 31 October.
 
 ## Next steps
 
-1. Developer: run the full browser tests in a fresh terminal, then make and
-   upload a new package with today's fixes.
-2. Developer: create staff admin accounts on the test address (B3).
-3. Owner: decide B1/B2, B4, and the two small ones, B7 and B8.
-4. Staff: set-up steps S1 to S5 in `docs/TEST_PLAN.md`. Then the team runs
+1. Developer: make and upload a new package with today's changes, and run
+   the database migration on the test address.
+2. Developer: create the first admin on the test address; that admin invites
+   the other staff (S1).
+3. Staff: set-up steps S1 to S5 in `docs/TEST_PLAN.md`. Then the team runs
    the plan and records every Fail in `docs/BUG_LOG.md`.
+4. Owner: B4 (whether the sign-up labels are fine).
 5. Every bug is fixed and re-checked before 31 October.

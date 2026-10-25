@@ -1,7 +1,10 @@
 import "server-only";
 import { z } from "zod";
 import { admin as copy } from "@/content/admin";
+import { courses as coursesCopy } from "@/content/courses";
 import type { Prisma } from "@/generated/prisma/client";
+import { gstRates } from "@/lib/catalogue";
+import { courseLimits } from "@/lib/courses";
 import { db } from "@/server/db";
 import {
   createdFields,
@@ -16,6 +19,7 @@ import {
   contentKey,
   optionalLinkTarget,
   optionalMediaPath,
+  optionalPrice,
   optionalText,
   requiredText,
   sortOrder,
@@ -160,30 +164,48 @@ export const youtubeUrlSchema = z.preprocess(
     .nullable(),
 );
 
-export const courseInputSchema = z.object({
-  title: requiredText(160, check),
-  tag: requiredText(60, check),
-  body: requiredText(300, check),
-  instructor: optionalText(80, check),
-  duration: optionalText(40, check),
-  metaLabel: requiredText(40, check),
-  metaValue: requiredText(80, check),
-  videoUrl: youtubeUrlSchema,
-  linkLabel: requiredText(80, check),
-  linkHref: optionalLinkTarget(courseErrors.link),
-  ...placement,
-});
+const saleErrors = coursesCopy.admin.errors;
+
+export const courseInputSchema = z
+  .object({
+    title: requiredText(160, check),
+    tag: requiredText(60, check),
+    body: requiredText(300, check),
+    instructor: optionalText(80, check),
+    duration: optionalText(40, check),
+    metaLabel: requiredText(40, check),
+    metaValue: requiredText(80, check),
+    videoUrl: youtubeUrlSchema,
+    linkLabel: requiredText(80, check),
+    linkHref: optionalLinkTarget(courseErrors.link),
+    // Online sales (B1). Blank: not sold online.
+    price: optionalPrice(saleErrors.price, courseLimits.maxRupees * 100),
+    gstRate: z.preprocess(
+      (value) => (value === undefined || value === "" ? 18 : value),
+      z.coerce
+        .number({ error: saleErrors.gstRate })
+        .refine((rate) => (gstRates as readonly number[]).includes(rate), saleErrors.gstRate),
+    ),
+    details: optionalText(courseLimits.details, saleErrors.details),
+    accessDetails: optionalText(courseLimits.accessDetails, saleErrors.accessDetails),
+    ...placement,
+  })
+  .transform(({ price, ...data }) => ({ ...data, pricePaise: price }));
 
 export type CourseInput = z.infer<typeof courseInputSchema>;
 
 export async function listCourses() {
   return db.courseTeaser.findMany({
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    include: { author: { select: { name: true } } },
   });
 }
 
 export async function getCourse(id: number) {
-  return db.courseTeaser.findUnique({ where: { id } });
+  return db.courseTeaser.findUnique({
+    where: { id },
+    include: { author: { select: { name: true } } },
+  });
 }
 
 // ─── Shared create / update / delete ────────────────────────────────────────

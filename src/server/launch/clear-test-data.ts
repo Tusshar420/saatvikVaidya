@@ -8,12 +8,12 @@ import { testishName } from "@/server/site-check";
 // while testing goes: every order (with its payments, delivery, invoices and
 // stock holds), every quiz attempt and Super Coin entry, the error log and bug
 // reports, notifications, and every account that is not an admin (with its
-// addresses, carts, Launch drafts, brand profiles, threads and documents).
+// addresses, carts, Launch drafts, brand profiles, threads and documents),
+// and the courses those accounts made in the doctor's course area.
 //
 // Kept: admin accounts (staff), the catalogue and stock levels, quizzes,
-// e-books, course teasers, home page content, settings and the admin log.
-// Courses are not sold on the site yet, so there are no course purchases to
-// remove; paid e-books are orders and go with them.
+// e-books, staff-made courses, home page content, settings and the admin log.
+// Course purchases and paid e-books are orders and go with them.
 //
 // Refuses to touch a database unless it is plainly a test one (see
 // clearTargetProblem). No "server-only" import: it runs under tsx.
@@ -81,6 +81,8 @@ export type TestDataCounts = {
     quizAttempts: number;
     coinEntries: number;
     threads: number;
+    /** Courses made by test doctor accounts (B2). */
+    courses: number;
     notifications: number;
     bugReports: number;
     errorGroups: number;
@@ -153,6 +155,7 @@ export async function countTestData(db: Db): Promise<TestDataCounts> {
       quizAttempts: await db.quizAttempt.count(),
       coinEntries: await db.coinLedger.count(),
       threads: await db.thread.count({ where: { authorId: { in: userIds } } }),
+      courses: await db.courseTeaser.count({ where: { authorId: { in: userIds } } }),
       notifications: await db.notification.count(),
       bugReports: await db.bugReport.count(),
       errorGroups: await db.errorGroup.count(),
@@ -164,7 +167,9 @@ export async function countTestData(db: Db): Promise<TestDataCounts> {
       products: await db.product.count(),
       quizzes: await db.quiz.count(),
       ebooks: await db.ebook.count(),
-      courseTeasers: await db.courseTeaser.count(),
+      courseTeasers: await db.courseTeaser.count({
+        where: { OR: [{ authorId: null }, { authorId: { notIn: userIds } }] },
+      }),
     },
   };
 }
@@ -221,6 +226,8 @@ export async function clearTestData(db: Db, storageDir: string): Promise<{ files
       await tx.bugReport.deleteMany({});
       // Occurrences and bug-report links go with their group.
       await tx.errorGroup.deleteMany({});
+      // Their courses would outlive them (onDelete: SetNull), so they go first.
+      await tx.courseTeaser.deleteMany({ where: { authorId: { in: userIds } } });
       // Sessions, addresses, carts, drafts, brand profiles, threads, replies,
       // likes and documents go with their account (onDelete: Cascade).
       await tx.user.deleteMany({ where: testAccounts });

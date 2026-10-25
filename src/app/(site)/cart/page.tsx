@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
+import { CartCourseItem } from "@/components/site/cart/cart-course-item";
 import { CartEbookItem } from "@/components/site/cart/cart-ebook-item";
 import { CartLineItem } from "@/components/site/cart/cart-line-item";
 import { OrderSummary } from "@/components/site/cart/order-summary";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHero } from "@/components/site/page-hero";
 import { cart as copy } from "@/content/cart";
+import { courses as coursesCopy } from "@/content/courses";
 import { signInPath } from "@/lib/auth-routes";
 import { getSession } from "@/server/auth/session";
 import { readCart } from "@/server/cart/cart";
@@ -36,7 +38,7 @@ export default async function CartPage() {
   ]);
   const cart = await readCart(owner, viewer, shipping, discount.percent);
 
-  if (cart.lines.length === 0 && cart.ebooks.length === 0) {
+  if (cart.lines.length === 0 && cart.ebooks.length === 0 && cart.courses.length === 0) {
     return (
       <div className="shell py-10 sm:py-16">
         <EmptyState
@@ -61,7 +63,7 @@ export default async function CartPage() {
     <PageHero
       eyebrow={copy.eyebrow}
       title={copy.title}
-      description={`${copy.itemCount(cart.lines.length + cart.ebooks.length)}. ${copy.titleEmphasis}`}
+      description={`${copy.itemCount(cart.lines.length + cart.ebooks.length + cart.courses.length)}. ${copy.titleEmphasis}`}
     />
     <div className="shell pt-7 pb-24 md:pt-13.5">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
@@ -77,6 +79,13 @@ export default async function CartPage() {
             <ul aria-label={copy.ebook.listLabel} className="flex flex-col gap-4">
               {cart.ebooks.map((line) => (
                 <CartEbookItem key={line.ebookId} line={line} />
+              ))}
+            </ul>
+          )}
+          {cart.courses.length > 0 && (
+            <ul aria-label={coursesCopy.cartLine.listLabel} className="flex flex-col gap-4">
+              {cart.courses.map((line) => (
+                <CartCourseItem key={line.courseId} line={line} />
               ))}
             </ul>
           )}

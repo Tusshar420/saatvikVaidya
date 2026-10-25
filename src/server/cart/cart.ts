@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { productImageSrc } from "@/lib/catalogue";
+import { courseForSale } from "@/lib/courses";
 import { ebookCoverSrc } from "@/lib/ebooks";
 import { MAX_QUANTITY_INPUT } from "@/lib/orders";
 import { db } from "@/server/db";
@@ -10,6 +11,7 @@ import {
   type OrderTotals,
   type ShippingRule,
 } from "@/server/checkout/totals";
+import { enrolledCourseIds } from "@/server/courses/courses";
 import { ownedEbookIds } from "@/server/ebooks/ebooks";
 import { priceFor, type PriceTier, type PricingViewer } from "@/server/pricing/rules";
 
@@ -17,8 +19,8 @@ import { priceFor, type PriceTier, type PricingViewer } from "@/server/pricing/r
 // a guest cookie (src/server/cart/request.ts works out which). It stores only
 // products and quantities: every read prices the lines again with
 // priceFor(), so a price change or an approval shows straight away and the
-// browser never sends a price. Paid ebooks (P1.8) can be lines too: one copy
-// each, no stock, no MOQ and no delivery.
+// browser never sends a price. Paid ebooks (P1.8) and course seats (B1) can
+// be lines too: one each, no stock, no MOQ and no delivery.
 
 /** Whose cart: a signed-in user's, or a guest's by cookie token hash. */
 export type CartOwner =
@@ -106,7 +108,9 @@ export type CartError =
   | { kind: "not_in_cart" }
   | { kind: "invalid_quantity" }
   /** The user already bought this ebook. */
-  | { kind: "owned" };
+  | { kind: "owned" }
+  /** The user is already enrolled in this course. */
+  | { kind: "enrolled" };
 
 export type CartChange = { ok: true; count: number } | { ok: false; error: CartError };
 
@@ -242,6 +246,58 @@ export async function removeEbookFromCart(owner: CartOwner, ebookId: number): Pr
   return { ok: true, count: await touch(cart.id) };
 }
 
+// ─── Courses (B1) ───────────────────────────────────────────────────────────
+
+/** Why a course line can't be bought: not on sale now, or already enrolled. */
+export type CourseIssue = { kind: "unavailable" } | { kind: "enrolled" };
+
+/**
+ * Adds a seat on a course. Adding one that's already in the cart changes
+ * nothing; a course the user is enrolled in is refused.
+ */
+export async function addCourseToCart(owner: CartOwner, courseId: number): Promise<CartChange> {
+  const course = await db.courseTeaser.findUnique({
+    where: { id: courseId },
+    select: { active: true, status: true, pricePaise: true },
+  });
+  if (!course || !courseForSale(course)) return { ok: false, error: { kind: "unavailable" } };
+  if (owner.kind === "user" && (await enrolledCourseIds(owner.userId, [courseId])).has(courseId)) {
+    return { ok: false, error: { kind: "enrolled" } };
+  }
+  const cartId = await ensureCart(owner);
+  const existing = await db.cartItem.findUnique({
+    where: { cartId_courseId: { cartId, courseId } },
+    select: { id: true },
+  });
+  if (!existing) {
+    const lines = await db.cartItem.count({ where: { cartId } });
+    if (lines >= MAX_CART_LINES) {
+      return { ok: false, error: { kind: "too_many_lines", max: MAX_CART_LINES } };
+    }
+    try {
+      await db.cartItem.create({ data: { cartId, courseId, quantity: 1 } });
+    } catch (error) {
+      // Added by another request at the same moment: that's fine.
+      if (!isUniqueClash(error)) throw error;
+    }
+  }
+  return { ok: true, count: await touch(cartId) };
+}
+
+/** Removes a course from the cart. Removing one that isn't there is fine. */
+export async function removeCourseFromCart(owner: CartOwner, courseId: number): Promise<CartChange> {
+  const cart = await db.cart.findUnique({ where: cartWhere(owner), select: { id: true } });
+  if (!cart) return { ok: true, count: 0 };
+  await db.cartItem.deleteMany({ where: { cartId: cart.id, courseId } });
+  return { ok: true, count: await touch(cart.id) };
+}
+
+/** True when the course is in the owner's cart (the course page's button). */
+export async function courseInCart(owner: CartOwner | null, courseId: number): Promise<boolean> {
+  if (!owner) return false;
+  return (await db.cartItem.count({ where: { cart: cartWhere(owner), courseId } })) > 0;
+}
+
 /** How many different products are in the cart (the header's bag count). */
 export async function cartCount(owner: CartOwner | null): Promise<number> {
   if (!owner) return 0;
@@ -340,10 +396,52 @@ export function priceEbookLine(ebook: CartEbookRow, owned: boolean): CartEbookLi
   };
 }
 
+export const cartCourseSelect = {
+  id: true,
+  key: true,
+  title: true,
+  instructor: true,
+  active: true,
+  status: true,
+  pricePaise: true,
+  gstRate: true,
+} satisfies Prisma.CourseTeaserSelect;
+
+export type CartCourseRow = Prisma.CourseTeaserGetPayload<{ select: typeof cartCourseSelect }>;
+
+/** A course seat in the cart: one at the course's price, nothing to deliver. */
+export type CartCourseLine = {
+  courseId: number;
+  key: string;
+  title: string;
+  instructor: string | null;
+  gstRate: number;
+  lineTotalPaise: number;
+  issue: CourseIssue | null;
+  /** For the totals: a course adds nothing to the delivery charge. */
+  digital: true;
+};
+
+/** Prices a course line. `enrolled`: the buyer already has a seat. */
+export function priceCourseLine(course: CartCourseRow, enrolled: boolean): CartCourseLine {
+  return {
+    courseId: course.id,
+    key: course.key,
+    title: course.title,
+    instructor: course.instructor,
+    gstRate: course.gstRate,
+    lineTotalPaise: course.pricePaise ?? 0,
+    issue: enrolled ? { kind: "enrolled" } : courseForSale(course) ? null : { kind: "unavailable" },
+    digital: true,
+  };
+}
+
 export type CartView = {
   lines: CartLine[];
   /** Paid ebooks, after the products. */
   ebooks: CartEbookLine[];
+  /** Course seats, after the ebooks. */
+  courses: CartCourseLine[];
   /** Totals of the lines that can be bought (not unavailable or out of stock). */
   totals: OrderTotals;
   /** True when any line has an issue, so checkout must wait. */
@@ -387,15 +485,17 @@ export function priceLine(
 
 /**
  * The lines that count towards the totals, in the order an order stores
- * them: products that can be bought, then ebooks that can.
+ * them: products that can be bought, then ebooks, then courses.
  */
 export function totalsLinesOf(
   lines: readonly CartLine[],
   ebooks: readonly CartEbookLine[] = [],
-): (CartLine | CartEbookLine)[] {
+  courses: readonly CartCourseLine[] = [],
+): (CartLine | CartEbookLine | CartCourseLine)[] {
   return [
     ...lines.filter((line) => !isBlockingIssue(line.issue)),
     ...ebooks.filter((line) => line.issue === null),
+    ...courses.filter((line) => line.issue === null),
   ];
 }
 
@@ -404,8 +504,9 @@ export function totalsFor(
   lines: readonly CartLine[],
   shipping: ShippingRule,
   ebooks: readonly CartEbookLine[] = [],
+  courses: readonly CartCourseLine[] = [],
 ): OrderTotals {
-  return computeTotals(totalsLinesOf(lines, ebooks), shipping);
+  return computeTotals(totalsLinesOf(lines, ebooks, courses), shipping);
 }
 
 /** The cart priced for the viewer; an empty view if there's no cart. */
@@ -426,6 +527,7 @@ export async function readCart(
               quantity: true,
               product: { select: cartProductSelect },
               ebook: { select: cartEbookSelect },
+              course: { select: cartCourseSelect },
             },
           },
         },
@@ -445,10 +547,20 @@ export async function readCart(
       ? await ownedEbookIds(owner.userId, ebookRows.map((ebook) => ebook.id))
       : new Set<number>();
   const ebooks = ebookRows.map((ebook) => priceEbookLine(ebook, owned.has(ebook.id)));
+  const courseRows = items.flatMap((item) => (item.course ? [item.course] : []));
+  const enrolled =
+    owner?.kind === "user" && courseRows.length > 0
+      ? await enrolledCourseIds(owner.userId, courseRows.map((course) => course.id))
+      : new Set<number>();
+  const courses = courseRows.map((course) => priceCourseLine(course, enrolled.has(course.id)));
   return {
     lines,
     ebooks,
-    totals: totalsFor(lines, shipping, ebooks),
-    hasIssues: lines.some((line) => line.issue !== null) || ebooks.some((line) => line.issue !== null),
+    courses,
+    totals: totalsFor(lines, shipping, ebooks, courses),
+    hasIssues:
+      lines.some((line) => line.issue !== null) ||
+      ebooks.some((line) => line.issue !== null) ||
+      courses.some((line) => line.issue !== null),
   };
 }

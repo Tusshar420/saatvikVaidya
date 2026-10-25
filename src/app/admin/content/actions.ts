@@ -28,6 +28,7 @@ import {
 } from "@/server/admin/quiz";
 import { requireAdmin } from "@/server/auth/session";
 import { contentTags } from "@/server/content/cache";
+import { hasEnrolments, reviewCourse } from "@/server/courses/courses";
 
 // Server actions for /admin/content/*. Each checks the admin session itself,
 // validates with Zod and, for homepage content, expires the homepage cache
@@ -120,6 +121,10 @@ async function remove(kind: ContentKind, formData: FormData): Promise<void> {
   const { user } = await requireAdmin("content");
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
+  // A paid course keeps its page for the buyers (B1): hide it instead.
+  if (kind === "course" && (await hasEnrolments(id.data))) {
+    redirect(`${listPath.course}?error=enrolments`);
+  }
   await deleteContent(kind, id.data, user.id);
   afterChange(kind);
   redirect(`${listPath[kind]}?notice=deleted`);
@@ -167,6 +172,20 @@ export async function updateCourseAction(
 }
 export async function deleteCourseAction(formData: FormData) {
   return remove("course", formData);
+}
+
+/** Staff approve (list) or send back a doctor's course (B2). */
+export async function reviewCourseAction(id: number, _: FormState, formData: FormData): Promise<FormState> {
+  const { user } = await requireAdmin("content");
+  const values = formValues(formData);
+  const result = await reviewCourse(user.id, id, {
+    decision: values.decision ?? "",
+    note: values.note ?? "",
+  });
+  if (!result.ok) return { status: "error", message: result.error, fieldErrors: { note: result.error }, values };
+  afterChange("course");
+  revalidatePath(`/admin/content/courses/${id}/edit`);
+  return { status: "success" };
 }
 
 // ─── Quiz ───────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { ComingSoon, EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/badge";
 import { cart as cartCopy } from "@/content/cart";
+import { courses as coursesCopy } from "@/content/courses";
 import { checkout as copy } from "@/content/checkout";
 import { checkoutOff as paused } from "@/content/maintenance";
 import { formatPaise } from "@/lib/format";
@@ -63,7 +64,7 @@ export default async function CheckoutPage() {
     getSetting("coins.rules"),
   ]);
   const cart = await readCart({ kind: "user", userId: user.id }, viewer, shipping, discount.percent);
-  if (cart.lines.length === 0 && cart.ebooks.length === 0) redirect("/cart");
+  if (cart.lines.length === 0 && cart.ebooks.length === 0 && cart.courses.length === 0) redirect("/cart");
   // What the buyer's coins could take off this order, if they choose to use
   // them. The server works it out again when the order is placed.
   const offer = coinRules.enabled
@@ -76,7 +77,7 @@ export default async function CheckoutPage() {
           coins: offer.coins,
           discountPaise: offer.discountPaise,
           totals: computeTotals(
-            totalsLinesOf(cart.lines, cart.ebooks),
+            totalsLinesOf(cart.lines, cart.ebooks, cart.courses),
             shipping,
             offer.discountPaise,
           ),
@@ -115,6 +116,12 @@ export default async function CheckoutPage() {
               key: `ebook-${line.ebookId}`,
               name: line.title,
               detail: cartCopy.ebook.kind,
+              totalPaise: line.lineTotalPaise,
+            })),
+            ...cart.courses.map((line) => ({
+              key: `course-${line.courseId}`,
+              name: line.title,
+              detail: coursesCopy.cartLine.kind,
               totalPaise: line.lineTotalPaise,
             })),
           ]}

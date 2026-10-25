@@ -106,7 +106,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                     {text.openBrandOrder}
                   </Link>
                 </p>
-              ) : !shipment && order.items.every((item) => item.kind === "ebook") ? (
+              ) : !shipment && order.items.every((item) => item.kind !== "product") ? (
                 <p className="text-sm text-muted">{text.nothingToShip}</p>
               ) : !shippingOn && !shipment ? (
                 <ComingSoon as="h3" title={text.shippingOff} />

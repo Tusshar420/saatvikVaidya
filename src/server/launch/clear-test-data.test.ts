@@ -98,6 +98,20 @@ describe("clearing the test data", () => {
     await db.coinLedger.create({ data: { userId: doctor, amount: 50, reason: "earn_quiz", reference: "quiz-attempt:1" } });
     await db.thread.create({ data: { authorId: doctor, title: "A case", body: "Details" } });
     await db.thread.create({ data: { authorId: adminId, title: "Welcome, doctors", body: "Rules" } });
+    // A course the test doctor made (B2) goes; staff-made (seeded) ones stay.
+    await db.courseTeaser.create({
+      data: {
+        key: `test-course-${doctor}`,
+        tag: "Panchakarma",
+        title: "Doctor's test course",
+        body: "Summary",
+        metaLabel: "Format",
+        metaValue: "Online",
+        linkLabel: "View course",
+        authorId: doctor,
+        status: "pending",
+      },
+    });
     const screenshot = "bug-reports/x/abc123.png";
     await mkdir(dirname(join(storageDir, screenshot)), { recursive: true });
     await writeFile(join(storageDir, screenshot), "png");
@@ -120,6 +134,7 @@ describe("clearing the test data", () => {
       quizAttempts: 1,
       coinEntries: 1,
       threads: 1,
+      courses: 1,
       bugReports: 1,
       errorGroups: 1,
     });
@@ -159,6 +174,8 @@ describe("clearing the test data", () => {
       expect(await count).toBe(0);
     }
     expect(await db.thread.findMany({ select: { authorId: true } })).toEqual([{ authorId: adminId }]);
+    expect(await db.courseTeaser.count({ where: { key: `test-course-${doctor}` } })).toBe(0);
+    expect(await db.courseTeaser.count()).toBeGreaterThan(0);
     expect(await db.quiz.count()).toBe(1);
     expect(await db.product.count()).toBe(products);
     // The unpaid order's hold is given back; the paid order's sale stays.

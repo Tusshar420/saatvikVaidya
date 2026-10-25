@@ -15,6 +15,7 @@ import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { inputClasses } from "@/components/ui/field";
+import { courses as coursesCopy } from "@/content/courses";
 import { admin as copy } from "@/content/admin";
 import { cn } from "@/lib/cn";
 import { formatDate, formatNumber, formatPaise } from "@/lib/format";
@@ -188,6 +189,9 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
                   <span className="font-semibold break-words text-ink">{product.name}</span>
                   {product.kind === "ebook" && (
                     <span className="block text-small text-muted">{text.top.ebook}</span>
+                  )}
+                  {product.kind === "course" && (
+                    <span className="block text-small text-muted">{coursesCopy.cartLine.kind}</span>
                   )}
                 </Td>
                 <Td label={text.top.columns.units}>{formatNumber(product.units)}</Td>

@@ -1,4 +1,5 @@
 import "server-only";
+import { courseForSale, courseHref, listedCourseWhere } from "@/lib/courses";
 import { pageForSectionLink } from "@/lib/section-links";
 import { db } from "@/server/db";
 import { cachedRead, contentTags } from "./cache";
@@ -21,6 +22,10 @@ export type CourseCardItem = {
   instructor: string | null;
   duration: string | null;
   link: ContentLink;
+  /** Sold online (B1): its price including GST; the card then opens the course page. */
+  pricePaise: number | null;
+  /** The course page, for courses sold online. */
+  href: string | null;
 };
 
 export type LiveCardItem = {
@@ -60,7 +65,8 @@ async function readLearning(): Promise<{
   live: LiveCardItem[];
 }> {
   const [courses, live] = await Promise.all([
-    db.courseTeaser.findMany(activeInOrder),
+    // Doctors' courses are listed only once staff publish them (B2).
+    db.courseTeaser.findMany({ ...activeInOrder, where: listedCourseWhere }),
     db.liveSession.findMany(activeInOrder),
   ]);
   return {
@@ -73,6 +79,8 @@ async function readLearning(): Promise<{
       instructor: c.instructor,
       duration: c.duration,
       link: link(c.linkLabel, c.linkHref, `CourseTeaser ${c.key}`),
+      pricePaise: courseForSale(c) ? c.pricePaise : null,
+      href: courseForSale(c) ? courseHref(c.key) : null,
     })),
     live: live.map((s) => ({
       key: s.key,

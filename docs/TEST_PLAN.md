@@ -46,10 +46,10 @@ do not complete the payment.
 
 | No. | What to set up | How | Done |
 | --- | --- | --- | --- |
-| S1 | Admin accounts for staff | Ask the developer for one admin account per staff tester. Admin invitation emails are not sent yet. Each admin needs an **authenticator app** on their phone (Google Authenticator or Microsoft Authenticator). The site asks you to set it up at your first sign-in. | ☐ |
+| S1 | Admin accounts for staff | The developer makes the **first** admin account. That admin then opens Admin panel → **Admins** → **Invite an admin**, types the staff member's email and role, and taps **Send invitation**. Emails aren't sent yet, so the page shows an **Invitation link**: tap **Copy link** and send it to the staff member on WhatsApp. It works once, within 72 hours. Each admin needs an **authenticator app** on their phone (Google Authenticator or Microsoft Authenticator). The site asks you to set it up at your first sign-in. | ☐ |
 | S2 | Payment details | Admin panel → **Settings** → **Payment details (QR and bank)**. Fill in the name, **UPI ID**, bank name, account number and IFSC code. Save. Without these, the pay screen only says "please call us". | ☐ |
 | S3 | Stock | Admin panel → **Inventory**. Make sure at least 3 shop products have stock (10 or more each). | ☐ |
-| S4 | A course | Admin panel → **Courses** → **Add a course**. Add one test course called "TEST course". | ☐ |
+| S4 | A course | Admin panel → **Courses** → **Add a course**. Add one test course called "TEST course" with a price (for example 499) under **Selling online**. | ☐ |
 | S5 | A quiz | Admin panel → **Quiz** → **Add quiz**. Title "TEST quiz". Tick **Published**. **Opens** = today, **Closes** = 6 days later. Add **exactly 10 questions** (the site insists on 10), each with 2–4 options and the correct answer ticked. Save. | ☐ |
 
 ---
@@ -126,7 +126,7 @@ regular buyer and a bulk buyer. Use a different email for each.
 
 ## 4. Doctor: verification and Dr. Talk
 
-The site has no tool yet for doctors to create courses. See section 5.
+Doctors creating and selling their own courses is in section 5.
 
 | No. | Test | Steps | Expected result | Pass / Fail |
 | --- | --- | --- | --- | --- |
@@ -142,19 +142,27 @@ The site has no tool yet for doctors to create courses. See section 5.
 
 ## 5. Courses
 
-**Not built yet** (see `docs/test-report.md`): buying a course online, and a
-place for doctors to create or manage their own courses. Courses are added
-by staff, and visitors register their interest by phone. Don't report these
-two as Fails. Test what is there now.
+Courses with a price are bought online, like medicines: **Enrol** puts the
+course in the cart, and payment is by QR or bank transfer. Courses without a
+price show "Enrolment opens soon" with a Call button. Approved doctors make
+their own courses under **Teach a course**; staff check each one before it is
+listed.
 
 | No. | Test | Steps | Expected result | Pass / Fail |
 | --- | --- | --- | --- | --- |
-| 5.1 | Browse courses | 1) Open **Courses**. 2) Scroll the course cards. 3) Tap the topic buttons (All topics, Foundation course, …). | Course cards show title, text and details. The topic buttons filter the cards. | ☐ Pass ☐ Fail |
-| 5.2 | Course interest | 1) Tap the button on a course card. | "Enrolment opens soon", with a **Call +91 …** button. On a phone, the Call button opens the dialler with the firm's number. | ☐ Pass ☐ Fail |
-| 5.3 | Saatvik Live | 1) On **Courses**, tap **Saatvik Live**. | The page jumps to the list of live sessions (or says there are none). | ☐ Pass ☐ Fail |
-| 5.4 | Staff add a course | 1) Staff: Admin panel → **Courses** → **Add a course**. 2) Fill in Title, text, Instructor, Duration. 3) Save. 4) Open the public **Courses** page. | The new course shows on the Courses page. | ☐ Pass ☐ Fail |
-| 5.5 | Staff edit and hide a course | 1) Staff: edit the course from 5.4 and change its title. 2) Save and check the Courses page. 3) Untick **Show on the site** (or delete it) and check again. | The new title shows. Once hidden or deleted, the course is gone from the public page. | ☐ Pass ☐ Fail |
-| 5.6 | Ebooks | 1) **Courses** → **Ebooks & Resources**. 2) Open a free ebook. | The ebook page opens. A free ebook can be read or downloaded. | ☐ Pass ☐ Fail |
+| 5.1 | Browse courses | 1) Open **Courses**. 2) Scroll the course cards. 3) Tap the topic buttons (All topics, Foundation course, …). | Course cards show title, text and details. Courses sold online show their price. The topic buttons filter the cards. | ☐ Pass ☐ Fail |
+| 5.2 | Course without a price | 1) Tap **View course** on a course with no price. | "Enrolment opens soon", with a **Call +91 …** button. On a phone, the Call button opens the dialler. | ☐ Pass ☐ Fail |
+| 5.3 | Doctor creates a course | 1) Approved doctor (from 4.4): **My account** → **Teach a course**. 2) **Create a course**. 3) Fill in title, topic, format, summary, a price (for example 999) and the joining details (for example a Zoom link). 4) **Send for review**. | "Saved. Our team will check your course before it's listed." The course shows **Waiting for review**. It is **not** on the Courses page yet. | ☐ Pass ☐ Fail |
+| 5.4 | Doctor form mistakes | 1) **Create a course**, leave the title empty and type "abc" as the price. 2) **Send for review**. | A red message under the title and under the price. Nothing is saved. | ☐ Pass ☐ Fail |
+| 5.5 | Not a doctor | 1) Sign in as the regular buyer (or a doctor not yet approved). 2) Open the address `/doctor/courses`. | "For verified doctors" and a button to My account. No course form. | ☐ Pass ☐ Fail |
+| 5.6 | Staff send a course back | 1) Staff: Admin panel → **Courses**. The doctor's course shows "Waiting for review". 2) Open it. 3) In **Review**, type a note and tap **Send back for changes**. 4) Doctor: open **Teach a course**. | The doctor sees **Needs changes** and the staff's note. The doctor also gets a notification (bell). | ☐ Pass ☐ Fail |
+| 5.7 | Staff approve a course | 1) Doctor: edit the course and **Send for review** again. 2) Staff: open it and tap **Approve and list**. 3) Open the public **Courses** page. | The course is listed with its price. The doctor gets a notification and sees **Listed**. | ☐ Pass ☐ Fail |
+| 5.8 | Buy a course | 1) Regular buyer: open the course from 5.7. 2) Check that the joining details are **not** shown. 3) **Enrol: add to cart**. 4) **Go to cart** → **Check out**, choose an address → **Place order**. | The cart shows the course as "Online course", with no delivery charge. The QR / bank payment screen opens with the course price (section 8). | ☐ Pass ☐ Fail |
+| 5.9 | Enrolled after payment | 1) Staff: mark the order paid (8.5). 2) Buyer: open the course page again, and **My account** → **My courses**. | "You're enrolled" and the joining details from 5.3. The course is under **My courses**. The buyer and the doctor both get a notification. The doctor's course shows "1 enrolment". | ☐ Pass ☐ Fail |
+| 5.10 | Can't buy twice | 1) Buyer: open the same course again. | No Enrol button; it shows "You're enrolled". | ☐ Pass ☐ Fail |
+| 5.11 | Staff add, edit and hide a course | 1) Staff: **Courses** → **Add a course**, fill it in with a price, save. 2) Edit it and change the title. 3) Untick **Show on the site**. | The course shows on the Courses page with the new title, then disappears once hidden. A course someone has paid for can't be deleted; hide it instead. | ☐ Pass ☐ Fail |
+| 5.12 | Saatvik Live | 1) On **Courses**, tap **Saatvik Live**. | The page jumps to the list of live sessions (or says there are none). | ☐ Pass ☐ Fail |
+| 5.13 | Ebooks | 1) **Courses** → **Ebooks & Resources**. 2) Open a free ebook. | The ebook page opens. A free ebook can be read or downloaded. | ☐ Pass ☐ Fail |
 
 ## 6. Medicine shop: browse and order (regular buyer)
 
@@ -227,8 +235,8 @@ Needs the quiz from set-up step S5.
 ## 10. Phones, tablets, computers and browsers
 
 **How:** each tester takes one row of the device table and runs these
-**quick checks** on it: 1.1, 1.3, 1.4, 2.6, 2.5, 3.1, 6.1, 6.3, 6.4, 6.8,
-8.1, 8.4 (phones only), 9.3 and 4.6 (doctor) or 7.1 (bulk buyer).
+**quick checks** on it: 1.1, 1.3, 1.4, 2.6, 2.5, 3.1, 5.8, 6.1, 6.3, 6.4,
+6.8, 8.1, 8.4 (phones only), 9.3 and 4.6 (doctor) or 7.1 (bulk buyer).
 
 On every device, also check:
 
@@ -263,14 +271,15 @@ On every device, also check:
 
 - **Mobile number sign-in (OTP)** doesn't work yet: no text messages are
   sent. Use email.
-- **No emails** are sent: forgot password, order confirmations, admin
-  invitations. If you are locked out, staff can make you a new account
-  (Admin panel → **Users** → **Add a user**, with a password you choose).
+- **No emails** are sent: forgot password and order confirmations. Admin
+  invitations show a link on screen to send by hand (S1). If you are locked
+  out, staff can make you a new account (Admin panel → **Users** → **Add a
+  user**, with a password you choose).
 - **Online card/UPI gateway (Razorpay)** comes 2–3 months after launch.
   Payment is by QR or bank transfer, and staff mark orders paid.
 - **Courier booking and live tracking** wait for the courier service.
-- **Buying courses** and a **doctors' course area** are not built yet
-  (see `docs/test-report.md`).
+- **Paying doctors their share** of course sales is done by staff outside
+  the site, by bank transfer.
 
 ## After testing
 

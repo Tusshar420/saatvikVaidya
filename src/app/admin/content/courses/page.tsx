@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ActiveBadge } from "@/components/admin/badges";
+import { FormAlert } from "@/components/site/auth/form-alert";
+import { Badge } from "@/components/ui/badge";
 import {
   DataTable,
   EmptyRow,
@@ -16,6 +18,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { RowActions } from "@/components/admin/row-actions";
 import { buttonClasses } from "@/components/ui/button";
 import { admin as copy } from "@/content/admin";
+import { courses as coursesCopy } from "@/content/courses";
 import { listCourses } from "@/server/admin/content";
 import { requireAdmin } from "@/server/auth/session";
 import { deleteCourseAction } from "../actions";
@@ -23,6 +26,8 @@ import { deleteCourseAction } from "../actions";
 export const metadata: Metadata = { title: copy.courses.metaTitle };
 
 const text = copy.courses;
+const review = coursesCopy.doctor.status;
+const reviewBadge = { pending: "orange", published: "success", rejected: "gold" } as const;
 
 export default async function CoursesPage({
   searchParams,
@@ -44,10 +49,14 @@ export default async function CoursesPage({
         }
       />
       <Notice notice={parseNotice(params.notice)} />
+      {params.error === "enrolments" && (
+        <FormAlert className="mt-6">{coursesCopy.admin.errors.hasEnrolments}</FormAlert>
+      )}
       <DataTable caption={text.title} className="mt-6">
         <THead>
           <Th>{text.columns.title}</Th>
           <Th>{text.columns.instructor}</Th>
+          <Th>{coursesCopy.admin.statusColumn}</Th>
           <Th>{text.columns.duration}</Th>
           <Th>{text.columns.status}</Th>
           <Th>{text.columns.sortOrder}</Th>
@@ -57,7 +66,7 @@ export default async function CoursesPage({
         </THead>
         <TBody>
           {courses.length === 0 && (
-            <EmptyRow colSpan={6}>{text.empty}</EmptyRow>
+            <EmptyRow colSpan={7}>{text.empty}</EmptyRow>
           )}
           {courses.map((course) => (
             <Tr key={course.id}>
@@ -69,6 +78,12 @@ export default async function CoursesPage({
               </Td>
               <Td label={text.columns.instructor}>
                 {course.instructor ?? text.notSet}
+                <span className="block text-small text-muted">
+                  {course.author ? coursesCopy.review.by(course.author.name) : coursesCopy.review.staffMade}
+                </span>
+              </Td>
+              <Td label={coursesCopy.admin.statusColumn}>
+                <Badge variant={reviewBadge[course.status]}>{review[course.status]}</Badge>
               </Td>
               <Td label={text.columns.duration}>
                 {course.duration ?? text.notSet}

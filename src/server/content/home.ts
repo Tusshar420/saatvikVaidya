@@ -7,6 +7,7 @@ import type {
 } from "@/generated/prisma/enums";
 import type { HomeSection as HomeSectionRow } from "@/generated/prisma/client";
 import { catalogueHref } from "@/lib/catalogue";
+import { courseForSale, courseHref, listedCourseWhere } from "@/lib/courses";
 import { pageForSectionLink } from "@/lib/section-links";
 import { db } from "@/server/db";
 import { cachedRead, contentTags } from "./cache";
@@ -205,7 +206,8 @@ export async function readHomeContent(): Promise<HomeContent> {
     when(["quick-actions"], () => db.quickAction.findMany(activeInOrder)),
     when(["launch"], () => db.category.findMany(activeInOrder)),
     when(["brands"], () => db.brand.findMany(activeInOrder)),
-    when(["courses"], () => db.courseTeaser.findMany(activeInOrder)),
+    // Doctors' courses are listed only once staff publish them (B2).
+    when(["courses"], () => db.courseTeaser.findMany({ ...activeInOrder, where: listedCourseWhere })),
     when(["courses"], () => db.liveSession.findMany(activeInOrder)),
     when(["feedback"], () =>
       db.feedback.findMany({
@@ -399,7 +401,11 @@ export async function readHomeContent(): Promise<HomeContent> {
         sections.push({
           key,
           heading,
-          courses: courses.map((c) => learning(c, "CourseTeaser")),
+          courses: courses.map((c) => {
+            const item = learning(c, "CourseTeaser");
+            // Sold online (B1): the card opens the course page.
+            return courseForSale(c) ? { ...item, link: { label: item.link.label, href: courseHref(c.key) } } : item;
+          }),
           liveSessions: liveSessions.map((s) => learning(s, "LiveSession")),
         });
         break;

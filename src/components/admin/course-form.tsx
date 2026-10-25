@@ -2,12 +2,15 @@
 
 import { useActionState } from "react";
 import { admin as copy } from "@/content/admin";
+import { courses as coursesCopy } from "@/content/courses";
+import { gstRates } from "@/lib/catalogue";
 import { idleForm, type FormState } from "@/server/admin/form";
 import { KeyField, PlacementFields } from "./content-fields";
 import {
   FormActions,
   FormError,
   FormSection,
+  SelectField,
   TextAreaField,
   TextField,
   useFormValues,
@@ -15,6 +18,7 @@ import {
 } from "./form-fields";
 
 const text = copy.courses;
+const sale = coursesCopy.admin;
 const form = text.form;
 
 export type CourseFormProps = {
@@ -69,6 +73,39 @@ export function CourseForm({ action, initial, mode }: CourseFormProps) {
           help={form.videoUrlHelp}
           values={values}
           maxLength={300}
+          optional
+          className="sm:col-span-2"
+        />
+      </FormSection>
+      <FormSection title={sale.sectionTitle}>
+        <TextField
+          name="price"
+          label={sale.price}
+          help={sale.priceHelp}
+          values={values}
+          inputMode="decimal"
+          optional
+        />
+        <SelectField
+          name="gstRate"
+          label={sale.gstRate}
+          values={values}
+          options={gstRates.map((rate) => ({ value: String(rate), label: `${rate}%` }))}
+        />
+        <TextAreaField
+          name="details"
+          label={sale.details}
+          values={values}
+          maxLength={5000}
+          optional
+          className="sm:col-span-2"
+        />
+        <TextAreaField
+          name="accessDetails"
+          label={sale.accessDetails}
+          help={sale.accessDetailsHelp}
+          values={values}
+          maxLength={2000}
           optional
           className="sm:col-span-2"
         />

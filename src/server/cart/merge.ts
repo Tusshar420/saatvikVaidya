@@ -15,7 +15,7 @@ export async function mergeGuestCart(tokenHash: string, userId: string): Promise
   return db.$transaction(async (tx) => {
     const guest = await tx.cart.findUnique({
       where: { guestTokenHash: tokenHash },
-      select: { id: true, items: { select: { productId: true, ebookId: true, quantity: true } } },
+      select: { id: true, items: { select: { productId: true, ebookId: true, courseId: true, quantity: true } } },
     });
     if (!guest) return 0;
     // Deleting first claims the merge: another sign-in racing this one
@@ -28,13 +28,14 @@ export async function mergeGuestCart(tokenHash: string, userId: string): Promise
       (await tx.cart.create({ data: { userId }, select: { id: true } }));
     const current = await tx.cartItem.findMany({
       where: { cartId: cart.id },
-      select: { productId: true, ebookId: true, quantity: true },
+      select: { productId: true, ebookId: true, courseId: true, quantity: true },
     });
     const quantities = new Map(
       current.flatMap((item) => (item.productId === null ? [] : [[item.productId, item.quantity] as const])),
     );
     const ebooks = new Set(current.flatMap((item) => (item.ebookId === null ? [] : [item.ebookId])));
-    const lineCount = () => quantities.size + ebooks.size;
+    const courses = new Set(current.flatMap((item) => (item.courseId === null ? [] : [item.courseId])));
+    const lineCount = () => quantities.size + ebooks.size + courses.size;
 
     let moved = 0;
     for (const item of guest.items) {
@@ -43,6 +44,14 @@ export async function mergeGuestCart(tokenHash: string, userId: string): Promise
         if (ebooks.has(item.ebookId) || lineCount() >= MAX_CART_LINES) continue;
         await tx.cartItem.create({ data: { cartId: cart.id, ebookId: item.ebookId, quantity: 1 } });
         ebooks.add(item.ebookId);
+        moved += 1;
+        continue;
+      }
+      // Course seats (B1): the same, one each.
+      if (item.courseId !== null) {
+        if (courses.has(item.courseId) || lineCount() >= MAX_CART_LINES) continue;
+        await tx.cartItem.create({ data: { cartId: cart.id, courseId: item.courseId, quantity: 1 } });
+        courses.add(item.courseId);
         moved += 1;
         continue;
       }

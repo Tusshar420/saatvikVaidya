@@ -5,13 +5,18 @@ import { ORDER_NUMBER_ALPHABET, isOrderId } from "@/lib/orders";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
 import {
+  cartCourseSelect,
   cartEbookSelect,
   cartProductSelect,
+  priceCourseLine,
   priceEbookLine,
   priceLine,
 } from "@/server/cart/cart";
 import { checkout as checkoutCopy } from "@/content/checkout";
+import { courses as coursesCopy } from "@/content/courses";
+import { COURSE_SAC_CODE } from "@/lib/courses";
 import { EBOOK_SAC_CODE } from "@/lib/ebooks";
+import { enrolledCourseIds } from "@/server/courses/courses";
 import { ownedEbookIds } from "@/server/ebooks/ebooks";
 import { db } from "@/server/db";
 import { sellableByProduct } from "@/server/inventory/availability";
@@ -124,6 +129,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
                 quantity: true,
                 product: { select: cartProductSelect },
                 ebook: { select: cartEbookSelect },
+                course: { select: cartCourseSelect },
               },
             },
           },
@@ -148,13 +154,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         const ebookRows = items.flatMap((item) => (item.ebook ? [item.ebook] : []));
         const owned = await ownedEbookIds(userId, ebookRows.map((ebook) => ebook.id), tx);
         const ebookLines = ebookRows.map((ebook) => priceEbookLine(ebook, owned.has(ebook.id)));
+        // Course seats (B1) come last.
+        const courseRows = items.flatMap((item) => (item.course ? [item.course] : []));
+        const enrolled = await enrolledCourseIds(userId, courseRows.map((course) => course.id), tx);
+        const courseLines = courseRows.map((course) => priceCourseLine(course, enrolled.has(course.id)));
         if (
           lines.some(({ line }) => line.issue !== null) ||
-          ebookLines.some((line) => line.issue !== null)
+          ebookLines.some((line) => line.issue !== null) ||
+          courseLines.some((line) => line.issue !== null)
         ) {
           throw new CheckoutRefused("cart_changed");
         }
-        const priced = [...lines.map(({ line }) => line), ...ebookLines];
+        const priced = [...lines.map(({ line }) => line), ...ebookLines, ...courseLines];
         // Coins are worked out from the ledger under a lock on the user, so
         // two checkouts at once can't use the same coins.
         let coinsUsed = 0;
@@ -220,6 +231,26 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
                     productName: line.title,
                     packSize: checkoutCopy.ebookPackSize,
                     hsnCode: EBOOK_SAC_CODE,
+                    gstRate: line.gstRate,
+                    mrpPaise: line.lineTotalPaise,
+                    unitPaise: line.lineTotalPaise,
+                    priceTier: "mrp",
+                    quantity: 1,
+                    lineTotalPaise: line.lineTotalPaise,
+                    discountPaise,
+                    taxPaise: gstIncluded(line.lineTotalPaise - discountPaise, line.gstRate),
+                  };
+                }),
+                ...courseLines.map((line, offset) => {
+                  const discountPaise =
+                    totals.lineDiscountsPaise[lines.length + ebookLines.length + offset]!;
+                  return {
+                    kind: "course" as const,
+                    courseId: line.courseId,
+                    productSlug: line.key,
+                    productName: line.title,
+                    packSize: coursesCopy.cartLine.kind,
+                    hsnCode: COURSE_SAC_CODE,
                     gstRate: line.gstRate,
                     mrpPaise: line.lineTotalPaise,
                     unitPaise: line.lineTotalPaise,
@@ -410,8 +441,11 @@ export type OrderView = {
     pincode: string;
   };
   items: {
-    /** "ebook" lines (P1.8) link to /ebooks and have nothing to deliver. */
-    kind: "product" | "ebook";
+    /**
+     * "ebook" lines (P1.8) link to /ebooks and "course" lines (B1) to the
+     * course page (productSlug holds its key); neither has anything to deliver.
+     */
+    kind: "product" | "ebook" | "course";
     ebookId: number | null;
     productSlug: string;
     productName: string;

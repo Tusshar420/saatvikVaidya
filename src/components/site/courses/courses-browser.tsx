@@ -9,6 +9,7 @@ import { Modal, ModalContent, ModalTrigger } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { telHref } from "@/lib/phone";
+import { courses as coursesCopy } from "@/content/courses";
 import { portalPages } from "@/content/portal-pages";
 import type { CourseCardItem } from "@/server/content/pages";
 import { pillClasses, portalCardClasses } from "../portal/page-hero";
@@ -24,8 +25,9 @@ function sentenceCase(text: string): string {
 }
 
 /**
- * Course cards with level chips built from the courses' own tags. "View
- * course" opens the details; enrolment shows a coming-soon note until P3.1.
+ * Course cards with level chips built from the courses' own tags. A course
+ * sold online (B1) shows its price and opens its course page; the others
+ * open the details with a call to enrol.
  */
 export function CoursesBrowser({
   courses,
@@ -171,7 +173,19 @@ function CourseCard({
           ))}
         </dl>
         <div className="mt-auto">
-          {course.link.href ? (
+          {course.href && course.pricePaise !== null ? (
+            <>
+              <p className="mb-3 text-lg font-extrabold text-ink">
+                {coursesCopy.card.price(course.pricePaise)}
+              </p>
+              <Link
+                href={course.href}
+                className="flex min-h-11 w-full items-center justify-center rounded-[9px] bg-brand text-small font-extrabold text-white transition-colors hover:bg-brand-mid"
+              >
+                {coursesCopy.card.view}
+              </Link>
+            </>
+          ) : course.link.href ? (
             <Link
               href={course.link.href}
               className="flex min-h-11 w-full items-center justify-center rounded-[9px] bg-brand text-small font-extrabold text-white transition-colors hover:bg-brand-mid"

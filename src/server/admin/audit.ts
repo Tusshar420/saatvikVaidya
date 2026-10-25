@@ -21,6 +21,7 @@ export type AdminAction =
   | "course.create"
   | "course.update"
   | "course.delete"
+  | "course.review"
   | "quiz.create"
   | "quiz.update"
   | "quiz.delete"

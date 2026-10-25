@@ -136,6 +136,7 @@ describe("without an admin session", () => {
     ["createQuizAction", () => content.createQuizAction(idle, reel)],
     ["updateQuizAction", () => content.updateQuizAction(1, idle, reel)],
     ["deleteQuizAction", () => content.deleteQuizAction(formData({ id: "1" }))],
+    ["reviewCourseAction", () => content.reviewCourseAction(1, idle, formData({ decision: "approve" }))],
   ];
 
   it("covers every exported action", () => {

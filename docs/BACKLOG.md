@@ -28,3 +28,15 @@ Move an item into `docs/CHUNKS.md` when it is picked up.
   created yet; no admin screen to hide threads or replies.
 - Homepage text and Why Saatvik steps in the database still hold the old
   wording.
+
+## Courses (after B1 and B2, 2026-10-25)
+
+- Doctors' share of course sales: today staff pay it outside the site. A
+  payout report per doctor (sales, GST, share) would help once courses sell.
+- Free online courses with enrolment (today a course with no price offers a
+  call instead).
+- Hosted course content (videos, files, lessons) instead of joining details
+  as text; a YouTube player on the course page needs a CSP change.
+- Course orders in Admin → Orders look like other store orders; a filter for
+  course orders would help staff.
+- Saatvik Live sessions are seeded only; no admin screen yet.
