@@ -126,6 +126,8 @@ test("a doctor's course is reviewed, bought and opened by the buyer", async ({ p
   await page.goto(`/courses/${course.key}`);
   await expect(page.getByText(copy.page.enrolledTitle)).toBeVisible();
   await expect(page.getByText(access)).toBeVisible();
+  // The meeting address can be tapped.
+  await expect(page.getByRole("link", { name: "https://example.test/room" })).toHaveAttribute("href", "https://example.test/room");
   await checkPage(page, errors);
   await page.goto("/account#account-courses");
   const mine = page.getByRole("region", { name: copy.account.title });

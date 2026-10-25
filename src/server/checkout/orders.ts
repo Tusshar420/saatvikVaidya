@@ -101,8 +101,8 @@ async function orderForKey(userId: string, checkoutKey: string) {
 
 /**
  * Turns the user's cart into an order waiting for payment and starts the
- * first payment attempt. The cart and stock don't change until the payment
- * succeeds.
+ * first payment attempt. The stock is held, and the cart kept, until the
+ * payment succeeds; paying by QR or bank transfer empties the cart at once.
  */
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   const { userId, viewer, checkoutKey } = input;
@@ -286,6 +286,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           where: { id: address.id },
           data: { lastUsedAt: new Date() },
         });
+        // A QR or bank payment is made later, outside the site, and staff
+        // mark it paid hours afterwards. A cart still full after "Your order
+        // is placed" looks like a failed order and invites a duplicate, so it
+        // is emptied now (as brand orders do).
+        if (getPaymentProvider().name === "manual") {
+          await tx.cartItem.deleteMany({ where: { cart: { userId } } });
+        }
         return id;
       });
     } catch (error) {

@@ -83,6 +83,8 @@ export type CoursePage = {
   /** Not listed yet (or hidden): only the author and staff see it. */
   preview: boolean;
   enrolled: boolean;
+  /** The viewer's order for this course that still waits for payment (QR or bank transfer). */
+  awaitingPaymentOrderId: string | null;
   isAuthor: boolean;
   /** Only for enrolled buyers, the author and staff. */
   accessDetails: string | null;
@@ -103,6 +105,14 @@ export async function readCoursePage(key: string, viewer: CourseViewer): Promise
   const enrolled = viewer ? (await enrolledCourseIds(viewer.id, [course.id])).has(course.id) : false;
   if (!listed && !isAdmin && !isAuthor && !enrolled) return null;
   const canSeeAccess = enrolled || isAuthor || isAdmin;
+  const awaiting =
+    viewer && !enrolled
+      ? await db.order.findFirst({
+          where: { userId: viewer.id, status: "pending_payment", items: { some: { kind: "course", courseId: course.id } } },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        })
+      : null;
   return {
     id: course.id,
     key: course.key,
@@ -118,6 +128,7 @@ export async function readCoursePage(key: string, viewer: CourseViewer): Promise
     forSale: courseForSale(course),
     preview: !listed,
     enrolled,
+    awaitingPaymentOrderId: awaiting?.id ?? null,
     isAuthor,
     accessDetails: canSeeAccess ? course.accessDetails : null,
     canSeeAccess,

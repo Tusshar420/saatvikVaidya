@@ -68,7 +68,7 @@ test("the customer pays by QR or bank transfer and an admin marks the order paid
   await expect(adminPage.getByText(adminSettings.errors.upi)).toBeVisible();
 
   // The customer orders.
-  await signInAs(page, baseURL!, { role: "user" });
+  const customer = await signInAs(page, baseURL!, { role: "user" });
   await page.goto(`/products/${product.slug}`);
   await page.getByRole("button", { name: cart.add.button }).click();
   await expect(page.getByText(cart.add.addedLine(product.name))).toBeVisible();
@@ -95,6 +95,10 @@ test("the customer pays by QR or bank transfer and an admin marks the order paid
   await expect(page.getByText("Pay within 24 hours.")).toBeVisible();
   // No test-payment buttons in manual mode.
   await expect(page.getByRole("button", { name: checkout.pay.success })).toHaveCount(0);
+  // The cart is emptied at once, so the way on is My orders, not the cart.
+  expect(await e2eDb().cartItem.count({ where: { cart: { userId: customer.id } } })).toBe(0);
+  await expect(page.getByRole("link", { name: checkout.pay.manual.viewOrders })).toHaveAttribute("href", "/orders");
+  await expect(page.getByRole("link", { name: checkout.failed.backToCart })).toHaveCount(0);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
 

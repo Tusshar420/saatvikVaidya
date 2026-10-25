@@ -1,147 +1,113 @@
-# Test report: 25 October 2026 (second pass)
+# Test report: 25 October 2026 (third pass)
 
-QA check of the site on `dev` against the project brief, before team testing
-on the test address. This is the second pass today; the first one's fixes
-(friendly "page not found" screen, "My brand orders" link, no quiz timer
-without a quiz) are in commit `69ba8e3`.
+A QA check of the site on `dev` against the project brief, before team
+testing on the test address. It is the first check since course sales and
+the doctors' course area were built (commit `f1fbc33`). The two earlier
+passes from today are in the git history of this file (commits `69ba8e3`
+and `66dd003`).
 
-For the team: the checklist is `docs/TEST_PLAN.md`, and problems go in the
-new bug log, `docs/BUG_LOG.md`.
+Problems found are in `docs/BUG_LOG.md` as BUG-001 to BUG-008. The team's
+checklist is still `docs/TEST_PLAN.md`.
 
 ## Result in short
 
-- **The site works.** Every page opens for every account type, on phone and
-  computer, with no errors and no sideways scrolling.
-- **4 small bugs found and fixed** (below).
-- **Update, later the same day:** the owner asked for the open points to be
-  built. **B1, B2, B3, B7 and B8 are now done** (see "Built after the
-  owner's go-ahead"). B4, B5 and B6 are set-up or wording points, not code.
-- **Every automatic check passes** after these changes (one long brand-order
-  test is slow and sometimes runs out of time in the full run; it passes on
-  its own).
-
-## Built after the owner's go-ahead (25 October)
-
-| No. | What was built | How to test |
-| --- | --- | --- |
-| B1 | **Buying courses.** Staff (or a doctor) give a course a price. The card shows the price; the course page has **Enrol**, which puts it in the cart. Checkout and the QR / bank payment are the same as for medicines, with a GST invoice (SAC 999293, 18%) and no delivery charge. Once paid, the buyer sees "You're enrolled" and the joining details, the course appears under **My courses**, and the buyer and doctor get a notification. Courses without a price still offer a call. | `docs/TEST_PLAN.md` 5.1, 5.2, 5.8 to 5.11 |
-| B2 | **Doctor's course area.** Approved doctors get **Teach a course** on My account: create and edit courses with price, format and joining details, see enrolments, and delete a course nobody has bought. Every new course or edit waits for staff: Admin → Courses shows "Waiting for review", and **Approve and list** or **Send back for changes** (with a note the doctor sees). Staff get a notification when a doctor sends one in. | 5.3 to 5.7 |
-| B3 | **Staff invites without email.** Inviting an admin now shows the one-time link with **Copy link**, to send on WhatsApp. Only the first admin needs `pnpm admin:create`. | Set-up step S1 |
-| B7 | **Side buttons on phones.** The round Feedback and WhatsApp buttons are left out on the cart, checkout and pay screens, so they never cover prices. | 6.4, 8.4 on a phone |
-| B8 | **Staff menu.** Orders, Brand orders, Coins and Reports now sit near the top, above the home-page editing items. | Open the admin panel on a laptop |
-
-Decisions made while building (easy to change later):
-
-- A doctor's course is listed only after staff approve it, and **every edit
-  goes back to review** (it is unlisted meanwhile; people who already paid
-  keep their access).
-- Paying doctors their share of sales happens outside the site (staff see
-  enrolments per course). The doctor's form says so.
-- Online courses are paid only. A free course can be listed without a price
-  (people call to join).
-- A course someone has paid for can't be deleted, only hidden.
-- The introduction video is a link to YouTube, not a player on the page.
-- Test courses made by test doctor accounts are removed by the "clear test
-  data" step before launch, with those accounts.
+- **Every main job works** for every account type, on phone and computer,
+  paid by QR / bank transfer as on the test address.
+- **4 bugs fixed** (BUG-001 to BUG-004). The two that matter most could make
+  a buyer order and pay twice.
+- **4 smaller problems left open** (BUG-005 to BUG-008). None stops a main
+  job.
+- **Every automatic check passes** after the fixes.
+- **1 November is not at risk** from anything found today. The Mac's disk is
+  almost full, though (see "Needs a person").
 
 ## What was checked
 
 | Check | Result |
 | --- | --- |
-| Type check, lint, production build | Pass (after the fixes) |
-| Unit tests (Vitest) | 919 of 919 pass (after the fixes) |
-| Browser tests, full suite, phone 375 px and computer 1280 px | Before the fixes: 313 pass, 9 skipped on purpose, 0 fail |
-| Browser tests for the screens the fixes touch (sign-in, account, Dr. Talk, coins, checkout, admin) | After the fixes: 66 of 66 pass |
-| "Page not found" test, after its fix | 6 of 6 pass (3 times each on phone and computer) |
-| QR / bank transfer order (place order, pay screen, staff mark paid) | Pass on phone and computer (before the fixes) |
-| Hands-on: every main page as visitor, regular buyer, approved doctor, approved bulk buyer (pharmacy) and staff, at 375 and 1280 px (about 120 page views) | All open. No browser errors. No sideways scroll |
-| Hands-on: sign up by email as Ayurveda Doctor, Pharmacy / Store and Customer, on phone and computer | Works. Welcome message, name in the header, right account type on My account |
-| Hands-on: add to cart, add an address, place order, pay screen, My orders (phone and computer) | Works |
+| Type check, lint, production build | Pass |
+| Unit tests (Vitest) | 933 of 933 pass (5 new) |
+| Browser tests, phone 375 px and computer 1280 px | 292 pass, 8 skipped on purpose, 0 fail |
+| Browser tests that change site settings, and the quiz | 27 pass, 1 skipped on purpose |
+| QR / bank transfer payment test | 2 of 2 pass |
+| Hands-on walk-through (below), phone and computer, with QR payment switched on as on the test address | All jobs done. The only open problems are in the bug log |
+
+Automated tests already existed for sign-up, sign-in, ordering and payment
+details, so no basic ones had to be added. New checks were added for the
+fixes.
+
+## Hands-on walk-through
+
+Each job was done in a real browser at phone size (375 px) and computer size
+(1280 px), with screenshots, a check for browser errors, sideways scrolling
+and accessibility problems on each screen.
+
+| Account type | Job | Result |
+| --- | --- | --- |
+| Staff | Fill in the QR and bank details in Settings | Works |
+| Visitor | Sign up by email as Customer, Ayurveda Doctor and Pharmacy / Store | Works. The right account page each time; the pharmacy is asked for its licence documents |
+| Regular buyer | Browse medicines, add to cart, add an address, Place order | Works |
+| Regular buyer | Pay screen | QR code, UPI ID, name, bank, account number, IFSC, order number and the staff note all correct |
+| Staff | Mark the order paid | Works. The buyer's order then shows as paid |
+| Doctor (approved) | Create a course with a price | Works. It waits for staff review |
+| Staff | Approve the course | Works. It is then listed |
+| Doctor | Ask a question on Dr. Talk and reply | Works |
+| Regular buyer | Enrol in the course, pay by QR, staff mark paid | Works. The buyer sees "You're enrolled" and how to join |
+| Bulk buyer (approved pharmacy) | Build Your Brand: add a product, brand details and logo, address, Place order | Works. Same QR and bank details |
+| Staff | See the brand order | Works |
+| Staff and buyer | A weekly quiz: play 10 questions, see the score, coins and leaderboard | Works |
+| All five account types | Open about 30 pages each (staff: 18 staff pages) | All open. No errors. One sideways scroll seen once (BUG-008) |
 
 ## Fixed
 
-1. **Email accounts said "Mobile verification pending".** Every tester signs
-   up by email (phone codes don't work on the test address), and their
-   account page said the mobile number still needed checking, though they
-   never gave one. The line now only shows for accounts with a mobile
-   number. (`src/app/(site)/account/page.tsx`; check added to
-   `sign-in.spec.ts`)
-2. **Two names for the same coins.** The site says "Saatvik Coins"
-   everywhere, but checkout, order details and the staff pages said "Super
-   Coins". Now it is "Saatvik Coins" everywhere. (`src/content/coins.ts`,
-   `admin.ts`, `admin-site.ts`, `admin-security.ts`)
-3. **Old wording on Dr. Talk.** The "Verified Doctors" box said "Doctor
-   verification opens with Dr. Talk", as if verification weren't open yet.
-   It now says a list of verified doctors who post is coming soon.
-   (`src/content/portal-pages.ts`)
-4. **Missing product: the browser tab title changed at random** between
-   "Product not found" and "Page not found". It is now always "Page not
-   found", matching the screen. (`src/app/(site)/products/[slug]/page.tsx`)
+1. **BUG-001: the cart stayed full after a QR order.** With QR or bank
+   transfer, staff confirm the payment hours later. Until then the products
+   stayed in the cart, so a buyer could think the order failed and order
+   again. The cart is now emptied when the order is placed, as brand orders
+   already did. Online payment (Razorpay, later) still empties it once paid.
+2. **BUG-002: a course could be ordered twice.** While a course order
+   waited for payment, the course page offered Enrol again. It now says
+   "Waiting for your payment" with a **See how to pay** button.
+3. **BUG-003: "Back to cart" under the payment details.** It is now **View
+   my orders**.
+4. **BUG-004: the course meeting link couldn't be tapped.** Web links in a
+   course's joining details are now links.
 
-## Bigger issues found (B1, B2, B3, B7, B8 are now built; see above)
+## Left open (see the bug log)
 
-B1 to B6 are unchanged from this morning's report.
+| Bug | What | Suggestion |
+| --- | --- | --- |
+| BUG-005 (Medium) | A paid ebook can be ordered twice while the first order waits for payment (no "waiting for payment" state on the ebook page) | Same fix as BUG-002, for ebooks. Not done today because it changes the ebook access rules. Low risk if ebooks are few at launch |
+| BUG-006 (Low) | A course-only checkout says "Where should we deliver?" | Change the wording for course-only carts. Left alone because the checkout wording is in the middle of a text review (`docs/TEXT_CHANGES.md`) |
+| BUG-007 (Low) | On phones, the round side buttons cover the right end of the course button | Hide them on course pages too, as on cart and checkout |
+| BUG-008 (Low) | Build Your Brand scrolled sideways once on a phone, signed out | Team: watch for it on real phones |
 
-| No. | Issue | Effect | Suggestion |
-| --- | --- | --- | --- |
-| B1 (built) | **Courses can't be bought.** Cards say "Enrolment opens soon" with a Call button. The brief says "Courses: browse and buy". | Doctors can't sell courses online. | Owner decides: launch with enrolment by phone, or build course sales after launch. Building it now puts 1 November at risk. |
-| B2 (built) | **No doctor area to create or manage courses.** Only staff add courses. | Same as B1. | Same as B1. Staff can add doctors' courses for them at launch. |
-| B3 (built) | **Staff can't be invited on the test address.** Invitations go by email, which isn't sent yet. | Only the first admin can get in. | Developer runs `pnpm admin:create` once per staff tester on the server. |
-| B4 | **No sign-up option called "bulk buyer".** Testers pick Pharmacy / Store or Stockist / Distributor. | Testers may be unsure what to pick. The test plan explains it. | Owner decides whether the labels are fine. |
-| B5 | **Locked-out testers.** No emails or phone codes, no admin password reset. | A tester who forgets a password needs a new account. | Fine for testing (the plan says to write passwords down). Real email is needed before many real customers sign up. |
-| B6 | **Payment details are empty until staff fill them in** (Admin → Settings). Until then the pay screen only says "please call us". Seen again today. | The QR test fails if skipped. | Set-up step S2 in the test plan, and again on the live site on 1 November. |
-| B7 (built) | **On phones, the Feedback and WhatsApp buttons on the right edge cover a little of the page.** For example, prices in the order summary pass under them while scrolling. They aren't in the client's phone design for My Profile. | Low. Nothing is blocked; scrolling shows the hidden part. | Owner or designer decides: keep, make them smaller, or hide them on cart, checkout and pay screens. |
-| B8 (built) | **Staff menu order.** Orders, Brand orders, Quiz and Settings sit below ten home-page editing items, so on a laptop staff scroll the menu to reach them. | Low. Slower daily work. | Move the Orders group to the top of the menu. A small change; it waits for an owner yes. |
+## Needs a person
 
-Smaller notes from this morning still apply: the quiz page says "Built for
-professionals" though every account can play; "Create shipment" is off
-until the courier is connected; a scheduled quiz needs exactly 10
-questions.
-
-## Checks after building B1 to B8
-
-- Type check, lint, production build: pass.
-- Unit tests: 928 of 928 pass (new tests for course sales, doctor courses,
-  staff review, invite links and clearing test courses).
-- Browser tests, phone and computer: all pass, including the new
-  `courses.spec.ts` (a doctor creates a course, staff approve it, a buyer
-  enrols, pays and opens it) and a test that the side buttons stay off the
-  cart. The long brand-order test ran out of time once in the full run and
-  passed when re-run on its own (it did the same earlier today, before any
-  of this work).
-- Settings and quiz tests: 27 pass (1 skipped on purpose). QR payment test:
-  2 pass.
-- New screens checked by eye at 375 and 1280 px: course page, cart with a
-  course, doctor's course list and form, staff review, staff invite link.
-  One thing fixed from this: the doctor's Delete link sat under the phone
-  side buttons; it is now next to Edit.
-- The database change only adds columns, so it is safe for existing data.
-  The upload package must run the new migration (`pnpm db:deploy`, as in
-  `docs/DEPLOY.md`).
-
-## Still open
-
-- **B4, B5, B6** above: labels, locked-out testers, and filling in payment
-  details. These are set-up and wording points.
-- **The Mac's disk is nearly full** (97%, about 6 GB free). The local
-  database stopped once today, probably for this reason. Free some space
-  before building the upload package.
-- Real phones, Safari and Firefox, and the Hostinger server itself are for
-  the team (`docs/TEST_PLAN.md` sections 1 and 10).
+- **The Mac's disk is full** (99%). At one point only 0.6 GB was free. To
+  make room I cleared the database's old change logs (about 1.2 GB; no
+  data lost). A full disk can stop the database, as happened earlier
+  today. Please free some space before making the upload package.
+- **An old `pnpm dev` server is still running on port 3000** (started
+  4:34 am). Its parent run has ended, and it answers every page with an
+  error. Its cache uses about 7.4 GB of disk. I wasn't allowed to stop it.
+  Stopping it, then deleting `.next/dev`, would free that space.
+- **The wording review is still not committed.** Seven files in
+  `src/content/` and `docs/TEXT_CHANGES.md` have edits from another session.
+  All checks above ran with those edits in place, and they pass. They were
+  left out of this commit.
 
 ## Effect on dates
 
-- **1 November launch:** not at risk from anything found or built today, as
-  long as the new package goes up early enough for the team to test courses
-  (TEST_PLAN section 5) before 31 October.
+- **1 November launch:** not at risk. The fixes are small. They need to go
+  up with the next upload package so the team can re-check BUG-001 to
+  BUG-004.
 
 ## Next steps
 
-1. Developer: make and upload a new package with today's changes, and run
-   the database migration on the test address.
-2. Developer: create the first admin on the test address; that admin invites
-   the other staff (S1).
-3. Staff: set-up steps S1 to S5 in `docs/TEST_PLAN.md`. Then the team runs
-   the plan and records every Fail in `docs/BUG_LOG.md`.
-4. Owner: B4 (whether the sign-up labels are fine).
-5. Every bug is fixed and re-checked before 31 October.
+1. Developer: make and upload a new package (it includes course sales and
+   today's fixes) and run `pnpm db:deploy` on the test address.
+2. Team: re-check BUG-001 to BUG-004 on the test address and mark them
+   Re-checked.
+3. Owner: decide on BUG-005 to BUG-007 (fix before launch, or after).
+4. Free disk space on the Mac.

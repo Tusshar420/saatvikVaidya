@@ -203,6 +203,20 @@ describe("placeOrder", () => {
     expect(await place(who)).toEqual({ ok: false, error: "payments_off" });
     expect(await db.order.count()).toBe(0);
   });
+
+  it("paying by QR or bank transfer empties the cart when the order is placed", async () => {
+    vi.stubEnv("PAYMENT_PROVIDER", "manual");
+    const product = await makeProduct(db, { stock: 10 });
+    const who = await shopper([{ productId: product.id, quantity: 2 }]);
+    const orderId = await placed(who);
+
+    const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { payments: true } });
+    expect(order.status).toBe("pending_payment");
+    expect(order.payments).toMatchObject([{ provider: "manual", status: "created" }]);
+    expect((await readCart(who.owner, customer, shipping)).lines).toHaveLength(0);
+    // The stock is still only held until staff mark it paid.
+    expect(await stockOf(db, product.id)).toBe(10);
+  });
 });
 
 describe("completePayment", () => {

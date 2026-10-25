@@ -44,3 +44,24 @@ export function courseForSale(course: SaleFields): boolean {
 
 /** Listed on the site: shown and published (priced or not). */
 export const listedCourseWhere = { active: true, status: "published" } as const;
+
+export type TextPart = { text: string; href?: string };
+
+/**
+ * Splits joining details into plain text and web links, so a buyer can tap
+ * the meeting link instead of copying it. Only http(s) addresses become
+ * links; a full stop or bracket right after the address stays text.
+ */
+export function splitLinks(text: string): TextPart[] {
+  const parts: TextPart[] = [];
+  let last = 0;
+  for (const match of text.matchAll(/https?:\/\/[^\s<>"]+/g)) {
+    const href = match[0].replace(/[.,;:!?)\]]+$/, "");
+    const start = match.index;
+    if (start > last) parts.push({ text: text.slice(last, start) });
+    parts.push({ text: href, href });
+    last = start + href.length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) });
+  return parts;
+}

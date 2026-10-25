@@ -8,7 +8,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { courses as copy } from "@/content/courses";
 import { signInPath } from "@/lib/auth-routes";
-import { courseHref } from "@/lib/courses";
+import { courseHref, splitLinks } from "@/lib/courses";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
 import { effectiveRole, getSession } from "@/server/auth/session";
@@ -41,7 +41,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[key]">
   const course = loaded?.course;
   if (!course) notFound();
   const [inCart, phone] = await Promise.all([
-    course.forSale && !course.enrolled ? courseInCart(await currentCartOwner(), course.id) : false,
+    course.forSale && !course.enrolled && !course.awaitingPaymentOrderId ? courseInCart(await currentCartOwner(), course.id) : false,
     getSetting("contact.phone"),
   ]);
   const facts = [
@@ -111,7 +111,23 @@ export default async function CoursePage({ params }: PageProps<"/courses/[key]">
                 {text.accessTitle}
               </h2>
               <div className="mt-1 text-sm break-words whitespace-pre-line text-ink">
-                {course.accessDetails ?? text.accessEmpty}
+                {course.accessDetails
+                  ? splitLinks(course.accessDetails).map((part, index) =>
+                      part.href ? (
+                        <a
+                          key={index}
+                          href={part.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-brand underline underline-offset-4"
+                        >
+                          {part.text}
+                        </a>
+                      ) : (
+                        part.text
+                      ),
+                    )
+                  : text.accessEmpty}
               </div>
             </Card>
           )}
@@ -122,7 +138,18 @@ export default async function CoursePage({ params }: PageProps<"/courses/[key]">
                 <>
                   <p className="text-h3 font-extrabold text-ink">{formatPaise(course.pricePaise)}</p>
                   <p className="mt-1 text-small text-muted">{text.priceNote}</p>
-                  {course.preview ? null : loaded.signedIn ? (
+                  {course.preview ? null : course.awaitingPaymentOrderId ? (
+                    <div className="mt-4">
+                      <p className="font-heading font-extrabold text-ink">{text.awaitingTitle}</p>
+                      <p className="mt-1 text-sm text-muted">{text.awaitingText}</p>
+                      <Link
+                        href={`/checkout/pay/${course.awaitingPaymentOrderId}`}
+                        className={buttonClasses({ className: "mt-4 w-full" })}
+                      >
+                        {text.awaitingPay}
+                      </Link>
+                    </div>
+                  ) : loaded.signedIn ? (
                     <CourseEnrol courseId={course.id} title={course.title} inCart={inCart} className="mt-4" />
                   ) : (
                     <Link

@@ -51,7 +51,10 @@ beforeEach(async () => {
   captureMessages();
 });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 afterAll(async () => {
   await db.$disconnect();
@@ -189,6 +192,35 @@ describe("doctors' courses and staff review", () => {
 });
 
 describe("buying a course", () => {
+  it("an order paid by QR shows as waiting for payment until staff confirm it", async () => {
+    vi.stubEnv("PAYMENT_PROVIDER", "manual");
+    const { course } = await listedCourse();
+    const who = await buyer(course.id);
+    const viewer = { id: who.userId, role: "user" };
+    expect(await readCoursePage(course.key, viewer)).toMatchObject({ awaitingPaymentOrderId: null });
+    const cart = await readCart(who.owner, customer, shipping);
+    const placed = await placeOrder({
+      userId: who.userId,
+      viewer: customer,
+      addressId: who.addressId,
+      checkoutKey: randomUUID(),
+      expectedTotalPaise: cart.totals.totalPaise,
+      shipping,
+    });
+    if (!placed.ok) throw new Error(`order refused: ${placed.error}`);
+    expect(await readCoursePage(course.key, viewer)).toMatchObject({
+      enrolled: false,
+      awaitingPaymentOrderId: placed.orderId,
+      accessDetails: null,
+    });
+    // Nobody else sees it as theirs.
+    expect(await readCoursePage(course.key, null)).toMatchObject({ awaitingPaymentOrderId: null });
+
+    const payment = await db.payment.findFirstOrThrow({ where: { orderId: placed.orderId, status: "created" } });
+    await completePayment({ reference: payment.reference, outcome: "succeeded" });
+    expect(await readCoursePage(course.key, viewer)).toMatchObject({ enrolled: true, awaitingPaymentOrderId: null });
+  });
+
   it("a paid order enrols the buyer: joining details, My courses, notifications, GST line", async () => {
     const { doctor, course } = await listedCourse();
     const who = await buyer(course.id);

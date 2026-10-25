@@ -5231,3 +5231,60 @@ The other session's uncommitted wording edits (`src/content/account.ts`,
 `checkout.ts`, `home.ts`, `invoices.ts`, `orders.ts`, `portal-pages.ts`,
 `shell.ts`, `docs/TEXT_CHANGES.md`) were left alone and are not in this
 commit.
+
+## QA third pass: course sales checked, double-order fixes (2026-10-25)
+
+Phase "Automated checks and fixes". First QA check since B1/B2 (course sales,
+doctor courses).
+
+**What was done.**
+- Full automated run, then a hands-on Playwright walk (temporary spec on the
+  manual-payment server, deleted after) at 375 and 1280 px: email sign-up as
+  customer, doctor and pharmacy; medicine order → QR pay screen → admin marks
+  paid; doctor creates a course → staff approve → Dr. Talk post and reply →
+  buyer enrols, pays by QR, staff mark paid, joining details; pharmacy Build
+  Your Brand order → QR pay screen; a 10-question quiz played to the result
+  and leaderboard; ~30 routes per role (18 admin), checking status, console
+  errors, overflow and axe.
+- `docs/BUG_LOG.md`: BUG-001 to BUG-008 filled in; the team starts at
+  BUG-009. `docs/test-report.md` rewritten for this pass.
+- Fixed:
+  - BUG-001: `placeOrder` empties the user's cart in the order transaction
+    when `PAYMENT_PROVIDER=manual` (brand orders already did). Online
+    providers keep the old "cleared on success" behaviour.
+  - BUG-002: `readCoursePage` returns `awaitingPaymentOrderId` (the viewer's
+    `pending_payment` order with this course); the course page shows
+    "Waiting for your payment" + a link to `/checkout/pay/[id]` instead of
+    Enrol.
+  - BUG-003: the manual pay screen's bottom link is "View my orders"
+    (`/orders`, the unused `checkout.pay.manual.viewOrders`), not "Back to
+    cart".
+  - BUG-004: `splitLinks` (`src/lib/courses.ts`) makes http(s) addresses in
+    course joining details into links (new tab, `noopener noreferrer`).
+- Tests: `orders.test.ts` (manual empties the cart, stock still only held),
+  `courses.test.ts` (awaiting payment, then enrolled), `src/lib/courses.test.ts`
+  (`splitLinks`), `manual-payment.manual.spec.ts` (cart empty, View my
+  orders link), `courses.spec.ts` (the join link is a link).
+
+**Checked.** typecheck, lint, `pnpm test` 933/933, build. e2e after the
+fixes: phone + desktop 292 pass (8 skipped), exclusive + last 27 (1
+skipped), manual 2. The walk showed no other errors.
+
+**Left open.** BUG-005 (ebook page has no "waiting for payment" state, so a
+paid ebook can be ordered twice under manual payment; needs a new
+`EbookAccess` state), BUG-006 (course-only checkout says "Where should we
+deliver?"; wording is in `checkout.ts`, which has the uncommitted text
+review), BUG-007 (phone side buttons over the course button; add
+`/courses/` to `HideOnPaths`?), BUG-008 (one-off 80 px overflow on `/launch`
+signed out at 375 px, not repeatable).
+
+**Environment.** Disk at 99% (0.6 GB free at one point); old MySQL binlogs
+purged (`PURGE BINARY LOGS TO 'binlog.000013'`, ~1.2 GB, no replicas). An
+orphaned `pnpm dev` on :3000 from 04:34 answers 500 and holds a 7.4 GB
+`.next/dev` cache; stopping it was not permitted in this run.
+
+The other session's uncommitted wording edits (seven `src/content/` files and
+`docs/TEXT_CHANGES.md`) were again left out of the commit. `src/content/courses.ts`
+is in it (three new strings for BUG-002).
+
+**Later.** BUG-005 to BUG-007 if the owner agrees.

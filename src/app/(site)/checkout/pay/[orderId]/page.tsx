@@ -124,6 +124,11 @@ export default async function PayPage({ params }: PageProps<"/checkout/pay/[orde
           <Link href={`/my-brand/${order.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
             {brandCopy.checkout.backToMyBrand}
           </Link>
+        ) : provider.name === "manual" ? (
+          // The cart was emptied when the order was placed.
+          <Link href="/orders" className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
+            {text.manual.viewOrders}
+          </Link>
         ) : (
           <Link href="/cart" className="inline-flex min-h-11 items-center text-sm font-bold text-brand hover:underline">
             {copy.failed.backToCart}
