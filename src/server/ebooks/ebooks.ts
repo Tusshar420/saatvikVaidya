@@ -123,6 +123,8 @@ export type EbookView = {
   /** Downloads of this book are paused for everyone (switch off or no file). */
   paused: boolean;
   owned: boolean;
+  /** Set only on the book page: the viewer's unpaid order (QR or bank transfer) holding this book. */
+  awaitingPaymentOrderId: string | null;
 };
 
 function toView(
@@ -153,6 +155,7 @@ function toView(
     }),
     paused: downloadsPaused(row, siteDownloads),
     owned,
+    awaitingPaymentOrderId: null,
   };
 }
 
@@ -183,7 +186,16 @@ export async function getEbookBySlug(slug: string, viewer: EbookViewer): Promise
   if (!row) return null;
   const owned = viewer ? (await ownedEbookIds(viewer.id, [row.id])).has(row.id) : false;
   if (!row.active && !owned && viewer?.role !== "admin") return null;
-  return toView(row, viewer, owned, await siteDownloadsOn());
+  const view = toView(row, viewer, owned, await siteDownloadsOn());
+  if (viewer && !owned && view.access === "buy") {
+    const awaiting = await db.order.findFirst({
+      where: { userId: viewer.id, status: "pending_payment", items: { some: { kind: "ebook", ebookId: row.id } } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    view.awaitingPaymentOrderId = awaiting?.id ?? null;
+  }
+  return view;
 }
 
 /** Books the user bought, newest purchase first, for "My ebooks" on /account. */

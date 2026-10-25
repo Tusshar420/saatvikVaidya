@@ -65,14 +65,27 @@ export default async function EbookPage({ params }: PageProps<"/ebooks/[slug]">)
               {copy.actions.pausedLine}
             </PausedNote>
           )}
-          <EbookAction
-            ebookId={book.id}
-            slug={book.slug}
-            title={book.title}
-            access={book.access}
-            paused={book.paused}
-            className="sm:w-fit"
-          />
+          {book.awaitingPaymentOrderId ? (
+            <div className="rounded-lg bg-brand-soft px-4 py-3">
+              <p className="font-heading font-extrabold text-ink">{copy.actions.awaitingTitle}</p>
+              <p className="mt-1 text-sm text-muted">{copy.actions.awaitingText}</p>
+              <Link
+                href={`/checkout/pay/${book.awaitingPaymentOrderId}`}
+                className={buttonClasses({ className: "mt-3 max-sm:w-full" })}
+              >
+                {copy.actions.awaitingPay}
+              </Link>
+            </div>
+          ) : (
+            <EbookAction
+              ebookId={book.id}
+              slug={book.slug}
+              title={book.title}
+              access={book.access}
+              paused={book.paused}
+              className="sm:w-fit"
+            />
+          )}
           <div className="border-t border-line pt-4 text-body whitespace-pre-line text-ink">
             {book.description}
           </div>

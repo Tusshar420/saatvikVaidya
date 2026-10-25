@@ -372,6 +372,20 @@ describe("buying through the cart", () => {
     expect(placed).toEqual({ ok: false, error: "cart_changed" });
   });
 
+  it("an unpaid order shows the book page as waiting for payment, until it is paid", async () => {
+    const paid = await makeEbook();
+    const userId = await makeUser(db);
+    const viewer = { id: userId, role: "user" };
+    await addEbookToCart({ kind: "user", userId }, paid.id);
+    const orderId = await checkout(userId, false);
+    expect(await getEbookBySlug(paid.slug, viewer)).toMatchObject({ awaitingPaymentOrderId: orderId });
+    expect(await getEbookBySlug(paid.slug, null)).toMatchObject({ awaitingPaymentOrderId: null });
+    const payment = await startPaymentAttempt(orderId);
+    if (!payment) throw new Error("no payment attempt");
+    await completePayment({ reference: payment.reference, outcome: "succeeded" });
+    expect(await getEbookBySlug(paid.slug, viewer)).toMatchObject({ awaitingPaymentOrderId: null, owned: true });
+  });
+
   it("an ebook-only order has nothing to ship", async () => {
     const paid = await makeEbook();
     const { orderId } = await buyer(paid.id);

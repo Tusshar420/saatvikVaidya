@@ -38,6 +38,9 @@ export const ebooks = {
     paused: "Downloads are paused",
     pausedLine: "Downloads of this ebook are paused right now. Please check back soon.",
     unavailable: "Not available",
+    awaitingTitle: "Waiting for your payment",
+    awaitingText: "You've ordered this ebook. You can download it as soon as our team confirms your payment.",
+    awaitingPay: "See how to pay",
   },
 
   account: {

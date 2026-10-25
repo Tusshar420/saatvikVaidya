@@ -5288,3 +5288,22 @@ The other session's uncommitted wording edits (seven `src/content/` files and
 is in it (three new strings for BUG-002).
 
 **Later.** BUG-005 to BUG-007 if the owner agrees.
+
+## Backend pass: BUG_LOG and security basics (2026-10-25)
+
+Phase "Automated checks and fixes".
+
+- BUG-005 fixed: `getEbookBySlug` returns `awaitingPaymentOrderId` (the
+  viewer's `pending_payment` order holding the book); `/ebooks/[slug]` shows
+  "Waiting for your payment" + a link to the pay screen instead of Add to cart.
+  Strings in `src/content/ebooks.ts`. Test in `ebooks.test.ts`.
+- BUG-006, 007, 008 are page wording/layout/one-off display problems, not
+  backend; left Open for the UI developer.
+- Security check, no changes needed: passwords are hashed by better-auth with
+  length limits and a common-password list; `/admin` pages and admin APIs call
+  `requireAdmin`/`getAdminSession`; doctor course pages and actions check
+  `requireUser` + `userCanTeach` and course ownership; order and ebook
+  downloads check the owner; inputs go through Zod; `.env.local` is not in git
+  and `.env.example` holds placeholders only; the one
+  `dangerouslySetInnerHTML` is a QR image made on the server from the UPI id.
+- Checked: typecheck, ebooks tests (25/25). Full suite not re-run.
