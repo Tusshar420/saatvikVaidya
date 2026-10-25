@@ -38,6 +38,11 @@ test("a customer edits their name, changes their password and sets notification 
     "/orders",
   );
   await expect(links.getByRole("link", { name: new RegExp(account.shortcuts.admin.label) })).toHaveCount(0);
+  // Branded orders aren't listed in Orders & Requests, so they get their own link.
+  await expect(links.getByRole("link", { name: new RegExp(account.shortcuts.brandOrders.label) })).toHaveAttribute(
+    "href",
+    "/my-brand",
+  );
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("account.png"), fullPage: true });
@@ -161,6 +166,7 @@ test("an admin sees the reports and downloads a logged CSV; others can't", async
       .getByRole("banner")
       .getByRole("button", { name: signIn.menu.trigger(adminUser.name) })
       .click();
+    await expect(page.getByRole("menuitem", { name: signIn.menu.brandOrders })).toHaveAttribute("href", "/my-brand");
     await page.getByRole("menuitem", { name: signIn.menu.admin }).click();
     await expect(page).toHaveURL(/\/admin$/);
   }

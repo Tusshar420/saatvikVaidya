@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { errorLog as copy } from "../../src/content/errors";
+import { errorLog as copy, notFoundScreen } from "../../src/content/errors";
 import { e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
@@ -93,7 +93,7 @@ test("admins browse errors, filter them and move one through its statuses", asyn
     expect(await db.adminLog.count({ where: { action: "error.status", resourceId: String(serverGroup.id) } })).toBe(1);
 
     await page.goto("/admin/errors/999999999");
-    await expect(page.getByText(/not found|404/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(notFoundScreen.title);
     expect(errors.filter((message) => !/404/.test(message))).toEqual([]);
   } finally {
     await db.adminLog.deleteMany({ where: { action: "error.status", resourceId: { in: [String(serverGroup.id), String(browserGroup.id)] } } });

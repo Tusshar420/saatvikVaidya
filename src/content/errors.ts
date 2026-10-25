@@ -86,3 +86,13 @@ export const errorScreen = {
   reportLead: "Still not working?",
   reference: (digest: string) => `Reference: ${digest}`,
 } as const;
+
+/** What visitors see for an address that doesn't exist (a 404). */
+export const notFoundScreen = {
+  metaTitle: "Page not found",
+  title: "We couldn't find that page",
+  description:
+    "The link may be old or mistyped, or the page may have moved. Try the homepage or browse our products.",
+  home: "Go to the homepage",
+  products: "Browse products",
+} as const;

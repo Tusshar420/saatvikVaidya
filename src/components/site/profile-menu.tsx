@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   LogOut,
   Package,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -176,6 +177,12 @@ export function ProfileMenu({
             <Link href="/orders">
               <Package aria-hidden />
               {copy.menu.orders}
+            </Link>
+          </Menu.Item>
+          <Menu.Item asChild className={itemClasses}>
+            <Link href="/my-brand">
+              <Sparkles aria-hidden />
+              {copy.menu.brandOrders}
             </Link>
           </Menu.Item>
           {user.role === "admin" && (

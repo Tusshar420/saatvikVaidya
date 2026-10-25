@@ -24,14 +24,17 @@ function boardOf(value: string | string[] | undefined): LeaderboardPeriod {
 }
 
 /** The card head every state shares: "WEEKLY CHALLENGE", the timer pill and the progress bar. */
-function ChallengeHead({ time, progress }: { time: string; progress: number }) {
+// With no quiz open there is no time to show, so the badge is left out.
+function ChallengeHead({ time, progress }: { time?: string; progress: number }) {
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex min-h-9 items-center justify-between gap-3">
         <p className="font-heading text-label text-orange-ink uppercase">{copy.challenge}</p>
-        <p className="rounded-[9px] bg-gold-soft px-2.5 py-2 font-heading text-sm font-extrabold text-gold-ink tabular-nums">
-          {time}
-        </p>
+        {time && (
+          <p className="rounded-[9px] bg-gold-soft px-2.5 py-2 font-heading text-sm font-extrabold text-gold-ink tabular-nums">
+            {time}
+          </p>
+        )}
       </div>
       <div aria-hidden className="mt-5 mb-6.5 h-1.5 overflow-hidden rounded-full bg-track">
         <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${progress}%` }} />
@@ -86,7 +89,7 @@ export default async function QuizPage({ searchParams }: PageProps<"/quiz">) {
           <div className="min-w-0">
             {view.state === "none" && (
               <section aria-labelledby="quiz-none" className={cardClass}>
-                <ChallengeHead time={clock(QUIZ_SECONDS)} progress={0} />
+                <ChallengeHead progress={0} />
                 <h2 id="quiz-none" className="font-heading text-[20px] leading-[1.35] font-extrabold tracking-[-0.025em] text-ink sm:text-[24px]">
                   {copy.none.title}
                 </h2>

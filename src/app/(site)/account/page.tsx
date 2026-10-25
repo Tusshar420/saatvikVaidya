@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, BookOpen, ChevronRight, Coins, LayoutDashboard, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
+import { BadgeCheck, BookOpen, ChevronRight, Coins, LayoutDashboard, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, Sparkles, UserRound, type LucideIcon } from "lucide-react";
 import { PageHero } from "@/components/site/page-hero";
 import { NameForm, NotificationsForm, PasswordForm, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
@@ -306,6 +306,8 @@ type ShortcutLink = { href: string; icon: LucideIcon; text: { label: string; hel
 
 const shortcutLinks: ShortcutLink[] = [
   { href: "/orders", icon: Package, text: copy.shortcuts.orders },
+  // Branded orders aren't in Orders & Requests; this is their way back.
+  { href: "/my-brand", icon: Sparkles, text: copy.shortcuts.brandOrders },
   { href: "/coins", icon: Coins, text: copy.shortcuts.coins },
   { href: "/account#account-ebooks", icon: BookOpen, text: copy.shortcuts.ebooks },
   { href: "/account/addresses", icon: MapPin, text: copy.shortcuts.addresses },

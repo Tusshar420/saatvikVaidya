@@ -8,6 +8,7 @@ import { brand } from "../../src/content/brand";
 import { cart } from "../../src/content/cart";
 import { catalogue } from "../../src/content/catalogue";
 import { coins as coinsCopy } from "../../src/content/coins";
+import { notFoundScreen } from "../../src/content/errors";
 import { settingDefaults } from "../../src/content/settings";
 import { orders } from "../../src/content/orders";
 import { dockNav, policyLinks, shell, siteNav } from "../../src/content/shell";
@@ -481,6 +482,31 @@ test.describe("pages", () => {
     await expect(
       foot.getByRole("link", { name: shell.footer.call(phone) }),
     ).toHaveAttribute("href", tel);
+  });
+
+  test("a wrong address or missing product shows a way back, not a dead end", async ({
+    page,
+  }) => {
+    for (const route of ["/no-such-page", "/products/no-such-product"]) {
+      const response = await page.goto(route);
+      expect(response?.status()).toBe(404);
+      await expect(page).toHaveTitle(new RegExp(`^${notFoundScreen.metaTitle}`));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        notFoundScreen.title,
+      );
+      await expect(
+        page.getByRole("main").getByRole("link", { name: notFoundScreen.products }),
+      ).toHaveAttribute("href", "/products");
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      expect(await axeViolations(page)).toEqual([]);
+    }
+    // A missing product keeps the site's header; the home link goes home.
+    await expect(header(page)).toBeVisible();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: notFoundScreen.home })
+      .click();
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test("shell pages load cleanly with no sideways scroll or WCAG violations", async ({

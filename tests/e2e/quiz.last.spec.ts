@@ -217,6 +217,8 @@ test("signed out: the quiz can be read but needs sign-in; no quiz open shows the
   await page.goto("/quiz");
   await expect(page.getByRole("heading", { name: quiz.none.title })).toBeVisible();
   await expect(page.getByText(/Next quiz starts/)).toBeVisible();
+  // No quiz is running, so no timer is shown.
+  await expect(page.locator("section[aria-labelledby=quiz-none]").getByText(/^\d+:\d{2}$/)).toHaveCount(0);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
 });

@@ -5070,3 +5070,49 @@ no server was contacted.
 - One shared team password means removing one tester changes it for
   everyone. Personal logins per tester would need a code change (not
   planned for launch).
+
+## QA pass and team test plan (2026-10-25)
+
+**What was done.**
+- `docs/TEST_PLAN.md`: a numbered checklist for non-technical testers
+  (steps, expected result, Pass/Fail): set-up steps for staff, getting in,
+  sign-up/sign-in/sign-out for doctor, customer and bulk buyer, error
+  handling, doctor verification and Dr. Talk, courses, shop and checkout,
+  Launch Your Brand, QR payment and staff order handling, Quiz & Win, and a
+  devices (small/large phone, tablet, laptop) and browsers (Chrome, Safari,
+  Firefox) section. Wording matches the screens.
+- `docs/test-report.md`: results, fixes, and bigger issues for the owner.
+- Fixed:
+  - A wrong address or missing product showed Next.js's bare 404. New
+    `src/app/not-found.tsx` (logo + screen) and `src/app/(site)/not-found.tsx`
+    (inside the site shell), sharing `src/components/not-found-screen.tsx`;
+    text in `notFoundScreen` (`src/content/errors.ts`).
+  - Nothing linked to `/my-brand`, so a bulk buyer who left the pay screen
+    couldn't find their branded order or its proofs. Added **My brand
+    orders** to the header account menu and **Branded orders** to the
+    account page's shortcuts.
+  - `/quiz` showed a "5:00" timer badge when no quiz was open; the badge is
+    left out in that state.
+
+**Checked.** typecheck, lint, `pnpm test` (919) and build pass. Full e2e,
+run project by project: phone + desktop 282 passed (8 skipped), exclusive +
+last 27 passed (1 skipped), manual QR 2 passed. New checks in
+`shell.spec.ts` (404 screens), `account.spec.ts` (both new links) and
+`quiz.last.spec.ts` (no timer with no quiz); `error-log.spec.ts` now
+expects the new not-found heading. Hands-on: 46 pages at 375 and 1280 px as
+guest, customer, approved doctor, pharmacy and admin, with no console
+errors or sideways scroll; screenshots of the fixes checked.
+
+**Needs a person** (details in `docs/test-report.md`)
+- Courses can't be bought and doctors can't create courses, though the
+  brief lists both. New features: owner decides whether launch goes ahead
+  with enrolment by phone.
+- Admin invites only go by email, which isn't sent on the test address:
+  the developer makes each staff admin with `pnpm admin:create`.
+- "Bulk buyer" isn't a sign-up label (the plan maps it to Pharmacy /
+  Store).
+- Payment details must be filled in Admin > Settings before the QR test.
+
+**Later**
+- Playwright only runs Chromium; Safari and Firefox are checked by hand by
+  the team (test plan section 10).

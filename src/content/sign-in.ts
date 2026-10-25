@@ -97,6 +97,7 @@ export const signIn = {
     subtitle: "My account",
     account: "My account",
     orders: "My orders",
+    brandOrders: "My brand orders",
     admin: "Admin panel",
     reportProblem: "Report a problem",
     signOut: "Sign out",
