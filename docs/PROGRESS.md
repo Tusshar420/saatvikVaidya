@@ -5307,3 +5307,24 @@ Phase "Automated checks and fixes".
   and `.env.example` holds placeholders only; the one
   `dangerouslySetInnerHTML` is a QR image made on the server from the UPI id.
 - Checked: typecheck, ebooks tests (25/25). Full suite not re-run.
+
+## Final testing: QA re-check and readiness report (2026-10-25)
+
+Phase "Final testing and launch readiness".
+
+- Re-tested BUG-001 to BUG-008; all now Re-checked in `docs/BUG_LOG.md`.
+- BUG-008 was not really fixed: `layout-widths` failed on `/launch` in every
+  full phone run (page 454 px wide). The signed-out intro grid had one
+  content-sized column. Fixed with `grid-cols-1` and `min-w-0`
+  (`launch/page.tsx`, `launch-studio.tsx`). The width test now names the
+  offending element.
+- Added e2e checks for BUG-006 (invoice heading) and BUG-007 (buy button not
+  covered) in `courses.spec.ts`.
+- Local test plan run recorded in `docs/TEST_PLAN.md`; `docs/READINESS_REPORT.md`
+  and `docs/test-report.md` written.
+- Checked: typecheck, lint, build, 934 unit tests, e2e phone 146, desktop 154,
+  exclusive+last 27, manual 2. `brand.spec` "several products" times out at
+  60 s only under load; passes alone.
+- Left open: run the test plan on the real test address; rebuild
+  `dist/hostinger` (stale); other session's uncommitted wording edits in
+  `src/content/` still need review; clear-test-data not run by QA.
