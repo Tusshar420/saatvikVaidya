@@ -20,7 +20,18 @@ test.describe("layout widths", () => {
         const over = await page.evaluate(
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         );
-        expect(over, `${path} at ${width}px`).toBeLessThanOrEqual(0);
+        let who = "";
+        if (over > 0) {
+          who = await page.evaluate(() => {
+            const w = document.documentElement.clientWidth;
+            return [...document.querySelectorAll("body *")]
+              .filter((e) => e.getBoundingClientRect().right > w + 1 && !e.closest("ul.w-max,nav"))
+              .slice(0, 5)
+              .map((e) => `${e.tagName}.${String(e.className).slice(0, 60)} right=${Math.round(e.getBoundingClientRect().right)}`)
+              .join(" | ");
+          });
+        }
+        expect(over, `${path} at ${width}px ${who}`).toBeLessThanOrEqual(0);
       }
       expect(errors).toEqual([]);
     });

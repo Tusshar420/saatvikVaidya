@@ -279,10 +279,10 @@ async function ProductStep({
     <>
       <StepHeading title={text.title} line={text.line} hidden />
       {guest && (
-        <div className="mb-6.25 grid gap-6 lg:grid-cols-[0.84fr_1.16fr] lg:items-center lg:gap-12">
+        <div className="mb-6.25 grid grid-cols-1 gap-6 lg:grid-cols-[0.84fr_1.16fr] lg:items-center lg:gap-12">
           <section
             aria-labelledby="launch-guest-title"
-            className="flex flex-col items-start"
+            className="flex min-w-0 flex-col items-start"
           >
             <h2 id="launch-guest-title" className="text-h3 text-ink">
               {copy.launch.guest.title}

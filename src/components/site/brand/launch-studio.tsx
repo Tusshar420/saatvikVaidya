@@ -58,7 +58,7 @@ export function LaunchStudio({
     <section
       aria-label={copy.eyebrow}
       className={cn(
-        "rounded-2xl border border-brand/15 bg-surface p-4.25 shadow-raised sm:p-6.25",
+        "min-w-0 rounded-2xl border border-brand/15 bg-surface p-4.25 shadow-raised sm:p-6.25",
         className,
       )}
     >
@@ -77,7 +77,7 @@ export function LaunchStudio({
         </span>
       </div>
 
-      <div className="grid grid-cols-[120px_1fr] items-center gap-3.25 px-0 py-7 sm:grid-cols-[190px_1fr] sm:gap-6.75 sm:px-1.5">
+      <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-3.25 px-0 py-7 sm:grid-cols-[190px_minmax(0,1fr)] sm:gap-6.75 sm:px-1.5">
         <div
           aria-hidden
           className="relative mx-auto h-37.5 w-25.5 rounded-t-[20px] rounded-b-[25px] border border-line bg-surface-alt shadow-card sm:h-46.25 sm:w-32.5"

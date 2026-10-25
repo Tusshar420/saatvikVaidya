@@ -97,7 +97,16 @@ test("a doctor's course is reviewed, bought and opened by the buyer", async ({ p
   await signInAs(page, baseURL!, { role: "user", name: "E2E Course Buyer" });
   await page.goto(`/courses/${course.key}`);
   await expect(page.getByText(access)).toHaveCount(0);
-  await page.getByRole("button", { name: `${copy.page.enrol}: ${title}` }).click();
+  // BUG-007: the round side buttons must not sit over the buy button's right end.
+  const enrol = page.getByRole("button", { name: `${copy.page.enrol}: ${title}` });
+  await enrol.scrollIntoViewIfNeeded();
+  const covered = await enrol.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.right - 4, r.top + r.height / 2);
+    return !(hit && el.contains(hit));
+  });
+  expect(covered, "something covers the right end of the Enrol button").toBe(false);
+  await enrol.click();
   await expect(page.getByText(copy.page.addedLine(title))).toBeVisible();
   await checkPage(page, errors);
   await page.getByRole("link", { name: copy.page.goToCart }).click();
@@ -108,6 +117,8 @@ test("a doctor's course is reviewed, bought and opened by the buyer", async ({ p
   await checkPage(page, errors);
 
   await page.goto("/checkout");
+  // BUG-006: a course-only cart has nothing to deliver.
+  await expect(page.getByRole("heading", { name: new RegExp(checkout.digitalTitleEmphasis) })).toBeVisible();
   const form = page.getByRole("form", { name: checkout.address.formTitleNew });
   await form.getByLabel(addressFields.name).fill("Asha Rao");
   await form.getByLabel(addressFields.phone).fill("9876543210");
