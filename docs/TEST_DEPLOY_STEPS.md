@@ -284,7 +284,7 @@ The first admin account is created by a command in step 7. Pick:
    | Root / app folder | `./` (the top of the upload) |
    | Install command | `pnpm install --frozen-lockfile --prod=false` |
    | Build command | `pnpm build` |
-   | Start command | `pnpm start` |
+   | Start command | `pnpm start:hostinger` (not `pnpm start`; see step 7) |
 
    - The install command downloads the packages the site needs, including
      the tools the build uses. Don't shorten it.
@@ -375,30 +375,36 @@ manager.
 
 ## Step 7. Set up the database, create the admin and start
 
-These commands are typed into the server's **terminal** (a text window that
-runs commands on the server).
+**Hostinger's Business plan has no terminal**, so you type no commands. The
+start command from step 5 (`pnpm start:hostinger`, the file
+`scripts/hostinger-start.mjs`) does the set-up by itself each time the app
+starts:
 
-1. In hPanel, open **Advanced > SSH Access** and switch SSH on. If hPanel has
-   a **Terminal** button (in the browser), you can use that instead.
-2. Go into the app's main folder. The path is shown in File Manager, for
-   example:
+| What it does | When |
+| --- | --- |
+| Creates or updates the tables in the database (never deletes data). | Every start. |
+| Loads the starting content, settings and your real product list (159 products). | First start only. |
+| Creates the first admin from the `ADMIN_EMAIL`, `ADMIN_PASSWORD` and `ADMIN_NAME` lines. | Once per admin email, if the lines are set. |
+| Starts the site. | Every start. |
 
-   ```
-   cd /home/u123456789/domains/test.yourdomain.com/nodejs
-   ```
+1. Make sure the three `ADMIN_...` lines are in `.env.local` (step 4d and 6).
+2. Click **Deploy** (or **Redeploy**). Open the app's **log** in hPanel. You
+   should see `[setup] Updating the database tables`, then the other
+   `[setup]` lines, then `[setup] Starting the site`.
+3. Open the site address, click **Sign in** and sign in with the admin.
+4. **Now delete the three `ADMIN_...` lines** from `.env.local` (and from the
+   app screen's Environment variables, if you used it). Restart.
 
-   (Use your real path. `cd` means "go into this folder".)
-3. Run these commands one at a time, waiting for each to finish:
+**To change the admin's password:** put the lines back with a **different**
+email or ask the developer. The set-up notes are in a hidden folder named
+`.setup` inside the uploads folder (step 6a); deleting that folder with File
+Manager runs the first-start steps again.
 
-   ```
-   pnpm db:deploy
-   pnpm db:seed
-   pnpm db:seed:catalogue
-   pnpm admin:create
-   ```
+**If the site doesn't start:** the log shows which `[setup]` line failed and
+the site is not started on purpose. Send the log to the developer. Don't try
+to fix the database by hand.
 
-   | Command | What it does |
-   | --- | --- |
+--- | --- |
    | `pnpm db:deploy` | Creates the empty tables in the test database. Safe to run again; it never deletes data. |
    | `pnpm db:seed` | Adds the starting content: categories, pages, settings and a sample catalogue. |
    | `pnpm db:seed:catalogue` | Loads your real product list (159 products). Optional. |

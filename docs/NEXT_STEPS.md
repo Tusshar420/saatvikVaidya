@@ -37,7 +37,7 @@ padlock.
 | A7 | Make a new secret key (`openssl rand -base64 32`), the team password and the first admin login. Keep them in a password manager only. | Step 4b to 4d |
 | A8 | Create the Node.js app for **`test.yourdomain.com` only**. Upload the ZIP. Never attach it to the main address. | Step 5 |
 | A9 | Make the uploads folder outside the website folder, then write `.env.local` (with `PAYMENT_PROVIDER="request"` and the team password). | Step 6 |
-| A10 | In the server terminal run, one at a time: `pnpm db:deploy`, `pnpm db:seed`, `pnpm db:seed:catalogue`, `pnpm admin:create`. Then delete the three `ADMIN_...` lines and restart. | Step 7 |
+| A10 | Business has no terminal. Set the start command to `pnpm start:hostinger`; it sets up the database and creates the admin by itself. Check the app log for the `[setup]` lines, sign in, then delete the three `ADMIN_...` lines and restart. | Step 7 |
 | A11 | Tick the whole final checklist, in a private window and on a phone using mobile data. Ask one person outside the team to confirm they only see the password box. | Step 9 |
 | A12 | Check the main address still shows **Coming soon**, with no password box. | `docs/ACCESS_CONTROL.md` section 1 |
 | A13 | Place one test order on the test site. The screen must say "Your order is received" and show **no** QR code or bank details. In Admin > Orders, open it and check **Mark as paid** works. | Step 9 |
@@ -64,7 +64,7 @@ The disk was at 99% earlier today.
 | **Thu 29 Oct** | Team testing finished and the line-by-line checklist in `docs/DEPLOY.md` section 3 is ticked. | Project manager |
 | **Fri 30 Oct** | Last day to fix and re-check. Every BUG row must read **Re-checked**. Then the version is frozen: developer runs `scripts/package_for_hostinger.sh --verify` (ends with `Check passed`) and writes down the commit id. | Developer |
 | Fri 30 Oct | Prepare (nothing visible changes): back up the Coming soon page, ask Hostinger support how to put a Node.js app on the main address and how to restore the old page, create the **live** database (no `test` in its name) and live uploads folder, make a **new** secret key, choose the live admin, lower the DNS TTL to 300 if the domain is not at Hostinger, firm admin gathers payment details, seller details and GSTIN, real stock, support phone. | Owner, firm admin |
-| **Sat 31 Oct** | Save any bug reports you want to keep (the clean-up removes them). On the **test** terminal run `pnpm db:clear-test-data --dry-run`, check the first line shows the **test** database, then `pnpm db:clear-test-data --delete` and type the database name. Run the dry run again: accounts, orders and attempts should be 0. Remove admin accounts made only for testing. | Owner, developer |
+| **Sat 31 Oct** | Save any bug reports you want to keep (the clean-up removes them). Clearing staging needs a terminal, which Business does not have. It is not needed for launch: the live site gets its own new, empty database. Leave staging as it is (it stays private), or ask the developer for another way. Remove admin accounts made only for testing. | Owner, developer |
 | **Sat 31 Oct** | **Go / no-go meeting.** Write down Go or No go, the time and who agreed. If "no go", pick a new day no later than Friday 6 November. | Project manager, owner, developer, firm admin |
 
 ---
@@ -79,7 +79,7 @@ passwords in it.
 | --- | --- |
 | 07:00 | Make the ZIP of the frozen version. Check `PACKAGE_INFO.txt` shows the agreed commit id. |
 | 07:15 | Attach a **new** Node.js app to `yourdomain.com`, with the live settings file. The live file has **no** `STAGING_ACCESS_...` lines, a new database, a new secret key and `PAYMENT_PROVIDER="request"`. Deploy. |
-| 07:45 | Run `pnpm db:deploy`, `db:seed`, `db:seed:catalogue`, `admin:create`. Delete the `ADMIN_...` lines, restart, sign in, and at once switch **Admin > Settings > Maintenance mode: On**. |
+| 07:45 | The start command sets up the database and creates the admin by itself (check the log for `[setup]`). Delete the `ADMIN_...` lines, restart, sign in, and at once switch **Admin > Settings > Maintenance mode: On**. |
 | 07:45 to 08:15 | HTTPS Active for `yourdomain.com` and `www`. Force HTTPS. Forward `www` to the main address (or the other way round). |
 | 08:15 | Firm admin fills in Settings (payment details, seller details, phone, delivery fee), real stock, staff admins and first quiz. |
 | 09:00 | Testers run the launch-day checks on a phone and a computer. One rehearsal order: see the "order received" screen. Cancel it and delete the testers' accounts by hand (the clear script refuses to run on the live site, on purpose). |

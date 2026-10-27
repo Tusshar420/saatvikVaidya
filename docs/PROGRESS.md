@@ -5361,3 +5361,22 @@ and agrees how to pay; an admin then marks the order paid.
   hold their stock for 24 hours (`OFFLINE_HOLD_MINUTES`); the `test` provider
   keeps 30 minutes. After 24 hours the hold lapses; marking paid still works if
   stock remains. Orders are not auto-cancelled.
+
+## Hostinger Business has no terminal: start command does the set-up (2026-10-28)
+
+Hostinger chat confirmed Business: Node 24.x yes, up to 5 Node apps, MySQL
+for staging and live, but **no SSH or terminal** for Node apps.
+
+- New `scripts/hostinger-start.mjs` (`pnpm start:hostinger`, used as the
+  Start command): `prisma migrate deploy` every start; `db:seed` and
+  `db:seed:catalogue` on the first start only; `admin:create` once per admin
+  email when `ADMIN_EMAIL`/`ADMIN_PASSWORD` are set; then `pnpm start`. Marks
+  are kept in `STORAGE_DIR/.setup/`. A failed step stops the start.
+- Tried locally on a fresh scratch database: first start set up everything and
+  answered 200; second start skipped seed and admin. Packaging script now
+  includes the file and leaves out `playwright.request.config.ts`.
+- Docs changed: TEST_DEPLOY_STEPS (steps 5 and 7), NEXT_STEPS,
+  LAUNCH_1_NOVEMBER. `pnpm db:clear-test-data` needs a terminal, so it can't be
+  run on Business; not needed for launch because live gets a new database.
+- Later: a way to run clear-test-data without a terminal if staging must be
+  emptied.

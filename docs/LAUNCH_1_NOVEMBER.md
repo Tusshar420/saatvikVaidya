@@ -191,7 +191,10 @@ and keep, and changes nothing.
 
 Steps:
 
-1. hPanel > the **test** Node.js app > open the **terminal** (Advanced > SSH
+1. **Needs a terminal, which Business does not have, so skip this section's
+   clean-up of the test site.** The live site uses a new database, so nothing
+   from testing reaches it. (Old steps, for a plan with a terminal:)
+   hPanel > the **test** Node.js app > open the **terminal** (Advanced > SSH
    Access, or the browser Terminal button).
 2. Go into the **test** app's folder, for example:
    ```
@@ -328,7 +331,7 @@ Do what you found out on 30 October. Usually:
 3. The build settings are the same as the test address
    (`docs/TEST_DEPLOY_STEPS.md` step 5): Next.js, Node 24.x, pnpm, install
    `pnpm install --frozen-lockfile --prod=false`, build `pnpm build`, start
-   `pnpm start`.
+   `pnpm start:hostinger`.
 4. Put the live settings (section 4) into the app screen's **Environment
    variables** (if it has them) **before** the first build, and into the
    `.env.local` file in the app's main folder (show hidden files). Both must
@@ -346,16 +349,12 @@ Do these straight after each other. Between the first command and the last
 step, the full (empty) site is briefly open to anyone who happens to visit.
 Keep that window to a few minutes.
 
-1. hPanel terminal, in the **live** app's folder (check the path says
-   `yourdomain.com`, not `test.`):
-   ```
-   pnpm db:deploy
-   pnpm db:seed
-   pnpm db:seed:catalogue
-   pnpm admin:create
-   ```
-   (What each does: `docs/TEST_DEPLOY_STEPS.md` step 7. Never run
-   `pnpm db:reset` or `pnpm db:migrate` here.)
+1. The live app's start command is `pnpm start:hostinger`. It sets up the
+   database, loads the content and product list and creates the admin by
+   itself (there is no terminal on Business). Open the **live** app's log in
+   hPanel (check it says `yourdomain.com`, not `staging.`) and look for the
+   `[setup]` lines ending in `Starting the site`. Never run `pnpm db:reset`
+   or `pnpm db:migrate`.
 2. **Delete the three `ADMIN_...` lines** from `.env.local` and from the app
    screen.
 3. Restart the app in hPanel.

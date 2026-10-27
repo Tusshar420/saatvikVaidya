@@ -81,6 +81,7 @@ EXCLUDE=(
   vitest.config.ts
   playwright.config.ts
   playwright.manual.config.ts
+  playwright.request.config.ts
   scripts/db-test-prepare.ts
   scripts/package_for_hostinger.sh
   eslint.config.mjs
@@ -181,7 +182,7 @@ fi
 for need in package.json pnpm-lock.yaml .npmrc next.config.ts tsconfig.json \
   postcss.config.mjs prisma.config.ts prisma/schema.prisma prisma/seed.ts \
   prisma/migrations src/app public scripts/admin-create.ts \
-  scripts/seed-catalogue.ts scripts/clear-test-data.ts; do
+  scripts/seed-catalogue.ts scripts/clear-test-data.ts scripts/hostinger-start.mjs; do
   [ -e "$PKG_DIR/$need" ] || add_problem "missing required file: $need"
 done
 
