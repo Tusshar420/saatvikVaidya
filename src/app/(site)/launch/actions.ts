@@ -6,20 +6,28 @@ import { z } from "zod";
 import { brand as copy } from "@/content/brand";
 import { formValues, type FormState } from "@/server/admin/form";
 import { requireUser } from "@/server/auth/session";
-import { MAX_BRAND_UNITS } from "@/lib/brand";
-import { labelFields, MAX_BRAND_PROFILES, type LabelField, type LabelValues } from "@/lib/label";
+import { MAX_BRAND_UNITS, packagingLimits } from "@/lib/brand";
+import { brandThemeKeys } from "@/lib/brand-theme";
+import { formatPaise } from "@/lib/format";
+import { MAX_BRAND_PROFILES } from "@/lib/label";
 import {
   addToBrandCart,
   brandCartCount,
+  chooseBrandProduct,
+  readBrandCart,
   removeFromBrandCart,
   setBrandCartQuantity,
   type BrandCartChange,
   type BrandCartError,
 } from "@/server/brand/cart";
-import { savePackaging } from "@/server/brand/drafts";
+import { readDraft, savePackaging } from "@/server/brand/drafts";
+import { profileFields } from "@/server/brand/packaging";
 import {
   chooseProfile,
+  chosenProfile,
   createProfile,
+  listProfiles,
+  type BrandProfileView,
   deleteProfile,
   setDefaultProfile,
   updateProfile,
@@ -71,7 +79,7 @@ function cartResult(result: BrandCartChange): BrandCartActionResult {
   return { ok: true, quantity: result.quantity, count: result.count };
 }
 
-/** Step 1: "Add to launch cart" (the minimum), or one more step of it. */
+/** The home page's "Add to Order": the minimum, or one more step of it. */
 export async function addToBrandCartAction(input: unknown): Promise<BrandCartActionResult> {
   const { user } = await requireUser("/launch");
   const parsed = cartProductSchema.safeParse(input);
@@ -97,7 +105,7 @@ export async function removeFromBrandCartAction(input: unknown): Promise<BrandCa
   return { ok: true, quantity: 0, count };
 }
 
-// ─── Saved brands (step 3) ──────────────────────────────────────────────────
+// ─── Saved brands (step 2) ──────────────────────────────────────────────────
 
 /** Both places that list the saved brands. */
 function revalidateBrands() {
@@ -140,7 +148,7 @@ function profileFailure(result: Extract<ProfileResult, { ok: false }>, values: R
  */
 export async function saveBrandProfileAction(_: FormState, formData: FormData): Promise<FormState> {
   const values = formValues(formData);
-  const { user } = await requireUser(fromAccount(values) ? "/account/brands" : "/launch?step=3");
+  const { user } = await requireUser(fromAccount(values) ? "/account/brands" : "/launch?step=2");
   const id = values.id ? profileIdSchema.safeParse(values.id) : null;
   if (id && !id.success) return { status: "error", message: copy.profiles.errors.notFound, values };
   if (id?.success) {
@@ -167,7 +175,7 @@ async function changeProfile(
   message: string,
 ): Promise<ProfileChangeResult> {
   const values = formValues(formData);
-  const { user } = await requireUser(fromAccount(values) ? "/account/brands" : "/launch?step=3");
+  const { user } = await requireUser(fromAccount(values) ? "/account/brands" : "/launch?step=2");
   const parsed = profileActionSchema.safeParse(values);
   if (!parsed.success) return { ok: false, message: copy.profiles.errors.notFound };
   if (!(await change(user.id, parsed.data.id))) return { ok: false, message: copy.profiles.errors.notFound };
@@ -197,54 +205,140 @@ export async function deleteBrandProfileAction(
   return changeProfile(formData, deleteProfile, copy.profiles.messages.deleted);
 }
 
-// ─── Packaging (step 3) ─────────────────────────────────────────────────────
+// ─── Product page and brand details (steps 1 and 2) ─────────────────────────
 
-/** The label fields typed for each product: form fields named `label-<productId>-<field>`. */
-function typedLabels(values: Record<string, string>): Map<number, LabelValues> {
-  const labels = new Map<number, LabelValues>();
-  const fields = new Set<string>(labelFields);
-  for (const [name, value] of Object.entries(values)) {
-    const match = /^label-(\d{1,10})-([a-zA-Z]+)$/.exec(name);
-    if (!match || !fields.has(match[2]!)) continue;
-    const productId = Number(match[1]);
-    labels.set(productId, { ...labels.get(productId), [match[2] as LabelField]: value });
-  }
-  return labels;
+const chooseProductSchema = z.object({
+  productId: z.coerce.number().int().positive().max(2_147_483_647),
+  theme: z.enum(brandThemeKeys),
+});
+
+/** "Continue — choose quantity" on a product's page: into the cart with the label theme, then step 2. */
+export async function chooseBrandProductAction(formData: FormData): Promise<void> {
+  const values = formValues(formData);
+  const { user } = await requireUser(`/launch`);
+  const parsed = chooseProductSchema.safeParse(values);
+  // A page that was changed by hand: back to the catalogue.
+  if (!parsed.success) redirect("/launch");
+  const result = await chooseBrandProduct(user.id, parsed.data.productId, parsed.data.theme);
+  // The product can't be added (not open for branding, a full cart, too large): back to the catalogue.
+  if (!result.ok) redirect("/launch");
+  revalidatePath("/launch");
+  redirect("/launch?step=2");
 }
 
-/** Step 3: the notes and each product's label details, then on to review. */
-export async function savePackagingAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireUser("/launch?step=3");
-  const values = formValues(formData);
-  const result = await savePackaging(user.id, { notes: values.notes, labels: typedLabels(values) });
-  if (!result.ok) {
-    if ("noProduct" in result) redirect("/launch");
-    const errors = copy.packaging.errors;
-    revalidatePath("/launch");
-    if ("noProfile" in result) return { status: "error", message: errors.noProfile, values };
-    if ("noLogo" in result) return { status: "error", message: errors.logo, values };
-    if ("notesError" in result) {
-      return { status: "error", message: errors.form, fieldErrors: { notes: result.notesError }, values };
-    }
+const brandDetailsSchema = z.object({
+  brandName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(packagingLimits.brandName)
+    .refine((text) => !/[\n\u0000-\u001f\u007f]/.test(text)),
+  marketedByAddress: z.string().trim().min(1).max(packagingLimits.marketedByAddress),
+});
+
+export type BrandDetailsResult =
+  | { ok: true; profileId: number; hasLogo: boolean }
+  | { ok: false; message: string; fieldErrors?: Record<string, string> };
+
+/** The saved profile as the strings the profile form would send. */
+function profileValues(profile: BrandProfileView): Record<string, string> {
+  return Object.fromEntries(profileFields.map((field) => [field, String(profile[field] ?? "")]));
+}
+
+/**
+ * Step 2, first half: the brand name and marketed-by address become this
+ * order's brand (one profile: the one already used, or a new "My brand").
+ * The logo is uploaded next (to /api/launch/logo, which needs the profile)
+ * and `confirmBrandDetailsAction` finishes the step.
+ */
+export async function saveBrandDetailsAction(input: unknown): Promise<BrandDetailsResult> {
+  const { user } = await requireUser("/launch?step=2");
+  const errors = copy.brandStep.errors;
+  const parsed = brandDetailsSchema.safeParse(input);
+  if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
-    for (const [productId, problems] of result.labelProblems) {
-      for (const problem of problems) {
-        fieldErrors[`label-${productId}-${problem.field}`] =
-          problem.length === 0
-            ? copy.labels.blankBrand
-            : copy.labels.over(problem.length - problem.limit, problem.limit);
-      }
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0];
+      if (field === "brandName") fieldErrors.brandName = errors.brandName;
+      if (field === "marketedByAddress") fieldErrors.marketedByAddress = errors.address;
     }
-    return { status: "error", message: errors.labels, fieldErrors, values };
+    if (Object.keys(fieldErrors).length === 0) return { ok: false, message: errors.generic };
+    return { ok: false, message: copy.packaging.errors.form, fieldErrors };
   }
-  redirect("/launch?step=4");
+  if ((await brandCartCount(user.id)) === 0) return { ok: false, message: errors.notReady };
+  const [draft, profiles] = await Promise.all([readDraft(user.id), listProfiles(user.id)]);
+  const profile = chosenProfile(profiles, draft);
+  const details = { brandName: parsed.data.brandName, marketedByAddress: parsed.data.marketedByAddress };
+  let profileId: number;
+  if (profile) {
+    const result = await updateProfile(user.id, profile.id, {
+      ...profileValues(profile),
+      ...details,
+      marketedByName: profile.marketedByName || details.brandName,
+    });
+    if (!result.ok) return { ok: false, message: errors.generic };
+    profileId = profile.id;
+    await chooseProfile(user.id, profileId);
+  } else {
+    const result = await createProfile(user.id, {
+      profileName: copy.brandStep.profileName,
+      ...details,
+      marketedByName: details.brandName,
+    });
+    if (!result.ok) {
+      return { ok: false, message: result.error === "too_many" ? copy.profiles.errors.tooMany(MAX_BRAND_PROFILES) : errors.generic };
+    }
+    profileId = result.id;
+    await chooseProfile(user.id, profileId);
+  }
+  revalidatePath("/launch");
+  const saved = (await listProfiles(user.id)).find((row) => row.id === profileId);
+  return { ok: true, profileId, hasLogo: Boolean(saved?.logo) };
+}
+
+const mrpsSchema = z.record(z.string().regex(/^\d{1,10}$/), z.string().max(12));
+
+/**
+ * Step 2, second half: the MRP of every product, then the step is done (the
+ * brand has a logo, every label fits) and the order moves on to step 3.
+ */
+export async function confirmBrandDetailsAction(input: unknown): Promise<BrandDetailsResult> {
+  const { user } = await requireUser("/launch?step=2");
+  const errors = copy.brandStep.errors;
+  const parsed = mrpsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: errors.generic };
+  const mrps = new Map<number, number>();
+  for (const [productId, text] of Object.entries(parsed.data)) {
+    const rupees = /^\d{1,7}$/.test(text.trim()) ? Number(text.trim()) : 0;
+    mrps.set(Number(productId), rupees);
+  }
+  const result = await savePackaging(user.id, { notes: "", mrps });
+  revalidatePath("/launch");
+  if (result.ok) return { ok: true, profileId: 0, hasLogo: true };
+  if ("noProduct" in result) redirect("/launch");
+  if ("noProfile" in result) return { ok: false, message: copy.packaging.errors.noProfile };
+  if ("noLogo" in result) return { ok: false, message: errors.generic, fieldErrors: { logo: copy.brandStep.logoRequired } };
+  if ("mrpProblems" in result) {
+    const fieldErrors: Record<string, string> = {};
+    const prices = new Map((await readBrandCart(user.id)).lines.map((line) => [line.productId, line.product?.terms.unitPricePaise ?? 0]));
+    for (const [productId, problem] of result.mrpProblems) {
+      fieldErrors[`mrp-${productId}`] =
+        problem === "low"
+          ? errors.mrp.low(formatPaise(prices.get(productId) ?? 0))
+          : problem === "high"
+            ? errors.mrp.high
+            : errors.mrp.missing;
+    }
+    return { ok: false, message: copy.packaging.errors.form, fieldErrors };
+  }
+  return { ok: false, message: errors.generic };
 }
 
 export async function saveBrandAddressAction(
   _: AddressFormState,
   formData: FormData,
 ): Promise<AddressFormState> {
-  const { user } = await requireUser("/launch?step=4");
+  const { user } = await requireUser("/launch?step=3");
   const result = await saveAddressFromForm(user.id, formValues(formData));
   if (result.status === "success") revalidatePath("/launch");
   return result;
@@ -264,9 +358,9 @@ const placeErrors: Record<PlaceBrandOrderError, string> = {
   rate_limited: copy.review.errors.generic,
 };
 
-/** Step 4: "Place order and pay" opens the P1.4 payment screen. */
+/** Step 3: "Place order and pay" opens the P1.4 payment screen. */
 export async function placeBrandOrderAction(_: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireUser("/launch?step=4");
+  const { user } = await requireUser("/launch?step=3");
   const parsed = placeSchema.safeParse(formValues(formData));
   if (!parsed.success) {
     const missingAddress = parsed.error.issues.some((issue) => issue.path[0] === "addressId");

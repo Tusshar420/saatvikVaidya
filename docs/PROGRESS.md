@@ -5454,3 +5454,73 @@ the Build command made the build fail (no `.next` folder).
   the same STORAGE_DIR disk as the running site (if not, the seed may repeat on
   each build).
 - Committed on `main` by the owner's instruction, as for the other Hostinger fixes.
+
+## Build Your Brand: new 3-step process (2026-10-30)
+
+The owner sent four pictures (filter on the left, product cards, a product page
+with "Select variant", a "Quantity & brand" step) and asked to keep the current
+look but change the process to match. Done on `dev`.
+
+**Built**
+- **Steps are now 3:** Choose product, Quantity & brand, Delivery & payment
+  (`/launch?step=1|2|3`; before: 4 steps). The steps bar has 3 items.
+- **Step 1:** the catalogue is unchanged, but each card's button is now
+  "View & customise" and opens `/launch/[slug]` (public page). It shows the
+  pack, Form / Pack / Batch size / Net rate, bulk prices and "Select variant"
+  (4 label themes: Classic Green, Saffron Glow, Royal Maroon, Minimal White; the
+  big pack follows the choice). "Continue — choose quantity" puts the product in
+  the Launch cart (at its minimum; an existing line keeps its quantity) with the
+  theme and opens step 2. Signed out it says "Sign in to continue".
+- **Step 2 (quantity + brand on one screen):** cart lines with − / + by batch,
+  then Brand details (brand name, MRP per pack for each product, marketed-by
+  address, logo), a live label preview and the total, with one "Continue to
+  delivery & payment" button. It saves the brand (the one already used, or a new
+  "My brand"), uploads the logo, saves the MRPs, confirms the details and moves on.
+  Saved-brand picking and the per-product label editor are gone from the order
+  (brands are still managed at `/account/brands`).
+- **Step 3:** the old review and payment step (address, test payment). The review
+  now shows each product's theme and MRP.
+- **Data:** migration `20261029212604_brand_cart_theme_mrp` adds `labelTheme` and
+  `packMrpPaise` to `BrandCartItem`. Both are copied into each order line's label
+  snapshot (`theme`, `packMrpPaise`) and shown to the team on the admin and
+  customer order pages (OrderLabels).
+- **Rules:** MRP is whole rupees, not below the product's base net rate, at most
+  ₹1,00,000 (`packMrpProblem`, `src/lib/brand-theme.ts`), checked by the server in
+  `savePackaging`. Gating: step 3 opens only with a ready cart, confirmed details
+  and a logo (`furthestStep`).
+- New: `src/lib/brand-theme.ts`, `brand-step.tsx`, `product-customiser.tsx`,
+  `themed-pack.tsx`, `launch-frame.tsx`, `upload-logo.ts`, tokens
+  `bg-pack-maroon` / `bg-pack-white`. Removed: `add-to-launch-cart.tsx`,
+  `label-details-form.tsx`.
+
+**Decisions**
+- The logo stays required (the order record and printer need it), though the
+  mockup's hint lists only name, MRP and address.
+- Tagline, phone, licence numbers and descriptions are no longer asked in the
+  order flow; saved brands keep any values they already have.
+
+**Checked:** typecheck, lint, 939 unit tests, build; Playwright on phone and
+desktop for `brand`, `account-brands`, `shell`, `layout-widths`,
+`homepage-part2` and the Build Your Brand part of `p2-4-quality` (all pass);
+screens looked at at 375 and 1280 px. Not run: the full e2e suite.
+
+**Later**
+- The filter panel is unchanged; the mockup's pill style (Sort by, Category,
+  Disease) was not copied.
+- On phones the live label preview sits below the form.
+- Docs that still describe 4 steps: TEST_PLAN, TEAM_TESTING_GUIDE.
+- Unused copy keys remain in `content/brand.ts` (`product.add*`, `inCartLine`).
+
+## Fixes for MariaDB on Hostinger (2026-10-30)
+
+Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
+- `POST /quiz` 500: `FOR SHARE` is MySQL-only. Now `LOCK IN SHARE MODE`
+  (works on both) in `src/server/quiz/attempts.ts`.
+- `GET /search` 500 ("Illegal mix of collations ... for operation like"): the
+  driver connected in a binary collation. `src/server/db.ts` now adds
+  `collation=UTF8MB4_UNICODE_CI` to the connection string, matching the tables.
+- The two browser "React error #441" entries (/quiz, /search) were the page
+  showing the server's failure; they should stop with the two fixes.
+- Checked: typecheck, lint, quiz and catalogue unit tests on MySQL 8. Not
+  checked: on MariaDB itself (redeploy and retry /quiz start and /search), and
+  the full suite or e2e.

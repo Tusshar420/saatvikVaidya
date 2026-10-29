@@ -72,7 +72,7 @@ export async function startAttempt(userId: string, quizId: number, now = new Dat
     const attempt = await db.$transaction(async (tx) => {
       // A shared lock on the quiz: starts run side by side, but an admin's
       // question edit (which takes the row for update) waits for them.
-      await tx.$queryRaw`SELECT id FROM Quiz WHERE id = ${quizId} FOR SHARE`;
+      await tx.$queryRaw`SELECT id FROM Quiz WHERE id = ${quizId} LOCK IN SHARE MODE`;
       return tx.quizAttempt.create({
         data: { userId, quizId, startedAt: now, answers: {} },
         select: { id: true },

@@ -19,12 +19,14 @@ import { MAX_BRAND_CART_LINES } from "@/lib/brand";
 import {
   addToBrandCart,
   brandCartTotals,
+  chooseBrandProduct,
   furthestStep,
   readBrandCart,
   removeFromBrandCart,
   setBrandCartQuantity,
 } from "./cart";
 import { listBrandProducts, readDraft, savePackaging } from "./drafts";
+import { parseLabelSnapshot } from "./labels";
 import { applyBrandImport, parseCsv, previewBrandImport } from "./import";
 import { chosenProfile, createProfile, listProfiles, profileLogoFile, saveProfileLogo } from "./profiles";
 import {
@@ -216,7 +218,8 @@ describe("the Launch cart", () => {
     expect(cart).toMatchObject({ units: 13, subtotalPaise: 258_000, ready: true });
     // Two GST rates, each in the totals.
     expect(brandCartTotals(cart, shipping).gst.map((group) => group.rate)).toEqual([5, 12]);
-    expect((await stepOf(userId))).toBe(3);
+    // Ready to order, but the brand details are not confirmed yet: still step 2.
+    expect((await stepOf(userId))).toBe(2);
 
     // Quantities must be positive multiples of the minimum.
     for (const quantity of [0, 2, 5, 6, 10]) {
@@ -228,10 +231,10 @@ describe("the Launch cart", () => {
     expect(await setBrandCartQuantity(userId, product.id, 12)).toMatchObject({ ok: true, quantity: 12 });
     expect(await setBrandCartQuantity(userId, plain.id, 4)).toEqual({ ok: false, error: { kind: "not_in_cart" } });
 
-    // Packaging, then the review step opens.
+    // Brand details (step 2), then delivery and payment (step 3) opens.
     await saveBrand(userId);
     expect(await savePackaging(userId, { notes: "" })).toEqual({ ok: true });
-    expect((await stepOf(userId))).toBe(4);
+    expect((await stepOf(userId))).toBe(3);
 
     // A product taken off branding stays in the cart, unpriced, and blocks checkout.
     await db.product.update({ where: { id: other.id }, data: { brandEligible: false } });
@@ -338,6 +341,50 @@ describe("drafts", () => {
     const [profile] = await listProfiles(userId);
     expect(profile?.logo?.name).toBe("logo.png");
     expect(profile?.marketedByAddress).toBe("12 MG Road\nPune 411001");
+  });
+
+  it("keeps the label theme and the MRP per pack, and refuses an unusable MRP", async () => {
+    const product = await makeProduct(db, { brand: { minQty: 4, unitPricePaise: 26_000 } });
+    const userId = await makeUser(db);
+    await saveBrand(userId);
+    // "Continue — choose quantity": the product comes in at its minimum with the theme.
+    expect(await chooseBrandProduct(userId, product.id, "royal-maroon")).toMatchObject({ ok: true, quantity: 4 });
+    // Choosing again changes only the theme, never the quantity.
+    expect(await setBrandCartQuantity(userId, product.id, 8)).toMatchObject({ ok: true });
+    expect(await chooseBrandProduct(userId, product.id, "minimal-white")).toMatchObject({ ok: true, quantity: 8 });
+    expect((await readBrandCart(userId)).lines[0]).toMatchObject({ theme: "minimal-white", packMrpPaise: null });
+
+    // A missing, too low (below the ₹260 net rate) or absurd MRP is refused and nothing is saved.
+    for (const [rupees, problem] of [[0, "missing"], [259, "low"], [100_001, "high"]] as const) {
+      expect(await savePackaging(userId, { mrps: new Map([[product.id, rupees]]) })).toEqual({
+        ok: false,
+        mrpProblems: new Map([[product.id, problem]]),
+      });
+    }
+    expect((await readBrandCart(userId)).lines[0]?.packMrpPaise).toBeNull();
+    expect((await readDraft(userId))?.packagingDone ?? false).toBe(false);
+
+    expect(await savePackaging(userId, { mrps: new Map([[product.id, 399]]) })).toEqual({ ok: true });
+    expect((await readBrandCart(userId)).lines[0]).toMatchObject({ packMrpPaise: 39_900, theme: "minimal-white" });
+    expect(await stepOf(userId)).toBe(3);
+  });
+
+  it("saves the theme and the MRP with the order", async () => {
+    const { userId, product, addressId } = await readyDraft();
+    expect(await chooseBrandProduct(userId, product.id, "saffron-glow")).toMatchObject({ ok: true });
+    expect(await savePackaging(userId, { mrps: new Map([[product.id, 450]]) })).toEqual({ ok: true });
+    const cart = await readBrandCart(userId);
+    const placed = await placeBrandOrder({
+      userId,
+      addressId,
+      checkoutKey: randomUUID(),
+      expectedTotalPaise: brandCartTotals(cart, shipping).totalPaise,
+      shipping,
+    });
+    expect(placed.ok).toBe(true);
+    if (!placed.ok) return;
+    const item = await db.orderItem.findFirstOrThrow({ where: { orderId: placed.orderId } });
+    expect(parseLabelSnapshot(item.labelDetails)).toMatchObject({ theme: "saffron-glow", packMrpPaise: 45_000 });
   });
 
   it("replaces a brand's logo file and removes the old one", async () => {

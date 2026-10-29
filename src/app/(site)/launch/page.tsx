@@ -15,17 +15,13 @@ import {
   saveBrandAddressAction,
   placeBrandOrderAction,
 } from "@/app/(site)/launch/actions";
-import { AddToLaunchCart } from "@/components/site/brand/add-to-launch-cart";
-import { BrandProfiles } from "@/components/site/brand/brand-profiles";
-import { LabelDetailsForm } from "@/components/site/brand/label-details-form";
+import { BrandStep } from "@/components/site/brand/brand-step";
+import { LaunchFrame, StepHeading } from "@/components/site/brand/launch-frame";
 import { LaunchCartLineControls } from "@/components/site/brand/launch-cart-line-controls";
 import { LaunchFilterPanel } from "@/components/site/brand/launch-filters";
 import { LogoPreview } from "@/components/site/brand/logo-preview";
 import { AutoSubmitSelect } from "@/components/site/brand/auto-submit-select";
-import { LaunchHero } from "@/components/site/brand/launch-hero";
-import { LaunchSteps } from "@/components/site/brand/launch-steps";
 import { LaunchStudio } from "@/components/site/brand/launch-studio";
-import { LabelPreview } from "@/components/site/brand/label-preview";
 import { OrderSummary } from "@/components/site/cart/order-summary";
 import { CataloguePagination } from "@/components/site/catalogue/catalogue-pagination";
 import { ProductVisual } from "@/components/site/catalogue/product-visual";
@@ -38,12 +34,10 @@ import { brand as copy } from "@/content/brand";
 import { checkout as checkoutCopy } from "@/content/checkout";
 import { checkoutOff as paused } from "@/content/maintenance";
 import {
-  isImageLogo,
   launchHref,
   launchStepNumber,
   nextBrandTier,
 } from "@/lib/brand";
-import { MAX_BRAND_PROFILES } from "@/lib/label";
 import { cn } from "@/lib/cn";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
@@ -63,7 +57,6 @@ import {
   type BrandDraftView,
   type BrandProduct,
 } from "@/server/brand/drafts";
-import { readLabelLines } from "@/server/brand/labels";
 import {
   chosenProfile,
   listProfiles,
@@ -80,12 +73,13 @@ export const metadata: Metadata = {
 
 /**
  * Build Your Brand (P2.1, sign-in required): order products in your own
- * packaging in four steps. Products go into the Launch cart (step 1), their
- * quantities are set there (step 2), the packaging is added once for the
- * whole order (step 3), then review and pay (step 4). The cart and the
- * packaging are saved to the account. A step can only open once the steps
- * before it are done (the cart itself always opens); anything else goes
- * back to the furthest step allowed.
+ * packaging in three steps. Step 1 picks products (each card opens its page
+ * at /launch/[slug], where the label theme is chosen and the product goes
+ * into the Launch cart), step 2 sets the quantities and the brand details
+ * once for the whole order, step 3 is delivery and payment. The cart and the
+ * brand are saved to the account. A step can only open once the steps
+ * before it are done (step 2 always opens); anything else goes back to the
+ * furthest step allowed.
  */
 export default async function LaunchPage({
   searchParams,
@@ -118,17 +112,8 @@ export default async function LaunchPage({
   return (
     <LaunchFrame step={step}>
         {step === 1 && <ProductStep cart={cart} params={params} />}
-        {step === 2 && <CartStep cart={cart} />}
-        {step === 3 && (
-          <PackagingStep
-            cart={cart}
-            userId={user.id}
-            draft={draft}
-            profiles={profiles}
-            profile={profile}
-          />
-        )}
-        {step === 4 && draft && profile && (
+        {step === 2 && <BrandDetailsStep cart={cart} profile={profile} />}
+        {step === 3 && draft && profile && (
           <ReviewStep
             cart={cart}
             draft={draft}
@@ -137,63 +122,6 @@ export default async function LaunchPage({
           />
         )}
     </LaunchFrame>
-  );
-}
-
-/** The v2 page: hero, then the steps bar and the step on the cream body. */
-function LaunchFrame({ step, children }: { step: number; children: ReactNode }) {
-  const hero = copy.launch.hero;
-  return (
-    <>
-      <LaunchHero
-        kicker={hero.kicker}
-        title={hero.title}
-        line={hero.line}
-        note={{
-          status: hero.noteStatus,
-          title: hero.noteTitle,
-          line: hero.noteLine,
-        }}
-      />
-      <div className="bg-cream pt-7 pb-19 sm:pt-9.5 md:pt-13.5 md:pb-24">
-        <div className="shell">
-          <LaunchSteps
-            label={copy.launch.stepsLabel}
-            steps={copy.launch.steps.map((label, index) => ({
-              label,
-              detail: copy.launch.stepDetails[index],
-            }))}
-            current={step - 1}
-          />
-          <section aria-labelledby="launch-step-title" className="mt-6.25">
-            <p className="sr-only">
-              {copy.launch.stepOf(step, copy.launch.steps.length)}
-            </p>
-            {children}
-          </section>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function StepHeading({
-  title,
-  line,
-  hidden = false,
-}: {
-  title: string;
-  line: string;
-  /** Kept for screen readers only (the steps bar already says it). */
-  hidden?: boolean;
-}) {
-  return (
-    <div className={cn(hidden && "sr-only")}>
-      <h2 id="launch-step-title" className="text-h3 text-ink">
-        {title}
-      </h2>
-      <p className="mt-1.5 max-w-2xl text-body text-muted">{line}</p>
-    </div>
   );
 }
 
@@ -534,7 +462,6 @@ async function ProductStep({
                     product={product}
                     inCart={inCart.get(product.id) ?? null}
                     pack={packColours[index % packColours.length]}
-                    signInHref={guest ? signIn : null}
                   />
                 ))}
               </ul>
@@ -606,19 +533,17 @@ function SideList({
 /**
  * One product in the brand catalogue, as the v2 catalogue card: a coloured
  * pack header with "Your brand", the name and pack size, then the branded
- * price, minimum order, step and best bulk price, and "Add to launch cart"
- * (or a sign-in link when signed out).
+ * price, minimum order, step and best bulk price, and "View & customise"
+ * (the product's page, where the label theme is chosen).
  */
 function ProductChoice({
   product,
   inCart,
   pack,
-  signInHref,
 }: {
   product: BrandProduct;
   inCart: number | null;
   pack: (typeof packColours)[number];
-  signInHref: string | null;
 }) {
   const text = copy.product;
   const { terms } = product;
@@ -699,27 +624,19 @@ function ProductChoice({
           </p>
         )}
         <div className="mt-auto pt-2.75">
-          {signInHref ? (
-            <Link
-              href={signInHref}
-              aria-label={copy.launch.guest.cardActionLabel(product.name)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-3 text-xs font-extrabold text-white transition hover:bg-brand-mid"
-            >
-              {copy.launch.guest.cardAction}
-              <ButtonArrow className="size-3.5" />
-            </Link>
-          ) : soldOut && inCart === null ? (
+          {soldOut && inCart === null ? (
             <p className="text-small font-medium text-muted">
               {text.outOfStockLine}
             </p>
           ) : (
-            <AddToLaunchCart
-              productId={product.id}
-              productName={product.name}
-              minQty={terms.minQty}
-              unitLabel={terms.unitLabel}
-              inCart={inCart}
-            />
+            <Link
+              href={`/launch/${product.slug}`}
+              aria-label={copy.customise.viewLabel(product.name)}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-3 text-xs font-extrabold text-white transition hover:bg-brand-mid"
+            >
+              {copy.customise.view}
+              <ButtonArrow className="size-3.5" />
+            </Link>
           )}
         </div>
       </div>
@@ -729,7 +646,18 @@ function ProductChoice({
 
 // ─── Step 2 ─────────────────────────────────────────────────────────────────
 
-async function CartStep({ cart }: { cart: BrandCartView }) {
+/**
+ * Quantity and brand details on one screen: the cart lines with their
+ * quantity controls, the brand details form (a client component with the live
+ * label preview) and the total. An empty cart shows the way back to step 1.
+ */
+async function BrandDetailsStep({
+  cart,
+  profile,
+}: {
+  cart: BrandCartView;
+  profile: BrandProfileView | null;
+}) {
   const text = copy.cart;
   if (cart.lines.length === 0) {
     return (
@@ -752,47 +680,73 @@ async function CartStep({ cart }: { cart: BrandCartView }) {
   }
   const shipping = await getSetting("checkout.shipping");
   const totals = brandCartTotals(cart, shipping);
+  const logo = profileLogoProps(profile);
+  const firstProduct = cart.lines.find((line) => line.product)?.product ?? null;
+  const lines = cart.lines.flatMap((line) =>
+    line.product
+      ? [
+          {
+            productId: line.productId,
+            name: line.name,
+            unitPricePaise: line.product.terms.unitPricePaise,
+            mrp: line.packMrpPaise ? Math.round(line.packMrpPaise / 100) : null,
+          },
+        ]
+      : [],
+  );
   return (
     <>
-      <StepHeading title={text.title} line={text.line} />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-8">
-        <div className="flex min-w-0 flex-col gap-4">
-          <ul aria-label={text.listLabel} className="flex flex-col gap-4">
-            {cart.lines.map((line) => (
-              <CartLine key={line.productId} line={line} />
-            ))}
-          </ul>
-          {cart.overLimit && <FormAlert>{text.overLimit}</FormAlert>}
-          <Link
-            href="/launch"
-            className="inline-flex min-h-11 items-center self-start text-sm font-bold text-brand hover:underline"
+      <StepHeading title={copy.brandStep.quantityTitle} line={copy.brandStep.quantityLine} hidden />
+      <BrandStep
+        lines={lines}
+        ready={cart.ready}
+        profile={
+          profile
+            ? {
+                brandName: profile.brandName,
+                marketedByAddress: profile.marketedByAddress ?? "",
+                logo: logo ? { src: logo.src, contentType: logo.contentType } : null,
+              }
+            : null
+        }
+        preview={firstProduct ? { name: firstProduct.name, packSize: firstProduct.packSize } : null}
+        quantity={
+          <section
+            aria-labelledby="launch-quantity-title"
+            className="rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6"
           >
-            {text.addMore}
-          </Link>
-        </div>
-        <OrderSummary
-          title={text.summaryTitle}
-          totals={totals}
-          className="lg:sticky lg:top-40"
-        >
-          <p className="text-small text-muted">
-            {text.count(cart.lines.length)}
-          </p>
-          {cart.ready ? (
-            <Link
-              href="/launch?step=3"
-              className={buttonClasses({ className: "w-full" })}
-            >
-              {text.continue}
-              <ButtonArrow />
-            </Link>
-          ) : (
-            <Button disabled className="w-full">
-              {text.continue}
-            </Button>
-          )}
-        </OrderSummary>
-      </div>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 id="launch-quantity-title" className="text-h3 text-ink">
+                  {copy.brandStep.quantityTitle}
+                </h3>
+                <p className="mt-1.5 text-small text-muted">{copy.brandStep.quantityLine}</p>
+              </div>
+              <Link
+                href="/launch"
+                className={buttonClasses({ variant: "secondary", size: "sm" })}
+              >
+                {text.addMore}
+              </Link>
+            </div>
+            <ul aria-label={text.listLabel} className="mt-4 flex flex-col gap-4">
+              {cart.lines.map((line) => (
+                <CartLine key={line.productId} line={line} />
+              ))}
+            </ul>
+            {cart.overLimit && (
+              <div className="mt-4">
+                <FormAlert>{text.overLimit}</FormAlert>
+              </div>
+            )}
+          </section>
+        }
+        summary={
+          <OrderSummary title={text.summaryTitle} totals={totals}>
+            <p className="text-small text-muted">{copy.brandStep.summaryNote}</p>
+          </OrderSummary>
+        }
+      />
     </>
   );
 }
@@ -917,7 +871,7 @@ function CartLine({ line }: { line: BrandCartLine }) {
   );
 }
 
-// ─── Step 3 ─────────────────────────────────────────────────────────────────
+// ─── Brand logo ─────────────────────────────────────────────────────────────
 
 function profileLogoProps(profile: BrandProfileView | null) {
   if (!profile?.logo) return null;
@@ -928,82 +882,7 @@ function profileLogoProps(profile: BrandProfileView | null) {
   };
 }
 
-async function PackagingStep({
-  cart,
-  userId,
-  draft,
-  profiles,
-  profile,
-}: {
-  cart: BrandCartView;
-  userId: string;
-  draft: BrandDraftView | null;
-  profiles: BrandProfileView[];
-  profile: BrandProfileView | null;
-}) {
-  const lines = profile?.logo ? await readLabelLines(userId, profile) : [];
-  const logo = profileLogoProps(profile);
-  const firstProduct = cart.lines.find((line) => line.product)?.product ?? null;
-  return (
-    <>
-      <StepHeading title={copy.packaging.title} line={copy.packaging.line} />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-5.5">
-      <div className="flex min-w-0 flex-col gap-8">
-        <section
-          aria-labelledby="launch-brands-title"
-          className="flex flex-col gap-3"
-        >
-          <div>
-            <h3 id="launch-brands-title" className="text-h3 text-ink">
-              {copy.profiles.title}
-            </h3>
-            <p className="mt-1 text-body text-muted">{copy.profiles.line}</p>
-          </div>
-          <BrandProfiles
-            profiles={profiles}
-            selectedId={profile?.id ?? null}
-            max={MAX_BRAND_PROFILES}
-          />
-        </section>
-        {profile?.logo ? (
-          <LabelDetailsForm
-            // A new brand, or changes to it, start the label fields again from it.
-            key={`${profile.id}-${profile.updatedAt.getTime()}-${lines.length}`}
-            lines={lines.map((line) => ({
-              productId: line.productId,
-              name: line.name,
-              spec: line.spec,
-              defaults: line.defaults,
-              trimmed: line.trimmed,
-              values: line.values,
-            }))}
-            notes={draft?.notes ?? null}
-          />
-        ) : (
-          profiles.length > 0 && (
-            <p className="text-sm font-bold text-muted">
-              {copy.packaging.errors.logo}
-            </p>
-          )
-        )}
-      </div>
-      <LabelPreview
-        brandName={profile?.brandName ?? null}
-        tagline={profile?.tagline ?? null}
-        marketedBy={profile?.marketedByName ?? null}
-        logoSrc={
-          logo && isImageLogo(logo.contentType) ? logo.src : null
-        }
-        product={firstProduct ? { name: firstProduct.name, packSize: firstProduct.packSize } : null}
-        productCount={cart.lines.length}
-        className="lg:sticky lg:top-40"
-      />
-      </div>
-    </>
-  );
-}
-
-// ─── Step 4 ─────────────────────────────────────────────────────────────────
+// ─── Step 3 ─────────────────────────────────────────────────────────────────
 
 function ReviewCard({
   title,
@@ -1094,6 +973,14 @@ async function ReviewStep({
                       formatPaise(line.unitPricePaise),
                     )}
                   </span>
+                  {line.packMrpPaise !== null && (
+                    <span className="block text-small text-muted">
+                      {text.themeMrp(
+                        copy.customise.themes[line.theme] ?? line.theme,
+                        formatPaise(line.packMrpPaise),
+                      )}
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 font-bold">
                   {formatPaise(line.lineTotalPaise)}
@@ -1102,7 +989,7 @@ async function ReviewStep({
             ))}
           </ul>
         </ReviewCard>
-        <ReviewCard title={text.packaging} editStep={3}>
+        <ReviewCard title={text.packaging} editStep={2}>
           <div className="flex flex-col gap-3">
             {logo ? (
               <LogoPreview

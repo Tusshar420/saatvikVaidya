@@ -14,6 +14,7 @@ import {
   stepBrandQuantity,
   usableBrandTiers,
 } from "./brand";
+import { MAX_PACK_MRP_RUPEES, brandThemeOf, brandThemes, packMrpProblem } from "./brand-theme";
 
 // Build Your Brand quantity rules (P2.1): the minimum is also the step.
 
@@ -132,8 +133,8 @@ describe("bulk tiers", () => {
 describe("launch helpers", () => {
   it("reads the step from the URL, defaulting to 1", () => {
     expect(launchStepNumber("3")).toBe(3);
-    expect(launchStepNumber(["4"])).toBe(4);
-    for (const bad of [undefined, "", "0", "5", "2a", "-1"]) expect(launchStepNumber(bad)).toBe(1);
+    expect(launchStepNumber(["2"])).toBe(2);
+    for (const bad of [undefined, "", "0", "4", "5", "2a", "-1"]) expect(launchStepNumber(bad)).toBe(1);
   });
 
   it("accepts contact numbers of 8 to 15 digits", () => {
@@ -142,5 +143,26 @@ describe("launch helpers", () => {
     expect(isContactNumber("1234567")).toBe(false);
     expect(isContactNumber("call me maybe")).toBe(false);
     expect(isContactNumber("+91 92203 58400 1234")).toBe(false);
+  });
+});
+
+describe("pack MRP", () => {
+  it("accepts whole rupees from the net rate up to the cap", () => {
+    expect(packMrpProblem(260, 26_000)).toBeNull();
+    expect(packMrpProblem(MAX_PACK_MRP_RUPEES, 26_000)).toBeNull();
+    expect(packMrpProblem(259, 26_000)).toBe("low");
+    expect(packMrpProblem(MAX_PACK_MRP_RUPEES + 1, 26_000)).toBe("high");
+    for (const bad of [0, -5, 1.5, Number.NaN]) expect(packMrpProblem(bad, 26_000)).toBe("missing");
+  });
+
+  it("knows the four label themes and falls back to the first", () => {
+    expect(brandThemes.map((theme) => theme.key)).toEqual([
+      "classic-green",
+      "saffron-glow",
+      "royal-maroon",
+      "minimal-white",
+    ]);
+    expect(brandThemeOf("royal-maroon").key).toBe("royal-maroon");
+    for (const unknown of [null, undefined, "", "neon"]) expect(brandThemeOf(unknown).key).toBe("classic-green");
   });
 });

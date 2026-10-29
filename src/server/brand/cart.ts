@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
+import { brandThemeOf, type BrandThemeKey } from "@/lib/brand-theme";
 import {
   brandLineTotal,
   brandUnitPriceFor,
@@ -25,6 +26,10 @@ export type BrandCartLine = {
   /** Name as it is now, also when the product is no longer open for branding. */
   name: string;
   quantity: number;
+  /** The label colour theme chosen on the product page. */
+  theme: BrandThemeKey;
+  /** The MRP the buyer prints on one pack, in paise; null until entered. */
+  packMrpPaise: number | null;
   /** Null when the product was taken off Build Your Brand or hidden. */
   product: BrandProduct | null;
   /** The quantity is allowed for the product's current terms and what can be made. */
@@ -50,6 +55,8 @@ export type BrandCartView = {
 const cartSelect = {
   productId: true,
   quantity: true,
+  labelTheme: true,
+  packMrpPaise: true,
   product: { select: brandProductSelect },
 } satisfies Prisma.BrandCartItemSelect;
 
@@ -73,6 +80,8 @@ export async function readBrandCart(
       productId: row.productId,
       name: row.product.name,
       quantity: row.quantity,
+      theme: brandThemeOf(row.labelTheme).key,
+      packMrpPaise: row.packMrpPaise,
       product,
       valid,
       overStock,
@@ -138,8 +147,13 @@ async function totalWith(userId: string, productId: number, lineTotalPaise: numb
 /**
  * "Add to launch cart": a product not in the cart comes in at its minimum;
  * one already there gets one more step of the minimum (as the + button).
+ * `theme` is the label colour picked on the product page.
  */
-export async function addToBrandCart(userId: string, productId: number): Promise<BrandCartChange> {
+export async function addToBrandCart(
+  userId: string,
+  productId: number,
+  theme?: BrandThemeKey,
+): Promise<BrandCartChange> {
   const product = await findBrandProduct(productId);
   if (!product) return { ok: false, error: { kind: "unavailable" } };
   const { terms } = product;
@@ -162,10 +176,34 @@ export async function addToBrandCart(userId: string, productId: number): Promise
   }
   await db.brandCartItem.upsert({
     where: { userId_productId: { userId, productId } },
-    create: { userId, productId, quantity },
-    update: { quantity },
+    create: { userId, productId, quantity, labelTheme: theme ?? null },
+    update: { quantity, ...(theme && { labelTheme: theme }) },
   });
   return { ok: true, quantity, count: await brandCartCount(userId) };
+}
+
+/**
+ * "Continue — choose quantity" on a product's page: the product is in the
+ * cart (at its minimum when new, as it is, with the new theme, when already
+ * there) with the chosen theme. Unlike addToBrandCart this never raises the
+ * quantity of a line that is already there.
+ */
+export async function chooseBrandProduct(
+  userId: string,
+  productId: number,
+  theme: BrandThemeKey,
+): Promise<BrandCartChange> {
+  const existing = await db.brandCartItem.findUnique({
+    where: { userId_productId: { userId, productId } },
+    select: { quantity: true },
+  });
+  if (!existing) return addToBrandCart(userId, productId, theme);
+  const updated = await db.brandCartItem.updateMany({
+    where: { userId, productId },
+    data: { labelTheme: theme },
+  });
+  if (updated.count === 0) return { ok: false, error: { kind: "not_in_cart" } };
+  return { ok: true, quantity: existing.quantity, count: await brandCartCount(userId) };
 }
 
 /** A new quantity for a line: a positive multiple of the product's minimum. */
@@ -202,7 +240,11 @@ export async function removeFromBrandCart(userId: string, productId: number): Pr
   return { count: await brandCartCount(userId) };
 }
 
-/** The furthest /launch step the user may open: each needs the ones before it. */
+/**
+ * The furthest /launch step the user may open: 1 products, 2 quantity and
+ * brand, 3 delivery and payment. Step 3 needs a ready cart and the brand
+ * details confirmed (a profile with a logo).
+ */
 export function furthestStep(
   cart: Pick<BrandCartView, "lines" | "ready">,
   draft: { packagingDone: boolean } | null,
@@ -211,6 +253,6 @@ export function furthestStep(
 ): number {
   if (cart.lines.length === 0) return 1;
   if (!cart.ready) return 2;
-  if (!draft?.packagingDone || !profile?.logo) return 3;
-  return 4;
+  if (!draft?.packagingDone || !profile?.logo) return 2;
+  return 3;
 }

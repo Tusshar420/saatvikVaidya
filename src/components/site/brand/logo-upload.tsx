@@ -7,8 +7,8 @@ import { FormAlert } from "@/components/site/auth/form-alert";
 import { Button } from "@/components/ui/button";
 import { brand as copy } from "@/content/brand";
 import { brandLogoUpload } from "@/lib/brand";
-import { formatFileSize } from "@/lib/verification";
 import { LogoPreview, type LogoPreviewProps } from "./logo-preview";
+import { uploadBrandLogo } from "./upload-logo";
 
 const text = copy.packaging.logo;
 
@@ -36,32 +36,16 @@ export function LogoUpload({
   async function upload(file: File) {
     setError(null);
     setDone(false);
-    if (file.size > brandLogoUpload.maxBytes) {
-      setError(text.errors.tooLarge(formatFileSize(brandLogoUpload.maxBytes)));
+    setUploading(true);
+    const problem = await uploadBrandLogo(profileId, file);
+    setUploading(false);
+    if (input.current) input.current.value = "";
+    if (problem) {
+      setError(problem);
       return;
     }
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.set("profileId", String(profileId));
-      form.set("file", file);
-      const response = await fetch("/api/launch/logo", { method: "POST", body: form });
-      const result = (await response.json().catch(() => null)) as
-        | { ok: true }
-        | { ok: false; message?: string }
-        | null;
-      if (!result?.ok) {
-        setError((result && "message" in result && result.message) || text.errors.failed);
-        return;
-      }
-      setDone(true);
-      startTransition(() => router.refresh());
-    } catch {
-      setError(text.errors.failed);
-    } finally {
-      setUploading(false);
-      if (input.current) input.current.value = "";
-    }
+    setDone(true);
+    startTransition(() => router.refresh());
   }
 
   const describedBy = [error && "logo-error", "logo-help"].filter(Boolean).join(" ");

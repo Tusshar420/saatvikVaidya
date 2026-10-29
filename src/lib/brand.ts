@@ -2,14 +2,14 @@
 // pages (to step the quantity and show prices) and the server (which checks
 // everything again). No "server-only" import: client components use it too.
 
-/** The /launch steps, in order: pick products, the Launch cart, packaging, pay. */
-export const launchSteps = ["products", "cart", "packaging", "review"] as const;
+/** The /launch steps, in order: pick a product, quantity and brand, delivery and payment. */
+export const launchSteps = ["products", "brand", "review"] as const;
 export type LaunchStep = (typeof launchSteps)[number];
 
-/** Step 1-4 from a `?step=` value; anything else is step 1. */
+/** Step 1-3 from a `?step=` value; anything else is step 1. */
 export function launchStepNumber(value: unknown): number {
   const text = Array.isArray(value) ? value[0] : value;
-  const n = typeof text === "string" && /^[1-4]$/.test(text) ? Number(text) : 1;
+  const n = typeof text === "string" && /^[1-3]$/.test(text) ? Number(text) : 1;
   return n;
 }
 

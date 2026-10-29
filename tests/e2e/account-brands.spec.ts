@@ -85,11 +85,8 @@ test("brand details on the account page: add, edit, set the default and delete s
   await expect(page.getByText(text.messages.deleted)).toBeVisible();
   await expect(brands.getByRole("listitem")).toHaveCount(2);
 
-  // Launch shows the same brands, with the changes.
-  await page.goto("/launch?step=3");
-  const launchBrands = page.getByRole("list", { name: text.listLabel });
-  await expect(launchBrands.getByRole("listitem")).toHaveCount(2);
-  await expect(launchBrands).toContainText("Kesari Wellness");
-  await expect(launchBrands).not.toContainText("Ayush range");
+  // Build Your Brand's details step starts from the default brand, with the changes.
+  await page.goto("/launch?step=2");
+  await expect(page.getByLabel(brand.brandStep.brandName)).toHaveValue("Kesari Wellness");
   expect(errors).toEqual([]);
 });
