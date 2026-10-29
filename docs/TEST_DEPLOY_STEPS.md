@@ -205,7 +205,7 @@ database.
 | --- | --- |
 | `package.json`, `pnpm-lock.yaml` | The list of packages the server downloads, with exact versions. |
 | `.npmrc` | Tells the install to use Node 24. |
-| `next.config.ts`, `tsconfig.json`, `postcss.config.mjs` | Build settings. |
+| `next.config.mjs`, `tsconfig.json`, `postcss.config.mjs` | Build settings. |
 | `prisma.config.ts`, `prisma/` (29 files) | The database layout (`schema.prisma`), the table changes `pnpm db:deploy` applies (`migrations/`), and the starting content (`seed.ts`). |
 | `src/` (513 files) | All the site's code: pages, admin, server logic and the site's wording. |
 | `public/` (7 files) | Logo, pictures and videos shown on the site. |

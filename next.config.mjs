@@ -1,14 +1,17 @@
+// Plain JavaScript on purpose: Hostinger's server is too old for Next's native
+// compiler, and the fallback compiler cannot read a next.config.ts. Node loads
+// this file directly. The .ts import below works through Node's built-in type
+// stripping (Node 22.18+ / 24).
 import { execSync } from "node:child_process";
-import type { NextConfig } from "next";
-import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 import {
   documentFileHeaders,
   documentFilePath,
   securityHeaders,
-} from "./src/lib/security-headers";
+} from "./src/lib/security-headers.ts";
 
 /** The deployed version shown in the error log: APP_VERSION, else the git commit, else "dev". */
-function appVersion(): string {
+function appVersion() {
   if (process.env.APP_VERSION) return process.env.APP_VERSION.slice(0, 40);
   try {
     return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
@@ -19,7 +22,8 @@ function appVersion(): string {
   }
 }
 
-export default function config(phase: string): NextConfig {
+/** @param {string} phase */
+export default function config(phase) {
   const isDev = phase === PHASE_DEVELOPMENT_SERVER;
   // Next has loaded .env.local by now. Unset means "assume https".
   const siteOrigin = process.env.BETTER_AUTH_URL;

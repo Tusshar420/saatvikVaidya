@@ -5398,3 +5398,21 @@ says Next falls back to WASM).
   --prod=false`) and builds with pnpm 11.24.0; pnpm 9 install and typecheck
   still pass on the Mac. Not checked: Linux, the glibc warning.
 - If the build still fails on SWC/glibc, try `next build --webpack`.
+
+## Second Hostinger build failure: next.config.ts (2026-10-29)
+
+Build from GitHub (`main`) failed: Hostinger's glibc is older than 2.29, so
+Next's native SWC binary cannot load. Next falls back to WASM, which could not
+compile `next.config.ts` ("Cannot find module ...next.config"). The stray
+`*.next.config.ts` file named in Hostinger's analysis is a temporary file Next
+makes during the build; it is not in the repository.
+
+- `next.config.ts` is now `next.config.mjs` (plain JavaScript), so Node loads it
+  with no compiler. It imports `src/lib/security-headers.ts` directly; that
+  works through Node's built-in type stripping (Node 22.18+, 24 on Hostinger).
+- `scripts/package_for_hostinger.sh` and two docs now name the new file.
+- Checked on the Mac (Node 24): typecheck, lint, 935 unit tests, build all pass,
+  and the config returns both header groups. Not checked: the build on
+  Hostinger itself, and e2e (not run for this config-only change).
+- Committed on `main` by the owner's instruction while the Hostinger deployment
+  is being set up; work returns to `dev` afterwards.

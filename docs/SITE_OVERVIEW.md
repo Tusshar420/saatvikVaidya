@@ -52,7 +52,7 @@ Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:e2e`.
   (`migrations/`) and the seed.
 - `scripts/`: admin creation, catalogue load, clearing test data.
 - `package.json`, `pnpm-lock.yaml`, `.npmrc`.
-- `next.config.ts`, `prisma.config.ts`, `tsconfig.json`,
+- `next.config.mjs`, `prisma.config.ts`, `tsconfig.json`,
   `postcss.config.mjs`, `next-env.d.ts`.
 
 **Do not upload:**

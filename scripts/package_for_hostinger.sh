@@ -152,7 +152,7 @@ for layout in "src/app/layout.tsx" "src/app/(site)/layout.tsx"; do
     noindex_hits="$noindex_hits $layout"
   fi
 done
-for headers in next.config.ts src/lib/security-headers.ts; do
+for headers in next.config.mjs src/lib/security-headers.ts; do
   if [ -f "$PKG_DIR/$headers" ] && grep -qi 'x-robots-tag' "$PKG_DIR/$headers"; then
     noindex_hits="$noindex_hits $headers"
   fi
@@ -179,7 +179,7 @@ if [ -f .env.local ]; then
 fi
 
 # The files the server cannot do without.
-for need in package.json pnpm-lock.yaml .npmrc next.config.ts tsconfig.json \
+for need in package.json pnpm-lock.yaml .npmrc next.config.mjs tsconfig.json \
   postcss.config.mjs prisma.config.ts prisma/schema.prisma prisma/seed.ts \
   prisma/migrations src/app public scripts/admin-create.ts \
   scripts/seed-catalogue.ts scripts/clear-test-data.ts scripts/hostinger-start.mjs; do
