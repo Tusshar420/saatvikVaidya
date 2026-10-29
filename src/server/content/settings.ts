@@ -1,0 +1,125 @@
+import "server-only";
+import { z } from "zod";
+import {
+  settingDefaults,
+  type SettingKey,
+  type SettingValues,
+} from "@/content/settings";
+import { indianState } from "@/lib/india";
+import { linkTargetSchema } from "./home-schema";
+import { db } from "@/server/db";
+import { cachedRead, contentTags } from "./cache";
+
+/**
+ * What a stored value must look like for each key. Anything else (missing,
+ * wrong shape, empty) falls back to the default in src/content/settings.ts.
+ */
+export const settingSchemas = {
+  "contact.phone": z.string().regex(/^\+91 [6-9]\d{4} \d{5}$/),
+  "contact.supportNote": z.string().trim().min(1).max(300),
+  "search.popular": z.array(z.string().trim().min(1).max(60)).min(1).max(8),
+  "footer.tagline": z.string().trim().min(1).max(200),
+  "checkout.shipping": z.object({
+    feePaise: z.number().int().min(0).max(10_000_000),
+    freeFromPaise: z.number().int().min(0).max(1_000_000_000).nullable(),
+  }),
+  "invoice.seller": z
+    .object({
+      legalName: z.string().trim().min(1).max(120),
+      addressLines: z.array(z.string().trim().min(1).max(120)).min(1).max(3),
+      city: z.string().trim().min(1).max(100),
+      stateCode: z.string().refine((code) => indianState(code) !== undefined),
+      pincode: z.string().regex(/^[1-8]\d{5}$/),
+      // 15 characters: state code, PAN, entity number, "Z", check character.
+      gstin: z.string().regex(/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/),
+    })
+    .refine((seller) => seller.gstin.startsWith(indianState(seller.stateCode)?.gstCode ?? "--"), {
+      path: ["gstin"],
+    }),
+  "coins.rules": z.object({
+    enabled: z.boolean(),
+    earnPerThousandRupees: z.number().int().min(0).max(10_000),
+    earnAfterDelivery: z.boolean(),
+    interestsReward: z.number().int().min(0).max(1_000_000),
+    detailsReward: z.number().int().min(0).max(1_000_000),
+    // Added in P2.3: rows saved before then don't have it.
+    quizReward: z.number().int().min(0).max(1_000_000).default(100),
+    coinsPerRupee: z.number().int().min(1).max(1_000),
+    maxRedeemPercent: z.number().int().min(0).max(100),
+    maxRedeemCoins: z.number().int().min(0).max(100_000_000),
+    expiryMonths: z.number().int().min(0).max(240),
+  }),
+  "ebooks.downloads": z.object({ enabled: z.boolean() }),
+  "site.announcement": z.object({
+    enabled: z.boolean(),
+    text: z.string().trim().max(200),
+    href: linkTargetSchema.nullable(),
+  }),
+  "pricing.discount": z.object({ percent: z.number().int().min(0).max(90) }),
+  "payment.manual": z.object({
+    payeeName: z.string().trim().min(1).max(80),
+    // name@bank: letters, digits, dots, dashes and underscores.
+    upiId: z.string().trim().max(80).regex(/^([\w.-]{2,60}@[a-zA-Z][\w.-]{1,30})?$/),
+    bankName: z.string().trim().max(80),
+    accountNumber: z.string().trim().max(24).regex(/^(\d{6,24})?$/),
+    ifsc: z.string().trim().max(11).regex(/^([A-Z]{4}0[A-Z0-9]{6})?$/),
+    note: z.string().trim().max(300),
+  }),
+  "checkout.enabled": z.object({ enabled: z.boolean() }),
+  "site.maintenance": z.object({
+    enabled: z.boolean(),
+    message: z.string().trim().min(1).max(300),
+  }),
+} satisfies { [K in SettingKey]: z.ZodType<SettingValues[K]> };
+
+const settingKeys = Object.keys(settingDefaults) as SettingKey[];
+
+/** A stored value if it's valid for `key`, otherwise the default. */
+export function resolveSetting<K extends SettingKey>(
+  key: K,
+  stored: unknown,
+): SettingValues[K] {
+  if (stored === undefined || stored === null) return settingDefaults[key];
+  const parsed = settingSchemas[key].safeParse(stored);
+  // The cast is safe: settingSchemas[K] parses to SettingValues[K] (checked by
+  // `satisfies` above), but TypeScript can't follow the generic index.
+  return parsed.success
+    ? (parsed.data as SettingValues[K])
+    : settingDefaults[key];
+}
+
+/** Stored values for every known setting key, straight from the database. */
+export async function readStoredSettings(): Promise<
+  Partial<Record<SettingKey, unknown>>
+> {
+  const rows = await db.setting.findMany({
+    where: { key: { in: settingKeys } },
+    select: { key: true, value: true },
+  });
+  return Object.fromEntries(rows.map((row) => [row.key, row.value]));
+}
+
+// One cached read for all settings: a page usually needs several of them.
+const cachedStoredSettings = cachedRead(
+  readStoredSettings,
+  "settings:all",
+  contentTags.settings,
+);
+
+/**
+ * Reads one site setting from the Setting table (cached). A missing or
+ * invalid value falls back to its default, and so does every key if the
+ * database can't be reached, so the site shell always renders.
+ */
+export async function getSetting<K extends SettingKey>(
+  key: K,
+): Promise<SettingValues[K]> {
+  let stored: Partial<Record<SettingKey, unknown>>;
+  try {
+    stored = await cachedStoredSettings();
+  } catch (error) {
+    console.error("getSetting: settings unavailable, using defaults.", error);
+    stored = {};
+  }
+  return resolveSetting(key, stored[key]);
+}

@@ -1,0 +1,1867 @@
+// Saatvik Vaidya database schema.
+// The connection URL lives in prisma.config.ts, read from DATABASE_URL.
+//
+// Sections, in order: users and access, admin, site settings, homepage
+// content, learning, catalogue, cart and orders. Later phases add their own
+// section (coins, ebooks...).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─── Users and access ───────────────────────────────────────────────────────
+// User, Session, Account and Verification are Better Auth's tables (see
+// src/server/auth/). Column names must match what Better Auth expects; the
+// extra User fields are declared in src/server/auth/user-fields.ts too.
+
+/// A kind of account, chosen at sign-up. Stored as data so admins can add
+/// types later. Admin is a role on User, not a user type.
+model UserType {
+  id                   Int      @id @default(autoincrement())
+  /// Stable identifier used in code and the seed, e.g. "customer", "doctor".
+  key                  String   @unique @db.VarChar(40)
+  label                String   @db.VarChar(80)
+  /// Professional types get professional prices once verified.
+  isProfessional       Boolean  @default(false)
+  /// Needs documents approved by an admin before professional prices apply.
+  requiresVerification Boolean  @default(false)
+  /// Also gets products' bulk price tiers once professional prices apply
+  /// (Pharmacy / Store and Stockist / Distributor). See src/server/pricing.
+  bulkPricing          Boolean  @default(false)
+  sortOrder            Int      @default(0)
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  users                User[]
+}
+
+/// `admin` is only ever set by `pnpm admin:create` or directly in the
+/// database, never from sign-up or profile input.
+enum UserRole {
+  user
+  admin
+}
+
+/// What an admin may work on (P1.11). Only set for role "admin". A super admin
+/// can do everything and manage admins; the others own one area each.
+enum AdminRole {
+  super
+  catalogue
+  orders
+  content
+  approvals
+}
+
+/// Professional document checks. `none` for types that need no check.
+enum VerificationStatus {
+  none
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id                      String                 @id @db.VarChar(64)
+  name                    String                 @db.VarChar(191)
+  /// Better Auth requires an email. Accounts created by phone OTP get a
+  /// placeholder on the reserved ".invalid" domain (see
+  /// src/server/auth/placeholder-email.ts), which is never shown or mailed.
+  email                   String                 @unique @db.VarChar(191)
+  emailVerified           Boolean                @default(false)
+  image                   String?                @db.Text
+  /// E.164, Indian mobiles only: "+91XXXXXXXXXX".
+  phoneNumber             String?                @unique @db.VarChar(20)
+  phoneNumberVerified     Boolean                @default(false)
+  userTypeId              Int
+  userType                UserType               @relation(fields: [userTypeId], references: [id], onDelete: Restrict)
+  role                    UserRole               @default(user)
+  /// Which admin area this admin may use (null for non-admins).
+  adminRole               AdminRole?
+  /// Better Auth two-factor plugin: true once the authenticator app is set up.
+  /// Admin pages refuse a signed-in admin until it is.
+  twoFactorEnabled        Boolean                @default(false)
+  verificationStatus      VerificationStatus     @default(none)
+  /// When the professional last completed their set of required documents
+  /// (see src/lib/verification.ts). Null until every required document is
+  /// uploaded; shown as "submitted" on /account and in admin approvals.
+  verificationSubmittedAt DateTime?
+  marketingOptIn          Boolean                @default(false)
+  /// Order and delivery updates by SMS and by email (P1.10). Marketing is
+  /// marketingOptIn above.
+  notifyOrderSms          Boolean                @default(true)
+  notifyOrderEmail        Boolean                @default(true)
+  /// When the user accepted the terms at sign-up (set by the server).
+  termsAcceptedAt         DateTime
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  sessions                Session[]
+  accounts                Account[]
+  adminLogs               AdminLog[]
+  stockMovements          StockMovement[]
+  errorOccurrences        ErrorOccurrence[]
+  bugReports              BugReport[]
+  documents               ProfessionalDocument[]
+  /// Decisions about this user's verification.
+  verificationComments    VerificationComment[]  @relation("VerificationSubject")
+  /// Decisions this admin made about other users' verification.
+  verificationDecisions   VerificationComment[]  @relation("VerificationAuthor")
+  cart                    Cart?
+  addresses               Address[]
+  orders                  Order[]
+  coinEntries             CoinLedger[]
+  quizAttempts            QuizAttempt[]
+  settingsChanged         Setting[]              @relation("SettingUpdatedBy")
+  settingHistory          SettingHistory[]       @relation("SettingHistoryChangedBy")
+  twoFactors              TwoFactor[]
+  adminInvitesSent        AdminInvite[]          @relation("AdminInviteSender")
+  brandDraft              BrandDraft?
+  brandProfiles           BrandProfile[]
+  brandCartItems          BrandCartItem[]
+  notifications           Notification[]
+  threads                 Thread[]
+  threadReplies           ThreadReply[]
+  threadLikes             ThreadLike[]
+  coursesAuthored         CourseTeaser[]         @relation("CourseAuthor")
+
+  @@index([userTypeId])
+}
+
+/// Authenticator-app secret and backup codes (Better Auth two-factor plugin;
+/// secret and codes are stored encrypted).
+model TwoFactor {
+  id                      String    @id @db.VarChar(64)
+  secret                  String    @db.Text
+  backupCodes             String    @db.Text
+  userId                  String    @db.VarChar(64)
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+
+  @@index([userId])
+}
+
+/// A super admin's invitation for someone to become an admin. Only the hash
+/// of the link's token is stored. Single use, and it expires.
+model AdminInvite {
+  id          Int       @id @default(autoincrement())
+  email       String    @db.VarChar(191)
+  adminRole   AdminRole
+  tokenHash   String    @unique @db.VarChar(64)
+  invitedById String?   @db.VarChar(64)
+  invitedBy   User?     @relation("AdminInviteSender", fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @db.VarChar(64)
+  expiresAt DateTime
+  token     String   @unique @db.VarChar(191)
+  ipAddress String?  @db.VarChar(64)
+  userAgent String?  @db.Text
+  userId    String   @db.VarChar(64)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// A way to sign in. Email + password and phone-set passwords are
+/// providerId "credential" with the password hash here.
+model Account {
+  id                    String    @id @db.VarChar(64)
+  accountId             String    @db.VarChar(191)
+  providerId            String    @db.VarChar(64)
+  userId                String    @db.VarChar(64)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+/// Short-lived values: phone OTPs ("code:attempts", keyed by phone number)
+/// and password-reset tokens.
+model Verification {
+  id         String   @id @db.VarChar(64)
+  identifier String   @db.VarChar(191)
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+/// Fixed-window counters for the auth rate limits in
+/// src/server/auth/rate-limit.ts, e.g. key "otp-send:phone:+919876543210".
+/// Kept in the database so limits survive restarts.
+model AuthRateLimit {
+  key       String @id @db.VarChar(191)
+  count     Int
+  /// When the current window ends, in epoch milliseconds (timezone-free).
+  resetAtMs BigInt
+
+  @@index([resetAtMs])
+}
+
+// ─── Admin ──────────────────────────────────────────────────────────────────
+
+/// Audit trail: one row per change made in the admin panel, written in the
+/// same transaction as the change (src/server/admin/audit.ts). Never holds
+/// secrets such as passwords or tokens.
+model AdminLog {
+  id         Int      @id @default(autoincrement())
+  /// The admin who made the change; null once that account is deleted.
+  userId     String?  @db.VarChar(64)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// What was done, e.g. "user.approve", "reel.update".
+  action     String   @db.VarChar(40)
+  /// Model name of what was changed, e.g. "User", "Reel".
+  resource   String   @db.VarChar(40)
+  /// Id of the changed row (kept after the row is deleted).
+  resourceId String?  @db.VarChar(64)
+  /// Changed fields as { field: { from, to } }, plus a note where given.
+  changes    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+// The in-app list behind the header's bell (src/server/notifications/). Rows
+// are written next to the SMS and email messages in src/server/notify/, so
+// they don't depend on the user's SMS/email preferences.
+
+/// What a notification is about; decides its icon (and later its badge).
+enum NotificationKind {
+  order
+  brand
+  verification
+  admin
+  course
+  doctor_talk
+  quiz
+  top_brands
+}
+
+/// One message to one user: a title, a short line and the page it opens.
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    String           @db.VarChar(64)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationKind
+  title     String           @db.VarChar(160)
+  body      String           @db.VarChar(500)
+  /// The site path it opens, e.g. "/orders/abc" (always a same-site path).
+  href      String           @db.VarChar(300)
+  /// Null while unread.
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+// ─── Error log (Phase 4) ────────────────────────────────────────────────────
+// Errors from the server and from visitors' browsers, grouped by fingerprint
+// (src/lib/error-scrub.ts) so one bug is one row with a count. Everything is
+// scrubbed before it is stored (no passwords, tokens, cookies, card/UPI details
+// or OTPs, and never request bodies). Code: src/server/errors/.
+
+enum ErrorSource {
+  server
+  browser
+}
+
+enum ErrorStatus {
+  new
+  investigating
+  fixed
+  ignored
+}
+
+/// One bug: every occurrence with the same fingerprint lands here.
+model ErrorGroup {
+  id             Int               @id @default(autoincrement())
+  /// sha256 of source + normalised message + top stack frame + route.
+  fingerprint    String            @unique @db.VarChar(64)
+  source         ErrorSource
+  message        String            @db.VarChar(500)
+  /// Stack of the first occurrence (scrubbed).
+  stack          String?           @db.Text
+  /// Route pattern, e.g. "/orders/:id" or "/app/products/[slug]".
+  route          String            @db.VarChar(191)
+  method         String?           @db.VarChar(10)
+  statusCode     Int?
+  status         ErrorStatus       @default(new)
+  /// Every time it happened, even after old occurrences were deleted.
+  count          Int               @default(1)
+  firstSeenAt    DateTime          @default(now())
+  lastSeenAt     DateTime          @default(now())
+  /// When admins were last emailed about it (at most once an hour).
+  lastNotifiedAt DateTime?
+  /// App version (commit) of the latest occurrence.
+  appVersion     String?           @db.VarChar(40)
+  occurrences    ErrorOccurrence[]
+  reports        BugReportError[]
+
+  @@index([status, lastSeenAt])
+  @@index([source, lastSeenAt])
+  @@index([route])
+  @@index([count])
+  @@index([lastSeenAt])
+}
+
+/// One time an error happened; only the latest few per group are kept, and
+/// none older than 90 days.
+model ErrorOccurrence {
+  id         Int        @id @default(autoincrement())
+  groupId    Int
+  group      ErrorGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  /// The page or request URL, scrubbed.
+  url        String?    @db.VarChar(500)
+  method     String?    @db.VarChar(10)
+  statusCode Int?
+  /// The signed-in user, if any; null once that account is deleted.
+  userId     String?    @db.VarChar(64)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userAgent  String?    @db.VarChar(255)
+  /// mobile, tablet, desktop, bot or unknown.
+  device     String?    @db.VarChar(12)
+  appVersion String?    @db.VarChar(40)
+  stack      String?    @db.Text
+  /// Small scrubbed extras: Next's digest, route type, what the caller was doing.
+  context    Json?
+
+  @@index([groupId, createdAt])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+/// A problem a visitor sent with "Report a problem" (Phase 4). Shown in the
+/// admin Error log's Reports tab, with the same statuses as errors.
+model BugReport {
+  id             Int              @id @default(autoincrement())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  status         ErrorStatus      @default(new)
+  /// What went wrong, in the reporter's words (plain text, scrubbed).
+  description    String           @db.Text
+  /// The signed-in reporter; null for guests and once the account is deleted.
+  userId         String?          @db.VarChar(64)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Optional reply address, asked of guests only.
+  contactEmail   String?          @db.VarChar(191)
+  /// The page they were on, scrubbed.
+  pageUrl        String?          @db.VarChar(500)
+  userAgent      String?          @db.VarChar(255)
+  /// mobile, tablet, desktop or unknown.
+  device         String?          @db.VarChar(12)
+  screenWidth    Int?
+  screenHeight   Int?
+  viewportWidth  Int?
+  viewportHeight Int?
+  pixelRatio     Float?
+  appVersion     String?          @db.VarChar(40)
+  /// Browser errors from the reporter's tab before they reported, scrubbed:
+  /// [{ message, url, kind, at, digest? }].
+  sessionErrors  Json?
+  /// Screenshot in Storage; never public, served by /api/bug-reports/[id]/screenshot.
+  screenshotKey  String?          @unique @db.VarChar(191)
+  screenshotType String?          @db.VarChar(32)
+  /// For admins only; never shown to the reporter.
+  adminNote      String?          @db.Text
+  errors         BugReportError[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+/// A report linked to an error in the log: automatically, from the browser
+/// errors of the reporter's visit, or by an admin.
+model BugReportError {
+  reportId  Int
+  report    BugReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  groupId   Int
+  group     ErrorGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// True when linked from the reporter's visit, false when an admin linked it.
+  auto      Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  @@id([reportId, groupId])
+  @@index([groupId])
+}
+
+// ─── Professional verification ──────────────────────────────────────────────
+// Professionals upload documents from /account; admins review them at
+// /admin/approvals/detail/[userId]. Files live in Storage (src/server/storage)
+// and are only served through /api/documents/[id], to their owner or an admin.
+
+/// One uploaded document. A user has at most one current file per document
+/// type; uploading again replaces it (and the old file is deleted).
+model ProfessionalDocument {
+  id           Int       @id @default(autoincrement())
+  userId       String    @db.VarChar(64)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Key from src/lib/verification.ts, e.g. "drug_licence".
+  documentType String    @db.VarChar(40)
+  /// The file's key in Storage. Not a URL: files are never public.
+  fileKey      String    @unique @db.VarChar(191)
+  /// The name the file had on the user's device (cleaned), for display.
+  fileName     String    @db.VarChar(191)
+  /// Checked from the file's contents on upload, not taken from the browser.
+  contentType  String    @db.VarChar(64)
+  sizeBytes    Int
+  uploadedAt   DateTime  @default(now())
+  /// When an admin approved the account with this file on record.
+  verifiedAt   DateTime?
+
+  @@unique([userId, documentType])
+}
+
+enum VerificationDecision {
+  approved
+  rejected
+}
+
+/// An admin's approve or reject decision, with an optional comment. The
+/// latest rejection's comment is shown to the professional as the reason.
+model VerificationComment {
+  id        Int                  @id @default(autoincrement())
+  /// The professional the decision is about.
+  userId    String               @db.VarChar(64)
+  user      User                 @relation("VerificationSubject", fields: [userId], references: [id], onDelete: Cascade)
+  /// The admin who decided; null once that account is deleted.
+  authorId  String?              @db.VarChar(64)
+  author    User?                @relation("VerificationAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  decision  VerificationDecision
+  comment   String?              @db.Text
+  createdAt DateTime             @default(now())
+
+  @@index([userId, createdAt])
+  @@index([authorId])
+}
+
+// ─── Site settings ──────────────────────────────────────────────────────────
+
+/// One admin-editable site value (phone number, footer text, popular
+/// searches...). Read through getSetting(), which validates the value and
+/// falls back to the default in src/content/settings.ts.
+model Setting {
+  key           String           @id @db.VarChar(100)
+  value         Json
+  updatedAt     DateTime         @updatedAt
+  /// The user who last changed it; null when set by the seed, or once that
+  /// account is deleted.
+  updatedBy     String?          @db.VarChar(64)
+  updatedByUser User?            @relation("SettingUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history       SettingHistory[]
+
+  @@index([updatedBy])
+}
+
+/// Every value a setting has had, newest last, including the seeded one.
+model SettingHistory {
+  id            Int      @id @default(autoincrement())
+  settingKey    String   @db.VarChar(100)
+  setting       Setting  @relation(fields: [settingKey], references: [key], onDelete: Cascade)
+  value         Json
+  changedAt     DateTime @default(now())
+  /// The user who made the change; null for the seed, or once that account
+  /// is deleted.
+  changedBy     String?  @db.VarChar(64)
+  changedByUser User?    @relation("SettingHistoryChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([settingKey, changedAt])
+  @@index([changedBy])
+}
+
+// ─── Homepage content ───────────────────────────────────────────────────────
+// Read through getHomeContent() in src/server/content/home.ts.
+//
+// Conventions:
+// - `key` is a stable identifier used by the seed (upserts) and tests.
+// - `sortOrder` ascending, then id. Only `active` items are shown.
+// - Link targets (`*Href`) are a site path ("/coins", "/#launch"), or
+//   "modal:sign-in" / "modal:track-order" to open a site modal. Null means the
+//   destination isn't built yet, so the UI shows a "coming soon" state.
+// - Decorative glyphs (→ arrows, ✓ ticks, ▶ play) aren't stored; components
+//   draw them.
+
+/// Which homepage sections show, in what order, and their heading copy.
+/// Section-specific extra copy (steps, panels...) is in `content`, validated
+/// per section by src/server/content/home-schema.ts.
+model HomeSection {
+  key           String   @id @db.VarChar(40)
+  enabled       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  eyebrow       String?  @db.VarChar(80)
+  title         String?  @db.VarChar(160)
+  /// Second line of a two-part title, shown in teal.
+  titleEmphasis String?  @db.VarChar(160)
+  description   String?  @db.VarChar(400)
+  linkLabel     String?  @db.VarChar(80)
+  linkHref      String?  @db.VarChar(200)
+  content       Json?
+  updatedAt     DateTime @updatedAt
+}
+
+enum Tone {
+  ORANGE
+  TEAL
+  BLUE
+  GOLD
+  NAVY
+  GREEN
+}
+
+enum HeroPanelKind {
+  LAUNCH_STUDIO
+  BRAND_SHOWCASE
+  LEARNING_BOARD
+}
+
+/// One hero carousel slide: copy on the left, a panel on the right.
+model HeroSlide {
+  id             Int           @id @default(autoincrement())
+  key            String        @unique @db.VarChar(64)
+  sortOrder      Int           @default(0)
+  active         Boolean       @default(true)
+  eyebrow        String        @db.VarChar(80)
+  title          String        @db.VarChar(160)
+  titleEmphasis  String?       @db.VarChar(160)
+  body           String        @db.VarChar(400)
+  primaryLabel   String        @db.VarChar(80)
+  primaryHref    String?       @db.VarChar(200)
+  secondaryLabel String?       @db.VarChar(80)
+  secondaryHref  String?       @db.VarChar(200)
+  /// Optional social-proof row under the buttons.
+  proof          Json?
+  panelKind      HeroPanelKind
+  /// Copy for the right-hand panel; its shape depends on panelKind.
+  panel          Json
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+/// Trust strip figure, e.g. "150+" / "Classical formulations".
+model StatItem {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  value     String   @db.VarChar(40)
+  label     String   @db.VarChar(80)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Reel filter group.
+enum ReelType {
+  PRODUCT
+  FEEDBACK
+  LEARNING
+  OFFER
+}
+
+enum ReelMediaKind {
+  VIDEO
+  IMAGE
+  /// No media file: a designed poster built from the poster* fields.
+  POSTER
+}
+
+model Reel {
+  id           Int           @id @default(autoincrement())
+  key          String        @unique @db.VarChar(64)
+  sortOrder    Int           @default(0)
+  active       Boolean       @default(true)
+  type         ReelType
+  mediaKind    ReelMediaKind
+  /// Path under public/, e.g. "/media/brand-launch.mp4".
+  mediaSrc     String?       @db.VarChar(200)
+  /// Poster frame for a video (path under public/).
+  posterSrc    String?       @db.VarChar(200)
+  /// Image alt text, or the play button's label for a video.
+  mediaLabel   String?       @db.VarChar(200)
+  badge        String?       @db.VarChar(60)
+  badgeTone    Tone?
+  /// Small corner chip: duration, source or time.
+  metaLabel    String?       @db.VarChar(60)
+  /// Highlighted value over the media, e.g. "1,000 Coins = ₹100".
+  valueLabel   String?       @db.VarChar(60)
+  posterKicker String?       @db.VarChar(80)
+  /// Poster headline; may contain line breaks.
+  posterText   String?       @db.VarChar(200)
+  posterByline String?       @db.VarChar(80)
+  title        String        @db.VarChar(200)
+  linkLabel    String        @db.VarChar(80)
+  linkHref     String?       @db.VarChar(200)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Offer {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  tone      Tone
+  iconText  String   @db.VarChar(8)
+  eyebrow   String   @db.VarChar(80)
+  title     String   @db.VarChar(160)
+  body      String   @db.VarChar(300)
+  /// Accessible name of the card's arrow link.
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// "Start here" tiles.
+model QuickAction {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(64)
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  tone        Tone
+  iconText    String   @db.VarChar(8)
+  title       String   @db.VarChar(80)
+  description String   @db.VarChar(160)
+  href        String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum CategoryKind {
+  FORM
+  PRACTICE_AREA
+}
+
+/// Catalogue entry point: a product form (Vati, Churna...) or a practice area.
+model Category {
+  id           Int          @id @default(autoincrement())
+  /// Also the future URL slug.
+  key          String       @unique @db.VarChar(64)
+  kind         CategoryKind
+  sortOrder    Int          @default(0)
+  active       Boolean      @default(true)
+  name         String       @db.VarChar(80)
+  /// Short Devanagari mark shown on the tile, e.g. "चू".
+  glyph        String?      @db.VarChar(8)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  /// Products of this form (kind FORM only).
+  formProducts Product[]    @relation("ProductForm")
+  /// Products in this practice area (kind PRACTICE_AREA only).
+  areaProducts Product[]    @relation("ProductPracticeAreas")
+}
+
+model Brand {
+  id          Int       @id @default(autoincrement())
+  /// Also the future URL slug.
+  key         String    @unique @db.VarChar(64)
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  featured    Boolean   @default(false)
+  name        String    @db.VarChar(80)
+  monogram    String    @db.VarChar(4)
+  /// Logo image (path under public/). Uploads come with R2 later.
+  logoSrc     String?   @db.VarChar(200)
+  tone        Tone
+  eyebrow     String    @db.VarChar(80)
+  description String    @db.VarChar(300)
+  linkLabel   String    @db.VarChar(80)
+  /// Null links to this brand's products in the catalogue.
+  linkHref    String?   @db.VarChar(200)
+  /// A partner brand sold alongside our own: inventory reports split by this.
+  isPartner   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model CourseTeaser {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique @db.VarChar(64)
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  tag        String   @db.VarChar(60)
+  title      String   @db.VarChar(160)
+  body       String   @db.VarChar(300)
+  metaLabel  String   @db.VarChar(40)
+  metaValue  String   @db.VarChar(80)
+  /// For the admin list and the future course page (Phase 3).
+  instructor String?  @db.VarChar(80)
+  /// Display text, e.g. "3 days" or "6 hours".
+  duration   String?  @db.VarChar(40)
+  /// YouTube video or embed URL (courses are YouTube-based).
+  videoUrl   String?  @db.VarChar(300)
+  linkLabel  String   @db.VarChar(80)
+  linkHref   String?  @db.VarChar(200)
+  /// Online sales (B1). Null: not sold online (the card offers a call).
+  /// Otherwise the price including GST; buyers enrol through the cart.
+  pricePaise    Int?
+  /// GST percentage included in the price.
+  gstRate       Int          @default(18)
+  /// The longer description on the course page.
+  details       String?      @db.Text
+  /// Shown only to enrolled buyers, the author and staff: joining link,
+  /// schedule, materials.
+  accessDetails String?      @db.Text
+  /// The doctor who made it in their course area (B2); null for staff-made
+  /// courses, or once the doctor's account is deleted.
+  authorId      String?      @db.VarChar(64)
+  author        User?        @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  /// Doctors' courses wait for staff review; only published ones are listed.
+  status        CourseStatus @default(published)
+  /// Staff's reason when they send a course back.
+  reviewNote    String?      @db.VarChar(500)
+  submittedAt   DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([authorId])
+  @@index([status])
+}
+
+enum CourseStatus {
+  pending
+  published
+  rejected
+}
+
+/// Saatvik Live session teaser.
+model LiveSession {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  tag       String   @db.VarChar(60)
+  title     String   @db.VarChar(160)
+  body      String   @db.VarChar(300)
+  metaLabel String   @db.VarChar(40)
+  /// Display text for when it runs, e.g. "Monday • 8 PM".
+  metaValue String   @db.VarChar(80)
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Verified testimonial with a photo of the original (letterhead, note...).
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  /// Shown large in the homepage feedback section.
+  featured  Boolean  @default(false)
+  imageSrc  String   @db.VarChar(200)
+  imageAlt  String   @db.VarChar(200)
+  badge     String   @db.VarChar(60)
+  quote     String   @db.VarChar(600)
+  caption   String   @db.VarChar(160)
+  linkLabel String   @db.VarChar(80)
+  linkHref  String?  @db.VarChar(200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// "Why Saatvik" step. Its number comes from the order.
+model WhyStep {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  title     String   @db.VarChar(80)
+  body      String   @db.VarChar(300)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Learning ───────────────────────────────────────────────────────────────
+// Managed in the admin panel. Quiz & Win (P2.3): a scheduled quiz is open to
+// play between startsAt and endsAt; one QuizAttempt per user per quiz. Code is
+// in src/server/quiz. Correct answers are never selected for a question that
+// is being played; they are read only once the attempt is finished.
+
+model Quiz {
+  id          Int            @id @default(autoincrement())
+  title       String         @db.VarChar(160)
+  description String?        @db.VarChar(600)
+  /// Finished and ready to publish once Quiz & Win launches.
+  active      Boolean        @default(false)
+  /// The week it can be played (an instant). Null: not scheduled, so not
+  /// playable. Scheduled quizzes have exactly 10 questions.
+  startsAt    DateTime?
+  endsAt      DateTime?
+  /// Share of the points (0-100) needed to earn the quiz coins.
+  passPercent Int            @default(60)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  questions   QuizQuestion[]
+  attempts    QuizAttempt[]
+
+  @@index([active, startsAt])
+}
+
+model QuizQuestion {
+  id          Int          @id @default(autoincrement())
+  quizId      Int
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  sortOrder   Int          @default(0)
+  prompt      String       @db.VarChar(400)
+  points      Int          @default(10)
+  /// Shown with the answer once the attempt is finished.
+  explanation String?      @db.VarChar(400)
+  options     QuizOption[]
+
+  @@index([quizId, sortOrder])
+}
+
+/// An answer choice. Exactly one per question is correct.
+model QuizOption {
+  id         Int          @id @default(autoincrement())
+  questionId Int
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  sortOrder  Int          @default(0)
+  text       String       @db.VarChar(200)
+  isCorrect  Boolean      @default(false)
+
+  @@index([questionId, sortOrder])
+}
+
+/// A user's one go at a quiz. `startedAt` is set by the server; the 5 minutes
+/// run from it. `answers` maps question id to chosen option id and only holds
+/// answers saved before the deadline. `submittedAt` null: still open (or
+/// expired and not yet closed; closing happens on the next read).
+model QuizAttempt {
+  id               Int       @id @default(autoincrement())
+  userId           String    @db.VarChar(64)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId           Int
+  quiz             Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  startedAt        DateTime  @default(now())
+  answers          Json
+  submittedAt      DateTime?
+  score            Int       @default(0)
+  maxScore         Int       @default(0)
+  correctCount     Int       @default(0)
+  timeTakenSeconds Int       @default(0)
+  coinsAwarded     Int       @default(0)
+
+  @@unique([userId, quizId])
+  @@index([quizId, submittedAt])
+  @@index([startedAt])
+}
+
+// ─── Catalogue ──────────────────────────────────────────────────────────────
+// Managed at /admin/catalogue; shown at /products, /products/[slug] and
+// /search. Money is in paise (integers). Which price a viewer gets is decided
+// only by src/server/pricing; pages never read professional or bulk prices
+// themselves.
+
+model Product {
+  id                     Int              @id @default(autoincrement())
+  /// URL segment: /products/<slug>. Lowercase words joined by dashes.
+  slug                   String           @unique @db.VarChar(120)
+  name                   String           @db.VarChar(160)
+  /// Null only if the brand was deleted; the admin form requires one.
+  brandId                Int?
+  brand                  Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  /// The product's form (a Category of kind FORM), e.g. Churna.
+  formId                 Int
+  form                   Category         @relation("ProductForm", fields: [formId], references: [id], onDelete: Restrict)
+  /// Practice areas (Categories of kind PRACTICE_AREA).
+  practiceAreas          Category[]       @relation("ProductPracticeAreas")
+  /// Plain text; line breaks are kept when shown.
+  description            String           @db.Text
+  ingredients            String?          @db.Text
+  dosage                 String?          @db.Text
+  /// Display text, e.g. "60 tablets" or "200 ml".
+  packSize               String           @db.VarChar(60)
+  /// Retail price (MRP), including GST, in paise.
+  mrpPaise               Int
+  /// Price for approved professionals, including GST, in paise. At most MRP.
+  professionalPricePaise Int
+  /// GST percentage included in the prices, e.g. 5 or 12.
+  gstRate                Int
+  /// HSN code for GST invoices (4, 6 or 8 digits).
+  hsnCode                String           @db.VarChar(8)
+  /// Minimum order quantity.
+  moq                    Int              @default(1)
+  active                 Boolean          @default(true)
+  featured               Boolean          @default(false)
+  sortOrder              Int              @default(0)
+  /// Seeded example, not a real product: the site labels it "Sample".
+  isSample               Boolean          @default(false)
+  /// Launch Your Brand (P2.1): can be ordered in the buyer's own packaging.
+  brandEligible          Boolean          @default(false)
+  /// Smallest branded order, which is also the step: 4 allows 4, 8, 12...
+  brandMinQty            Int?
+  /// Branded price per unit, including GST, in paise (one price for everyone).
+  brandUnitPricePaise    Int?
+  /// What one unit is called on Launch Your Brand, e.g. "bottles".
+  brandUnitLabel         String?          @db.VarChar(30)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  images                 ProductImage[]
+  bulkTiers              BulkPriceTier[]
+  cartItems              CartItem[]
+  orderItems             OrderItem[]
+  brandCartItems         BrandCartItem[]
+  brandTiers             BrandPriceTier[]
+  /// What the label of this product can print (null: the general spec).
+  labelSpecId            Int?
+  labelSpec              LabelSpec?       @relation(fields: [labelSpecId], references: [id], onDelete: SetNull)
+  /// B2C finished-goods stock of this product (src/server/inventory).
+  stockItem              StockItem?
+  /// What one Launch unit is made of (B2B inventory).
+  recipeLines            RecipeLine[]
+
+  @@index([active, sortOrder])
+  @@index([brandId])
+  @@index([formId])
+  @@index([brandEligible, active])
+}
+
+/// A product photo, stored in Storage (src/server/storage) and served by
+/// /api/product-images/[id]. The first by sortOrder is the main image.
+model ProductImage {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The file's key in Storage, e.g. "products/12/<random>.jpg".
+  fileKey     String   @unique @db.VarChar(191)
+  /// Checked from the file's contents on upload.
+  contentType String   @db.VarChar(64)
+  sizeBytes   Int
+  alt         String   @db.VarChar(200)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([productId, sortOrder])
+}
+
+/// A lower unit price from a quantity upwards, for user types with
+/// bulkPricing once approved. Prices fall as quantities rise.
+model BulkPriceTier {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  /// Unit price, including GST, in paise.
+  pricePaise  Int
+
+  @@unique([productId, minQuantity])
+}
+
+// ─── Cart and orders ────────────────────────────────────────────────────────
+// /cart, /checkout and the payment screens (P1.4). Code is in src/server/cart,
+// src/server/checkout and src/server/payments. Prices are never stored on a
+// cart: every view and every checkout step prices the lines again with
+// priceFor(). An order keeps a snapshot of what was charged.
+
+/// A shopping cart: a signed-in user's (one each), or a guest's, found by
+/// the hash of the random token in the guest's "sv.cart" cookie. A guest
+/// cart is merged into the user's cart when they sign in.
+model Cart {
+  id             Int        @id @default(autoincrement())
+  userId         String?    @unique @db.VarChar(64)
+  user           User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 (hex) of the guest cookie's token; null for a user's cart. The
+  /// token itself is never stored.
+  guestTokenHash String?    @unique @db.Char(64)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  items          CartItem[]
+
+  @@index([updatedAt])
+}
+
+/// A cart line: a product, or a paid ebook (P1.8). Exactly one of
+/// productId and ebookId is set; an ebook line's quantity is always 1.
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ebookId   Int?
+  ebook     Ebook?   @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  /// A course seat (B1): one per course, like an ebook.
+  courseId  Int?
+  course    CourseTeaser? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@unique([cartId, ebookId])
+  @@unique([cartId, courseId])
+  @@index([productId])
+  @@index([ebookId])
+  @@index([courseId])
+}
+
+/// A saved delivery address. Orders copy it, so editing an address never
+/// changes a placed order.
+model Address {
+  id         Int       @id @default(autoincrement())
+  userId     String    @db.VarChar(64)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Who receives the parcel.
+  name       String    @db.VarChar(100)
+  /// E.164, Indian mobiles only: "+91XXXXXXXXXX".
+  phone      String    @db.VarChar(20)
+  /// House or flat number, building.
+  line1      String    @db.VarChar(200)
+  /// Street, area or locality.
+  line2      String?   @db.VarChar(200)
+  landmark   String?   @db.VarChar(120)
+  city       String    @db.VarChar(100)
+  /// State or union territory code from src/lib/india.ts, e.g. "MH".
+  state      String    @db.VarChar(4)
+  /// Six-digit PIN code.
+  pincode    String    @db.Char(6)
+  /// Last used for an order; the most recent one is picked at checkout.
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, lastUsedAt])
+}
+
+enum OrderStatus {
+  pending_payment
+  paid
+  payment_failed
+  cancelled
+  processing
+  shipped
+  delivered
+  /// Came back to us undelivered (P1.5).
+  returned
+}
+
+/// An order. Prices, tax and the delivery address are copied in when it is
+/// placed and never recomputed afterwards.
+/// "store": the cart and checkout (P1.4). "brand": a Launch Your Brand
+/// order in the buyer's own packaging (P2.1), one product, no cart.
+enum OrderType {
+  store
+  brand
+}
+
+model Order {
+  id                String             @id @db.VarChar(32)
+  /// Shown to the customer, e.g. "SV-7K2Q9F4M".
+  number            String             @unique @db.VarChar(20)
+  type              OrderType          @default(store)
+  /// Null only if the account was deleted; the order is kept for records.
+  userId            String?            @db.VarChar(64)
+  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Random key from the checkout page, so a double submit places one order.
+  checkoutKey       String             @db.VarChar(36)
+  status            OrderStatus        @default(pending_payment)
+  shipName          String             @db.VarChar(100)
+  shipPhone         String             @db.VarChar(20)
+  shipLine1         String             @db.VarChar(200)
+  shipLine2         String?            @db.VarChar(200)
+  shipLandmark      String?            @db.VarChar(120)
+  shipCity          String             @db.VarChar(100)
+  shipState         String             @db.VarChar(4)
+  shipPincode       String             @db.Char(6)
+  /// Sum of the line totals (prices include GST), in paise.
+  subtotalPaise     Int
+  /// GST included in the subtotal, in paise.
+  taxPaise          Int
+  shippingPaise     Int
+  /// Value of the Super Coins used, taken off the items (P1.7). Spread over
+  /// the lines in OrderItem.discountPaise; the total below is already net.
+  coinDiscountPaise Int                @default(0)
+  /// Coins the buyer chose to use; held from their balance while the order
+  /// waits for payment and returned if payment fails or it is cancelled.
+  coinsRedeemed     Int                @default(0)
+  /// Items total minus coin discount plus delivery: what the buyer pays.
+  totalPaise        Int
+  /// When payment succeeded and stock was taken.
+  paidAt            DateTime?
+  /// When an admin cancelled it (stock taken by payment is put back).
+  cancelledAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  items             OrderItem[]
+  payments          Payment[]
+  shipment          Shipment?
+  /// The tax invoice once paid, and a credit note if cancelled after (P1.6).
+  invoices          Invoice[]
+  /// Logo and packaging details of a brand order (P2.1).
+  brandDetails      BrandOrderDetails?
+
+  @@unique([userId, checkoutKey])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([type, userId, createdAt])
+  @@index([type, createdAt])
+}
+
+/// What goes on the packaging of a brand order (P2.1), copied from the
+/// buyer's BrandDraft when the order is placed. The logo file is private
+/// (Storage) and served only to the buyer and admins.
+model BrandOrderDetails {
+  orderId           String            @id @db.VarChar(32)
+  order             Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  brandName         String            @db.VarChar(80)
+  tagline           String?           @db.VarChar(120)
+  marketedByName    String?           @db.VarChar(120)
+  marketedByAddress String?           @db.VarChar(300)
+  contactPhone      String?           @db.VarChar(20)
+  notes             String?           @db.VarChar(1000)
+  /// The brand profile as it was when ordered (the order keeps its own copy).
+  licenceNumbers    String?           @db.VarChar(300)
+  shortDescription  String?           @db.VarChar(160)
+  longDescription   String?           @db.VarChar(600)
+  primaryColour     String?           @db.VarChar(7)
+  secondaryColour   String?           @db.VarChar(7)
+  /// The logo's key in Storage (not a URL).
+  logoKey           String            @unique @db.VarChar(191)
+  /// The name the logo had on the buyer's device (cleaned), for display.
+  logoName          String            @db.VarChar(191)
+  /// Checked from the file's bytes on upload: PNG, JPEG or PDF.
+  logoContentType   String            @db.VarChar(64)
+  logoSizeBytes     Int
+  /// Where the order is in proof and production (P2.2). Only moves through
+  /// src/server/brand/stages.ts, which follows src/lib/brand-stage.ts.
+  stage             BrandStage        @default(awaiting_proof)
+  createdAt         DateTime          @default(now())
+  proofs            BrandProof[]
+  stageEvents       BrandStageEvent[]
+}
+
+/// Proof and production stages of a paid brand order (P2.2).
+enum BrandStage {
+  awaiting_proof
+  proof_sent
+  changes_requested
+  proof_approved
+  in_production
+  quality_check
+  dispatched
+  delivered
+  cancelled
+}
+
+enum BrandProofStatus {
+  /// Sent, waiting for the customer.
+  pending
+  approved
+  changes_requested
+  /// Replaced by a newer version before the customer decided.
+  superseded
+}
+
+/// One version of the packaging proof the team sent. Every version is kept.
+model BrandProof {
+  id           Int               @id @default(autoincrement())
+  orderId      String            @db.VarChar(32)
+  details      BrandOrderDetails @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  /// 1, 2, 3... per order.
+  version      Int
+  /// The file's key in Storage (private).
+  fileKey      String            @unique @db.VarChar(191)
+  fileName     String            @db.VarChar(191)
+  contentType  String            @db.VarChar(64)
+  sizeBytes    Int
+  /// The team's note shown with the proof.
+  note         String?           @db.VarChar(500)
+  status       BrandProofStatus  @default(pending)
+  /// What the customer asked to change.
+  comment      String?           @db.VarChar(1000)
+  uploadedById String?           @db.VarChar(64)
+  decidedAt    DateTime?
+  createdAt    DateTime          @default(now())
+
+  @@unique([orderId, version])
+}
+
+/// Every stage change of a brand order, with who made it. Never edited.
+model BrandStageEvent {
+  id        Int               @id @default(autoincrement())
+  orderId   String            @db.VarChar(32)
+  details   BrandOrderDetails @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  /// Null for the first stage.
+  fromStage BrandStage?
+  toStage   BrandStage
+  /// "admin", "customer" or "system".
+  actorKind String            @db.VarChar(10)
+  actorId   String?           @db.VarChar(64)
+  note      String?           @db.VarChar(1000)
+  createdAt DateTime          @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+/// The packaging of a Launch Your Brand order in progress (P2.1): one per
+/// user, saved on /launch and removed when the order is placed (its logo
+/// then belongs to the order). The brand is a BrandProfile and the products
+/// are in BrandCartItem.
+model BrandDraft {
+  userId        String        @id @db.VarChar(64)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The saved brand profile this order uses (null until one is picked; the
+  /// default profile is used then).
+  profileId     Int?
+  profile       BrandProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  /// Notes for the team, for this order only.
+  notes         String?       @db.VarChar(1000)
+  /// True once the packaging step was confirmed: a profile with a logo, and
+  /// label details that fit every product.
+  packagingDone Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([profileId])
+}
+
+/// One product in a user's Launch cart (/launch): the bulk order they are
+/// putting together, separate from the store cart. Prices are never stored
+/// here; every view and the order price the lines again. The quantity is a
+/// multiple of the product's brand minimum (checked again at checkout).
+model BrandCartItem {
+  id             Int      @id @default(autoincrement())
+  userId         String   @db.VarChar(64)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity       Int
+  /// Label fields the user changed for this product (field -> text); the
+  /// rest follow the brand profile. See src/lib/label.ts.
+  labelOverrides Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+/// A lower branded unit price from a quantity upwards (Launch Your Brand
+/// bulk pricing). Below the first tier the product's brandUnitPricePaise
+/// applies. Prices fall as quantities rise.
+model BrandPriceTier {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  /// Unit price, including GST, in paise.
+  pricePaise  Int
+
+  @@unique([productId, minQuantity])
+}
+
+/// One line of an order, with the product as it was when ordered.
+model OrderItem {
+  id             Int           @id @default(autoincrement())
+  orderId        String        @db.VarChar(32)
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Null if the product was deleted later; the snapshot below stays.
+  productId      Int?
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// Set for an ebook line (P1.8): no stock, no delivery. The snapshot
+  /// fields below then hold the ebook's slug, title and SAC code. Null if
+  /// the ebook was deleted later (and for every product line).
+  ebookId        Int?
+  ebook          Ebook?        @relation(fields: [ebookId], references: [id], onDelete: SetNull)
+  /// Set for a course line (B1): a paid, uncancelled one enrols the buyer.
+  /// Null if the course was deleted later.
+  courseId       Int?
+  course         CourseTeaser? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  /// "product", "ebook" or "course"; stays even if the item is deleted.
+  kind           OrderItemKind @default(product)
+  productSlug    String        @db.VarChar(120)
+  productName    String        @db.VarChar(160)
+  packSize       String        @db.VarChar(60)
+  hsnCode        String        @db.VarChar(8)
+  /// GST percentage included in the price.
+  gstRate        Int
+  mrpPaise       Int
+  /// What one unit cost this buyer, including GST.
+  unitPaise      Int
+  /// "mrp", "professional" or "bulk" (src/server/pricing).
+  priceTier      String        @db.VarChar(16)
+  quantity       Int
+  /// unitPaise × quantity.
+  lineTotalPaise Int
+  /// This line's share of the order's coin discount (P1.7).
+  discountPaise  Int           @default(0)
+  /// GST included in the line total after the discount.
+  taxPaise       Int
+  /// Brand orders: the label exactly as approved (see LabelSnapshot in src/lib/label.ts).
+  labelDetails   Json?
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([ebookId])
+  @@index([courseId])
+}
+
+enum OrderItemKind {
+  product
+  ebook
+  course
+}
+
+enum PaymentStatus {
+  created
+  succeeded
+  failed
+}
+
+/// One attempt to pay for an order. A failed attempt stays; "Try again"
+/// starts the next attempt on the same order.
+model Payment {
+  id              Int           @id @default(autoincrement())
+  orderId         String        @db.VarChar(32)
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// PAYMENT_PROVIDER that handled it, e.g. "test" (Razorpay later).
+  provider        String        @db.VarChar(20)
+  /// The provider's id for this attempt.
+  reference       String        @unique @db.VarChar(64)
+  amountPaise     Int
+  status          PaymentStatus @default(created)
+  /// 1 for the first attempt on the order, then 2, 3...
+  attempt         Int
+  /// Why it failed, e.g. "declined" or "out_of_stock".
+  failureReason   String?       @db.VarChar(40)
+  /// Set when the payment was refunded (a cancelled brand order, P2.2).
+  refundReference String?       @db.VarChar(64)
+  refundedAt      DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([orderId, attempt])
+}
+
+// ─── Shipping ───────────────────────────────────────────────────────────────
+// Delivery of a paid order (P1.5). Code is in src/server/shipping. Only the
+// "test" provider exists (SHIPPING_PROVIDER=test): a fake courier and AWB,
+// moved on step by step from the admin panel. Shiprocket later implements
+// the same provider interface and sends the same events.
+
+enum ShipmentStatus {
+  created
+  packed
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  /// A delivery attempt failed; it can go out again or be returned.
+  undelivered
+  /// Back with us (return to origin).
+  returned
+  /// The order was cancelled before the parcel left.
+  cancelled
+}
+
+/// One parcel per order.
+model Shipment {
+  id          Int             @id @default(autoincrement())
+  orderId     String          @unique @db.VarChar(32)
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// SHIPPING_PROVIDER that created it, e.g. "test" (Shiprocket later).
+  provider    String          @db.VarChar(20)
+  courierName String          @db.VarChar(80)
+  /// The courier's airway bill (tracking) number.
+  awb         String          @unique @db.VarChar(40)
+  status      ShipmentStatus  @default(created)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  events      ShipmentEvent[]
+}
+
+/// Every step a shipment took, oldest first. Never edited.
+model ShipmentEvent {
+  id         Int            @id @default(autoincrement())
+  shipmentId Int
+  shipment   Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  status     ShipmentStatus
+  /// Where it happened, e.g. "Pune hub". Optional.
+  location   String?        @db.VarChar(100)
+  note       String?        @db.VarChar(200)
+  /// The admin who moved it on, if any (null for provider events).
+  actorId    String?        @db.VarChar(64)
+  createdAt  DateTime       @default(now())
+
+  @@index([shipmentId, createdAt])
+}
+
+// ─── Invoices ───────────────────────────────────────────────────────────────
+// GST tax invoices and credit notes (P1.6). Code is in src/server/invoices.
+// Every value on a document is copied in when it is issued (seller, buyer,
+// lines, tax), so later edits to settings or products never change an
+// issued document, and its PDF can always be rebuilt from these rows.
+
+enum InvoiceKind {
+  invoice
+  credit_note
+}
+
+/// The last number issued for each kind in each financial year.
+model InvoiceSequence {
+  kind          InvoiceKind
+  /// "2026-27": April to March, India time.
+  financialYear String      @db.Char(7)
+  lastNumber    Int
+
+  @@id([kind, financialYear])
+}
+
+/// A tax invoice (one per paid order) or a credit note (one per paid order
+/// that was cancelled). Never edited or deleted.
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  kind          InvoiceKind
+  /// "SV/26-27/00001" (invoice) or "CN/26-27/00001" (credit note). GST
+  /// allows at most 16 characters.
+  number        String        @unique @db.VarChar(16)
+  financialYear String        @db.Char(7)
+  /// Position in the year's sequence for this kind (1, 2, 3...).
+  sequence      Int
+  orderId       String        @db.VarChar(32)
+  /// Restrict: an order with documents can't be deleted.
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  /// For a credit note: the invoice it reverses.
+  originalId    Int?
+  original      Invoice?      @relation("CreditNoteOf", fields: [originalId], references: [id], onDelete: Restrict)
+  creditNotes   Invoice[]     @relation("CreditNoteOf")
+  issuedAt      DateTime      @default(now())
+  /// Seller details as printed (name, address, state, GSTIN); see
+  /// src/server/invoices/gst.ts for the shape.
+  seller        Json
+  /// Buyer name, delivery address and phone as printed.
+  buyer         Json
+  /// ISO state code of the place of supply (the delivery address).
+  placeOfSupply String        @db.VarChar(4)
+  /// True when the seller's and buyer's states differ: IGST, not CGST + SGST.
+  interState    Boolean
+  taxablePaise  Int
+  cgstPaise     Int
+  sgstPaise     Int
+  igstPaise     Int
+  /// Taxable value plus all GST: what the buyer paid.
+  totalPaise    Int
+  /// Paid with the test provider (no money taken); printed on the document.
+  testPayment   Boolean       @default(false)
+  /// The PDF's key in Storage. Rebuilt from these rows if the file is missing.
+  fileKey       String        @unique @db.VarChar(191)
+  createdAt     DateTime      @default(now())
+  lines         InvoiceLine[]
+
+  @@unique([orderId, kind])
+  @@unique([kind, financialYear, sequence])
+  @@index([issuedAt])
+}
+
+/// One printed line: a product, or the delivery charge.
+model InvoiceLine {
+  id           Int     @id @default(autoincrement())
+  invoiceId    Int
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  /// 1, 2, 3... in printed order.
+  position     Int
+  description  String  @db.VarChar(200)
+  /// HSN for goods, SAC for the delivery charge.
+  hsnCode      String  @db.VarChar(8)
+  quantity     Int
+  /// Price of one unit including GST.
+  unitPaise    Int
+  gstRate      Int
+  taxablePaise Int
+  cgstPaise    Int
+  sgstPaise    Int
+  igstPaise    Int
+  totalPaise   Int
+
+  @@unique([invoiceId, position])
+}
+
+// ─── Super Coins ────────────────────────────────────────────────────────────
+// Every credit and debit is a row here (P1.7); a balance is always worked out
+// from the rows (src/server/coins), never stored. Rules are the "coins.rules"
+// setting.
+
+enum CoinReason {
+  /// Earned on an order (after delivery, or on payment, per the rules).
+  earn_order
+  /// Taken back when an order that earned coins is cancelled.
+  earn_reversal
+  /// Earned for a qualifying quiz score; reference "quiz-attempt:<id>".
+  earn_quiz
+  /// A profile-completion reward ("interests" or "details").
+  earn_profile
+  /// Used at checkout.
+  redeem
+  /// Redeemed coins given back (failed payment or cancelled order).
+  redeem_return
+  /// An admin's manual credit or debit; always has a note.
+  admin_adjust
+}
+
+model CoinLedger {
+  id        Int        @id @default(autoincrement())
+  userId    String     @db.VarChar(64)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Positive: credit. Negative: debit.
+  amount    Int
+  reason    CoinReason
+  /// What it is for: an order id, a profile reward name... With the reason
+  /// and user it is unique, so the same event can't be counted twice.
+  reference String?    @db.VarChar(64)
+  /// Free text: the admin's reason for an adjustment.
+  note      String?    @db.VarChar(300)
+  /// Credits stop counting after this moment; null never expires.
+  expiresAt DateTime?
+  /// The admin who made an adjustment.
+  actorId   String?    @db.VarChar(64)
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, reason, reference])
+  @@index([userId, createdAt])
+}
+
+// ─── Ebooks ─────────────────────────────────────────────────────────────────
+// Free and paid ebooks (P1.8), managed at /admin/ebooks and shown at /ebooks.
+// Code is in src/server/ebooks. The book file is private in Storage and only
+// ever streamed by /api/ebooks/[id]/download after checking who is asking:
+// free books for any signed-in user, paid books for buyers (a paid order
+// line that wasn't cancelled). Covers are public, through
+// /api/ebook-covers/[id].
+
+model Ebook {
+  id               Int         @id @default(autoincrement())
+  /// URL segment: /ebooks/<slug>. Lowercase words joined by dashes.
+  slug             String      @unique @db.VarChar(120)
+  title            String      @db.VarChar(160)
+  author           String?     @db.VarChar(120)
+  /// Plain text; line breaks are kept when shown.
+  description      String      @db.Text
+  /// Free books can be downloaded by any signed-in user; paid ones are
+  /// bought through the cart.
+  isFree           Boolean     @default(false)
+  /// Price including GST, in paise (0 for free books).
+  pricePaise       Int         @default(0)
+  /// GST percentage included in the price (e-books are usually 18%).
+  gstRate          Int         @default(18)
+  /// The cover image's key in Storage (JPEG, PNG or WebP); null: none yet.
+  coverKey         String?     @unique @db.VarChar(191)
+  coverContentType String?     @db.VarChar(64)
+  /// The book's PDF in Storage; null until uploaded (then not downloadable).
+  fileKey          String?     @unique @db.VarChar(191)
+  /// Download name, e.g. "Kidney care handbook.pdf".
+  fileName         String?     @db.VarChar(160)
+  fileSizeBytes    Int?
+  /// Per-book download switch; the site-wide one is the "ebooks.downloads"
+  /// setting. Either off: the page says downloads are paused.
+  downloadsEnabled Boolean     @default(true)
+  /// Hidden books aren't listed or sold; buyers keep their downloads.
+  active           Boolean     @default(true)
+  sortOrder        Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+
+  @@index([active, sortOrder])
+}
+
+/// A brand a user has saved to reuse on Launch orders, like a saved address:
+/// the shared label defaults (name, logo, colours, contact, licences, a short
+/// and a long description). One per account can be the default.
+model BrandProfile {
+  id                Int          @id @default(autoincrement())
+  userId            String       @db.VarChar(64)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The user's name for this profile in their list.
+  profileName       String       @db.VarChar(60)
+  isDefault         Boolean      @default(false)
+  brandName         String       @db.VarChar(80)
+  tagline           String?      @db.VarChar(120)
+  shortDescription  String?      @db.VarChar(160)
+  longDescription   String?      @db.VarChar(600)
+  marketedByName    String?      @db.VarChar(120)
+  marketedByAddress String?      @db.VarChar(300)
+  contactPhone      String?      @db.VarChar(20)
+  licenceNumbers    String?      @db.VarChar(300)
+  /// #RRGGBB
+  primaryColour     String?      @db.VarChar(7)
+  secondaryColour   String?      @db.VarChar(7)
+  logoKey           String?      @unique @db.VarChar(191)
+  logoName          String?      @db.VarChar(191)
+  logoContentType   String?      @db.VarChar(64)
+  logoSizeBytes     Int?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  drafts            BrandDraft[]
+
+  @@index([userId, isDefault])
+}
+
+enum LabelDescriptionSource {
+  short
+  long
+}
+
+enum LabelLogoPlacement {
+  top_left
+  top_center
+  top_right
+  center
+  bottom_center
+}
+
+/// What one kind of pack (tube, syrup bottle, jar...) can print on its label:
+/// the printable area, the logo size and place, and the characters allowed
+/// per field (a field not in `limits` isn't printed). Products point to one.
+model LabelSpec {
+  id                Int                    @id @default(autoincrement())
+  key               String                 @unique @db.VarChar(40)
+  name              String                 @db.VarChar(80)
+  sortOrder         Int                    @default(0)
+  /// Printable area in millimetres.
+  widthMm           Int
+  heightMm          Int
+  logoWidthMm       Int
+  logoHeightMm      Int
+  logoPlacement     LabelLogoPlacement
+  /// Which profile description the label starts from.
+  descriptionSource LabelDescriptionSource @default(short)
+  /// { fieldName: maxCharacters } for the fields on this label.
+  limits            Json
+  products          Product[]
+}
+
+// ─── Inventory ──────────────────────────────────────────────────────────────
+// One stock engine, two inventories (src/server/inventory). B2C: each shop
+// product is a "finished" item, stocked in batches and sold first-expiry-
+// first-out. B2B (Launch Your Brand): "packaging" and "base" components, with
+// a recipe per Launch product. Every change is a StockMovement.
+
+enum StockKind {
+  finished
+  packaging
+  base
+}
+
+/// Quantities are whole numbers of the base unit: pieces, millilitres or
+/// grams. Litres and kilograms are only for typing and showing.
+enum StockUnit {
+  pcs
+  ml
+  g
+}
+
+enum StockMovementType {
+  receipt
+  sale
+  reservation
+  release
+  consumption
+  return
+  adjustment
+  expiry_write_off
+}
+
+enum ReservationStatus {
+  active
+  consumed
+  released
+}
+
+model StockItem {
+  id                Int                @id @default(autoincrement())
+  kind              StockKind
+  name              String             @db.VarChar(160)
+  sku               String?            @unique @db.VarChar(60)
+  unit              StockUnit          @default(pcs)
+  /// For components: bottle, tube, jar, cap, box, label, base, other.
+  componentType     String?            @db.VarChar(30)
+  /// The shop product a finished item is the stock of.
+  productId         Int?               @unique
+  product           Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  onHand            Int                @default(0)
+  reserved          Int                @default(0)
+  /// Alert when available is at or below this (0 = no alert).
+  lowThreshold      Int                @default(0)
+  /// A product base made to order doesn't limit what can be ordered.
+  madeToOrder       Boolean            @default(false)
+  /// Cost per unit in paise, mostly for partner products.
+  purchaseCostPaise Int?
+  active            Boolean            @default(true)
+  notes             String?            @db.VarChar(300)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  batches           StockBatch[]
+  movements         StockMovement[]
+  reservations      StockReservation[]
+  recipeLines       RecipeLine[]
+
+  @@index([kind, active])
+}
+
+model StockBatch {
+  id            Int                @id @default(autoincrement())
+  itemId        Int
+  item          StockItem          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchNo       String             @db.VarChar(60)
+  mfgDate       DateTime?          @db.Date
+  expiryDate    DateTime?          @db.Date
+  qtyOnHand     Int                @default(0)
+  qtyReserved   Int                @default(0)
+  unitCostPaise Int?
+  receivedAt    DateTime           @default(now())
+  movements     StockMovement[]
+  reservations  StockReservation[]
+
+  @@unique([itemId, batchNo])
+  @@index([itemId, expiryDate])
+}
+
+model StockMovement {
+  id            Int               @id @default(autoincrement())
+  itemId        Int
+  item          StockItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchId       Int?
+  batch         StockBatch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  type          StockMovementType
+  /// Always positive: how much moved. The deltas say which way.
+  quantity      Int
+  onHandDelta   Int
+  reservedDelta Int
+  /// The item's on-hand after this movement.
+  onHandAfter   Int
+  /// Required for manual adjustments and write-offs.
+  reason        String?           @db.VarChar(300)
+  /// What caused it: "order", "brand_order", or null for stock-room work.
+  refType       String?           @db.VarChar(30)
+  refId         String?           @db.VarChar(40)
+  /// The admin who did it (null for customer-driven movements).
+  userId        String?           @db.VarChar(64)
+  user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt     DateTime          @default(now())
+
+  @@index([itemId, createdAt])
+  @@index([refType, refId])
+  @@index([batchId])
+}
+
+model StockReservation {
+  id        Int               @id @default(autoincrement())
+  itemId    Int
+  item      StockItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchId   Int?
+  batch     StockBatch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  quantity  Int
+  refType   String            @db.VarChar(30)
+  refId     String            @db.VarChar(40)
+  status    ReservationStatus @default(active)
+  /// A store order's hold lapses if payment never completes.
+  expiresAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([refType, refId, status])
+  @@index([status, expiresAt])
+  @@index([itemId, status])
+}
+
+/// One line of a Launch product's bill of materials: how much of a component
+/// one unit of the product uses (in the component's base unit).
+model RecipeLine {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  componentId Int
+  component   StockItem @relation(fields: [componentId], references: [id], onDelete: Restrict)
+  quantity    Int
+
+  @@unique([productId, componentId])
+  @@index([componentId])
+}
+
+// ─── Threads (Dr. Talk) ─────────────────────────────────────────────────────
+// A Chatter-style feed where verified Ayurveda doctors post, reply and like.
+// Anyone signed in can read; only approved doctors write. Code:
+// src/server/threads/.
+
+enum ThreadKind {
+  question
+  case_discussion
+  expert_talk
+}
+
+model Thread {
+  id        Int           @id @default(autoincrement())
+  authorId  String        @db.VarChar(64)
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind      ThreadKind    @default(question)
+  title     String        @db.VarChar(160)
+  body      String        @db.Text
+  /// Admin moderation: a hidden thread is not shown to anyone.
+  hidden    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  replies   ThreadReply[]
+  likes     ThreadLike[]
+
+  @@index([hidden, createdAt])
+  @@index([kind, createdAt])
+}
+
+model ThreadReply {
+  id        Int      @id @default(autoincrement())
+  threadId  Int
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId  String   @db.VarChar(64)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String   @db.VarChar(2000)
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+model ThreadLike {
+  threadId  Int
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId    String   @db.VarChar(64)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([threadId, userId])
+}

@@ -1,0 +1,43 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+
+# Hostinger upload package (scripts/package_for_hostinger.sh)
+/dist/
+*.tsbuildinfo
+
+# generated Prisma client (rebuilt by `pnpm install` / `pnpm db:generate`)
+/src/generated/
+
+# env files: only the example is committed
+.env
+.env.*
+!.env.example
+
+# uploaded files (local-disk Storage, see STORAGE_DIR)
+/storage/
+
+# tests
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# misc
+.DS_Store
+*.pem
+.vercel
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

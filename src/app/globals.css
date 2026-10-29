@@ -1,0 +1,361 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens from docs/DESIGN.md (client UI v2, docs/mockup-v2/). This file
+ * is the only place raw colour values live; components use the tokens
+ * (bg-brand, text-h2, shadow-card, ...).
+ */
+@theme {
+  /* Colour. Brand is the v2 forest green; orange is for action. */
+  --color-brand: #063f36;
+  --color-brand-mid: #0a5a49;
+  --color-brand-dark: #042f28;
+  --color-brand-soft: #e8f2ec;
+  --color-brand-light: #8fd9b6;
+
+  --color-orange: #f36c21;
+  --color-orange-soft: #fff0e7;
+  --color-orange-light: #ff8a3d;
+  /*
+   * White text on --color-orange is only 3.0:1, below WCAG AA. Text on or in
+   * orange uses these deeper steps instead:
+   * - orange-strong: fill behind white text (primary button), 4.6:1.
+   * - orange-dark: hover/pressed for orange-strong, 5.4:1 with white.
+   * - orange-ink: orange text on white, paper, cream and orange-soft, 4.8:1+.
+   * - orange-title: the orange second line of large headings (24 px+ bold),
+   *   3.3:1 on cream, which AA allows for large text.
+   * --color-orange stays for accents, bars, dots and the brand mark.
+   */
+  --color-orange-strong: #c2540a;
+  --color-orange-dark: #b34a08;
+  --color-orange-ink: #a8470a;
+  --color-orange-title: #e25f17;
+
+  /* Gold is for coins, the quiz and highlights on dark green. */
+  --color-gold: #f3ba37;
+  --color-gold-soft: #fff2c5;
+  --color-gold-ink: #5c4300;
+  --color-gold-light: #ffc247;
+
+  --color-success: #0a6a4d;
+  --color-success-soft: #e8f4ed;
+  --color-blue: #0b5f79;
+  --color-blue-soft: #e7f1f5;
+  --color-danger: #c6411b;
+  --color-danger-soft: #fff0ea;
+
+  --color-ink: #14231f;
+  --color-muted: #5f6d68;
+  --color-line: rgb(20 35 31 / 0.12);
+  --color-line-strong: rgb(20 35 31 / 0.22);
+  --color-surface: #ffffff;
+  --color-surface-alt: #fafaf7;
+  --color-paper: #fffdf8;
+  --color-cream: #f8f5ed;
+
+  /* Supporting tints taken from the mockup. */
+  --color-backdrop: rgb(4 24 20 / 0.72);
+  --color-track: #e5e9e6;
+  --color-live-dot: #ef4d38;
+  /* Secondary text on dark green panels (hero, page hero, track card). */
+  --color-forest-ink: #c9ddd7;
+
+  /* Footer band: the deepest forest green, with lighter text on it. */
+  --color-night: #082d27;
+  --color-night-ink: #a9c1ba;
+
+  /* Breakpoints: the mockup's three steps plus desktop. */
+  --breakpoint-sm: 560px;
+  --breakpoint-md: 820px;
+  --breakpoint-lg: 1100px;
+  --breakpoint-xl: 1280px;
+
+  /* Type scale (phone -> desktop). Headings are Manrope, body DM Sans. */
+  --text-display: clamp(44px, 6vw, 82px);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.045em;
+  --text-display--font-weight: 800;
+  --text-h1: clamp(36px, 5vw, 64px);
+  --text-h1--line-height: 1.02;
+  --text-h1--letter-spacing: -0.045em;
+  --text-h1--font-weight: 800;
+  --text-h2: clamp(34px, 4.3vw, 54px);
+  --text-h2--line-height: 1.05;
+  --text-h2--letter-spacing: -0.045em;
+  --text-h2--font-weight: 800;
+  --text-h3: clamp(22px, 0.65vw + 19.5px, 28px);
+  --text-h3--line-height: 1.15;
+  --text-h3--letter-spacing: -0.035em;
+  --text-h3--font-weight: 800;
+  --text-h4: clamp(16px, 0.25vw + 15px, 18px);
+  --text-h4--line-height: 1.3;
+  --text-h4--letter-spacing: -0.02em;
+  --text-h4--font-weight: 800;
+  --text-body-lg: clamp(16px, 0.25vw + 15px, 18px);
+  --text-body-lg--line-height: 1.65;
+  --text-body: 15px;
+  --text-body--line-height: 1.6;
+  --text-small: 13px;
+  --text-small--line-height: 1.5;
+  --text-label: clamp(11px, 0.2vw + 10.3px, 12px);
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.14em;
+  --text-label--font-weight: 800;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-button: 13px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-modal: 24px;
+  --radius-2xl: 28px;
+  --radius-3xl: 30px;
+
+  /* Shadow */
+  --shadow-card: 0 16px 44px rgb(18 49 41 / 0.07);
+  --shadow-raised: 0 24px 70px rgb(9 49 42 / 0.12);
+  --shadow-modal: 0 35px 90px rgb(0 0 0 / 0.3);
+  --shadow-cta: 0 12px 28px rgb(243 108 33 / 0.27);
+  --shadow-gold: 0 28px 70px rgb(176 119 8 / 0.18);
+  --shadow-forest: 0 28px 70px rgb(6 63 54 / 0.2);
+  --shadow-dock: 0 -8px 30px rgb(18 45 37 / 0.08);
+
+  /* Motion: 150-250 ms, ease; the scroll reveal is the one slower move. */
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: ease;
+  --animate-rise-in: rise-in 250ms ease both;
+  --animate-fade-in: fade-in 200ms ease both;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/*
+ * Fonts come from next/font (root layout): Manrope for headings, DM Sans for
+ * body, Noto Sans Devanagari as the Hindi fallback for both.
+ */
+@theme inline {
+  --font-body:
+    var(--font-dm-sans), var(--font-noto-sans-devanagari), system-ui,
+    "Segoe UI", Arial, sans-serif;
+  --font-heading:
+    var(--font-manrope), var(--font-noto-sans-devanagari), system-ui,
+    "Segoe UI", Arial, sans-serif;
+  --font-sans: var(--font-body);
+  --font-serif-hindi: var(--font-noto-serif-devanagari), serif;
+}
+
+/*
+ * v2 gradients and textures as named utilities (bg-hero, bg-quiz,
+ * bg-pack-saffron, ...), so no gradient is written inline.
+ */
+/* Home hero: dark forest green. */
+@utility bg-hero {
+  background: linear-gradient(135deg, #04392f 0%, #075246 68%, #0a6656 100%);
+}
+/* Inner-page hero (PageHero). */
+@utility bg-page-hero {
+  background: linear-gradient(135deg, var(--color-brand), #08715c);
+}
+/* Dark green cards and bands: track order, final CTA, course art, wallet. */
+@utility bg-forest {
+  background: linear-gradient(130deg, var(--color-brand), #095f4e);
+}
+/* Pale green wash behind the Build Your Brand section. */
+@utility bg-brand-wash {
+  background: linear-gradient(180deg, #edf5f0, #f8fbf8);
+}
+/* Gold Quiz & Win panel. */
+@utility bg-quiz {
+  background: linear-gradient(145deg, #f9c345, #f4a92d);
+}
+/* Gold coins strip. */
+@utility bg-coins-band {
+  background: linear-gradient(105deg, #eea824, #f9c850);
+}
+/* The coin itself. */
+@utility bg-coin {
+  background: linear-gradient(145deg, #ffd35a, #e9a409);
+}
+/* Product pack and reel colours. White text sits on all four. */
+@utility bg-pack-green {
+  background: linear-gradient(155deg, #198468, #06463b);
+}
+@utility bg-pack-saffron {
+  background: linear-gradient(155deg, #f18638, #9c3c0a);
+}
+@utility bg-pack-blue {
+  background: linear-gradient(155deg, #308ba6, #0c4860);
+}
+@utility bg-pack-gold {
+  background: linear-gradient(155deg, #e4ae2e, #79570b);
+}
+/* Avatars and the profile mark. */
+@utility bg-avatar {
+  background: linear-gradient(145deg, var(--color-brand), #0b8067);
+}
+/*
+ * Orange fills behind white text. The mockup runs from #f36c21 to a lighter
+ * orange; both ends here stay AA-safe with white (4.6:1 and up).
+ */
+@utility bg-cta {
+  background: linear-gradient(
+    135deg,
+    var(--color-orange-dark),
+    var(--color-orange-strong)
+  );
+}
+@utility bg-announcement {
+  background: linear-gradient(
+    90deg,
+    var(--color-orange-strong),
+    var(--color-orange-dark)
+  );
+}
+/* The logo mark (a logotype, exempt from contrast rules). */
+@utility bg-brand-mark {
+  background: linear-gradient(145deg, var(--color-orange), #ff943a);
+}
+/*
+ * Dotted texture for dark green heroes. Put it on an empty, aria-hidden,
+ * absolutely positioned layer; it fades out towards both edges.
+ */
+@utility bg-dots {
+  background-image: radial-gradient(
+    rgb(255 255 255 / 0.13) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  mask-image: linear-gradient(90deg, transparent, black 50%, transparent);
+}
+
+/*
+ * Scroll reveal: fades and lifts an element in as it scrolls into view.
+ * Pure CSS (scroll-driven animation), so content is never hidden when the
+ * browser lacks support or JavaScript fails, and it is off under
+ * prefers-reduced-motion.
+ */
+@utility reveal {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+
+/*
+ * Page container: min(1180px, 100% - 40px); under 820 px 30 px of gutter and
+ * at most 720 px wide; under 560 px 26 px of gutter.
+ */
+@utility shell {
+  width: min(1180px, calc(100% - 40px));
+  margin-inline: auto;
+  @media (width < 820px) {
+    width: min(calc(100% - 30px), 720px);
+  }
+  @media (width < 560px) {
+    width: calc(100% - 26px);
+  }
+}
+
+/* Section vertical padding: 100 px, 78 under 820 px, 62 under 560 px. */
+@utility section-y {
+  padding-block: 100px;
+  @media (width < 820px) {
+    padding-block: 78px;
+  }
+  @media (width < 560px) {
+    padding-block: 62px;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Nothing should push the page sideways (BUG-008); clip keeps sticky working. */
+    overflow-x: clip;
+    /* Section links land below the sticky header (bar + nav rail). */
+    scroll-padding-top: 150px;
+    @media (width < 820px) {
+      scroll-padding-top: 125px;
+    }
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Reduced motion: switch off transitions, animations and smooth scrolling.
+ * Loading spinners opt out with data-essential-motion, since a frozen spinner
+ * reads as a hang.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *:not([data-essential-motion]),
+  *:not([data-essential-motion])::before,
+  *:not([data-essential-motion])::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

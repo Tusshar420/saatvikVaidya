@@ -1,0 +1,292 @@
+/*
+ * Coming soon page. The values below are copied from the site's design tokens
+ * (src/app/globals.css, docs/DESIGN.md) so this page looks like the full site
+ * without needing it. Raw values live only in :root; rules use the variables.
+ */
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("fonts/manrope-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url("fonts/dm-sans-latin.woff2") format("woff2");
+}
+
+:root {
+  --color-brand: #063f36;
+  --color-brand-mid: #0a5a49;
+  --color-brand-soft: #e8f2ec;
+  --color-orange: #f36c21;
+  --color-orange-strong: #c2540a;
+  --color-orange-dark: #b34a08;
+  --color-orange-title: #e25f17;
+  --color-gold-light: #ffc247;
+  --color-ink: #14231f;
+  --color-muted: #5f6d68;
+  --color-line: rgb(20 35 31 / 0.12);
+  --color-paper: #fffdf8;
+  --color-cream: #f8f5ed;
+  --color-forest-ink: #c9ddd7;
+  --color-forest-end: #095f4e;
+  --color-white: #ffffff;
+  --color-dot: rgb(255 255 255 / 0.13);
+
+  --font-heading: "Manrope", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-body: "DM Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+
+  --text-h1: clamp(36px, 5vw, 64px);
+  --text-h3: clamp(22px, 0.65vw + 19.5px, 28px);
+  --text-body-lg: clamp(16px, 0.25vw + 15px, 18px);
+  --text-body: 15px;
+  --text-small: 13px;
+  --text-label: clamp(11px, 0.2vw + 10.3px, 12px);
+
+  --radius-button: 13px;
+  --radius-2xl: 28px;
+  --shadow-raised: 0 24px 70px rgb(9 49 42 / 0.12);
+  --shadow-cta: 0 12px 28px rgb(243 108 33 / 0.27);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-cream) 100%);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 720px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 32px 20px 24px;
+  text-align: center;
+}
+
+.logo {
+  display: block;
+  width: 200px;
+  height: auto;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 28px 0 0;
+  color: var(--color-brand-mid);
+  font-family: var(--font-heading);
+  font-size: var(--text-label);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.eyebrow-bar {
+  width: 28px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-orange);
+}
+
+h1 {
+  margin: 10px 0 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: var(--text-h1);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+h1 em {
+  display: block;
+  color: var(--color-orange-title);
+  font-style: normal;
+}
+
+.lead {
+  max-width: 560px;
+  margin: 18px 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-body-lg);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pills li {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.contact {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 32px;
+  padding: 28px 22px;
+  border-radius: var(--radius-2xl);
+  background: linear-gradient(130deg, var(--color-brand), var(--color-forest-end));
+  box-shadow: var(--shadow-raised);
+  color: var(--color-white);
+}
+
+/* Dotted texture, fading towards both edges (the site's bg-dots). */
+.dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--color-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 50%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 50%, transparent);
+  pointer-events: none;
+}
+
+.contact h2,
+.contact p,
+.contact .button {
+  position: relative;
+}
+
+.contact h2 {
+  margin: 0;
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.contact p {
+  margin: 8px 0 0;
+  color: var(--color-forest-ink);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  margin-top: 18px;
+  padding: 0 20px;
+  border-radius: var(--radius-button);
+  background: linear-gradient(135deg, var(--color-orange-dark), var(--color-orange-strong));
+  box-shadow: var(--shadow-cta);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-size: var(--text-small);
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
+}
+
+.button:hover {
+  filter: brightness(0.95);
+}
+
+.button:focus-visible {
+  outline-color: var(--color-gold-light);
+  outline-offset: 3px;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 28px;
+  color: var(--color-muted);
+  font-size: var(--text-small);
+}
+
+@media (min-width: 560px) {
+  .page {
+    padding: 48px 32px 28px;
+  }
+  .logo {
+    width: 240px;
+  }
+  .contact {
+    padding: 34px 32px;
+  }
+}
+
+@media (min-width: 820px) {
+  .page {
+    justify-content: center;
+  }
+  .logo {
+    width: 280px;
+  }
+  .footer {
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button:hover {
+    transform: translateY(-2px);
+  }
+  .button:active {
+    transform: translateY(0);
+  }
+}
