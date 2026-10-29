@@ -5380,3 +5380,21 @@ for staging and live, but **no SSH or terminal** for Node apps.
   run on Business; not needed for launch because live gets a new database.
 - Later: a way to run clear-test-data without a terminal if staging must be
   emptied.
+
+## First Hostinger build failed: pnpm version (2026-10-29)
+
+Hostinger's build runs pnpm 11.24.0 through Corepack; `packageManager` pinned
+pnpm 9.15.4, so pnpm aborted its version check while Next loaded
+`next.config.ts` ("Failed to load SWC binary"). Build log also showed a
+GLIBC_2.29 warning for the native SWC binary (not yet understood; Hostinger
+says Next falls back to WASM).
+
+- `packageManager` is now `pnpm@11.24.0`. pnpm 11 ignores the `pnpm` field in
+  package.json, so the overrides are also in `pnpm-workspace.yaml`, which also
+  lists `allowBuilds` (pnpm 11 blocks install scripts otherwise; prisma,
+  @prisma/engines and esbuild allowed). `packages: ["."]` keeps pnpm 9 on the
+  Mac working. The old `pnpm` field stays for pnpm 9.
+- Checked: a fresh unzip of the new ZIP installs (`--frozen-lockfile
+  --prod=false`) and builds with pnpm 11.24.0; pnpm 9 install and typecheck
+  still pass on the Mac. Not checked: Linux, the glibc warning.
+- If the build still fails on SWC/glibc, try `next build --webpack`.
