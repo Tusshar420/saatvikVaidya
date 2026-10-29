@@ -5416,3 +5416,11 @@ makes during the build; it is not in the repository.
   Hostinger itself, and e2e (not run for this config-only change).
 - Committed on `main` by the owner's instruction while the Hostinger deployment
   is being set up; work returns to `dev` afterwards.
+
+## Third Hostinger build failure: Turbopack (2026-10-29)
+
+With the config fixed, `next build` stopped because Next 16 builds with
+Turbopack, which needs the native compiler that Hostinger's old glibc cannot
+load. `package.json` now has `"build": "next build --webpack"`. Checked on the
+Mac: the Webpack build passes (exit 0). Not checked: the build on Hostinger,
+and e2e. `pnpm dev` is unchanged (still Turbopack).
