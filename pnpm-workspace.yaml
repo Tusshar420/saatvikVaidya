@@ -1,0 +1,15 @@
+# Settings for pnpm 11 (Hostinger's build uses it). pnpm 9 on the developer's
+# Mac reads the same overrides from the "pnpm" field in package.json.
+# One package: the project itself (pnpm 9 needs this line to read the file).
+packages:
+  - "."
+overrides:
+  mariadb: ^3.4.6
+  mysql2: ^3.23.1
+  deepmerge-ts: ^8.0.0
+# Packages allowed to run their install scripts. pnpm 11 blocks all others.
+allowBuilds:
+  "@prisma/engines": true
+  esbuild: true
+  prisma: true
+  unrs-resolver: false
