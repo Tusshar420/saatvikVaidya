@@ -149,7 +149,6 @@ test.describe("P2.4 quality pass", () => {
         "/launch?step=1",
         "/launch?step=2",
         "/launch?step=3",
-        "/launch?step=4",
         "/my-brand",
         `/my-brand/${order.id}`,
       ],

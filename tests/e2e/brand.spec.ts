@@ -4,7 +4,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { brand } from "../../src/content/brand";
 import { checkout } from "../../src/content/checkout";
 import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
-import { labelSpecSeed } from "../../src/server/seed/label-specs";
 import { png, writeStorageFile } from "./brand-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
@@ -95,13 +94,19 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   });
   const extra = await makeBrandProduct({ label: "Vati" });
 
-  // Signed out, /launch shows the catalogue with a sign-in prompt; ordering
-  // (any later step) asks to sign in first.
+  // Signed out, /launch shows the catalogue with a sign-in prompt; a product's
+  // page asks to sign in before it can be customised, and any later step
+  // asks to sign in first.
   await page.goto("/launch");
   await expect(page.getByRole("heading", { name: brand.launch.guest.title })).toBeVisible();
   await expect(
     page.getByRole("link", { name: brand.launch.guest.signIn }),
   ).toHaveAttribute("href", /next=%2Flaunch/);
+  await page.goto(`/launch/${product.slug}`);
+  await expect(page.getByRole("link", { name: brand.customise.signIn })).toHaveAttribute(
+    "href",
+    new RegExp(`next=%2Flaunch%2F${product.slug}`),
+  );
   await page.goto("/launch?step=2");
   await expect(page).toHaveURL(/next=%2Flaunch%3Fstep%3D2/);
 
@@ -115,6 +120,7 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   // Step 1: eligible products only, with their minimum, branded and bulk price.
   await page.goto("/launch");
   const steps = page.getByRole("list", { name: brand.launch.stepsLabel });
+  await expect(steps.getByRole("listitem")).toHaveCount(3);
   await expect(steps.getByRole("listitem").first()).toHaveAttribute("aria-current", "step");
   await page.getByRole("searchbox", { name: brand.product.searchLabel }).fill(product.name);
   await page.getByRole("button", { name: brand.product.search }).click();
@@ -122,27 +128,40 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(choices.getByRole("listitem")).toHaveCount(1);
   await expect(choices).toContainText(brand.product.minimum(4, "jars"));
   await expect(choices).toContainText(brand.product.price("₹260"));
-  // Packaging can't be opened yet; the empty cart shows instead.
+  // The brand details can't be opened yet; the empty cart shows instead.
   await page.goto("/launch?step=3");
   await expect(page).toHaveURL("/launch?step=2");
   await expect(page.getByRole("heading", { name: brand.cart.empty.title })).toBeVisible();
 
-  // Add the first product, then one more step of its minimum.
+  // "View & customise" opens the product's page: pick a label theme, and
+  // "Continue — choose quantity" puts it in the cart (at its minimum) on step 2.
   await page.goto(`/launch?q=${encodeURIComponent(product.name)}`);
   await checkPage(page, errors);
-  await page.getByRole("button", { name: brand.product.addLabel(product.name) }).click();
-  await expect(choices).toContainText(brand.product.inCartLine(4, "jars"));
-  const cartBar = page.getByRole("region", { name: brand.product.cartBar.label });
-  await expect(cartBar).toContainText(brand.product.cartBar.summary(1, 4, "₹1,040"));
-  await page.getByRole("button", { name: brand.product.addMoreLabel(product.name, 4) }).click();
-  await expect(choices).toContainText(brand.product.inCartLine(8, "jars"));
-  await expect(cartBar).toContainText(brand.product.cartBar.summary(1, 8, "₹2,080"));
-  // Two more products: their cards show the bulk price.
+  await page.getByRole("link", { name: brand.customise.viewLabel(product.name) }).click();
+  await expect(page).toHaveURL(`/launch/${product.slug}`);
+  await expect(page.getByRole("heading", { name: product.name, level: 2 })).toBeVisible();
+  const variants = page.getByRole("radiogroup", { name: brand.customise.variantLabel });
+  await expect(variants.getByRole("radio", { name: brand.customise.themes["classic-green"]! })).toBeChecked();
+  await variants.getByRole("radio", { name: brand.customise.themes["royal-maroon"]! }).click();
+  await expect(variants.getByRole("radio", { name: brand.customise.themes["royal-maroon"]! })).toBeChecked();
+  await checkPage(page, errors);
+  await page.getByRole("button", { name: brand.customise.continue }).click();
+  await expect(page).toHaveURL("/launch?step=2");
+  expect(await e2eDb().brandCartItem.findFirstOrThrow({ where: { userId: buyer.id } })).toMatchObject({
+    quantity: 4,
+    labelTheme: "royal-maroon",
+  });
+  // Two more products come the same way, each with its default theme.
   for (const other of [bulk, extra]) {
-    await page.goto(`/launch?q=${encodeURIComponent(other.name)}`);
-    await page.getByRole("button", { name: brand.product.addLabel(other.name) }).click();
-    await expect(choices).toContainText(brand.product.inCart);
+    await page.goto(`/launch/${other.slug}`);
+    await page.getByRole("button", { name: brand.customise.continue }).click();
+    await expect(page).toHaveURL("/launch?step=2");
   }
+  await page.goto(`/launch?q=${encodeURIComponent(product.name)}`);
+  await expect(choices).toContainText(brand.product.inCart);
+  const cartBar = page.getByRole("region", { name: brand.product.cartBar.label });
+  // 4 × ₹260 + 10 × ₹100 + 4 × ₹260
+  await expect(cartBar).toContainText(brand.product.cartBar.summary(3, 18, "₹3,080"));
   await page.goto(`/launch?q=${encodeURIComponent(bulk.name)}`);
   await expect(choices).toContainText(brand.product.bulkFrom(50, "packs", "₹90"));
   await checkPage(page, errors);
@@ -155,20 +174,21 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   const lines = page.getByRole("list", { name: brand.cart.listLabel });
   await expect(lines.getByRole("listitem").filter({ has: page.getByRole("heading") })).toHaveCount(3);
   const summary = page.getByRole("region", { name: brand.cart.summaryTitle });
-  // 8 × ₹260 + 10 × ₹100 + 4 × ₹260
-  await expect(summary).toContainText("₹4,120");
+  await expect(summary).toContainText("₹3,080");
 
   // − and + move by each product's minimum.
   const first = page.getByLabel(brand.cart.quantityFor(product.name, "jars"));
-  await expect(first).toHaveValue("8");
-  await page.getByRole("button", { name: brand.cart.decrease(product.name, 4) }).click();
   await expect(first).toHaveValue("4");
   await expect(page.getByRole("button", { name: brand.cart.decrease(product.name, 4) })).toBeDisabled();
-  // A typed number moves up to the next multiple of 4, with a note.
-  await first.fill("7");
-  await first.blur();
+  await page.getByRole("button", { name: brand.cart.increase(product.name, 4) }).click();
   await expect(first).toHaveValue("8");
-  await expect(page.getByText(brand.cart.snapped(8, 4))).toBeVisible();
+  await expect(summary).toContainText("₹4,120");
+  // A typed number moves up to the next multiple of 4, with a note.
+  await first.fill("9");
+  await first.blur();
+  await expect(first).toHaveValue("12");
+  await expect(page.getByText(brand.cart.snapped(12, 4))).toBeVisible();
+  await page.getByRole("button", { name: brand.cart.decrease(product.name, 4) }).click();
   await page.getByRole("button", { name: brand.cart.decrease(product.name, 4) }).click();
   await expect(first).toHaveValue("4");
 
@@ -190,69 +210,34 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(page.getByRole("heading", { name: extra.name })).toHaveCount(0);
   // 4 × ₹260 + 50 × ₹90
   await expect(summary).toContainText("₹5,540");
+
+  // Brand details on the same step: the button waits until everything is filled in.
+  const details = page.getByRole("form", { name: brand.brandStep.detailsTitle });
+  const goOn = page.getByRole("button", { name: brand.brandStep.continue });
+  await expect(goOn).toBeDisabled();
+  await expect(page.getByText(brand.brandStep.hint)).toBeVisible();
+  await details.getByLabel(brand.brandStep.brandName).fill("Asha Ayurveda");
+  await details.getByLabel(brand.brandStep.mrpLabel(product.name)).fill("399");
+  // An MRP below the net rate (₹100 per pack of the bulk product) is refused by the server.
+  await details.getByLabel(brand.brandStep.mrpLabel(bulk.name)).fill("90");
+  await details.getByLabel(brand.brandStep.address).fill("Flat 4, MG Road, Pune 411001");
+  await details.locator('input[type="file"]').setInputFiles(pngLogo);
+  await expect(page.getByRole("complementary", { name: brand.launch.preview.labelTitle })).toContainText("Asha Ayurveda");
   await checkPage(page, errors);
-  await page.getByRole("link", { name: brand.cart.continue }).click();
+  await expect(goOn).toBeEnabled();
+  await goOn.click();
+  await expect(page.getByText(brand.brandStep.errors.mrp.low("₹100"))).toBeVisible();
+  await expect(page).toHaveURL("/launch?step=2");
+  await details.getByLabel(brand.brandStep.mrpLabel(bulk.name)).fill("150");
+  await goOn.click();
   await expect(page).toHaveURL("/launch?step=3");
 
-  // Step 3: no saved brand yet. A new one needs a name; its logo comes next.
-  await expect(page.getByText(brand.profiles.empty.title)).toBeVisible();
-  await page.getByRole("button", { name: brand.profiles.addFirst }).click();
-  const brandForm = page.getByRole("form", { name: brand.profiles.form.newTitle });
-  await brandForm.getByRole("button", { name: brand.profiles.form.saveNew }).click();
-  await expect(page.getByText(brand.profiles.errors.profileName)).toBeVisible();
-  await expect(page.getByText(brand.profiles.errors.brandName)).toBeVisible();
-  const pf = brand.profiles.fields;
-  await brandForm.getByLabel(pf.profileName).fill("Asha main");
-  await brandForm.getByLabel(pf.brandName, { exact: true }).fill("Asha Ayurveda");
-  await brandForm.getByLabel(pf.tagline).fill("Classical care, made simple");
-  await brandForm.getByLabel(pf.shortDescription).fill("Classical Ayurveda for every home.");
-  await brandForm.getByLabel(pf.longDescription).fill("Classical Ayurvedic formulations made to traditional recipes and packed with care.");
-  await brandForm.getByLabel(pf.marketedByName).fill("Asha Wellness LLP");
-  await brandForm.getByLabel(pf.marketedByAddress).fill("Flat 4, MG Road, Pune 411001");
-  await brandForm.getByLabel(pf.contactPhone).fill("+91 98765 43210");
-  await brandForm.getByLabel(pf.licenceNumbers).fill("Lic. No. AYU/2024/118");
-  await checkPage(page, errors);
-  await brandForm.getByRole("button", { name: brand.profiles.form.saveNew }).click();
-
-  // The new brand carries on as its edit form, now with the logo: an SVG is refused; a PNG shows.
-  const editForm = page.getByRole("form", { name: brand.profiles.form.editTitle("Asha main") });
-  await expect(editForm).toBeVisible();
-  const fileInput = page.locator("#logo-file");
-  await fileInput.setInputFiles({
-    name: "logo.svg",
-    mimeType: "image/svg+xml",
-    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
-  });
-  await expect(page.getByText(brand.packaging.logo.errors.fileType)).toBeVisible();
-  // The browser logs that refused upload (415) as an error; it's the one we expect.
-  const refused = errors.findIndex((message) => message.includes("415"));
-  expect(refused).toBeGreaterThanOrEqual(0);
-  errors.splice(refused, 1);
-  await fileInput.setInputFiles(pngLogo);
-  await expect(page.getByText(brand.packaging.logo.uploaded)).toBeVisible();
-  await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Asha Ayurveda") })).toBeVisible();
-  await expect(page.getByRole("button", { name: brand.packaging.logo.replace })).toBeVisible();
-  await page.getByRole("button", { name: brand.profiles.form.save }).click();
-  await expect(page.getByText(brand.profiles.messages.saved)).toBeVisible();
-  const brands = page.getByRole("list", { name: brand.profiles.listLabel });
-  await expect(brands).toContainText("Asha main");
-  await expect(brands).toContainText(brand.profiles.badgeDefault);
-  await expect(brands).toContainText(brand.profiles.badgeSelected);
-
-  // The per-product "Label for each product" editor is switched off in v2
-  // (the client only needs the brand details), so there is nothing to edit
-  // here; the saved brand fills the label preview instead.
-  await expect(page.getByRole("form", { name: brand.labels.title })).toHaveCount(0);
-  await expect(page.getByRole("complementary", { name: "Label preview" })).toContainText("Asha Ayurveda");
-  await checkPage(page, errors);
-  await page.getByRole("button", { name: brand.launch.continue }).click();
-  await expect(page).toHaveURL("/launch?step=4");
-
-  // Step 4: the summary, an address, then the test payment.
+  // Step 3: the summary, an address, then the test payment.
   await expect(page.getByRole("region", { name: brand.review.packaging })).toContainText("Asha Ayurveda");
   const reviewProducts = page.getByRole("region", { name: brand.review.products });
   await expect(reviewProducts).toContainText(brand.review.itemDetail(4, "jars", "₹260"));
   await expect(reviewProducts).toContainText(brand.review.itemDetail(50, "packs", "₹90"));
+  await expect(reviewProducts).toContainText(brand.review.themeMrp("Royal Maroon", "₹399"));
   await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Asha Ayurveda") })).toBeVisible();
   const address = page.getByRole("form", { name: checkout.address.formTitleNew });
   await address.getByLabel(fields.name).fill("Asha Rao");
@@ -285,23 +270,21 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   expect(await e2eDb().brandCartItem.count({ where: { userId: buyer.id } })).toBe(0);
   expect(order.brandDetails).toMatchObject({
     brandName: "Asha Ayurveda",
-    licenceNumbers: "Lic. No. AYU/2024/118",
-    shortDescription: "Classical Ayurveda for every home.",
+    marketedByAddress: "Flat 4, MG Road, Pune 411001",
   });
-  // The label as approved is saved on each line; with per-product editing off, every line takes the brand's values.
+  // The label as approved is saved on each line, with its theme and the MRP typed for it.
   const [firstItem, secondItem] = order.items.sort((a, b) => a.id - b.id);
   expect(firstItem?.labelDetails).toMatchObject({
     spec: { key: "general", widthMm: 80, heightMm: 50 },
-    values: { brandName: "Asha Ayurveda", tagline: "Classical care, made simple" },
+    values: { brandName: "Asha Ayurveda" },
     overridden: [],
+    theme: "royal-maroon",
+    packMrpPaise: 39_900,
   });
-  expect(secondItem?.labelDetails).toMatchObject({
-    values: { tagline: "Classical care, made simple" },
-    overridden: [],
-  });
-  // The saved brand is kept for the next order, and still has the original tagline.
+  expect(secondItem?.labelDetails).toMatchObject({ theme: "classic-green", packMrpPaise: 15_000 });
+  // The brand is saved for the next order.
   expect(await e2eDb().brandProfile.findMany({ where: { userId: buyer.id } })).toMatchObject([
-    { profileName: "Asha main", tagline: "Classical care, made simple", isDefault: true },
+    { profileName: brand.brandStep.profileName, brandName: "Asha Ayurveda", isDefault: true },
   ]);
   await expect(page.getByRole("link", { name: brand.checkout.backToMyBrand })).toBeVisible();
 
@@ -321,7 +304,8 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await expect(timeline.getByRole("listitem").first()).toHaveAttribute("aria-current", "step");
   await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Asha Ayurveda") })).toBeVisible();
   const ordered = page.getByRole("region", { name: brand.detail.labelsTitle });
-  await expect(ordered).toContainText("Classical care, made simple");
+  await expect(ordered).toContainText(`${brand.labels.theme}: Royal Maroon`);
+  await expect(ordered).toContainText(`${brand.labels.packMrp}: ₹399`);
   await expect(ordered).toContainText(brand.labels.area("General pack", 80, 50));
   await checkPage(page, errors);
   // Made to order: the store's stock (2) didn't change.
@@ -358,11 +342,11 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await adminPage.getByRole("link", { name: brand.admin.viewLabel(order.number) }).click();
   await expect(adminPage).toHaveURL(`/admin/brand-orders/${orderId}`);
   await expect(adminPage.getByRole("heading", { level: 1 })).toHaveText("Asha Ayurveda");
-  await expect(adminPage.getByText("Asha Wellness LLP, Flat 4, MG Road, Pune 411001")).toBeVisible();
+  await expect(adminPage.getByText("Asha Ayurveda, Flat 4, MG Road, Pune 411001")).toBeVisible();
   const adminProducts = adminPage.getByRole("list", { name: brand.admin.detail.products });
   await expect(adminProducts).toContainText(product.name);
   await expect(adminProducts).toContainText(bulk.name);
-  await expect(adminPage.getByRole("region", { name: brand.admin.detail.labelsTitle })).toContainText("Classical care, made simple");
+  await expect(adminPage.getByRole("region", { name: brand.admin.detail.labelsTitle })).toContainText(`${brand.labels.packMrp}: ₹399`);
   await expect(adminPage.getByRole("link", { name: brand.admin.detail.downloadLogo })).toHaveAttribute(
     "href",
     `/api/brand-orders/${orderId}/logo?download=1`,
@@ -375,103 +359,66 @@ test("add several products to the launch cart, set bulk quantities, pay for them
   await adminContext.close();
 });
 
-test("saved brands: pick, set the default, edit and delete them, and each pack gets its own label details", async ({
+test("a returning buyer's saved brand fills the brand details, and changing it keeps one brand", async ({
   page,
   baseURL,
 }) => {
   await useFreshIp(page);
   const errors = collectErrors(page);
   const db = e2eDb();
-  // A tube takes the short description, a bottle the long one, ingredients and usage.
-  for (const spec of labelSpecSeed.filter((row) => row.key === "tube" || row.key === "bottle")) {
-    await db.labelSpec.upsert({ where: { key: spec.key }, create: spec, update: {} });
-  }
-  const tubeSpec = await db.labelSpec.findUniqueOrThrow({ where: { key: "tube" } });
-  const bottleSpec = await db.labelSpec.findUniqueOrThrow({ where: { key: "bottle" } });
   const tube = await makeBrandProduct({ label: "Ointment" });
-  const bottle = await makeBrandProduct({ label: "Syrup", brandUnitLabel: "bottles" });
-  await db.product.update({ where: { id: tube.id }, data: { labelSpecId: tubeSpec.id } });
-  await db.product.update({
-    where: { id: bottle.id },
-    data: { labelSpecId: bottleSpec.id, ingredients: "Haritaki, Amalaki, Bibhitaki", dosage: "1 tsp twice a day." },
-  });
-
   const buyer = await signInAs(page, baseURL!, { role: "user", userType: "customer" });
-  await db.brandCartItem.createMany({
-    data: [
-      { userId: buyer.id, productId: tube.id, quantity: 4 },
-      { userId: buyer.id, productId: bottle.id, quantity: 4 },
-    ],
+  await db.brandCartItem.create({ data: { userId: buyer.id, productId: tube.id, quantity: 4, labelTheme: "minimal-white" } });
+  const key = `brand-logos/ayush-${randomBytes(12).toString("hex")}.png`;
+  await writeStorageFile(key, png);
+  await db.brandProfile.create({
+    data: {
+      userId: buyer.id,
+      profileName: "Ayush range",
+      isDefault: true,
+      brandName: "Ayush Herbals",
+      marketedByName: "Ayush Herbals LLP",
+      marketedByAddress: "Plot 9, Station Road, Nagpur 440001",
+      logoKey: key,
+      logoName: "logo.png",
+      logoContentType: "image/png",
+      logoSizeBytes: png.byteLength,
+    },
   });
-  const logoKey = (name: string) => `brand-logos/${name}-${randomBytes(12).toString("hex")}.png`;
-  const keys = [logoKey("ayush"), logoKey("kesari")];
-  for (const key of keys) await writeStorageFile(key, png);
-  const profile = (name: string, brandName: string, key: string, isDefault: boolean) => ({
-    userId: buyer.id,
-    profileName: name,
-    isDefault,
-    brandName,
-    tagline: `${brandName} tagline`,
-    shortDescription: `${brandName} short text.`,
-    longDescription: `${brandName} long text that goes on a bottle and tells the whole story.`,
-    marketedByName: `${brandName} LLP`,
-    contactPhone: "+91 98765 43210",
-    primaryColour: "#1f6f5c",
-    logoKey: key,
-    logoName: "logo.png",
-    logoContentType: "image/png",
-    logoSizeBytes: png.byteLength,
-  });
-  await db.brandProfile.create({ data: profile("Ayush range", "Ayush Herbals", keys[0]!, true) });
-  await db.brandProfile.create({ data: profile("Kesari range", "Kesari Care", keys[1]!, false) });
 
-  await page.goto("/launch?step=3");
-  const brands = page.getByRole("list", { name: brand.profiles.listLabel });
-  const ayush = brands.getByRole("listitem").filter({ hasText: "Ayush range" });
-  const kesari = brands.getByRole("listitem").filter({ hasText: "Kesari range" });
-  // The default brand is used until another is picked.
-  await expect(ayush).toContainText(brand.profiles.badgeDefault);
-  await expect(ayush).toContainText(brand.profiles.badgeSelected);
-  await expect(kesari).not.toContainText(brand.profiles.badgeSelected);
-  await expect(page.getByRole("img", { name: brand.packaging.logo.previewAlt("Ayush Herbals") })).toBeVisible();
-
-  // The per-pack "Label for each product" editor is switched off in v2, so
-  // the pack-specific label checks are gone; the brand shows in the label preview.
-  const preview = page.getByRole("complementary", { name: "Label preview" });
-  await expect(page.getByRole("form", { name: brand.labels.title })).toHaveCount(0);
+  // Step 2 starts from the saved brand: name, address and logo are already there.
+  await page.goto("/launch?step=2");
+  const details = page.getByRole("form", { name: brand.brandStep.detailsTitle });
+  await expect(details.getByLabel(brand.brandStep.brandName)).toHaveValue("Ayush Herbals");
+  await expect(details.getByLabel(brand.brandStep.address)).toHaveValue("Plot 9, Station Road, Nagpur 440001");
+  await expect(details.getByRole("button", { name: brand.brandStep.replaceLogo })).toBeVisible();
+  const preview = page.getByRole("complementary", { name: brand.launch.preview.labelTitle });
   await expect(preview).toContainText("Ayush Herbals");
+  const goOn = page.getByRole("button", { name: brand.brandStep.continue });
+  // Only the MRP is missing.
+  await expect(goOn).toBeDisabled();
+  await details.getByLabel(brand.brandStep.mrpLabel(tube.name)).fill("320");
+  // The brand name can be changed; the preview follows it as it is typed.
+  await details.getByLabel(brand.brandStep.brandName).fill("Ayush Wellness");
+  await expect(preview).toContainText("Ayush Wellness");
   await checkPage(page, errors);
+  await goOn.click();
+  await expect(page).toHaveURL("/launch?step=3");
 
-  // Pick the other brand: the labels start from it (the tube keeps its own description).
-  await kesari.getByRole("button", { name: brand.profiles.useLabel("Kesari range") }).click();
-  await expect(page.getByText(brand.profiles.messages.chosen)).toBeVisible();
-  await expect(kesari).toContainText(brand.profiles.badgeSelected);
-  await expect(ayush).not.toContainText(brand.profiles.badgeSelected);
-  await expect(preview).toContainText("Kesari Care");
-  // Make it the default.
-  await kesari.getByRole("button", { name: brand.profiles.makeDefaultLabel("Kesari range") }).click();
-  await expect(kesari).toContainText(brand.profiles.badgeDefault);
-  await expect(ayush).not.toContainText(brand.profiles.badgeDefault);
+  // The same brand was changed (not a second one added) and the details are confirmed.
+  expect(await db.brandProfile.findMany({ where: { userId: buyer.id } })).toMatchObject([
+    { profileName: "Ayush range", brandName: "Ayush Wellness", isDefault: true },
+  ]);
+  expect(await db.brandDraft.findUniqueOrThrow({ where: { userId: buyer.id } })).toMatchObject({ packagingDone: true });
+  expect(await db.brandCartItem.findFirstOrThrow({ where: { userId: buyer.id } })).toMatchObject({
+    packMrpPaise: 32_000,
+    labelTheme: "minimal-white",
+  });
+  await expect(page.getByRole("region", { name: brand.review.packaging })).toContainText("Ayush Wellness");
 
-  // Edit it: change the brand name.
-  await kesari.getByRole("button", { name: brand.profiles.editLabel("Kesari range") }).click();
-  const editForm = page.getByRole("form", { name: brand.profiles.form.editTitle("Kesari range") });
-  await editForm.getByLabel(brand.profiles.fields.brandName, { exact: true }).fill("Kesari Wellness");
-  await checkPage(page, errors);
-  await editForm.getByRole("button", { name: brand.profiles.form.save }).click();
-  await expect(page.getByText(brand.profiles.messages.saved)).toBeVisible();
-  await expect(kesari).toContainText("Kesari Wellness");
-  await expect(preview).toContainText("Kesari Wellness");
-
-  // Delete the first one (after a confirmation); orders aren't affected.
-  await ayush.getByRole("button", { name: brand.profiles.removeLabel("Ayush range") }).click();
-  await ayush.getByRole("button", { name: brand.profiles.removeNo }).click();
-  await expect(ayush).toHaveCount(1);
-  await ayush.getByRole("button", { name: brand.profiles.removeLabel("Ayush range") }).click();
-  await ayush.getByRole("button", { name: brand.profiles.removeYes }).click();
-  await expect(page.getByText(brand.profiles.messages.deleted)).toBeVisible();
-  await expect(brands.getByRole("listitem")).toHaveCount(1);
-  expect(await db.brandProfile.count({ where: { userId: buyer.id } })).toBe(1);
+  // Going back to step 2 shows what was saved, MRP included.
+  await page.goto("/launch?step=2");
+  await expect(page.getByLabel(brand.brandStep.mrpLabel(tube.name))).toHaveValue("320");
   await checkPage(page, errors);
 });
 

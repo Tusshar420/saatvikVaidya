@@ -13,12 +13,11 @@ export const brand = {
     intro:
       "Add the products you want to your launch cart and set how many of each. Then add your logo and packaging details once for the whole order, and pay. Your cart is saved to your account.",
     stepsLabel: "Build Your Brand steps",
-    steps: ["Products", "Launch cart", "Packaging", "Review and pay"] as const,
+    steps: ["Choose product", "Quantity & brand", "Delivery & payment"] as const,
     /** Second line under each step in the steps bar. */
     stepDetails: [
-      "Product type or practice area",
-      "Quantities and bulk prices",
-      "Your logo and label details",
+      "Pick a formulation and a label colour",
+      "How many, and your brand details",
       "Address and payment",
     ] as const,
     /** The v2 page hero: kicker, title, line and the side note. */
@@ -190,8 +189,8 @@ export const brand = {
     tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products. Place this order first, then start another.`,
     summaryTitle: "Cart total",
     itemsLabel: "Products",
-    continue: "Continue to packaging",
-    addMore: "Add more products",
+    continue: "Continue to delivery & payment",
+    addMore: "Add another product",
     errors: {
       unavailable: "That product isn't available for branded orders now.",
       notInCart: "That product is no longer in your launch cart. The page has been refreshed.",
@@ -204,6 +203,77 @@ export const brand = {
         "Your entered price is too high",
       tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products.`,
       generic: "We couldn't update your launch cart. Please try again.",
+    },
+  },
+
+  /** The product page ("View & customise") and the Quantity & brand step. */
+  customise: {
+    view: "View & customise",
+    viewLabel: (name: string) => `View and customise ${name}`,
+    back: "All formulations",
+    details: { form: "Form", pack: "Pack", batch: "Batch size", rate: "Net rate" },
+    batch: (n: number, unit: string) => `${count(n)} ${unit}`,
+    rate: (price: string) => `${price} / unit`,
+    variantTitle: "Select variant",
+    variantLine: "Pick a label theme — the image updates as you choose.",
+    variantLabel: "Label theme",
+    themes: {
+      "classic-green": "Classic Green",
+      "saffron-glow": "Saffron Glow",
+      "royal-maroon": "Royal Maroon",
+      "minimal-white": "Minimal White",
+    } as Record<string, string>,
+    packKicker: "Classic Ayurveda",
+    packBrand: "Your Brand",
+    packMarketed: "Mktd. by Your clinic",
+    packMrp: "MRP ₹ —",
+    continue: "Continue — choose quantity",
+    signIn: "Sign in to continue",
+    inCart: "This product is already in your launch cart. Continuing keeps its quantity and saves the new label theme.",
+    errors: {
+      generic: "We couldn't add this product. Please try again.",
+    },
+    notFound: "This product isn't open for branded orders.",
+  },
+
+  brandStep: {
+    quantityTitle: "1. Quantity",
+    quantityLine: "Products are made in batches. Each + adds one full batch.",
+    quantityMeta: (units: number, batch: number) =>
+      `${count(units)} units · ${batch === 1 ? "1 batch" : `${count(batch)} batches`}`,
+    addAnother: "+ Add another product",
+    themeLine: (theme: string, price: string) => `${theme} • ${price}/unit`,
+    profileName: "My brand",
+    detailsTitle: "2. Brand details",
+    brandName: "Brand name",
+    brandNamePlaceholder: "e.g. Arogya Clinic",
+    mrpTitle: "MRP per pack",
+    mrpHelp: (price: string) => `Printed on the pack. Not below ${price}, your net rate.`,
+    mrpLabel: (name: string) => `MRP per pack of ${name}`,
+    address: "Marketed-by address",
+    addressPlaceholder: "Clinic name, street, city, PIN",
+    logo: "Brand logo",
+    logoHelp: "PNG or JPG, square works best",
+    logoPlaceholder: "Logo",
+    logoRequired: "Add your logo, the pack can't be printed without it.",
+    upload: "Upload logo",
+    replaceLogo: "Replace logo",
+    continue: "Continue to delivery & payment",
+    saving: "Saving…",
+    hint: "Fill brand name, MRP for each product, marketed-by address and a logo.",
+    summaryUnits: (n: number) => `${count(n)} units`,
+    summaryNote: "GST and delivery added in the next step",
+    previewTitle: "Live label preview",
+    errors: {
+      brandName: "Enter your brand name (up to 80 characters).",
+      address: "Enter the marketed-by address (up to 300 characters).",
+      mrp: {
+        missing: "Enter the MRP in rupees.",
+        low: (price: string) => `The MRP can't be below your net rate of ${price}.`,
+        high: "That MRP is too high. Check it and try again.",
+      },
+      notReady: "Set a valid quantity for every product first.",
+      generic: "We couldn't save your brand details. Please try again.",
     },
   },
 
@@ -335,6 +405,8 @@ export const brand = {
 
   /** Per-product label details on step 3. */
   labels: {
+    theme: "Label theme",
+    packMrp: "MRP per pack",
     title: "Label for each product",
     line: "Each label starts from your brand, fitted to that product's pack. Change anything for one product without changing your saved brand.",
     productLabel: (name: string) => `Label for ${name}`,
@@ -386,6 +458,7 @@ export const brand = {
     line: "Check everything below, choose where to deliver, then pay.",
     products: "Products",
     packaging: "Packaging",
+    themeMrp: (theme: string, mrp: string) => `Label ${theme} · MRP ${mrp}`,
     units: (n: number, unit: string) => `${count(n)} ${unit}`,
     noLogo: "No logo yet",
     summaryTitle: "Order summary",

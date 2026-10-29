@@ -24,7 +24,7 @@ export function LaunchSteps({
     <ol
       aria-label={label}
       className={cn(
-        "grid overflow-hidden rounded-lg border border-line bg-surface sm:grid-cols-4",
+        "grid overflow-hidden rounded-lg border border-line bg-surface sm:grid-cols-3",
         className,
       )}
     >

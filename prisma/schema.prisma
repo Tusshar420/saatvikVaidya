@@ -1263,6 +1263,12 @@ model BrandCartItem {
   /// Label fields the user changed for this product (field -> text); the
   /// rest follow the brand profile. See src/lib/label.ts.
   labelOverrides Json?
+  /// The label colour theme picked on the product page (src/lib/brand-theme.ts);
+  /// null means the first one.
+  labelTheme     String?  @db.VarChar(24)
+  /// The MRP the buyer prints on one pack of this product, in paise; null
+  /// until the brand details step is filled in.
+  packMrpPaise   Int?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

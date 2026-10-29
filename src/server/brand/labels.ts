@@ -80,6 +80,10 @@ export async function listLabelSpecs(): Promise<LabelSpecData[]> {
 export type LabelLine = {
   productId: number;
   name: string;
+  /** The label colour theme chosen on the product page. */
+  theme: string | null;
+  /** The MRP per pack typed on the brand details step, in paise. */
+  packMrpPaise: number | null;
   spec: LabelSpecData;
   /** The label as it starts: the profile fitted to the spec. */
   defaults: LabelValues;
@@ -96,6 +100,8 @@ export type LabelLine = {
 const lineSelect = {
   productId: true,
   labelOverrides: true,
+  labelTheme: true,
+  packMrpPaise: true,
   product: {
     select: {
       name: true,
@@ -125,6 +131,8 @@ function toLabelLine(
   return {
     productId: row.productId,
     name: row.product.name,
+    theme: row.labelTheme,
+    packMrpPaise: row.packMrpPaise,
     spec,
     defaults,
     trimmed,
@@ -162,6 +170,8 @@ export function labelSnapshot(line: LabelLine): LabelSnapshot {
     },
     values: line.values,
     overridden: specFields(spec).filter((field) => line.overrides[field] !== undefined),
+    ...(line.theme && { theme: line.theme }),
+    ...(line.packMrpPaise !== null && { packMrpPaise: line.packMrpPaise }),
   };
 }
 
@@ -223,6 +233,8 @@ const snapshotSchema = z.object({
   }),
   values: overridesSchema,
   overridden: z.array(z.enum(labelFields)),
+  theme: z.string().max(24).optional(),
+  packMrpPaise: z.number().int().positive().optional(),
 });
 
 /** A saved order line's label, or null for an order made before label details existed. */

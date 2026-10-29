@@ -8,6 +8,7 @@ import {
   brandTermsOf,
   type BrandTerms,
 } from "@/lib/brand";
+import { packMrpProblem } from "@/lib/brand-theme";
 import type { LabelProblem, LabelValues } from "@/lib/label";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
 import { searchWhere } from "@/server/catalogue/products";
@@ -279,6 +280,13 @@ export async function findBrandProduct(
   return toBrandProduct(row, (await makeableByProduct([productId], client)).get(productId) ?? null);
 }
 
+/** One eligible product by its slug, or null (the product's page at /launch/[slug]). */
+export async function findBrandProductBySlug(slug: string): Promise<BrandProduct | null> {
+  const row = await db.product.findUnique({ where: { slug }, select: brandProductSelect });
+  if (!row) return null;
+  return toBrandProduct(row, (await makeableByProduct([row.id])).get(row.id) ?? null);
+}
+
 // ─── Drafts ─────────────────────────────────────────────────────────────────
 
 export type BrandDraftView = {
@@ -311,18 +319,23 @@ export type PackagingResult =
   | { ok: false; noProfile: true }
   | { ok: false; noLogo: true }
   | { ok: false; notesError: string }
+  /** The MRP per pack is missing or unusable for these products (see packMrpProblem). */
+  | { ok: false; mrpProblems: Map<number, "missing" | "low" | "high"> }
   /** Some product's label text is over its limit (or has no brand name). */
   | { ok: false; labelProblems: Map<number, LabelProblem[]> };
 
 /**
- * Step 3: confirms the packaging of the order: the brand profile (it needs a
- * logo), the notes for the team and every product's label details, which
- * `labels` are the typed values of (only the differences from the profile are
- * kept; see ./labels.ts). The step is only done when every label fits.
+ * Step 2 (brand details): confirms the packaging of the order: the brand
+ * profile (it needs a logo), the notes for the team and every product's label
+ * details, which `labels` are the typed values of (only the differences from
+ * the profile are kept; see ./labels.ts). The step is only done when every
+ * label fits. `mrps` (whole rupees per product, from the brand details form)
+ * must cover every product in the cart when given; they are saved on the
+ * cart lines.
  */
 export async function savePackaging(
   userId: string,
-  input: { notes?: string; labels?: Map<number, LabelValues> },
+  input: { notes?: string; labels?: Map<number, LabelValues>; mrps?: Map<number, number> },
 ): Promise<PackagingResult> {
   if (!(await hasCart(userId))) return { ok: false, noProduct: true };
   const notes = orderNotesSchema.safeParse({ notes: input.notes ?? "" });
@@ -332,6 +345,31 @@ export async function savePackaging(
   const profile = chosenProfile(profiles, draft);
   if (!profile) return { ok: false, noProfile: true };
   if (!profile.logo) return { ok: false, noLogo: true };
+
+  const { mrps } = input;
+  if (mrps) {
+    const cart = await db.brandCartItem.findMany({
+      where: { userId },
+      select: { productId: true, product: { select: brandProductSelect } },
+    });
+    const mrpProblems = new Map<number, "missing" | "low" | "high">();
+    for (const row of cart) {
+      const product = toBrandProduct(row.product);
+      // A product no longer open for branding is reported by the cart itself.
+      if (!product) continue;
+      const problem = packMrpProblem(mrps.get(row.productId) ?? 0, product.terms.unitPricePaise);
+      if (problem) mrpProblems.set(row.productId, problem);
+    }
+    if (mrpProblems.size > 0) return { ok: false, mrpProblems };
+    await db.$transaction(
+      cart.map((row) =>
+        db.brandCartItem.updateMany({
+          where: { userId, productId: row.productId },
+          data: { packMrpPaise: (mrps.get(row.productId) ?? 0) * 100 },
+        }),
+      ),
+    );
+  }
 
   const { problems } = await saveLabelDetails(userId, profile, input.labels ?? new Map());
   // The brand and the notes are kept even when a label still needs work.

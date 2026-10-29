@@ -243,4 +243,8 @@ export type LabelSnapshot = {
   values: LabelValues;
   /** Fields the customer changed for this product. */
   overridden: LabelField[];
+  /** The label colour theme chosen on the product page (src/lib/brand-theme.ts). */
+  theme?: string;
+  /** The MRP the customer prints on one pack, in paise. */
+  packMrpPaise?: number;
 };

@@ -40,7 +40,7 @@ const twMerge = extendTailwindMerge({
               page: ["hero"],
               brand: ["wash", "mark"],
               coins: ["band"],
-              pack: ["green", "saffron", "blue", "gold"],
+              pack: ["green", "saffron", "blue", "maroon", "white", "gold"],
             },
           ],
         },

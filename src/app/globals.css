@@ -214,6 +214,13 @@
 @utility bg-pack-blue {
   background: linear-gradient(155deg, #308ba6, #0c4860);
 }
+@utility bg-pack-maroon {
+  background: linear-gradient(155deg, #8a3350, #4a1228);
+}
+/* The minimal label: a light pack, so the text on it is dark. */
+@utility bg-pack-white {
+  background: linear-gradient(155deg, #ffffff, #efe9dc);
+}
 @utility bg-pack-gold {
   background: linear-gradient(155deg, #e4ae2e, #79570b);
 }

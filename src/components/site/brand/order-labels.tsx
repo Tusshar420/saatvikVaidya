@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { brand as copy } from "@/content/brand";
+import { formatPaise } from "@/lib/format";
 import { specFields, type LabelSnapshot } from "@/lib/label";
 
 const text = copy.labels;
@@ -37,6 +38,16 @@ export function OrderLabels({
                     text.placements[label.spec.logo.placement],
                   )}
                 </p>
+                {(label.theme || label.packMrpPaise) && (
+                  <p className="mt-1 text-small font-bold text-ink">
+                    {[
+                      label.theme && `${text.theme}: ${copy.customise.themes[label.theme] ?? label.theme}`,
+                      label.packMrpPaise && `${text.packMrp}: ${formatPaise(label.packMrpPaise)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
                 <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                   {specFields(label.spec).map((field) =>
                     label.values[field] ? (
