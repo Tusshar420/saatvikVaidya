@@ -5553,3 +5553,16 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
 - Checked at 390 px in Chromium (no sideways scroll, two per row), typecheck,
   lint. Not checked: a real iPhone (the floating-dock fix is the standard
   remedy but could not be reproduced here), e2e.
+
+## Checkout 500 on MariaDB: coin ledger LIKE (2026-10-30)
+
+- `POST /checkout` failed on Hostinger with "Illegal mix of collations ... for
+  operation 'like'" from `heldFor` (`src/server/coins/ledger.ts`), which used a
+  `reference startsWith` search. It now loads the user's redeem rows and
+  filters the reference in code. The connection-collation fix did not cover it.
+- Other `contains` / `startsWith` searches (catalogue search, admin lists,
+  `inventory/engine.ts` batch number) still use LIKE; if one fails on MariaDB,
+  apply the same approach. The `/checkout` React #441 and `/ebooks` "destination
+  stream closed early" entries were not investigated.
+- Checked: typecheck, lint, coins and checkout unit tests (MySQL 8). Not
+  checked on MariaDB itself.

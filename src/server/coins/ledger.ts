@@ -112,10 +112,13 @@ async function write(tx: Client, entry: Credit): Promise<boolean> {
 
 /** The coins an order has on hold now: redeemed minus returned. */
 async function heldFor(tx: Client, userId: string, orderId: string): Promise<{ held: number; rows: number }> {
-  const rows = await tx.coinLedger.findMany({
-    where: { userId, reason: { in: ["redeem", "redeem_return"] }, reference: { startsWith: `${orderId}:` } },
-    select: { amount: true },
+  // Filtered here, not with a "startsWith" search: MariaDB (Hostinger) fails
+  // that LIKE with "Illegal mix of collations". A user has few redeem rows.
+  const candidates = await tx.coinLedger.findMany({
+    where: { userId, reason: { in: ["redeem", "redeem_return"] } },
+    select: { amount: true, reference: true },
   });
+  const rows = candidates.filter((row) => row.reference?.startsWith(`${orderId}:`));
   return { held: -rows.reduce((sum, row) => sum + row.amount, 0), rows: rows.length };
 }
 
