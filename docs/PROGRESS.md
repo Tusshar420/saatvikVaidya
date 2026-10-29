@@ -5524,3 +5524,18 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
 - Checked: typecheck, lint, quiz and catalogue unit tests on MySQL 8. Not
   checked: on MariaDB itself (redeploy and retry /quiz start and /search), and
   the full suite or e2e.
+
+## Real email over SMTP (2026-10-30)
+
+- `getNotifier()` (`src/server/notify/index.ts`) now sends email through SMTP
+  (nodemailer) when `SMTP_HOST` is set; otherwise it still prints to the log.
+  SMS stays on the dev log. A failed send is logged, never thrown, so mail
+  trouble cannot break sign-up, checkout or admin actions.
+- New settings (listed in `.env.example`): `SMTP_HOST`, `SMTP_PORT`,
+  `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`. Hostinger: `smtp.hostinger.com`,
+  port 465, user and sender `no-reply@staging.saatvikvaidya.com`. The password
+  goes only in the Hostinger app settings.
+- Covers every existing email: sign-up/verification, password reset, order and
+  shipping updates, admin alerts. Phone-only accounts (placeholder email) get none.
+- Checked: typecheck, lint, notify/auth/checkout unit tests. Not run: e2e, build,
+  and a real send (needs the mailbox password on the server).

@@ -68,6 +68,24 @@ export function isDevOtpVisible(
   return env.NODE_ENV !== "production" && env.DEV_SHOW_OTP === "true";
 }
 
+// Outgoing email. Without SMTP_HOST the dev sender just prints to the log.
+const smtpEnvSchema = z.object({
+  SMTP_HOST: z.string().trim().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  SMTP_USER: z.string().trim().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().trim().optional(),
+});
+
+export type SmtpEnv = z.infer<typeof smtpEnvSchema>;
+
+/** The SMTP settings, or undefined when email is not set up. Read at call time. */
+export function smtpEnv(): (SmtpEnv & { SMTP_HOST: string; EMAIL_FROM: string }) | undefined {
+  const parsed = parseEnv(smtpEnvSchema);
+  if (!parsed.SMTP_HOST) return undefined;
+  return { ...parsed, SMTP_HOST: parsed.SMTP_HOST, EMAIL_FROM: parsed.EMAIL_FROM || parsed.SMTP_USER || "" };
+}
+
 function parseEnv<T extends z.ZodType>(schema: T): z.infer<T> {
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
