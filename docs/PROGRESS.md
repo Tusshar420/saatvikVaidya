@@ -5424,3 +5424,15 @@ Turbopack, which needs the native compiler that Hostinger's old glibc cannot
 load. `package.json` now has `"build": "next build --webpack"`. Checked on the
 Mac: the Webpack build passes (exit 0). Not checked: the build on Hostinger,
 and e2e. `pnpm dev` is unchanged (still Turbopack).
+
+## Fourth Hostinger build failure: no standalone output (2026-10-29)
+
+The Webpack build finished on Hostinger but its check said "Next.js build
+produced no standalone server or static output". `next.config.mjs` now sets
+`output: "standalone"`. Checked on the Mac: build passes and creates
+`.next/standalone`; `next start` still starts (prints a warning, serves files).
+Not checked: Hostinger's own check, and the site against a real database.
+
+Watch: the build log shows "pool failed to retrieve a connection" because the
+build had no database. Pages then use default settings during the build. If the
+DATABASE_URL and other variables are set for the build step too, this goes away.
