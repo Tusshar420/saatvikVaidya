@@ -10,6 +10,12 @@
 //      admin email. Delete both ADMIN_ lines after the first sign-in.
 //   4. `next start`.
 //
+// With `--setup-only` it does steps 1 to 3 and stops (no `next start`). That is
+// for hosts whose form has no Start command box: the Build command is then
+// `pnpm run build:hostinger`, which builds the site and runs this set-up.
+// If the database or storage settings are missing at build time, it says so
+// and skips the set-up so the build still finishes.
+//
 // What was done is recorded in `.setup/` inside STORAGE_DIR (the uploads
 // folder, outside the website folder), so it survives a redeploy. Delete that
 // folder with the File Manager to run the first-start steps again. If a step
@@ -30,7 +36,12 @@ function run(label, args) {
   }
 }
 
+const setupOnly = process.argv.includes("--setup-only");
 const storage = process.env.STORAGE_DIR;
+if (setupOnly && (!storage || !process.env.DATABASE_URL)) {
+  console.warn("[setup] DATABASE_URL or STORAGE_DIR is not set at build time, so the database set-up was skipped.");
+  process.exit(0);
+}
 if (!storage) {
   console.error("[setup] STORAGE_DIR is not set, so the site was not started.");
   process.exit(1);
@@ -57,6 +68,11 @@ if (email && process.env.ADMIN_PASSWORD) {
   } else {
     console.info("[setup] The admin account was already created. Remove the ADMIN_ lines.");
   }
+}
+
+if (setupOnly) {
+  console.info("[setup] Database set-up finished");
+  process.exit(0);
 }
 
 console.info("[setup] Starting the site");

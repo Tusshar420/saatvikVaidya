@@ -11,6 +11,7 @@
     "dev": "next dev --port 3000",
     "build": "next build --webpack",
     "start": "next start",
+    "build:hostinger": "next build --webpack && node scripts/hostinger-start.mjs --setup-only",
     "start:hostinger": "node scripts/hostinger-start.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint --max-warnings=0",

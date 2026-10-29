@@ -5436,3 +5436,21 @@ Not checked: Hostinger's own check, and the site against a real database.
 Watch: the build log shows "pool failed to retrieve a connection" because the
 build had no database. Pages then use default settings during the build. If the
 DATABASE_URL and other variables are set for the build step too, this goes away.
+
+## Hostinger: database set-up in the Build command (2026-10-30)
+
+Hostinger's GitHub-import form has no Start command box, so `start:hostinger`
+never ran and the database stayed empty ("table does not exist"). Putting it in
+the Build command made the build fail (no `.next` folder).
+
+- New script `pnpm run build:hostinger` = `next build --webpack`, then
+  `scripts/hostinger-start.mjs --setup-only` (tables, first-time seed, admin; no
+  server start). If `DATABASE_URL` or `STORAGE_DIR` is missing at build time it
+  warns and skips, so the build still finishes.
+- Hostinger Build command: `pnpm run build:hostinger`. Output directory `.next`.
+- Checked on the Mac against the test database with a temporary storage folder:
+  setup ran end to end and wrote its `.setup` marks. Not checked: on Hostinger
+  itself, and whether its build step receives the environment variables or uses
+  the same STORAGE_DIR disk as the running site (if not, the seed may repeat on
+  each build).
+- Committed on `main` by the owner's instruction, as for the other Hostinger fixes.
