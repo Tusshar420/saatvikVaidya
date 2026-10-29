@@ -5510,3 +5510,17 @@ screens looked at at 375 and 1280 px. Not run: the full e2e suite.
 - On phones the live label preview sits below the form.
 - Docs that still describe 4 steps: TEST_PLAN, TEAM_TESTING_GUIDE.
 - Unused copy keys remain in `content/brand.ts` (`product.add*`, `inCartLine`).
+
+## Fixes for MariaDB on Hostinger (2026-10-30)
+
+Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
+- `POST /quiz` 500: `FOR SHARE` is MySQL-only. Now `LOCK IN SHARE MODE`
+  (works on both) in `src/server/quiz/attempts.ts`.
+- `GET /search` 500 ("Illegal mix of collations ... for operation like"): the
+  driver connected in a binary collation. `src/server/db.ts` now adds
+  `collation=UTF8MB4_UNICODE_CI` to the connection string, matching the tables.
+- The two browser "React error #441" entries (/quiz, /search) were the page
+  showing the server's failure; they should stop with the two fixes.
+- Checked: typecheck, lint, quiz and catalogue unit tests on MySQL 8. Not
+  checked: on MariaDB itself (redeploy and retry /quiz start and /search), and
+  the full suite or e2e.
