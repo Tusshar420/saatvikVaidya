@@ -5539,3 +5539,17 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   shipping updates, admin alerts. Phone-only accounts (placeholder email) get none.
 - Checked: typecheck, lint, notify/auth/checkout unit tests. Not run: e2e, build,
   and a real send (needs the mailbox password on the server).
+
+## Phone product grid and bottom bar (2026-10-30)
+
+- Product listing (`ProductGrid`): two cards per row on phones, wrapping into
+  rows (was one sideways-scrolling row). Cards stack the quantity stepper above
+  "Add to Order" under 560 px so they fit.
+- "Order List" button now clears the iPhone home-bar space (safe-area) and sits
+  at the left on phones so it no longer covers the chat buttons.
+- Bottom dock: own graphics layer (`transform-gpu`), and `html`/`body` no
+  longer use `h-full`/`min-h-full` (body is `min-h-dvh`), the usual cause of a
+  fixed bar floating up on iOS browsers.
+- Checked at 390 px in Chromium (no sideways scroll, two per row), typecheck,
+  lint. Not checked: a real iPhone (the floating-dock fix is the standard
+  remedy but could not be reproduced here), e2e.
