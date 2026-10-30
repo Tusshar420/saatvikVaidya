@@ -5662,3 +5662,26 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
 **Later**
 - The bottom bar has no unread badges, so on phones a new course shows only
   on the bell now that Courses has left the phone top menu.
+
+## 2026-10-30: Removed the password box on the test address
+
+**What changed**
+- The owner asked to remove the browser "Sign in" box (HTTP Basic auth) on
+  `staging.saatvikvaidya.in`. `src/proxy.ts` no longer asks for the team user
+  name and password; `src/lib/site-gate.ts` is deleted.
+- `STAGING_ACCESS_PASSWORD` still marks the test address: every answer says
+  noindex, `/robots.txt` disallows everything, and the start-up check in
+  `src/server/site-check.ts` still needs it to match a test database. So the
+  setting must stay on the server; deleting it would stop the site starting.
+- `.env.example` and `docs/ACCESS_CONTROL.md` say so.
+
+**Checked**
+- `src/proxy.test.ts` rewritten for the new behaviour; it and
+  `site-check.test.ts` pass. Typecheck and lint pass. Full e2e not run (the
+  e2e server never sets the team password, so it is not affected).
+
+**Later**
+- The brief says only the team should open the test address. With the box
+  gone, anyone with the link can sign up and place test orders there. If that
+  matters, use the hPanel IP allow-list (docs/ACCESS_CONTROL.md) or bring the
+  box back.

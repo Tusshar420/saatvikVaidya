@@ -1,16 +1,16 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { authCookiePrefix, signInPath } from "@/lib/auth-routes";
-import { gatePasses, siteGateFromEnv } from "@/lib/site-gate";
 
 /**
  * Two jobs, for every page and API route (not the built assets):
  *
- * 1. On the private test address (STAGING_ACCESS_PASSWORD set) everything
- *    asks for the team's user name and password, and search engines are told
- *    to stay away: every answer says noindex, and /robots.txt (open without
- *    the password, so crawlers can read it) disallows everything. With it
- *    unset (the live site) this does nothing.
+ * 1. On the test address (STAGING_ACCESS_PASSWORD set) search engines are
+ *    told to stay away: every answer says noindex, and /robots.txt disallows
+ *    everything. The team password box that used to guard it was removed on
+ *    2026-10-30 at the owner's request; the setting now only marks the test
+ *    address (src/server/site-check.ts relies on it too). With it unset (the
+ *    live site) this does nothing.
  * 2. Sends signed-out visitors of /account/..., /checkout, /orders/...,
  *    /notifications and /admin to sign-in. Bare /account and /orders are
  *    open: they show a sign-in prompt to signed-out visitors (the "You" and
@@ -42,8 +42,8 @@ function needsSession(pathname: string): boolean {
 export const testSiteRobots = "User-agent: *\nDisallow: /\n";
 
 export function proxy(request: NextRequest) {
-  const gate = siteGateFromEnv();
-  if (gate && request.nextUrl.pathname === "/robots.txt") {
+  const testSite = Boolean(process.env.STAGING_ACCESS_PASSWORD);
+  if (testSite && request.nextUrl.pathname === "/robots.txt") {
     return new NextResponse(testSiteRobots, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -52,23 +52,12 @@ export function proxy(request: NextRequest) {
       },
     });
   }
-  if (gate && !gatePasses(request.headers.get("authorization"), gate)) {
-    return new NextResponse("Private test site. Sign in with the team password.", {
-      status: 401,
-      headers: {
-        "WWW-Authenticate": 'Basic realm="Saatvik Vaidya test site", charset="UTF-8"',
-        "Cache-Control": "no-store",
-        "X-Robots-Tag": "noindex, nofollow",
-      },
-    });
-  }
-
   const { pathname, search } = request.nextUrl;
   const response =
     !needsSession(pathname) || getSessionCookie(request, { cookiePrefix: authCookiePrefix })
       ? NextResponse.next()
       : NextResponse.redirect(new URL(signInPath(pathname + search), request.url));
-  if (gate) response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (testSite) response.headers.set("X-Robots-Tag", "noindex, nofollow");
   return response;
 }
 

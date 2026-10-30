@@ -75,6 +75,15 @@ check which address the Node.js app is attached to. Tell the developer.
 
 ## 2. Only the team can open the test address
 
+> **2026-10-30: the password box is gone.** The owner asked to remove it, so
+> the test address now opens for anyone who has the link. Keep the
+> `STAGING_ACCESS_PASSWORD` line in the test address's settings anyway: it
+> still keeps search engines away and tells the start-up check this is the
+> test address (without it the site refuses to start). The steps below about
+> adding, removing or checking the team password no longer apply. To bring
+> the box back, restore `src/lib/site-gate.ts` and the check in
+> `src/proxy.ts` from git history.
+
 ### How the lock works
 
 The site has its own lock, built in and tested. When the test address's
