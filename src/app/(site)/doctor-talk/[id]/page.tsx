@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AuthorLine, LikeButton } from "@/components/site/doctor-talk/thread-card";
+import { AuthorLine, LikeButton, ThreadPoll } from "@/components/site/doctor-talk/thread-card";
 import { ReplyForm } from "@/components/site/doctor-talk/thread-forms";
 import { PortalShell, portalCardClasses } from "@/components/site/portal/page-hero";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           </div>
           <h1 className="mt-4 text-h3 text-ink">{thread.title}</h1>
           <p className="mt-3 text-body-lg whitespace-pre-line text-ink">{thread.body}</p>
+          {thread.poll && <ThreadPoll threadId={thread.id} poll={thread.poll} />}
           <div className="mt-4 border-t border-line pt-2">
             <LikeButton thread={thread} canLike />
           </div>

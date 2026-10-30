@@ -126,6 +126,7 @@ model User {
   threads                 Thread[]
   threadReplies           ThreadReply[]
   threadLikes             ThreadLike[]
+  threadPollVotes         ThreadPollVote[]
   coursesAuthored         CourseTeaser[]         @relation("CourseAuthor")
 
   @@index([userTypeId])
@@ -1832,18 +1833,21 @@ enum ThreadKind {
 }
 
 model Thread {
-  id        Int           @id @default(autoincrement())
-  authorId  String        @db.VarChar(64)
-  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  kind      ThreadKind    @default(question)
-  title     String        @db.VarChar(160)
-  body      String        @db.Text
+  id          Int                @id @default(autoincrement())
+  authorId    String             @db.VarChar(64)
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind        ThreadKind         @default(question)
+  title       String             @db.VarChar(160)
+  body        String             @db.Text
   /// Admin moderation: a hidden thread is not shown to anyone.
-  hidden    Boolean       @default(false)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  replies   ThreadReply[]
-  likes     ThreadLike[]
+  hidden      Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  replies     ThreadReply[]
+  likes       ThreadLike[]
+  /// Optional poll: two to six choices. The thread title is the question.
+  pollOptions ThreadPollOption[]
+  pollVotes   ThreadPollVote[]
 
   @@index([hidden, createdAt])
   @@index([kind, createdAt])
@@ -1870,4 +1874,29 @@ model ThreadLike {
   createdAt DateTime @default(now())
 
   @@id([threadId, userId])
+}
+
+model ThreadPollOption {
+  id       Int              @id @default(autoincrement())
+  threadId Int
+  thread   Thread           @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  label    String           @db.VarChar(120)
+  position Int
+  votes    ThreadPollVote[]
+
+  @@index([threadId, position])
+}
+
+/// One vote per member per thread poll; voting again moves the vote.
+model ThreadPollVote {
+  threadId  Int
+  thread    Thread           @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId    String           @db.VarChar(64)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  optionId  Int
+  option    ThreadPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@id([threadId, userId])
+  @@index([optionId])
 }

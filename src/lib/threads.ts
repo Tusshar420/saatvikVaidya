@@ -13,6 +13,9 @@ export function isThreadFilter(value: unknown): value is ThreadFilter {
 
 export const threadLimits = { title: 160, body: 5000, reply: 2000, page: 20 } as const;
 
+/** A poll has 2 to 6 choices of up to 120 characters; the thread title is the question. */
+export const pollLimits = { min: 2, max: 6, option: 120 } as const;
+
 /** Only approved Ayurveda doctors post and reply; everyone signed in reads and likes. */
 export function canWriteThreads(user: {
   userTypeKey: string;
@@ -33,7 +36,22 @@ export type ThreadView = {
   replyCount: number;
   likeCount: number;
   likedByMe: boolean;
+  poll: PollView | null;
 };
+
+export type PollView = {
+  options: { id: number; label: string; votes: number }[];
+  totalVotes: number;
+  /** The option this viewer voted for, if any. */
+  myOptionId: number | null;
+  /** Results show once the viewer has voted, and always to the thread's author. */
+  showResults: boolean;
+};
+
+/** Whole-number percentage of the votes; 0 when nobody has voted. */
+export function pollPercent(votes: number, total: number): number {
+  return total === 0 ? 0 : Math.round((votes / total) * 100);
+}
 
 export type ReplyView = {
   id: number;

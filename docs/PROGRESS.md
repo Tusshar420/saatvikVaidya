@@ -5766,3 +5766,46 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
 
 **Later**
 - Replies have no likes; add `ThreadReplyLike` if the client wants them.
+
+## Polls on Dr. Talk threads (2026-10-31)
+
+**What changed**
+- The owner asked for poll options on questions. A verified doctor starting a
+  thread can tap **Add a poll** and enter 2 to 6 choices ("Add a choice" adds
+  boxes; blank ones are dropped). The thread title is the poll question. Any
+  thread type can carry a poll, though questions are the main use.
+- Every signed-in member can vote (same as likes): one vote per thread;
+  tapping another choice moves the vote, tapping yours again removes it. Before
+  voting you see only the choices and the vote count; after voting (and always
+  for the author) each choice shows a bar and a percentage, with your choice
+  ticked. Shown on the feed card and the thread page. Each choice is a plain
+  form, so voting works without JavaScript.
+- Tables `ThreadPollOption` and `ThreadPollVote` (migration
+  `20261030222950_thread_polls`, new tables only; deleting a thread or user
+  removes their polls and votes). Code: `createThread` / `votePoll` in
+  `src/server/threads/threads.ts`, `voteAction` in
+  `app/(site)/doctor-talk/actions.ts` (same 60/hour rate limit), `ThreadPoll`
+  in `thread-card.tsx`, the poll part of the form in `thread-forms.tsx`, text in
+  `content/threads.ts`.
+
+**Checked**
+- Built in a separate worktree with its own databases, because the "anyone can
+  like" task was changing the same files at the same time.
+- New Vitest cases (choices saved in order, blank ones dropped, 2–6 / length /
+  duplicate rules, one vote per member that moves or is removed, unknown users,
+  choices from another thread, hidden threads) and a Playwright test (doctor
+  adds a three-choice poll, a customer votes, results on the thread and the
+  feed, axe and no sideways scroll) on phone and desktop. Screens checked at
+  375 and 1280 px.
+- typecheck, lint, all unit tests and build pass on top of the likes commit;
+  `threads.spec.ts` passes on phone and desktop. The full e2e suite was not re-run (only Dr. Talk files
+  changed).
+
+**On the server**
+- Nothing to do by hand: `scripts/hostinger-start.mjs` runs
+  `prisma migrate deploy` on every start, so the two new tables are created on
+  the next redeploy.
+
+**Later**
+- No end date or "close poll" yet, no multi-choice polls, and choices can't be
+  edited after posting.

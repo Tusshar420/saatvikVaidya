@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { inputClasses } from "@/components/ui/field";
 import { idleForm } from "@/server/admin/form";
-import { threadKinds, threadLimits } from "@/lib/threads";
+import { pollLimits, threadKinds, threadLimits } from "@/lib/threads";
 import { threads as copy } from "@/content/threads";
 import { createThreadAction, replyAction } from "@/app/(site)/doctor-talk/actions";
 
@@ -17,6 +18,8 @@ export function ThreadComposer() {
   const [state, action, pending] = useActionState(createThreadAction, idleForm);
   const errors = state.fieldErrors ?? {};
   const values = state.values ?? {};
+  const [pollOpen, setPollOpen] = useState(false);
+  const [choices, setChoices] = useState<number>(pollLimits.min);
 
   if (!open) {
     return (
@@ -77,6 +80,49 @@ export function ThreadComposer() {
           {errors.body ? <span className="font-bold text-danger">{errors.body}</span> : copy.form.bodyHint}
         </p>
       </div>
+      {pollOpen ? (
+        <fieldset className="grid min-w-0 gap-3 rounded-lg border border-line p-4">
+          <legend className="px-1 text-xs font-extrabold text-ink">{copy.poll.legend}</legend>
+          <input type="hidden" name="poll" value="on" />
+          <p className="text-xs text-muted">{copy.poll.help}</p>
+          {Array.from({ length: choices }, (_, i) => (
+            <Input
+              key={i}
+              name={`pollOption${i + 1}`}
+              label={copy.poll.option(i + 1)}
+              defaultValue={values[`pollOption${i + 1}`]}
+              maxLength={pollLimits.option}
+              required={i < pollLimits.min}
+            />
+          ))}
+          {errors.pollOptions && (
+            <p role="alert" className="text-xs font-bold text-danger">
+              {errors.pollOptions}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2.5">
+            {choices < pollLimits.max && (
+              <Button variant="secondary" size="sm" onClick={() => setChoices(choices + 1)}>
+                {copy.poll.addOption}
+              </Button>
+            )}
+            <Button variant="link" size="sm" onClick={() => setPollOpen(false)}>
+              {copy.poll.remove}
+            </Button>
+          </div>
+        </fieldset>
+      ) : (
+        <div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<ListChecks aria-hidden className="size-4" />}
+            onClick={() => setPollOpen(true)}
+          >
+            {copy.poll.add}
+          </Button>
+        </div>
+      )}
       {state.status === "error" && !state.fieldErrors && (
         <p role="alert" className="text-small font-bold text-danger">
           {state.message}
