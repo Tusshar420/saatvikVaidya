@@ -5,17 +5,21 @@ const count = (n: number) => new Intl.NumberFormat("en-IN").format(n);
 
 export const quiz = {
   metaTitle: "Quiz & Win",
-  eyebrow: "QUIZ & WIN",
-  hero: {
-    title: "Learn Ayurveda. Earn rewards.",
-    description:
-      "A short weekly knowledge challenge for Ayurveda professionals, with clear explanations after you finish.",
-    status: "Built for professionals",
-    thisWeek: (title: string) => `This week: ${title}`,
-    noQuiz: "A new quiz every week",
-    facts: (questions: number, minutes: number) =>
-      `${questions} questions · ${minutes} minutes · Score first, completion time only as a tie-breaker.`,
-    noQuizText: "Score first, completion time only as a tie-breaker.",
+  carousel: {
+    label: "Quiz & Win highlights",
+    play: {
+      kicker: "Quiz & Win",
+      title: "Learn Ayurveda.",
+      emphasis: "Earn rewards.",
+      cta: "Play this week's quiz",
+      ctaNone: "See when the next quiz opens",
+    },
+    board: {
+      kicker: "Leaderboard",
+      title: "Top the leaderboard.",
+      emphasis: "Earn Saatvik Coins.",
+      cta: "View the rankings",
+    },
   },
   challenge: "Weekly challenge",
   board: {

@@ -5605,3 +5605,26 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   were changing the menu order at the same time (their unfinished work, not
   this rename). Not run: the full e2e suite and build (other sessions were
   using the test server), and the migration on MariaDB.
+
+## Quiz & Win hero carousel (2026-10-30)
+
+- The Quiz & Win page now opens with the same dark green slide carousel as the
+  homepage hero, with 2 slides: "Learn Ayurveda. / Earn rewards." (link down
+  to the quiz card, or "See when the next quiz opens" when none is open) and
+  "Top the leaderboard. / Earn Saatvik Coins." (link to the full leaderboard).
+  It replaces the plain page banner and its "This week" side note; the quiz
+  card below already shows the quiz title and facts.
+- The hero band, slide layout and link/title styles moved into
+  `components/site/hero-carousel.tsx`, used by both pages; the homepage looks
+  the same. New "podium" illustration in `hero-art.tsx` for the second slide.
+  Slide text is in `content/quiz.ts` (`carousel`); the unused `eyebrow` and
+  `hero` strings were removed.
+- The first slide's title is the page h1 only when no quiz is open (as
+  before); otherwise the quiz title in the card stays the h1.
+- Checked in a separate worktree with its own database and port (another
+  session was running e2e on :3100): typecheck, lint, build; quiz e2e on phone
+  and desktop 15 passed (1 skipped by design); homepage, shell and layout
+  specs 71 of 72 passed. The one failure was the layout-width loop timing out
+  on /terms while the machine was very busy (load ~14), not the quiz page; a
+  re-run hit the same timeout at a different width. Screens checked at 375 and
+  1280 px. Not run: unit tests and the full e2e suite.

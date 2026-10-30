@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export type HeroArtKind = "intro" | "talk" | "quiz" | "launch" | "grow";
+export type HeroArtKind = "intro" | "talk" | "quiz" | "launch" | "grow" | "podium";
 
 /**
- * Decorative illustrations for the home hero slides, drawn in SVG with the
- * colour tokens so they sit on the dark green hero. Purely visual: the slide
+ * Decorative illustrations for the hero carousel slides (homepage and Quiz &
+ * Win), drawn in SVG with the colour tokens so they sit on the dark green hero. Purely visual: the slide
  * text carries the meaning, so each one is aria-hidden.
  */
 export function HeroArt({
@@ -176,6 +176,23 @@ const ART: Record<HeroArtKind, ReactNode> = {
       />
       <path d="M110 34l18-2-2 18z" className="fill-white" />
       <path d="M26 132h116" className="stroke-white/30" strokeWidth="3" strokeLinecap="round" />
+    </g>
+  ),
+  // Winners' podium with a star over first place.
+  podium: (
+    <g>
+      <rect x="30" y="92" width="34" height="40" rx="5" className="fill-brand-light" />
+      <rect x="63" y="70" width="34" height="62" rx="5" className="fill-gold" />
+      <rect x="96" y="104" width="34" height="28" rx="5" className="fill-orange" />
+      <path
+        d="M80 48l3.5 7 7.5 1-5.5 5 1.5 7.5-7-3.6-7 3.6 1.5-7.5-5.5-5 7.5-1z"
+        transform="translate(80 42) scale(1.5) translate(-80 -57)"
+        className="fill-white"
+      />
+      <circle cx="47" cy="80" r="6" className="fill-white/70" />
+      <circle cx="113" cy="92" r="6" className="fill-white/50" />
+      <rect x="72" y="84" width="16" height="4" rx="2" className="fill-gold-ink/50" />
+      <path d="M22 132h116" className="stroke-white/30" strokeWidth="3" strokeLinecap="round" />
     </g>
   ),
 };
