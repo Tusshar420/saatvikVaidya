@@ -654,8 +654,8 @@ export const admin = {
     statusFilter: "Status",
     statuses: { active: "On the site", hidden: "Hidden" },
     stockShop: (n: string) => `Shop: ${n} on sale`,
-    stockLaunch: (n: string) => `Launch: can make ${n}`,
-    stockLaunchUnlimited: "Launch: no stock limit set",
+    stockLaunch: (n: string) => `Build Your Brand: can make ${n}`,
+    stockLaunchUnlimited: "Build Your Brand: no stock limit set",
     columns: {
       image: "Image",
       name: "Product",

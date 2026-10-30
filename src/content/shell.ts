@@ -46,7 +46,7 @@ export type SiteNavLink = {
 export const siteNav: readonly SiteNavLink[] = [
   { href: "/doctor-talk", label: "Dr. Talk", tone: "brand" },
   { href: "/quiz", label: "Quiz & Win" },
-  { href: "/launch", label: "Launch Your Brand" },
+  { href: "/launch", label: "Build Your Brand" },
   { href: "/products", label: "Top Brands" },
   { href: "/courses", label: "Courses" },
   { href: "/coins", label: "Saatvik Coins" },

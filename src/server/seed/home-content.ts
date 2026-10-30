@@ -245,7 +245,7 @@ export const heroSlideSeed: Seed<Prisma.HeroSlideCreateInput>[] = [
     },
     panelKind: "LAUNCH_STUDIO",
     panel: {
-      label: "Launch Studio",
+      label: "Brand Studio",
       step: "Step 1 of 4",
       title: "What would you like to build?",
       searchPlaceholder: "Search formulation",

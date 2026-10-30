@@ -88,7 +88,7 @@ staff's error list.
 | 1.1 | Team password works | 1) Open the test address. 2) Type the team user name and password. | The Saatvik Vaidya home page opens. The padlock shows next to the address. | ☐ Pass ☐ Fail |
 | 1.2 | Wrong team password | 1) Open the test address in a private/incognito window. 2) Type a wrong team password. | The site does not open. The box asks again, or the page says "Private test site. Sign in with the team password." | ☐ Pass ☐ Fail |
 | 1.3 | Home page | 1) Scroll the whole home page slowly. | All sections load with pictures and text. Nothing overlaps. You never need to scroll sideways. | ☐ Pass ☐ Fail |
-| 1.4 | Menu links | 1) Tap each item in the top menu (computer) or the bottom bar (phone): Home, Dr. Talk, Quiz & Win, Launch Your Brand, Top Brands, Courses, Saatvik Coins, Track Order. | Each one opens its own page with a heading. No error page. | ☐ Pass ☐ Fail |
+| 1.4 | Menu links | 1) Tap each item in the top menu (computer) or the bottom bar (phone): Home, Dr. Talk, Quiz & Win, Build Your Brand, Top Brands, Courses, Saatvik Coins, Track Order. | Each one opens its own page with a heading. No error page. | ☐ Pass ☐ Fail |
 | 1.5 | Wrong address | 1) Add `/abc-not-real` to the end of the address and open it. | A "We couldn't find that page" screen with **Go to the homepage** and **Browse products** buttons. Both buttons work. | ☐ Pass ☐ Fail |
 
 ## 2. Sign up, sign in and sign out
@@ -179,13 +179,13 @@ listed.
 | 6.9 | My orders | 1) Account menu → **My orders** (phone: **Order**). | The new order is at the top, with its number, date, total and status "waiting for payment" (or similar). | ☐ Pass ☐ Fail |
 | 6.10 | Saatvik Coins page | 1) Open **Saatvik Coins**. | The rules for earning and using coins, and your balance once signed in. | ☐ Pass ☐ Fail |
 
-## 7. Bulk branded order: Launch Your Brand (bulk buyer)
+## 7. Bulk branded order: Build Your Brand (bulk buyer)
 
 | No. | Test | Steps | Expected result | Pass / Fail |
 | --- | --- | --- | --- | --- |
-| 7.1 | Open Launch Your Brand | 1) Sign in as the bulk buyer. 2) Open **Launch Your Brand**. | Step bar: **Products → Launch cart → Packaging → Review and pay**. A list of products for private label, each with a minimum order and price. | ☐ Pass ☐ Fail |
-| 7.2 | Signed out | 1) Signed out, open **Launch Your Brand** and try to go past step 1. | You are asked to sign in. | ☐ Pass ☐ Fail |
-| 7.3 | Choose products | 1) Add 2 products to the launch cart. 2) Go to **Launch cart**. | Both products, each starting at its minimum quantity. | ☐ Pass ☐ Fail |
+| 7.1 | Open Build Your Brand | 1) Sign in as the bulk buyer. 2) Open **Build Your Brand**. | Step bar: **Products → Brand cart → Packaging → Review and pay**. A list of products for private label, each with a minimum order and price. | ☐ Pass ☐ Fail |
+| 7.2 | Signed out | 1) Signed out, open **Build Your Brand** and try to go past step 1. | You are asked to sign in. | ☐ Pass ☐ Fail |
+| 7.3 | Choose products | 1) Add 2 products to the brand cart. 2) Go to **Brand cart**. | Both products, each starting at its minimum quantity. | ☐ Pass ☐ Fail |
 | 7.4 | Quantities in steps | 1) Change a quantity to a number that is **not** a multiple of the minimum (for example 130 if the minimum is 100). | The quantity snaps to a correct step, with a message such as "Quantities go in steps of 100, so this is now 100." Bulk prices change as quantity grows. | ☐ Pass ☐ Fail |
 | 7.5 | Packaging: brand and logo | 1) Go to **Packaging**. 2) Add a new brand (brand name, tagline, Marketed By details). 3) **Upload logo** (a PNG or JPG). | "Logo uploaded" and a preview of the logo. | ☐ Pass ☐ Fail |
 | 7.6 | Packaging: no logo | 1) Try to continue with a brand that has no logo. | "Add a logo to this brand before you continue." | ☐ Pass ☐ Fail |

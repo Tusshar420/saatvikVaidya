@@ -5576,3 +5576,32 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   per account (`testEmailPerUser`). Copy in `content/account.ts` (`testEmail`).
 - Phone-only accounts (placeholder email) get a "add an email first" message.
 - Checked: typecheck, lint, notify unit tests, account e2e (phone and desktop).
+
+## "Launch Your Brand" renamed to "Build Your Brand" (2026-10-30)
+
+- The last places with the old name now say **Build Your Brand**: the side
+  menu (`content/shell.ts`), the account page help, admin stock labels and the
+  hero-panel type option, the inventory screens ("Brand product", "Build Your
+  Brand order"), the design page tile, and `scripts/clear-test-data.ts`.
+- "Launch cart" is now **"Brand cart"** everywhere on the site (step bar,
+  buttons, messages in `content/brand.ts`). The hero panel label is now
+  "Brand Studio".
+- Migration `20261030160000_build_your_brand_name` updates homepage rows seeded
+  before the rename (hero button and panel label, section eyebrow, reel badge
+  and label, offer link, quick action) and the saved "popular searches"
+  list in the header. Only rows still holding the old seeded
+  text change, so admin edits are kept.
+- Kept on purpose: the `/launch` web address and internal code names
+  (`LAUNCH_STUDIO`, `launch` keys), so links and bookmarks keep working. The
+  sentence "Launch without a large inventory burden" uses "launch" as a verb
+  and stays. Team docs (test plan, testing guide, launch and deploy notes,
+  site overview) use the new name; older PROGRESS/CHUNKS history is unchanged.
+- The admin search keywords in `content/admin.ts` (from the admin console work
+  running at the same time) still include "launch your brand", which helps
+  people who search the old name.
+- Checked: typecheck, lint, seed/content/brand/inventory unit tests, the new
+  migration on the local database. Browser tests: homepage and menu specs on
+  phone and desktop, 44 passed; 2 menu tests failed because other sessions
+  were changing the menu order at the same time (their unfinished work, not
+  this rename). Not run: the full e2e suite and build (other sessions were
+  using the test server), and the migration on MariaDB.

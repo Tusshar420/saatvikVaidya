@@ -40,7 +40,7 @@ test.describe("Homepage part 2 (bottom half)", () => {
     for (const name of [
       "Dr. Talk",
       "Quiz & Win",
-      "Launch Your Brand",
+      "Build Your Brand",
       "Top Brands",
       "Courses",
       "Saatvik Coins",

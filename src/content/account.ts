@@ -76,7 +76,7 @@ export const account = {
     overview: "Overview",
     admin: { label: "Admin panel", help: "Manage the store and approvals." },
     orders: { label: "Orders & Requests", help: "Track and review your orders." },
-    brandOrders: { label: "Branded orders", help: "Launch Your Brand orders and label proofs." },
+    brandOrders: { label: "Branded orders", help: "Build Your Brand orders and label proofs." },
     coins: { label: "Saatvik Coins", help: "Your balance and history." },
     ebooks: { label: "My ebooks", help: "Download what you've bought." },
     addresses: { label: "Saved addresses", help: "Where we deliver." },

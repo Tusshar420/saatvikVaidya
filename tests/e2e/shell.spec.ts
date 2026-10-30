@@ -258,7 +258,7 @@ test.describe("nav rail", () => {
 
     await page.goto("/");
     const nav = rail(page);
-    const launch = nav.getByRole("link", { name: "Launch Your Brand" });
+    const launch = nav.getByRole("link", { name: "Build Your Brand" });
     await expect(launch).toHaveAttribute("href", "/launch");
     await launch.click();
     await onLaunchPage();

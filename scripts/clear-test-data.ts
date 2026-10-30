@@ -49,7 +49,7 @@ function report(counts: TestDataCounts): void {
   console.info(`
 Would remove:
   Accounts (not admins):  ${r.accounts}${types ? ` (${types})` : ""}
-  Orders:                 ${r.orders} (${r.brandOrders} Launch Your Brand), with ${r.payments} payment(s) and ${r.invoices} invoice(s)
+  Orders:                 ${r.orders} (${r.brandOrders} Build Your Brand), with ${r.payments} payment(s) and ${r.invoices} invoice(s)
   Quiz attempts:          ${r.quizAttempts}
   Super Coin entries:     ${r.coinEntries}
   Threads by them:        ${r.threads}

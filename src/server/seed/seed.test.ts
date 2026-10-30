@@ -204,6 +204,7 @@ describe("seedDatabase", () => {
                   : "build",
             ),
           )
+          .replace(/launch studio/i, "Brand Studio")
           // Leading/trailing decoration that components draw as icons. An
           // arrow inside text ("₹10,000 order → 1,000 Coins") is content.
           .replace(/^[→←✓▶]\s*|\s*[→←✓▶]$/g, "")
