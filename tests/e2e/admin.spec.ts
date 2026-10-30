@@ -117,6 +117,46 @@ test.describe("as an admin", () => {
     await expectClean(page, errors);
   });
 
+  test("the search console finds a page and opens it", async ({ page, isMobile }) => {
+    const errors = collectErrors(page);
+    await page.goto("/admin");
+    await expect(heading(page)).toHaveText(copy.dashboard.title);
+    if (!isMobile) {
+      // The sidebar shows its categories.
+      const sidebar = page.locator("aside");
+      for (const label of [copy.nav.groups.sales, copy.nav.groups.system]) {
+        await expect(sidebar.getByText(label, { exact: true })).toBeVisible();
+      }
+    }
+    await page
+      .getByRole("button", { name: copy.console.button })
+      .filter({ visible: true })
+      .click();
+    const dialog = page.getByRole("dialog", { name: copy.console.title });
+    await expect(dialog).toBeVisible();
+    const input = dialog.getByRole("combobox");
+    await expect(input).toBeFocused();
+    await input.fill("stock");
+    await expect(dialog.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
+    await input.fill("zzzz-none");
+    await expect(dialog.getByText(copy.console.empty("zzzz-none"))).toBeVisible();
+    await input.fill("orders");
+    await expect(dialog.getByRole("option").first()).toContainText(copy.nav.orders);
+    await expect(axeViolations(page)).resolves.toEqual([]);
+    await input.press("Enter");
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/admin\/orders$/);
+    await expect(heading(page)).toHaveText(copy.orders.title);
+
+    // The keyboard shortcut opens it too; a typed admin address is offered.
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("combobox").fill("/admin/settings");
+    await dialog.getByRole("option", { name: copy.console.goTo("/admin/settings") }).click();
+    await expect(page).toHaveURL(/\/admin\/settings$/);
+    await expectClean(page, errors);
+  });
+
   test("every admin page loads cleanly", async ({ page }) => {
     test.slow();
     const errors = collectErrors(page);
