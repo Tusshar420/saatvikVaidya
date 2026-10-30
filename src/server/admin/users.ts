@@ -3,6 +3,7 @@ import { hashPassword } from "better-auth/crypto";
 import { z } from "zod";
 import { admin as copy } from "@/content/admin";
 import type { Prisma } from "@/generated/prisma/client";
+import { sortField, type Sort } from "@/lib/admin-sort";
 import { toIndianE164 } from "@/lib/phone";
 import { requiredDocumentsFor, type DocumentType } from "@/lib/verification";
 import { newId } from "@/server/auth/admin";
@@ -45,6 +46,8 @@ export const userRoles = ["user", "admin"] as const;
 export type UserRole = (typeof userRoles)[number];
 
 export const USERS_PAGE_SIZE = 25;
+export const USER_SORTS = ["joined", "name"] as const;
+export const USER_SORT_DEFAULT: Sort<(typeof USER_SORTS)[number]> = { key: "joined", dir: "desc" };
 
 /** The most ids one bulk action may touch. */
 export const BULK_LIMIT = 100;
@@ -67,6 +70,7 @@ export const userFiltersSchema = z.object({
     .catch(undefined),
   role: z.preprocess(first, z.enum(userRoles).optional()).catch(undefined),
   page: z.preprocess(first, z.coerce.number().int().min(1).max(10_000)).catch(1),
+  sort: sortField(USER_SORTS, USER_SORT_DEFAULT),
 });
 
 export type UserFilters = z.infer<typeof userFiltersSchema>;
@@ -147,7 +151,10 @@ export async function listUsers(filters: UserFilters): Promise<{
   const users = await db.user.findMany({
     where,
     select: rowSelect,
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    orderBy:
+      filters.sort.key === "name"
+        ? [{ name: filters.sort.dir }, { createdAt: "desc" }, { id: "asc" }]
+        : [{ createdAt: filters.sort.dir }, { id: "asc" }],
     skip: (page - 1) * USERS_PAGE_SIZE,
     take: USERS_PAGE_SIZE,
   });

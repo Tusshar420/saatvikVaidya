@@ -143,7 +143,16 @@ describe("listAdminOrders", () => {
       from: undefined,
       to: undefined,
       page: undefined,
+      sort: { key: "date", dir: "desc" },
     });
+    // Sorting: oldest first, and biggest total first.
+    const oldest = await listAdminOrders(orderFiltersSchema.parse({ sort: "date" }));
+    const dates = oldest.orders.map((order) => order.createdAt.getTime());
+    expect(dates).toEqual([...dates].sort((a, b) => a - b));
+    expect(oldest.total).toBe(all.total);
+    const biggest = await listAdminOrders(orderFiltersSchema.parse({ sort: "-total" }));
+    const totals = biggest.orders.map((order) => order.totalPaise);
+    expect(totals).toEqual([...totals].sort((a, b) => b - a));
     expect(await countOrdersToShip()).toEqual({ total: 2, toShip: 1 });
   });
 });

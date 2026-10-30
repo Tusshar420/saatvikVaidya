@@ -5809,3 +5809,47 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
 **Later**
 - No end date or "close poll" yet, no multi-choice polls, and choices can't be
   edited after posting.
+
+## Admin lists: search, sorting and quicker filters (2026-10-31)
+
+Asked by the owner from a screenshot of B2B Inventory: add search and sort
+buttons there, and make the other admin lists easier to use.
+
+**Built**
+- B2B Inventory: both lists get their own filter bar. Components: search by
+  name or code, type, status (low, short, made to order, not in use, OK) and
+  sort. "What we can make": search by name or pack size, show (has a recipe,
+  no recipe yet, can't make any now), sort, and 25 per page (it held all 163
+  products on one page). Each list keeps the other's filters. Rows with no
+  recipe show a "No recipe yet" badge, "–" instead of the misleading "No
+  limit", and an "Add recipe" button.
+- Column headers sort: click once to sort, again to flip (arrow shows the
+  direction, `aria-sort` set). Phones hide table headers, so every such list
+  also has a "Sort by" select. Added to B2B and B2C Inventory, Orders, Brand
+  orders, Products (catalogue) and Users.
+- Picking a filter or sort option applies it straight away (`AutoSubmit`);
+  search text still waits for Enter or "Apply filters".
+- Inventory stat tiles are now shortcuts: "Low: reorder", "No recipe yet",
+  "Out of stock", "Expiring" and so on open the list already filtered.
+- Sort lives in the URL (`sort=name` / `sort=-name`), so paging, bookmarks and
+  "Clear" keep it. Shared code: `src/lib/admin-sort.ts` (parse, Zod field,
+  in-memory sort with natural text order and empties last, link builder),
+  `components/admin/sort-header.tsx`, `sort-select.tsx`, `filter-bar.tsx`,
+  `auto-submit.tsx`. `Pagination` takes `pageParam` and `hash` for a page with
+  two lists.
+
+**Checked**
+- New Vitest cases for the sort helpers, the B2B filters and sorts, order and
+  user sorting, and bad URL values falling back. Playwright: the B2B test now
+  searches products, filters and sorts components (phone and desktop), and a
+  desktop test clicks a column header twice. One older orders test matched
+  "To" inside "Sort by total"; it now matches the label exactly and waits for
+  the status filter to apply.
+- typecheck, lint, all unit tests (976), build and the full e2e suite (three
+  batches plus the manual and request configs) pass. Screens checked at 375
+  and 1280 px.
+
+**Later**
+- Errors and problem reports already had a sort select; they don't
+  auto-apply yet. Content lists (courses, quizzes, brands, reels, ebooks) are
+  short and have no search or sort yet.

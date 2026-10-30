@@ -8,6 +8,8 @@ import { makeProduct } from "../../../tests/setup/shop";
 import {
   adjustStockAction,
   createComponent,
+  filterB2b,
+  parseB2bFilters,
   parseB2cFilters,
   parseRecipeForm,
   readB2bOverview,
@@ -17,6 +19,8 @@ import {
   saveRecipe,
   updateItemSettings,
   writeOffExpiredAction,
+  type CanMakeRow,
+  type ComponentRow,
 } from "./inventory";
 
 // Inventory in the admin panel: validated stock-room actions, the B2C and
@@ -208,5 +212,89 @@ describe("components and recipes", () => {
     expect(await db.stockItem.findUniqueOrThrow({ where: { id: bottle.id } })).toMatchObject({ name: "Jar 100 g", lowThreshold: 25, componentType: "jar" });
     expect(await updateItemSettings({ itemId: String(bottle.id), lowThreshold: "-1", entryUnit: "pcs", name: "Jar" }, adminId)).toMatchObject({ ok: false });
     expect(await db.adminLog.count({ where: { action: "inventory.item.update", resourceId: String(bottle.id) } })).toBe(1);
+  });
+});
+
+describe("B2B list search, filters and sorting", () => {
+  const component = (row: Partial<ComponentRow> & Pick<ComponentRow, "id" | "name">): ComponentRow => ({
+    sku: null,
+    kind: "packaging",
+    unit: "pcs",
+    componentType: "bottle",
+    onHand: 100,
+    reserved: 0,
+    available: 100,
+    lowThreshold: 0,
+    low: false,
+    madeToOrder: false,
+    active: true,
+    usedBy: 1,
+    ...row,
+  });
+  const product = (row: Partial<CanMakeRow> & Pick<CanMakeRow, "id" | "name">): CanMakeRow => ({
+    packSize: "200 ml",
+    unitLabel: "bottles",
+    minQty: 1,
+    lineCount: 2,
+    makeable: 50,
+    limitedBy: null,
+    ...row,
+  });
+  const overview = {
+    components: [
+      component({ id: 1, name: "Jar 250 g", componentType: "jar", available: 600 }),
+      component({ id: 2, name: "Amber bottle 200 ml", sku: "AMB-200", available: 2000 }),
+      component({ id: 3, name: "Jar 100 g", componentType: "jar", available: 10, low: true }),
+      component({ id: 4, name: "Syrup base", kind: "base", unit: "ml", componentType: null, madeToOrder: true }),
+      component({ id: 5, name: "Old cap", componentType: "cap", active: false }),
+    ],
+    canMake: [
+      product({ id: 10, name: "Triphala syrup", makeable: 300 }),
+      product({ id: 11, name: "Ashwagandha oil", lineCount: 0, makeable: null }),
+      product({ id: 12, name: "Brahmi oil", makeable: 0 }),
+      product({ id: 13, name: "Neem tablets", makeable: null, packSize: "60 tablets" }),
+    ],
+  };
+  const ids = (rows: { id: number }[]) => rows.map((row) => row.id);
+  const run = (params: Record<string, string>) => filterB2b(overview, parseB2bFilters(params));
+
+  it("searches, filters and sorts the components", () => {
+    expect(ids(run({}).components)).toEqual([2, 3, 1, 5, 4]);
+    expect(ids(run({ q: "jar" }).components)).toEqual([3, 1]);
+    expect(ids(run({ q: "amb-2" }).components)).toEqual([2]);
+    expect(ids(run({ type: "jar" }).components)).toEqual([3, 1]);
+    expect(ids(run({ type: "base" }).components)).toEqual([4]);
+    expect(ids(run({ status: "low" }).components)).toEqual([3]);
+    expect(ids(run({ status: "made" }).components)).toEqual([4]);
+    expect(ids(run({ status: "inactive" }).components)).toEqual([5]);
+    expect(ids(run({ status: "ok" }).components)).toEqual([2, 1]);
+    // Ties go by name.
+    expect(ids(run({ sort: "-available" }).components)).toEqual([2, 1, 5, 4, 3]);
+    expect(ids(run({ sort: "type" }).components)).toEqual([2, 5, 3, 1, 4]);
+  });
+
+  it("searches, filters, sorts and pages the brand products", () => {
+    expect(ids(run({}).products)).toEqual([11, 12, 13, 10]);
+    expect(ids(run({ pq: "oil" }).products)).toEqual([11, 12]);
+    expect(ids(run({ pq: "60 tab" }).products)).toEqual([13]);
+    expect(ids(run({ recipe: "none" }).products)).toEqual([11]);
+    expect(ids(run({ recipe: "set" }).products)).toEqual([12, 13, 10]);
+    expect(ids(run({ recipe: "zero" }).products)).toEqual([12]);
+    // "No limit" counts as the most; no recipe always goes last.
+    expect(ids(run({ psort: "-canMake" }).products)).toEqual([13, 10, 12, 11]);
+    expect(ids(run({ psort: "canMake" }).products)).toEqual([12, 10, 13, 11]);
+    expect(run({ ppage: "9" })).toMatchObject({ page: 1, pageCount: 1, productTotal: 4 });
+  });
+
+  it("drops bad values instead of failing", () => {
+    expect(parseB2bFilters({ type: "<x>", status: "nope", recipe: "?", sort: "price", psort: "-x", ppage: "-2", q: " " })).toMatchObject({
+      type: null,
+      status: "all",
+      recipe: "all",
+      sort: { key: "name", dir: "asc" },
+      psort: { key: "name", dir: "asc" },
+      ppage: 1,
+      q: null,
+    });
   });
 });

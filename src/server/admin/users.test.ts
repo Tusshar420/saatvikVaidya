@@ -120,8 +120,9 @@ describe("listUsers", () => {
       status: "nonsense",
       type: "'; DROP TABLE User; --",
       page: "-4",
+      sort: "password",
     });
-    expect(filters).toEqual({ page: 1 });
+    expect(filters).toEqual({ page: 1, sort: { key: "joined", dir: "desc" } });
     expect((await listUsers(filters)).total).toBe(5);
   });
 
