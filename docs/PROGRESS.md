@@ -5853,3 +5853,41 @@ buttons there, and make the other admin lists easier to use.
 - Errors and problem reports already had a sort select; they don't
   auto-apply yet. Content lists (courses, quizzes, brands, reels, ebooks) are
   short and have no search or sort yet.
+
+## Delivery by hand: courier, tracking number and "Mark as" buttons (2026-10-31)
+
+The owner asked how to move a paid order on, since there is no courier
+integration. On a server the order page said "Shipping is coming soon":
+the test shipping provider refuses to run there, so no delivery buttons
+showed (and brand orders couldn't be dispatched either).
+
+**Built**
+- New `manual` shipping provider (`src/server/shipping/manual-provider.ts`):
+  nothing is booked through the site. "Create shipment" asks for the courier
+  name and tracking number (both optional; empty means "Saatvik Vaidya" and
+  the order number). Then "Mark as: Packed / Shipped / In transit / Out for
+  delivery / Delivered" (plus "Mark undelivered" / "Mark returned") move it on.
+  The buyer sees each step and gets the usual message. No made-up locations.
+- `SHIPPING_PROVIDER=manual`, and `test` on a server now falls back to
+  `manual`, so the test address works without changing its settings.
+- A tracking number already on another order is refused ("awb_taken");
+  tracking numbers allow letters, numbers, `/` and `-`, max 40 characters.
+- Brand order dispatch uses the same provider, so it works on a server too.
+- `playwright.request.config.ts` now runs with `manual`, like the server.
+- DEPLOY.md and `.env.example` updated.
+
+**Checked**
+- New Vitest cases (manual fallback, typed courier and tracking, fallbacks,
+  taken tracking number, brand dispatch on a server). The request e2e test
+  now creates a shipment with a courier and tracking number, marks every step
+  to Delivered and checks the buyer's page (phone and desktop).
+- typecheck, lint, all unit tests (980) and the full e2e suite pass (main
+  batch 311 passed; one catalogue listing test failed once and passed 4/4 on
+  re-run, unrelated; exclusive+last 27, manual 2, request 2). Screens checked
+  at 375 and 1280 px.
+
+**Later**
+- Brand dispatch could also ask for the courier and tracking number (it uses
+  the fallbacks now).
+- A shortcut from "Shipped" straight to "Delivered" if the team finds five
+  clicks too many.

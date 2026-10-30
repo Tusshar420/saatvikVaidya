@@ -7,6 +7,7 @@ import {
   simulateShipmentAction,
 } from "@/app/admin/orders/actions";
 import { FormAlert } from "@/components/site/auth/form-alert";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { admin as copy } from "@/content/admin";
 import { orders as ordersCopy } from "@/content/orders";
@@ -25,15 +26,21 @@ export type ShipmentPanelProps = {
   /** Only a paid order can get a shipment. */
   canCreate: boolean;
   shipment: { status: ShipmentStatusKey; courierName: string; awb: string } | null;
+  /**
+   * The team books the courier itself (SHIPPING_PROVIDER=manual): "Create
+   * shipment" asks for the courier and tracking number, and the step buttons
+   * read "Mark as: …" instead of "Simulate next step".
+   */
+  manual?: boolean;
 };
 
 /**
  * The shipment's controls: "Create shipment" on a paid order, then
- * "Simulate next step" and, where they apply, "Mark undelivered" and "Mark
+ * "Simulate next step" ("Mark as: …" when manual) and, where they apply, "Mark undelivered" and "Mark
  * returned". Each button sends the step it was shown for, so a double
  * click moves the parcel once.
  */
-export function ShipmentPanel({ orderId, canCreate, shipment }: ShipmentPanelProps) {
+export function ShipmentPanel({ orderId, canCreate, shipment, manual = false }: ShipmentPanelProps) {
   const [state, action, pending] = useActionState(
     (previous: FormState, formData: FormData) =>
       formData.get("intent") === "create"
@@ -43,6 +50,8 @@ export function ShipmentPanel({ orderId, canCreate, shipment }: ShipmentPanelPro
   );
   const next = shipment ? nextShipmentStep(shipment.status) : null;
   const can = (to: ShipmentStatusKey) => (shipment ? canMoveShipment(shipment.status, to) : false);
+  const stepLabel = manual ? text.markStep : text.simulateNext;
+  const typed = state.status === "error" ? state.values : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,11 +71,36 @@ export function ShipmentPanel({ orderId, canCreate, shipment }: ShipmentPanelPro
           </div>
         </dl>
       ) : (
-        <p className="text-sm text-muted">{canCreate ? text.shipmentIntro : text.shipmentNotYet}</p>
+        <p className="text-sm text-muted">
+          {!canCreate ? text.shipmentNotYet : manual ? text.manualIntro : text.shipmentIntro}
+        </p>
       )}
 
       <form action={action} className="flex flex-wrap gap-2 max-sm:*:w-full">
         <input type="hidden" name="orderId" value={orderId} />
+        {!shipment && canCreate && manual && (
+          <div className="grid w-full gap-3 sm:grid-cols-2">
+            <Input
+              name="courierName"
+              label={text.manualCourier}
+              help={text.manualCourierHelp}
+              optional
+              maxLength={80}
+              autoComplete="off"
+              defaultValue={typed?.courierName ?? ""}
+            />
+            <Input
+              name="trackingNumber"
+              label={text.manualTracking}
+              help={text.manualTrackingHelp}
+              optional
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
+              defaultValue={typed?.trackingNumber ?? ""}
+            />
+          </div>
+        )}
         {!shipment && canCreate && (
           <Button
             type="submit"
@@ -89,7 +123,7 @@ export function ShipmentPanel({ orderId, canCreate, shipment }: ShipmentPanelPro
                 loading={pending}
                 icon={<ArrowRight aria-hidden className="size-4.5" />}
               >
-                {text.simulateNext(ordersCopy.shipmentStatus[next])}
+                {stepLabel(ordersCopy.shipmentStatus[next])}
               </Button>
             )}
             {can("undelivered") && (

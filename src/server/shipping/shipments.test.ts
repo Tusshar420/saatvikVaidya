@@ -68,11 +68,69 @@ describe("test shipping provider", () => {
     await expect(getShippingProvider().verifyEvent({ awb: "X", status: "teleported" })).rejects.toThrow();
   });
 
-  it("can't create shipments in production", async () => {
+  it("gives way to the manual provider on a server", async () => {
+    expect(getShippingProvider({ SHIPPING_PROVIDER: "test", NODE_ENV: "production" }).name).toBe("manual");
+    expect(getShippingProvider({ NODE_ENV: "production" }).name).toBe("manual");
+    expect(getShippingProvider({ NODE_ENV: "development" }).name).toBe("test");
+    expect(getShippingProvider({ SHIPPING_PROVIDER: "manual", NODE_ENV: "development" }).name).toBe("manual");
+
     const order = await makeOrder(db);
     vi.stubEnv("NODE_ENV", "production");
-    expect(await createShipment(adminId, order.orderId)).toEqual({ ok: false, error: "shipping_off" });
-    expect(await db.shipment.count()).toBe(0);
+    expect(await createShipment(adminId, order.orderId)).toEqual({ ok: true, changed: true, status: "created" });
+    const shipment = await shipmentOf(order.orderId);
+    expect(shipment.provider).toBe("manual");
+    expect(shipment.courierName).not.toMatch(/simulated/);
+  });
+});
+
+describe("manual shipping", () => {
+  beforeEach(() => {
+    vi.stubEnv("SHIPPING_PROVIDER", "manual");
+  });
+
+  it("records the courier and tracking number the admin typed, and steps with no made-up places", async () => {
+    const order = await makeOrder(db);
+    const created = await createShipment(adminId, order.orderId, {
+      courierName: "DTDC",
+      trackingNumber: `D${Date.now()}`,
+    });
+    expect(created).toEqual({ ok: true, changed: true, status: "created" });
+    const shipment = await shipmentOf(order.orderId);
+    expect(shipment).toMatchObject({ provider: "manual", courierName: "DTDC" });
+    expect(shipment.awb).toMatch(/^D\d+$/);
+
+    expect(await simulateShipmentStep(adminId, order.orderId, "next", "created")).toEqual({
+      ok: true,
+      changed: true,
+      status: "packed",
+    });
+    const events = (await shipmentOf(order.orderId)).events;
+    expect(events.map((event) => [event.status, event.location])).toEqual([
+      ["created", null],
+      ["packed", null],
+    ]);
+    expect(await orderStatus(order.orderId)).toBe("processing");
+  });
+
+  it("falls back to our name and the order number when nothing was typed", async () => {
+    const order = await makeOrder(db);
+    await createShipment(adminId, order.orderId);
+    const shipment = await shipmentOf(order.orderId);
+    expect(shipment.courierName).toBe("Saatvik Vaidya");
+    expect(shipment.awb).toBe(order.number);
+  });
+
+  it("refuses a tracking number already on another order", async () => {
+    const first = await makeOrder(db);
+    const second = await makeOrder(db);
+    const trackingNumber = `T${Date.now()}`;
+    await createShipment(adminId, first.orderId, { trackingNumber });
+    expect(await createShipment(adminId, second.orderId, { trackingNumber })).toEqual({
+      ok: false,
+      error: "awb_taken",
+    });
+    expect(await db.shipment.count({ where: { orderId: second.orderId } })).toBe(0);
+    expect(await orderStatus(second.orderId)).toBe("paid");
   });
 });
 

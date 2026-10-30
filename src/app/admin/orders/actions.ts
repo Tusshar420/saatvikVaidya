@@ -6,7 +6,7 @@ import { admin as copy } from "@/content/admin";
 import { orders as ordersCopy } from "@/content/orders";
 import { orderIdPattern } from "@/lib/orders";
 import { shipmentStatuses } from "@/lib/shipping";
-import type { FormState } from "@/server/admin/form";
+import { formValues, type FormState } from "@/server/admin/form";
 import { cancelOrder } from "@/server/admin/orders";
 import { markOrderPaid } from "@/server/admin/order-payment";
 import { requireAdmin } from "@/server/auth/session";
@@ -48,13 +48,39 @@ async function guarded(run: () => Promise<ShipmentResult>): Promise<FormState> {
   }
 }
 
+const optionalText = (max: number, pattern?: RegExp) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine((value) => !pattern || value === "" || pattern.test(value))
+    .transform((value) => value || null);
+
+// The courier and tracking number the admin types (manual shipping only;
+// the test provider ignores them).
+const createSchema = z.object({
+  orderId: orderIdSchema,
+  courierName: optionalText(80),
+  trackingNumber: optionalText(40, /^[A-Za-z0-9][A-Za-z0-9/-]*$/),
+});
+
 export async function createShipmentAction(_: FormState, formData: FormData): Promise<FormState> {
   const { user } = await requireAdmin("orders");
-  const orderId = orderIdSchema.safeParse(formData.get("orderId"));
-  if (!orderId.success) return { status: "error", message: text.results.not_found };
-  const state = await guarded(() => createShipment(user.id, orderId.data));
-  refresh(orderId.data);
-  return state;
+  const parsed = createSchema.safeParse({
+    orderId: formData.get("orderId"),
+    courierName: formData.get("courierName") ?? "",
+    trackingNumber: formData.get("trackingNumber") ?? "",
+  });
+  if (!parsed.success) {
+    if (!orderIdSchema.safeParse(formData.get("orderId")).success) {
+      return { status: "error", message: text.results.not_found };
+    }
+    return { status: "error", message: text.results.invalid_details, values: formValues(formData) };
+  }
+  const { orderId, courierName, trackingNumber } = parsed.data;
+  const state = await guarded(() => createShipment(user.id, orderId, { courierName, trackingNumber }));
+  refresh(orderId);
+  return state.status === "error" ? { ...state, values: formValues(formData) } : state;
 }
 
 const stepSchema = z.object({

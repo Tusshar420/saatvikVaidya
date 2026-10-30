@@ -11,7 +11,7 @@ import { logAdminAction } from "@/server/admin/audit";
 import { earnForOrder } from "@/server/coins/ledger";
 import { db } from "@/server/db";
 import { sendShipmentUpdate } from "@/server/notify/orders";
-import { getShippingProvider, simulatedEvent, type ShipmentUpdate } from "./index";
+import { getShippingProvider, stepEvent, type ShipmentUpdate } from "./index";
 
 // Shipments (docs/CHUNKS.md, P1.5), whatever the provider. Each step is
 // applied at most once: the shipment only moves on from the step it was at
@@ -30,7 +30,9 @@ export type ShipmentError =
   /** Ebooks only (P1.8). */
   | "nothing_to_ship"
   /** Brand orders (P2.2) are dispatched from their own page, after proof and production. */
-  | "brand_order";
+  | "brand_order"
+  /** The tracking number typed in is already on another order's shipment. */
+  | "awb_taken";
 
 export type ShipmentResult =
   | { ok: true; changed: boolean; status: ShipmentStatusKey }
@@ -58,10 +60,15 @@ const shippableOrderStatuses = ["paid", "processing", "shipped"] as const;
 
 /**
  * "Create shipment" on a paid order: books it with the provider (a fake
- * courier and AWB for the test provider), records the first step and marks
- * the order as being prepared. One shipment per order.
+ * courier and AWB for the test provider; the courier and tracking number the
+ * admin typed for the manual one), records the first step and marks the
+ * order as being prepared. One shipment per order.
  */
-export async function createShipment(actorId: string, orderId: string): Promise<ShipmentResult> {
+export async function createShipment(
+  actorId: string,
+  orderId: string,
+  details: { courierName?: string | null; trackingNumber?: string | null } = {},
+): Promise<ShipmentResult> {
   if (!isOrderId(orderId)) return { ok: false, error: "not_found" };
   const provider = getShippingProvider();
   if (!provider.isAvailable()) return { ok: false, error: "shipping_off" };
@@ -93,6 +100,8 @@ export async function createShipment(actorId: string, orderId: string): Promise<
     state: order.shipState,
     pincode: order.shipPincode,
     units: order.items.reduce((sum, item) => sum + item.quantity, 0),
+    courierName: details.courierName,
+    trackingNumber: details.trackingNumber,
   });
   try {
     await db.$transaction(async (tx) => {
@@ -111,7 +120,7 @@ export async function createShipment(actorId: string, orderId: string): Promise<
           events: {
             create: {
               status: "created",
-              location: simulatedEvent(booked.awb, "created", order.shipCity).location,
+              location: stepEvent(provider, booked.awb, "created", order.shipCity).location ?? null,
               actorId,
             },
           },
@@ -137,9 +146,10 @@ export async function createShipment(actorId: string, orderId: string): Promise<
       await provider.cancelShipment(booked.awb).catch((cancelError: unknown) => {
         console.error("createShipment: spare booking not cancelled.", cancelError);
       });
-      return clash
-        ? { ok: true, changed: false, status: "created" }
-        : { ok: false, error: "not_paid" };
+      if (!clash) return { ok: false, error: "not_paid" };
+      // Two clicks at once created it; otherwise the tracking number is taken.
+      const mine = await db.shipment.findUnique({ where: { orderId: order.id }, select: { id: true } });
+      return mine ? { ok: true, changed: false, status: "created" } : { ok: false, error: "awb_taken" };
     }
     throw error;
   }
@@ -219,8 +229,9 @@ export async function recordShipmentEvent(
 export type SimulatedStep = "next" | "undelivered" | "returned";
 
 /**
- * The admin's "Simulate next step" (or "Mark undelivered" / "Mark
- * returned"): asks the provider for the step and records it. `from` is the
+ * The admin's "Simulate next step" ("Mark as …" with the manual provider),
+ * "Mark undelivered" or "Mark returned": asks the provider for the step and
+ * records it. `from` is the
  * step the admin saw, so a double click doesn't skip a step.
  */
 export async function simulateShipmentStep(
@@ -243,6 +254,6 @@ export async function simulateShipmentStep(
 
   const to = step === "next" ? nextShipmentStep(shipment.status) : step;
   if (!to || !canMoveShipment(shipment.status, to)) return { ok: false, error: "not_allowed" };
-  const update = await provider.verifyEvent(simulatedEvent(shipment.awb, to, shipment.order.shipCity));
+  const update = await provider.verifyEvent(stepEvent(provider, shipment.awb, to, shipment.order.shipCity));
   return recordShipmentEvent(update, actorId);
 }
