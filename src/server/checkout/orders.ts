@@ -19,6 +19,7 @@ import { EBOOK_SAC_CODE } from "@/lib/ebooks";
 import { enrolledCourseIds } from "@/server/courses/courses";
 import { ownedEbookIds } from "@/server/ebooks/ebooks";
 import { db } from "@/server/db";
+import { notifyOrderPlaced } from "@/server/notify/orders";
 import { sellableByProduct } from "@/server/inventory/availability";
 import { StockError } from "@/server/inventory/engine";
 import { HOLD_MINUTES, OFFLINE_HOLD_MINUTES, reserveOrderStock } from "@/server/inventory/orders";
@@ -308,6 +309,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (!orderId) throw new Error("placeOrder: could not create a unique order number.");
 
   await startPaymentAttempt(orderId);
+  // "Order received" (with how to pay) to the buyer, and a heads-up to the team.
+  await notifyOrderPlaced(orderId);
   return { ok: true, orderId };
 }
 

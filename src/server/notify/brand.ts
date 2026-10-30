@@ -1,58 +1,49 @@
 import "server-only";
 import { brand as copy } from "@/content/brand";
-import { roleCanAccess } from "@/lib/admin-permissions";
+import { emails } from "@/content/emails";
 import { formatPaise } from "@/lib/format";
-import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { db } from "@/server/db";
-import { authEnv } from "@/server/env";
 import { notifications as inApp } from "@/content/notifications";
 import { createNotifications } from "@/server/notifications/notifications";
-import { getNotifier } from "./index";
-import { recipientSelect, sendToBuyer } from "./orders";
+import { siteLink } from "./compose";
+import type { EmailBlock } from "./email";
+import {
+  detailsBlock,
+  emailOrderAdmins,
+  itemsBlock,
+  orderAdmins,
+  readEmailOrder,
+  recipientSelect,
+  sendToBuyer,
+} from "./orders";
 
-// Build Your Brand messages (P2.1, dev log for now). Text lives in
-// src/content/brand.ts. The buyer's order-notification preferences (P1.10)
-// apply, as for store orders. In-app notifications (the bell) are always
-// saved; admins get theirs only if their role covers orders.
+// Build Your Brand messages (P2.1, P2.2): payment received, label proof
+// ready, production, dispatch and delivery, each with the brand tracker and
+// a button to the order. Text lives in src/content/brand.ts. The buyer's
+// order-notification preferences (P1.10) apply, as for store orders.
+// In-app notifications (the bell) are always saved; admins get theirs only
+// if their role covers orders.
 
-/** Admins whose role covers orders (super and orders admins). */
-async function orderAdmins() {
-  const admins = await db.user.findMany({
-    where: { role: "admin" },
-    select: { id: true, email: true, adminRole: true },
-  });
-  return admins.filter((admin) => roleCanAccess(admin.adminRole, "orders"));
-}
+/** Where each stage sits on the brand tracker (src/content/emails.ts). */
+const trackerStep = {
+  in_production: 3,
+  quality_check: 3,
+  dispatched: 4,
+  delivered: 5,
+} as const;
+
+const steps = (current: number): EmailBlock => ({ kind: "steps", steps: emails.steps.brand, current });
 
 /**
  * A brand order was paid: the buyer is told, and so is every admin who can
  * see orders (super and orders admins), with a link to the admin page.
  */
 export async function sendBrandOrderPaid(orderId: string): Promise<void> {
-  const order = await db.order.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      number: true,
-      type: true,
-      totalPaise: true,
-      userId: true,
-      user: { select: recipientSelect },
-      brandDetails: { select: { brandName: true } },
-      items: {
-        orderBy: { id: "asc" },
-        select: { productName: true, quantity: true, product: { select: { brandUnitLabel: true } } },
-      },
-    },
-  });
+  const order = await readEmailOrder(orderId);
   if (!order || order.type !== "brand") return;
-  const products = order.items.map((item) =>
-    copy.messages.line(item.productName, copy.myBrand.units(item.quantity, item.product?.brandUnitLabel ?? "")),
-  );
   const total = formatPaise(order.totalPaise);
-  const base = authEnv().BETTER_AUTH_URL;
-
   const brandName = order.brandDetails?.brandName ?? "";
+  const customer = order.user?.name ?? "";
   const admins = await orderAdmins();
   await createNotifications([
     ...(order.userId
@@ -70,35 +61,47 @@ export async function sendBrandOrderPaid(orderId: string): Promise<void> {
       userId: admin.id,
       kind: "admin" as const,
       title: inApp.messages.adminBrandPaid.title(order.number),
-      body: inApp.messages.adminBrandPaid.body(order.user?.name ?? "", brandName, total),
+      body: inApp.messages.adminBrandPaid.body(customer, brandName, total),
       href: `/admin/brand-orders/${order.id}`,
     })),
   ]);
 
   if (order.user) {
-    const { subject, body, sms } = copy.messages.paid;
-    const link = new URL(`/my-brand/${order.id}`, base).toString();
+    const text = copy.messages.paid;
     await sendToBuyer(
       order.user,
       {
-        subject: subject(order.number),
-        text: body(order.user.name, order.number, products, total, link),
+        subject: text.subject(order.number),
+        preheader: text.preheader,
+        greetName: order.user.name,
+        heading: text.heading,
+        footer: "order",
+        blocks: [
+          steps(2),
+          { kind: "text", text: text.line(order.number) },
+          { kind: "note", text: text.next },
+          itemsBlock(order),
+          detailsBlock(order),
+          { kind: "button", label: emails.order.viewOrder, href: siteLink(`/my-brand/${order.id}`) },
+        ],
       },
-      sms(order.number, total),
+      text.sms(order.number, total),
     );
   }
 
-  const link = new URL(`/admin/brand-orders/${order.id}`, base).toString();
-  const { subject, body } = copy.messages.admin;
-  for (const admin of admins) {
-    if (isPlaceholderEmail(admin.email)) continue;
-    await getNotifier().send({
-      channel: "email",
-      to: admin.email,
-      subject: subject(order.number, brandName),
-      text: body(order.number, order.user?.name ?? "", brandName, products, total, link),
-    });
-  }
+  const text = copy.messages.admin;
+  await emailOrderAdmins({
+    subject: text.subject(order.number, brandName, total),
+    preheader: text.line(customer, brandName, total),
+    heading: text.heading(order.number),
+    footer: "staff",
+    blocks: [
+      { kind: "text", text: text.line(customer, brandName, total) },
+      { kind: "button", label: text.button, href: siteLink(`/admin/brand-orders/${order.id}`) },
+      itemsBlock(order),
+      detailsBlock(order),
+    ],
+  });
 }
 
 /** To the customer: a new proof version is ready (P2.2). */
@@ -115,22 +118,32 @@ export async function sendProofSent(orderId: string, version: number): Promise<v
     },
   });
   if (!order?.user || !order.userId || order.type !== "brand") return;
+  const note = order.brandDetails?.proofs[0]?.note || null;
   await createNotifications([
     {
       userId: order.userId,
       kind: "brand",
       title: inApp.messages.proofSent.title(order.number, version),
-      body: order.brandDetails?.proofs[0]?.note || inApp.messages.proofSent.body,
+      body: note || inApp.messages.proofSent.body,
       href: `/my-brand/${order.id}`,
     },
   ]);
   const text = copy.messages.proofSent;
-  const link = new URL(`/my-brand/${order.id}`, authEnv().BETTER_AUTH_URL).toString();
   await sendToBuyer(
     order.user,
     {
       subject: text.subject(order.number, version),
-      text: text.body(order.user.name, order.number, version, order.brandDetails?.proofs[0]?.note ?? null, link),
+      preheader: text.preheader,
+      greetName: order.user.name,
+      heading: text.heading,
+      footer: "order",
+      blocks: [
+        steps(2),
+        { kind: "text", text: text.line(order.number, version) },
+        ...(note ? [{ kind: "note" as const, title: text.noteTitle, text: note }] : []),
+        { kind: "text", text: text.ask },
+        { kind: "button", label: text.button, href: siteLink(`/my-brand/${order.id}`) },
+      ],
     },
     text.sms(order.number),
   );
@@ -141,17 +154,7 @@ export async function sendStageUpdate(
   orderId: string,
   stage: keyof typeof copy.messages.stage.lines,
 ): Promise<void> {
-  const order = await db.order.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      number: true,
-      type: true,
-      userId: true,
-      user: { select: recipientSelect },
-      shipment: { select: { courierName: true, awb: true } },
-    },
-  });
+  const order = await readEmailOrder(orderId);
   if (!order?.user || !order.userId || order.type !== "brand") return;
   const text = copy.messages.stage;
   const line = text.lines[stage];
@@ -166,14 +169,28 @@ export async function sendStageUpdate(
   ]);
   const courier =
     order.shipment && (stage === "dispatched" || stage === "delivered")
-      ? text.courier(order.shipment.courierName, order.shipment.awb)
-      : null;
-  const link = new URL(`/my-brand/${order.id}`, authEnv().BETTER_AUTH_URL).toString();
+      ? [
+          { label: emails.order.courier, value: order.shipment.courierName },
+          { label: emails.order.tracking, value: order.shipment.awb },
+        ]
+      : [];
   await sendToBuyer(
     order.user,
     {
       subject: text.subject(order.number, copy.detail.stageLabels[stage]),
-      text: text.body(order.user.name, order.number, line, courier, link),
+      preheader: line,
+      greetName: order.user.name,
+      heading: text.headings[stage],
+      footer: "order",
+      blocks: [
+        steps(trackerStep[stage]),
+        { kind: "text", text: line },
+        ...(courier.length
+          ? [{ kind: "details" as const, rows: [{ label: emails.order.number, value: order.number }, ...courier] }]
+          : []),
+        { kind: "button", label: text.button, href: siteLink(`/my-brand/${order.id}`) },
+        itemsBlock(order, false),
+      ],
     },
     text.sms(order.number, line),
   );
@@ -200,7 +217,6 @@ export async function sendProofDecision(
   const text = copy.messages.decision;
   const brandName = order.brandDetails?.brandName ?? "";
   const customer = order.user?.name ?? "";
-  const link = new URL(`/admin/brand-orders/${order.id}`, authEnv().BETTER_AUTH_URL).toString();
   const approved = decision === "approve";
   const admins = await orderAdmins();
   await createNotifications(
@@ -216,17 +232,22 @@ export async function sendProofDecision(
       href: `/admin/brand-orders/${order.id}`,
     })),
   );
-  for (const admin of admins) {
-    if (isPlaceholderEmail(admin.email)) continue;
-    await getNotifier().send({
-      channel: "email",
-      to: admin.email,
-      subject: approved
-        ? text.subjectApproved(order.number, brandName)
-        : text.subjectChanges(order.number, brandName),
-      text: approved
-        ? text.approved(order.number, customer, brandName, version, link)
-        : text.changes(order.number, customer, brandName, version, comment ?? "", link),
-    });
-  }
+  const line = approved
+    ? text.approved(order.number, customer, brandName, version)
+    : text.changes(order.number, customer, brandName, version);
+  await emailOrderAdmins({
+    subject: approved ? text.subjectApproved(order.number, brandName) : text.subjectChanges(order.number, brandName),
+    preheader: line,
+    heading: approved ? text.headingApproved : text.headingChanges,
+    footer: "staff",
+    blocks: [
+      { kind: "text", text: line },
+      ...(!approved && comment ? [{ kind: "note" as const, title: text.comment, text: comment, tone: "warning" as const }] : []),
+      {
+        kind: "button",
+        label: approved ? text.buttonApproved : text.buttonChanges,
+        href: siteLink(`/admin/brand-orders/${order.id}`),
+      },
+    ],
+  });
 }

@@ -2,6 +2,7 @@ import "server-only";
 import nodemailer from "nodemailer";
 import { isDevOtpVisible, smtpEnv } from "@/server/env";
 import { recordDevOtp, type OtpPurpose } from "./dev-outbox";
+import type { InlineImage } from "./email";
 
 /**
  * Outgoing SMS and email go through here. Stage A has no real providers:
@@ -17,7 +18,17 @@ export type Message =
       /** Set on OTP messages so the dev sender can show the code in the UI. */
       otp?: { code: string; purpose: OtpPurpose; expiresAt: Date };
     }
-  | { channel: "email"; to: string; subject: string; text: string };
+  | {
+      channel: "email";
+      to: string;
+      subject: string;
+      /** The plain-text version; always set. */
+      text: string;
+      /** The designed version (src/server/notify/email.ts), when there is one. */
+      html?: string;
+      /** Images the HTML shows with src="cid:..." (the logo, a QR code). */
+      attachments?: InlineImage[];
+    };
 
 export interface Notifier {
   send(message: Message): Promise<void>;
@@ -55,18 +66,35 @@ function createTransport(config: SmtpConfig) {
   });
 }
 
+/** What nodemailer sends: the text, the HTML if any, and its inline images. */
+function mailOptions(config: SmtpConfig, message: Extract<Message, { channel: "email" }>) {
+  return {
+    from: config.EMAIL_FROM,
+    to: message.to,
+    subject: message.subject,
+    text: message.text,
+    ...(message.html ? { html: message.html } : {}),
+    ...(message.attachments?.length
+      ? {
+          attachments: message.attachments.map((image) => ({
+            cid: image.cid,
+            filename: image.filename,
+            content: image.content,
+            contentType: image.contentType,
+            contentDisposition: "inline" as const,
+          })),
+        }
+      : {}),
+  };
+}
+
 function smtpNotifier(config: SmtpConfig): Notifier {
   const transport = createTransport(config);
   return {
     async send(message) {
       if (message.channel !== "email") return devLogNotifier.send(message);
       try {
-        await transport.sendMail({
-          from: config.EMAIL_FROM,
-          to: message.to,
-          subject: message.subject,
-          text: message.text,
-        });
+        await transport.sendMail(mailOptions(config, message));
       } catch (error) {
         console.error(`[notify:smtp] could not send "${message.subject}" to ${message.to}`, error);
       }
@@ -84,11 +112,14 @@ export type TestEmailResult =
  * error like the normal sender. For the "Send test email" button, so the
  * team can see why mail isn't arriving. The detail never includes the password.
  */
-export async function sendTestEmail(to: string, subject: string, text: string): Promise<TestEmailResult> {
+export async function sendTestEmail(
+  to: string,
+  email: Pick<Extract<Message, { channel: "email" }>, "subject" | "text" | "html" | "attachments">,
+): Promise<TestEmailResult> {
   const config = smtpEnv();
   if (!config) return { ok: false, reason: "not-configured" };
   try {
-    await createTransport(config).sendMail({ from: config.EMAIL_FROM, to, subject, text });
+    await createTransport(config).sendMail(mailOptions(config, { channel: "email", to, ...email }));
     return { ok: true };
   } catch (error) {
     console.error(`[notify:smtp] test email to ${to} failed`, error);

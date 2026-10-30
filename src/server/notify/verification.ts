@@ -3,9 +3,10 @@ import { notifications as inApp } from "@/content/notifications";
 import { verification as copy } from "@/content/verification";
 import { roleCanAccess } from "@/lib/admin-permissions";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
-import { authEnv } from "@/server/env";
 import { db } from "@/server/db";
 import { createNotifications } from "@/server/notifications/notifications";
+import { sendEmail, siteLink } from "./compose";
+import type { EmailContent } from "./email";
 import { getNotifier } from "./index";
 
 // Messages about professional verification. Text lives in
@@ -21,13 +22,9 @@ export type Recipient = {
   phoneNumber: string | null;
 };
 
-async function tell(
-  user: Recipient,
-  email: { subject: string; text: string },
-  sms: string,
-): Promise<void> {
+async function tell(user: Recipient, email: EmailContent, sms: string): Promise<void> {
   if (!isPlaceholderEmail(user.email)) {
-    await getNotifier().send({ channel: "email", to: user.email, ...email });
+    await sendEmail(user.email, email);
   } else if (user.phoneNumber) {
     await getNotifier().send({ channel: "sms", to: user.phoneNumber, text: sms });
   }
@@ -39,7 +36,7 @@ export async function sendDocumentReceived(
   documentLabel: string,
   complete: boolean,
 ): Promise<void> {
-  const { subject, body, sms } = copy.messages.received;
+  const text = copy.messages.received;
   await createNotifications([
     {
       userId: user.id,
@@ -51,8 +48,17 @@ export async function sendDocumentReceived(
   ]);
   await tell(
     user,
-    { subject, text: body(user.name, documentLabel, complete) },
-    sms(documentLabel),
+    {
+      subject: text.subject,
+      greetName: user.name,
+      heading: text.heading,
+      footer: "account",
+      blocks: [
+        { kind: "text", text: text.line(documentLabel, complete) },
+        { kind: "button", label: text.button, href: siteLink("/account") },
+      ],
+    },
+    text.sms(documentLabel),
   );
 }
 
@@ -78,15 +84,17 @@ export async function notifyAdminsOfUpload(
         href: path,
       })),
   );
-  const link = new URL(path, authEnv().BETTER_AUTH_URL).toString();
-  const { subject, body } = copy.messages.adminUploaded;
+  const text = copy.messages.adminUploaded;
   for (const admin of admins) {
     if (isPlaceholderEmail(admin.email)) continue;
-    await getNotifier().send({
-      channel: "email",
-      to: admin.email,
-      subject: subject(user.name),
-      text: body(user.name, user.userTypeLabel, documentLabel, complete, link),
+    await sendEmail(admin.email, {
+      subject: text.subject(user.name),
+      heading: text.heading(user.name),
+      footer: "staff",
+      blocks: [
+        { kind: "text", text: text.line(user.name, user.userTypeLabel, documentLabel, complete) },
+        { kind: "button", label: text.button, href: siteLink(path) },
+      ],
     });
   }
 }
@@ -108,10 +116,37 @@ export async function sendVerificationDecision(
     },
   ]);
   if (decision === "approved") {
-    const { subject, body, sms } = copy.messages.approved;
-    await tell(user, { subject, text: body(user.name) }, sms);
+    const text = copy.messages.approved;
+    await tell(
+      user,
+      {
+        subject: text.subject,
+        greetName: user.name,
+        heading: text.heading,
+        footer: "account",
+        blocks: [
+          { kind: "text", text: text.line },
+          { kind: "button", label: text.button, href: siteLink("/products") },
+        ],
+      },
+      text.sms,
+    );
   } else {
-    const { subject, body, sms } = copy.messages.rejected;
-    await tell(user, { subject, text: body(user.name, comment) }, sms);
+    const text = copy.messages.rejected;
+    await tell(
+      user,
+      {
+        subject: text.subject,
+        greetName: user.name,
+        heading: text.heading,
+        footer: "account",
+        blocks: [
+          ...(comment ? [{ kind: "note" as const, title: text.reason, text: comment, tone: "warning" as const }] : []),
+          { kind: "text", text: text.line },
+          { kind: "button", label: text.button, href: siteLink("/account") },
+        ],
+      },
+      text.sms,
+    );
   }
 }

@@ -46,14 +46,14 @@ describe("getNotifier", () => {
 describe("sendTestEmail", () => {
   it("says so when email is not set up", async () => {
     vi.stubEnv("SMTP_HOST", "");
-    expect(await sendTestEmail("a@b.test", "S", "T")).toEqual({ ok: false, reason: "not-configured" });
+    expect(await sendTestEmail("a@b.test", { subject: "S", text: "T" })).toEqual({ ok: false, reason: "not-configured" });
   });
 
   it("reports success", async () => {
     vi.stubEnv("SMTP_HOST", "smtp.example.test");
     vi.stubEnv("EMAIL_FROM", "no-reply@example.test");
     sendMail.mockResolvedValue({});
-    expect(await sendTestEmail("a@b.test", "S", "T")).toEqual({ ok: true });
+    expect(await sendTestEmail("a@b.test", { subject: "S", text: "T" })).toEqual({ ok: true });
   });
 
   it("returns the mail server's reason without the password", async () => {
@@ -62,7 +62,7 @@ describe("sendTestEmail", () => {
     vi.stubEnv("EMAIL_FROM", "no-reply@example.test");
     vi.spyOn(console, "error").mockImplementation(() => {});
     sendMail.mockRejectedValue(Object.assign(new Error("Invalid login: 535 Authentication failed"), { code: "EAUTH" }));
-    const result = await sendTestEmail("a@b.test", "S", "T");
+    const result = await sendTestEmail("a@b.test", { subject: "S", text: "T" });
     expect(result).toEqual({ ok: false, reason: "failed", detail: "EAUTH: Invalid login: 535 Authentication failed" });
     expect(JSON.stringify(result)).not.toContain("hunter2");
   });

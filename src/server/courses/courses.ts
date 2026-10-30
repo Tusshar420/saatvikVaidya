@@ -12,6 +12,7 @@ import { youtubeUrlSchema } from "@/server/admin/content";
 import { fieldErrorsOf, optionalPrice, optionalText, requiredText } from "@/server/admin/form";
 import { db } from "@/server/db";
 import { createNotifications } from "@/server/notifications/notifications";
+import { sendCourseEnrolled, sendCourseReviewed, sendCourseSubmitted } from "@/server/notify/courses";
 
 // Courses for buyers and doctors (B1, B2). Courses are CourseTeaser rows:
 // staff make them in Admin > Courses, approved doctors in their own course
@@ -333,6 +334,11 @@ export async function saveDoctorCourse(
       href: `/admin/content/courses/${savedId}/edit`,
     })),
   );
+  await sendCourseSubmitted(
+    admins.map((admin) => admin.id),
+    { id: savedId, title: data.title },
+    author.name,
+  ).catch((error: unknown) => console.error("saveDoctorCourse: review email not sent.", error));
   return { ok: true, id: savedId };
 }
 
@@ -405,6 +411,9 @@ export async function reviewCourse(
         href: status === "published" ? courseHref(course.key) : doctorCoursesPath,
       },
     ]);
+    await sendCourseReviewed(course.authorId, course, status, note).catch((error: unknown) =>
+      console.error("reviewCourse: email not sent.", error),
+    );
   }
   return { ok: true };
 }
@@ -447,4 +456,10 @@ export async function notifyCourseEnrolments(orderId: string): Promise<void> {
         : []),
     ]),
   );
+  for (const course of courses) {
+    if (!course.authorId || course.authorId === buyerId) continue;
+    await sendCourseEnrolled(course.authorId, course, order.user?.name ?? "").catch((error: unknown) =>
+      console.error("notifyCourseEnrolments: email not sent.", error),
+    );
+  }
 }

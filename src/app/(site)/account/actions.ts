@@ -15,6 +15,7 @@ import { readAccount } from "@/server/auth/account";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { requireUser } from "@/server/auth/session";
 import { sendTestEmail } from "@/server/notify";
+import { composeEmail } from "@/server/notify/compose";
 import {
   deleteAddress,
   saveAddressFromForm,
@@ -122,7 +123,14 @@ export async function sendTestEmailAction(): Promise<FormState> {
   }
   const limit = await hitRateLimit(rateLimitRules.testEmailPerUser, user.id);
   if (!limit.allowed) return { status: "error", message: copy.testEmail.tooMany };
-  const result = await sendTestEmail(profile.email, copy.testEmail.subject, copy.testEmail.body(profile.name));
+  const email = await composeEmail({
+    subject: copy.testEmail.subject,
+    greetName: profile.name,
+    heading: copy.testEmail.heading,
+    footer: "account",
+    blocks: [{ kind: "text", text: copy.testEmail.line }],
+  });
+  const result = await sendTestEmail(profile.email, email);
   if (result.ok) return { status: "success", message: copy.testEmail.sent(profile.email) };
   return {
     status: "error",

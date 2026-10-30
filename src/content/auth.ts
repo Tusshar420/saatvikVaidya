@@ -9,18 +9,43 @@ export const authMessages = {
     `${code} is your Saatvik Vaidya password reset code. It expires in ${minutes} minutes. If you didn't ask for it, you can ignore this message.`,
   passwordResetEmail: {
     subject: "Reset your Saatvik Vaidya password",
-    body: (name: string, url: string, minutes: number) =>
-      `Namaste ${name},\n\nUse this link to choose a new password. It works once and expires in ${minutes} minutes:\n\n${url}\n\nIf you didn't ask to reset your password, you can ignore this email.`,
+    preheader: "Use the button inside to choose a new password.",
+    heading: "Reset your password",
+    line: (minutes: number) =>
+      `We got a request to reset your password. Tap the button below to choose a new one. The link works once and expires in ${minutes} minutes.`,
+    button: "Choose a new password",
+    ignore: "If you didn't ask to reset your password, you can ignore this email. Your password stays the same.",
   },
   verificationEmail: {
     subject: "Verify your Saatvik Vaidya email",
-    body: (name: string, url: string, minutes: number) =>
-      `Namaste ${name},\n\nUse this link to confirm your email address. It expires in ${minutes} minutes:\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+    preheader: "One tap to confirm your email address.",
+    heading: "Confirm your email address",
+    line: (minutes: number) => `Tap the button below to confirm this is your email address. The link expires in ${minutes} minutes.`,
+    button: "Confirm my email",
+    ignore: "If you didn't ask for this, you can ignore this email.",
   },
   existingAccountEmail: {
     subject: "Someone tried to register with your email",
-    body: (name: string) =>
-      `Namaste ${name},\n\nSomeone just tried to create a Saatvik Vaidya account with this email address. You already have an account, so nothing was changed.\n\nIf this was you, sign in instead, or reset your password if you've forgotten it.`,
+    preheader: "You already have an account, so nothing was changed.",
+    heading: "You already have an account",
+    line: "Someone just tried to create a Saatvik Vaidya account with this email address. You already have an account, so nothing was changed.",
+    next: "If this was you, sign in instead, or reset your password if you've forgotten it.",
+    button: "Sign in",
+  },
+  welcomeEmail: {
+    subject: "Welcome to Saatvik Vaidya",
+    preheader: "Your account is ready. Authentic Ayurveda, delivered to your door.",
+    heading: "Welcome! Your account is ready.",
+    line: "Thank you for joining Saatvik Vaidya. Here's what you can do with your account:",
+    perks: [
+      "Shop authentic Ayurvedic medicines from trusted brands.",
+      "Earn Super Coins on every order and use them on the next one.",
+      "Follow every order from packing to your doorstep.",
+      "Learn from expert doctors with our courses and ebooks.",
+    ],
+    professional:
+      "Are you a doctor or a professional? Upload your documents from My account to unlock professional prices.",
+    button: "Start shopping",
   },
 } as const;
 

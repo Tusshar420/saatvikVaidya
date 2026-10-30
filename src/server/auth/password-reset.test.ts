@@ -67,6 +67,8 @@ describe("password reset by email", () => {
       userTypeId: types.customer,
       termsAccepted: true,
     });
+    // Sign-up sends a welcome email; only the reset emails matter here.
+    sent.length = 0;
   });
 
   it("emails a one-time link that sets a new password and signs out other sessions", async () => {

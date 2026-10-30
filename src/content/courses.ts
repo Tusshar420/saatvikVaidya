@@ -165,18 +165,46 @@ export const courses = {
     submitted: {
       title: (title: string) => `Course to review: ${title}`,
       body: (doctor: string) => `${doctor} sent a course for review.`,
+      email: {
+        subject: (title: string, doctor: string) => `Course to review: ${title} by ${doctor}`,
+        heading: "A course is waiting for review",
+        line: (title: string, doctor: string) =>
+          `${doctor} sent "${title}" for review. It stays off the Courses page until someone on the team approves it.`,
+        button: "Review the course",
+      },
     },
     approved: {
       title: (title: string) => `Your course is listed: ${title}`,
       body: "Our team approved it. People can now find it on the Courses page.",
+      email: {
+        subject: (title: string) => `Your course is live: ${title}`,
+        heading: "Your course is live!",
+        line: (title: string) =>
+          `Our team approved "${title}". People can now find it on the Courses page and enrol. We'll email you each time someone does.`,
+        button: "See your course",
+      },
     },
     rejected: {
       title: (title: string) => `Your course needs changes: ${title}`,
       body: (note: string) => note,
+      email: {
+        subject: (title: string) => `Your course needs a few changes: ${title}`,
+        heading: "Your course needs a few changes.",
+        line: (title: string) => `Our team looked at "${title}" and asked for a few changes before it can be listed.`,
+        noteTitle: "Note from our team",
+        next: "Make the changes and send it again. We'll review it as soon as we can.",
+        button: "Edit your course",
+      },
     },
     enrolled: {
       title: (title: string) => `New enrolment: ${title}`,
       body: (name: string) => `${name} enrolled in your course.`,
+      email: {
+        subject: (title: string) => `New student in ${title}`,
+        heading: "You have a new student!",
+        line: (name: string, title: string) => `${name} just paid for and enrolled in "${title}".`,
+        button: "See your courses",
+      },
     },
     buyer: {
       title: (title: string) => `You're enrolled: ${title}`,

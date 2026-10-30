@@ -188,35 +188,43 @@ export const checkout = {
     returned: "Returned",
   },
 
-  /** Messages sent through the dev notifier (printed to the server log). */
+  /** Emails and SMS about store orders (src/server/notify/orders.ts). */
   messages: {
+    /** To the buyer, the moment the order is placed (QR, bank or phone payment). */
+    placed: {
+      subject: (number: string) => `We've received your order ${number}`,
+      preheaderManual: (total: string) => `Order total ${total}. Pay by QR code or bank transfer to confirm it.`,
+      preheaderRequest: "Our team will call you soon to confirm it.",
+      heading: "Thank you! We've received your order.",
+      line: (number: string) => `Your order ${number} is saved. Here's everything in it.`,
+      brandNext:
+        "Once your payment arrives, our team will prepare your label proof and share it with you to approve before anything is printed.",
+      sms: (number: string, total: string) =>
+        `Saatvik Vaidya: we've received order ${number} (${total}). It is confirmed once we receive your payment.`,
+    },
+    /** To the buyer: the payment arrived. */
     confirmed: {
-      subject: (number: string) => `Order ${number} confirmed`,
-      body: (
-        name: string,
-        number: string,
-        total: string,
-        items: string[],
-        address: string,
-      ) =>
-        [
-          `Namaste ${name},`,
-          "",
-          `Thank you for your order. Order ${number} is paid and confirmed.`,
-          "",
-          ...items.map((item) => `- ${item}`),
-          "",
-          `Total paid: ${total}`,
-          `Delivering to: ${address}`,
-          "",
-          "We'll let you know when it ships.",
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
-      item: (name: string, quantity: number, total: string) =>
-        `${name} × ${count(quantity)}: ${total}`,
+      subject: (number: string) => `Your order ${number} is confirmed`,
+      preheader: "We've received your payment. We'll let you know as soon as your order ships.",
+      heading: "Payment received. Your order is confirmed!",
+      line: (number: string) =>
+        `Thank you for shopping with us. We've received the payment for order ${number}, and we'll pack it with care and email you as soon as it ships.`,
+      digital: "Your courses and ebooks from this order are ready now. Open them from My account.",
       sms: (number: string, total: string) =>
         `Saatvik Vaidya: order ${number} is confirmed. Paid ${total}. We'll let you know when it ships.`,
+    },
+    /** To the team: a new store order. */
+    staff: {
+      subject: (number: string, total: string, customer: string) => `New order ${number}: ${total} from ${customer}`,
+      brandSubject: (number: string, brandName: string, total: string) =>
+        `New brand order ${number}: ${brandName} (${total})`,
+      heading: (number: string) => `New order ${number}`,
+      brandHeading: (number: string) => `New brand order ${number}`,
+      line: (customer: string, total: string) => `${customer} just placed an order for ${total}.`,
+      manual:
+        "It waits for payment by QR code or bank transfer. Mark it paid on the order page once you see the money arrive.",
+      request:
+        "Please call the customer to confirm the order and agree how they'll pay. Mark it paid on the order page once the money arrives.",
     },
   },
 } as const;

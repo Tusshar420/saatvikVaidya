@@ -2,6 +2,8 @@ import "server-only";
 import { authMessages } from "@/content/auth";
 import { emailVerificationLinkSeconds, otpPolicy, passwordResetLinkSeconds } from "@/server/auth/policy";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
+import { signInPath } from "@/lib/auth-routes";
+import { sendEmail, siteLink } from "./compose";
 import { getNotifier, type OtpPurpose } from "./index";
 
 // The messages the auth system sends. Text lives in src/content/auth.ts.
@@ -40,24 +42,36 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   // Phone-only accounts have a placeholder address that can't get mail.
   if (isPlaceholderEmail(user.email)) return;
-  const { subject, body } = authMessages.passwordResetEmail;
-  await getNotifier().send({
-    channel: "email",
-    to: user.email,
-    subject,
-    text: body(user.name, url, passwordResetLinkSeconds / 60),
+  const text = authMessages.passwordResetEmail;
+  await sendEmail(user.email, {
+    subject: text.subject,
+    preheader: text.preheader,
+    greetName: user.name,
+    heading: text.heading,
+    footer: "account",
+    blocks: [
+      { kind: "text", text: text.line(passwordResetLinkSeconds / 60) },
+      { kind: "button", label: text.button, href: url },
+      { kind: "text", text: text.ignore },
+    ],
   });
 }
 
 /** Tells an account owner that someone tried to register their email. */
 export async function sendExistingAccountEmail(user: Recipient): Promise<void> {
   if (isPlaceholderEmail(user.email)) return;
-  const { subject, body } = authMessages.existingAccountEmail;
-  await getNotifier().send({
-    channel: "email",
-    to: user.email,
-    subject,
-    text: body(user.name),
+  const text = authMessages.existingAccountEmail;
+  await sendEmail(user.email, {
+    subject: text.subject,
+    preheader: text.preheader,
+    greetName: user.name,
+    heading: text.heading,
+    footer: "account",
+    blocks: [
+      { kind: "text", text: text.line },
+      { kind: "text", text: text.next },
+      { kind: "button", label: text.button, href: siteLink(signInPath()) },
+    ],
   });
 }
 
@@ -67,11 +81,36 @@ export async function sendVerificationEmail(
   url: string,
 ): Promise<void> {
   if (isPlaceholderEmail(user.email)) return;
-  const { subject, body } = authMessages.verificationEmail;
-  await getNotifier().send({
-    channel: "email",
-    to: user.email,
-    subject,
-    text: body(user.name, url, emailVerificationLinkSeconds / 60),
+  const text = authMessages.verificationEmail;
+  await sendEmail(user.email, {
+    subject: text.subject,
+    preheader: text.preheader,
+    greetName: user.name,
+    heading: text.heading,
+    footer: "account",
+    blocks: [
+      { kind: "text", text: text.line(emailVerificationLinkSeconds / 60) },
+      { kind: "button", label: text.button, href: url },
+      { kind: "text", text: text.ignore },
+    ],
+  });
+}
+
+/** Welcomes a new account that signed up with an email address. */
+export async function sendWelcomeEmail(user: Recipient): Promise<void> {
+  if (isPlaceholderEmail(user.email)) return;
+  const text = authMessages.welcomeEmail;
+  await sendEmail(user.email, {
+    subject: text.subject,
+    preheader: text.preheader,
+    greetName: user.name,
+    heading: text.heading,
+    footer: "account",
+    blocks: [
+      { kind: "text", text: text.line },
+      { kind: "items", rows: text.perks.map((perk) => ({ name: perk })) },
+      { kind: "button", label: text.button, href: siteLink("/products") },
+      { kind: "note", text: text.professional },
+    ],
   });
 }

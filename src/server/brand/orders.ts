@@ -9,6 +9,7 @@ import { gstIncluded, type ShippingRule } from "@/server/checkout/totals";
 import { brandLogoUpload, type BrandLogoType } from "@/lib/brand";
 import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
 import { db } from "@/server/db";
+import { notifyOrderPlaced } from "@/server/notify/orders";
 import { componentShortfalls } from "@/server/inventory/availability";
 import { getPaymentProvider } from "@/server/payments";
 import { brandCartTotals, readBrandCart } from "./cart";
@@ -245,6 +246,8 @@ export async function placeBrandOrder(input: PlaceBrandOrderInput): Promise<Plac
   if (!orderId) throw new Error("placeBrandOrder: could not create a unique order number.");
 
   await startPaymentAttempt(orderId);
+  // "Order received" (with how to pay) to the buyer, and a heads-up to the team.
+  await notifyOrderPlaced(orderId);
   return { ok: true, orderId };
 }
 

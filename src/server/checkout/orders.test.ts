@@ -258,7 +258,7 @@ describe("completePayment", () => {
     expect(sent[0]).toMatchObject({
       channel: "email",
       to: `${who.userId}@example.test`,
-      subject: `Order ${order.number} confirmed`,
+      subject: `Your order ${order.number} is confirmed`,
     });
   });
 

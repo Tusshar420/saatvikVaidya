@@ -4,20 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { checkout as copy } from "@/content/checkout";
 import type { SettingValues } from "@/content/settings";
 import { formatPaise } from "@/lib/format";
+import { upiLink } from "@/lib/upi";
 
 const text = copy.pay.manual;
-
-/** The UPI payment link a QR code opens in the customer's UPI app. */
-export function upiLink(details: Pick<SettingValues["payment.manual"], "upiId" | "payeeName">, amountPaise: number, orderNumber: string): string {
-  const params = new URLSearchParams({
-    pa: details.upiId,
-    pn: details.payeeName,
-    am: (amountPaise / 100).toFixed(2),
-    cu: "INR",
-    tn: orderNumber,
-  });
-  return `upi://pay?${params.toString()}`;
-}
 
 function Row({ label, value }: { label: string; value: string }) {
   return (

@@ -84,44 +84,43 @@ export const verification = {
     failed: "The upload didn't finish. Please check your connection and try again.",
   },
 
-  /** Sent through src/server/notify (printed to the server log for now). */
+  /** Emails and SMS sent through src/server/notify/verification.ts. */
   messages: {
     received: {
       subject: "We've received your document",
-      body: (name: string, document: string, complete: boolean) =>
-        `Namaste ${name},\n\nWe've received your ${document}. ${
+      heading: "We've received your document.",
+      line: (document: string, complete: boolean) =>
+        `Thank you. We've received your ${document}. ${
           complete
-            ? "All your documents are in, and our team will review them soon."
+            ? "All your documents are in, and our team will review them soon. We'll email you as soon as it's done."
             : "Please upload the remaining documents from My account so we can start the review."
-        }\n\nSaatvik Vaidya`,
+        }`,
+      button: "Go to My account",
       sms: (document: string) =>
         `Saatvik Vaidya: we've received your ${document}. We'll let you know once it's reviewed.`,
     },
     adminUploaded: {
       subject: (name: string) => `Document uploaded by ${name}`,
-      body: (
-        name: string,
-        userType: string,
-        document: string,
-        complete: boolean,
-        link: string,
-      ) =>
+      heading: (name: string) => `${name} uploaded a document`,
+      line: (name: string, userType: string, document: string, complete: boolean) =>
         `${name} (${userType}) uploaded their ${document}.${
           complete ? " Their documents are complete and ready for review." : ""
-        }\n\nReview: ${link}`,
+        }`,
+      button: "Review documents",
     },
     approved: {
       subject: "Your account is verified",
-      body: (name: string) =>
-        `Namaste ${name},\n\nOur team has verified your documents. Professional prices are now unlocked for your account.\n\nSaatvik Vaidya`,
+      heading: "Your account is verified!",
+      line: "Our team has verified your documents. Professional prices are now unlocked for your account.",
+      button: "Shop with professional prices",
       sms: "Saatvik Vaidya: your account is verified. Professional prices are now unlocked.",
     },
     rejected: {
       subject: "We couldn't verify your documents",
-      body: (name: string, reason: string | null) =>
-        `Namaste ${name},\n\nWe couldn't verify your documents.${
-          reason ? `\n\nReason: ${reason}` : ""
-        }\n\nPlease upload corrected documents from My account and we'll check them again.\n\nSaatvik Vaidya`,
+      heading: "We couldn't verify your documents.",
+      reason: "Reason",
+      line: "Please upload corrected documents from My account and we'll check them again.",
+      button: "Upload documents",
       sms: "Saatvik Vaidya: we couldn't verify your documents. Please see My account to upload corrected ones.",
     },
   },

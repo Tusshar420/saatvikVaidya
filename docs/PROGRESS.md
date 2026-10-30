@@ -5685,3 +5685,57 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   gone, anyone with the link can sign up and place test orders there. If that
   matters, use the hPanel IP allow-list (docs/ACCESS_CONTROL.md) or bring the
   box back.
+
+## Order and account emails like a big shop's (2026-10-30)
+
+**What changed**
+- Every email now has a designed HTML version as well as the plain text: the
+  logo (sent inside the email, so it shows even behind a password), a heading,
+  an order tracker bar, an item table with totals, the address, one orange
+  button and a green footer with the support phone. One renderer,
+  `src/server/notify/email.ts` (blocks → HTML + text); `compose.ts` adds the
+  site address and phone and sends. Colours are the DESIGN.md tokens written
+  out inline (email apps ignore CSS variables). Shared text: `content/emails.ts`.
+- New emails:
+  - **Order received** (store and brand orders, QR/bank or phone payment):
+    summary, address and how to pay. With `PAYMENT_PROVIDER=manual` it carries
+    the UPI QR code as a PNG image, UPI ID and bank details from the
+    "payment.manual" setting; with `request` it says the team will call. Not
+    sent with test payments (they confirm on the spot).
+  - **New order** to every orders admin (super/orders role), with customer
+    contact, items and a link to the admin order page.
+  - **Welcome** on email sign-up (`databaseHooks.user.create.after`). An
+    existing email still gets only the "someone tried to register" email, so
+    both cases send one email (no account hint).
+  - **Courses**: course to review → content team; approved / sent back (with
+    the note) → doctor; new enrolment → doctor.
+- Restyled: payment confirmed, shipped, out for delivery, delivered, delivery
+  failed, returned, cancelled, all Build Your Brand emails (paid, proof ready,
+  production, dispatch, delivery, proof decision), password reset, verify
+  email, doctor document emails, error alerts and the "Send a test email" one.
+- Delivery steps now email only when they matter, like Amazon: shipped, out for
+  delivery, delivered, undelivered, returned. "Preparing", "packed" and "in
+  transit" only show in the bell. Subjects changed, e.g. "Shipped: your order
+  SV-… is on its way", "Your order SV-… is confirmed".
+- `upiLink` moved from the pay-page component to `src/lib/upi.ts`.
+- Buyers' "order emails" setting is still respected; phone-only accounts still
+  get an SMS (dev log only, no SMS provider yet).
+
+**Checked**
+- New `notify/email.test.ts` (rendering, escaping, attachments) and
+  `notify/order-emails.test.ts` (QR email, staff alert, request and test
+  providers, opt-out, confirmation, delivery emails). Tests added for welcome,
+  brand order-placed and course emails; shipment and subject tests updated.
+- `EMAIL_PREVIEW_DIR=/tmp/emails pnpm vitest run src/server/notify/order-emails.test.ts`
+  saves the emails as HTML files; checked by eye at 375 and 1280 px.
+- typecheck, lint, all unit tests (86 files), build, and the full e2e suite
+  (phone, desktop, exclusive and last groups, plus the manual and request
+  configs) pass.
+
+**Known gaps / later**
+- Not tried in real inboxes yet (Gmail, Outlook, Apple Mail). Send one from the
+  test address with "Send a test email" on /account once SMTP is set.
+- No email when a QR payment is found short of stock (order goes to
+  "payment failed"); staff see it in the admin panel.
+- Emails are sent during the request; a slow mail server slows checkout by a
+  few seconds. A background queue would fix that later.

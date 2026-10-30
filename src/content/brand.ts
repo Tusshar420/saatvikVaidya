@@ -780,94 +780,64 @@ export const brand = {
   },
 
   /** Messages sent through the dev notifier (printed to the server log). */
+  /** Emails and SMS about brand orders (src/server/notify/brand.ts). */
   messages: {
     paid: {
-      subject: (number: string) => `Brand order ${number} is confirmed`,
-      body: (name: string, number: string, products: string[], total: string, link: string) =>
-        [
-          `Hello ${name},`,
-          "",
-          `Thank you! We've received the payment for brand order ${number}.`,
-          ...products,
-          `Total paid: ${total}.`,
-          "",
-          "Our team is preparing your label proof and will share it with you to approve before anything is printed.",
-          "",
-          `See your order: ${link}`,
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
+      subject: (number: string) => `Payment received: brand order ${number} is confirmed`,
+      preheader: "We're preparing your label proof. Nothing is printed until you approve it.",
+      heading: "Payment received. Your brand order is confirmed!",
+      line: (number: string) => `Thank you! We've received the payment for brand order ${number}.`,
+      next: "What happens next: our team prepares your label proof and shares it with you. Nothing is printed until you approve it.",
       sms: (number: string, total: string) =>
         `Saatvik Vaidya: payment of ${total} received for brand order ${number}. We'll share your label proof soon.`,
     },
     proofSent: {
-      subject: (number: string, version: number) => `Your label proof (version ${version}) for order ${number}`,
-      body: (name: string, number: string, version: number, note: string | null, link: string) =>
-        [
-          `Hello ${name},`,
-          "",
-          `We've shared version ${version} of your label proof for brand order ${number}.`,
-          ...(note ? ["", `Note from our team: ${note}`] : []),
-          "",
-          "Please check it and approve it, or ask for changes. Nothing is printed until you approve.",
-          "",
-          `Open your proof: ${link}`,
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
+      subject: (number: string, version: number) => `Your label proof (version ${version}) for order ${number} is ready`,
+      preheader: "Please check it and approve it, or ask for changes.",
+      heading: "Your label proof is ready to check.",
+      line: (number: string, version: number) => `We've shared version ${version} of your label proof for brand order ${number}.`,
+      noteTitle: "Note from our team",
+      ask: "Please check it and approve it, or ask for changes. Nothing is printed until you approve.",
+      button: "Open your proof",
       sms: (number: string) =>
         `Saatvik Vaidya: your label proof for brand order ${number} is ready. Please check and approve it in My Brand.`,
     },
     stage: {
       subject: (number: string, label: string) => `Brand order ${number}: ${label}`,
+      headings: {
+        in_production: "Your order is in production.",
+        quality_check: "Your order is in quality check.",
+        dispatched: "Your order is on its way!",
+        delivered: "Your order has been delivered.",
+      },
       lines: {
         in_production: "Your proof is approved and your order is now in production.",
         quality_check: "Your order is made and is now in quality check.",
         dispatched: "Your order has been dispatched.",
         delivered: "Your order has been delivered. Thank you!",
       },
-      courier: (name: string, awb: string) => `Courier: ${name}, tracking number ${awb}.`,
-      body: (name: string, number: string, line: string, courier: string | null, link: string) =>
-        [`Hello ${name},`, "", `Brand order ${number}: ${line}`, ...(courier ? ["", courier] : []), "", `See your order: ${link}`, "", "Saatvik Vaidya"].join("\n"),
+      button: "View your order",
       sms: (number: string, line: string) => `Saatvik Vaidya: brand order ${number}. ${line}`,
     },
     decision: {
       subjectApproved: (number: string, brandName: string) => `Proof approved: ${number} (${brandName})`,
       subjectChanges: (number: string, brandName: string) => `Changes requested: ${number} (${brandName})`,
-      approved: (number: string, customer: string, brandName: string, version: number, link: string) =>
-        [`${customer} approved version ${version} of the proof for brand order ${number} (${brandName}).`, "", `Production can start: ${link}`].join("\n"),
-      changes: (number: string, customer: string, brandName: string, version: number, comment: string, link: string) =>
-        [
-          `${customer} asked for changes to version ${version} of the proof for brand order ${number} (${brandName}).`,
-          "",
-          `Their comment: ${comment}`,
-          "",
-          `Send a new proof: ${link}`,
-        ].join("\n"),
+      headingApproved: "The customer approved the proof.",
+      headingChanges: "The customer asked for changes.",
+      approved: (number: string, customer: string, brandName: string, version: number) =>
+        `${customer} approved version ${version} of the proof for brand order ${number} (${brandName}). Production can start.`,
+      changes: (number: string, customer: string, brandName: string, version: number) =>
+        `${customer} asked for changes to version ${version} of the proof for brand order ${number} (${brandName}).`,
+      comment: "Their comment",
+      buttonApproved: "Start production",
+      buttonChanges: "Send a new proof",
     },
-    /** One product line in a message, e.g. "Triphala Churna, 50 jars". */
-    line: (product: string, units: string) => `${product}, ${units}`,
     admin: {
-      subject: (number: string, brandName: string) => `New brand order ${number}: ${brandName}`,
-      body: (
-        number: string,
-        customer: string,
-        brandName: string,
-        products: string[],
-        total: string,
-        link: string,
-      ) =>
-        [
-          `Brand order ${number} is paid.`,
-          "",
-          `Customer: ${customer}`,
-          `Brand: ${brandName}`,
-          "Products:",
-          ...products.map((line) => `- ${line}`),
-          `Total: ${total}`,
-          "",
-          `Open it: ${link}`,
-        ].join("\n"),
+      subject: (number: string, brandName: string, total: string) => `Brand order ${number} is paid: ${brandName} (${total})`,
+      heading: (number: string) => `Brand order ${number} is paid`,
+      line: (customer: string, brandName: string, total: string) =>
+        `${customer} paid ${total} for their brand order (${brandName}). Please prepare the label proof.`,
+      button: "Open the order",
     },
   },
 };

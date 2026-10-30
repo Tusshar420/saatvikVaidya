@@ -5,7 +5,7 @@ import { rateLimitRules } from "@/server/auth/policy";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { hitRateLimit } from "@/server/auth/rate-limit";
 import { db } from "@/server/db";
-import { authEnv } from "@/server/env";
+import { composeEmail, siteLink } from "./compose";
 import { getNotifier } from "./index";
 
 /**
@@ -26,17 +26,28 @@ export async function sendNewErrorEmail(groupId: number): Promise<boolean> {
     where: { role: "admin" },
     select: { email: true, adminRole: true },
   });
-  const link = new URL(`/admin/errors/${group.id}`, authEnv().BETTER_AUTH_URL).toString();
-  const { subject, body } = copy.email;
+  const text = copy.email;
+  const email = await composeEmail({
+    subject: text.subject(group.message, group.route),
+    heading: text.heading,
+    footer: "staff",
+    blocks: [
+      {
+        kind: "details",
+        rows: [
+          { label: text.where, value: copy.sources[group.source] },
+          { label: text.route, value: group.route },
+          { label: text.message, value: group.message },
+        ],
+      },
+      { kind: "button", label: text.button, href: siteLink(`/admin/errors/${group.id}`) },
+      { kind: "text", text: text.limit },
+    ],
+  });
   let sent = false;
   for (const admin of admins) {
     if (!roleCanAccess(admin.adminRole, "errors") || isPlaceholderEmail(admin.email)) continue;
-    await getNotifier().send({
-      channel: "email",
-      to: admin.email,
-      subject: subject(group.message, group.route),
-      text: body(group.message, copy.sources[group.source], group.route, link),
-    });
+    await getNotifier().send({ channel: "email", to: admin.email, ...email });
     sent = true;
   }
   return sent;
