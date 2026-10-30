@@ -11,7 +11,6 @@ import { notificationsChanged } from "./notifications/notification-item";
 import type { SectionCounts } from "@/lib/notifications";
 import { useScrollEdges } from "@/lib/use-scroll-edges";
 import {
-  dockNav,
   navBadgeLabel,
   shell,
   siteNav,
@@ -113,11 +112,10 @@ const toneClasses: Record<SiteNavTone, { idle: string; active: string }> = {
 /**
  * The v2 nav rail under the header bar (46 px, 43 under 820 px): Home, then
  * pill links to every main page, with Dr. Talk as a solid green pill and
- * Quiz & Win as a solid orange one. From 560 px up, where the phone dock is
- * hidden, the dock's links (Coins, Updates, Courses, Orders, Account) follow
- * after a divider, so every link stays reachable without showing twice on
- * phones. It scrolls sideways with an edge fade on narrow screens and marks
- * the current page.
+ * Quiz & Win as a solid orange one. Under 560 px the `wideOnly` links
+ * (Courses, Saatvik Coins, Track Order) are hidden, because the phone dock
+ * has them. It scrolls sideways with an edge fade on narrow screens and
+ * marks the current page.
  */
 export function NavRail({
   links = siteNav,
@@ -167,9 +165,11 @@ export function NavRail({
           {links.map((link) => (
             <li
               key={link.href}
-              className={
-                link.tone && link.tone !== "plain" ? "mr-0.75" : undefined
-              }
+              className={cn(
+                link.tone && link.tone !== "plain" && "mr-0.75",
+                // The phone dock covers these under 560 px (sm).
+                link.wideOnly && "max-sm:hidden",
+              )}
             >
               <RailLink
                 href={link.href}
@@ -181,22 +181,6 @@ export function NavRail({
               </RailLink>
             </li>
           ))}
-          {/* The phone dock covers these under 560 px (sm). */}
-          <li aria-hidden className="mx-1 h-5 w-px bg-line max-sm:hidden" />
-          {dockNav
-            .filter((d) => !links.some((l) => l.href === d.href))
-            .map((link) => (
-              <li key={link.href} className="max-sm:hidden">
-                <RailLink
-                  href={link.href}
-                  current={isCurrent(pathname, link.href)}
-                  tone="plain"
-                  badge={session?.user ? (counts[link.href] ?? 0) : 0}
-                >
-                  {link.railLabel}
-                </RailLink>
-              </li>
-            ))}
         </ul>
       </div>
     </nav>

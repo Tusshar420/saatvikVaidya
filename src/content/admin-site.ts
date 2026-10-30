@@ -238,7 +238,7 @@ export const homeKinds: Record<HomeKindKey, HomeKindSpec> = {
         label: "Right-hand panel",
         type: "select",
         options: [
-          { value: "LAUNCH_STUDIO", label: "Launch studio" },
+          { value: "LAUNCH_STUDIO", label: "Build Your Brand studio" },
           { value: "BRAND_SHOWCASE", label: "Brand showcase" },
           { value: "LEARNING_BOARD", label: "Learning board" },
         ],

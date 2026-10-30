@@ -2,103 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BadgeCheck,
-  BarChart3,
-  BookOpen,
-  Boxes,
-  Building2,
-  Coins,
-  Clapperboard,
-  Bug,
-  Database,
-  GalleryHorizontal,
-  GraduationCap,
-  LayoutList,
-  LineChart,
-  ListOrdered,
-  MessageSquareQuote,
-  Shapes,
-  Tag,
-  Zap,
-  LayoutDashboard,
-  ListChecks,
-  Package,
-  Pill,
-  KeyRound,
-  Settings,
-  Sparkles,
-  ShieldCheck,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
 import { admin as copy } from "@/content/admin";
-import { brand as brandCopy } from "@/content/brand";
-import { inventory as inventoryCopy } from "@/content/inventory";
-import { errorLog } from "@/content/errors";
-import { adminSecurity } from "@/content/admin-security";
-import { adminHome } from "@/content/admin-site";
-import { roleCanAccess, type AdminArea, type AdminRoleKey } from "@/lib/admin-permissions";
+import type { AdminRoleKey } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
-
-const home = adminHome.nav;
-
-type NavLink = { href: string; label: string; icon: LucideIcon; area: AdminArea };
-
-const main: NavLink[] = [
-  { href: "/admin", area: "dashboard", label: copy.nav.dashboard, icon: LayoutDashboard },
-  { href: "/admin/users", area: "users", label: copy.nav.users, icon: Users },
-  { href: "/admin/approvals", area: "approvals", label: copy.nav.approvals, icon: BadgeCheck },
-  { href: "/admin/catalogue", area: "catalogue", label: copy.nav.catalogue, icon: Pill },
-  { href: "/admin/ebooks", area: "catalogue", label: copy.nav.ebooks, icon: BookOpen },
-  { href: "/admin/inventory", area: "inventory", label: inventoryCopy.nav, icon: Boxes },
-  // Daily work comes before the home-page editing group, so staff don't
-  // scroll the menu to reach orders.
-  { href: "/admin/orders", area: "orders", label: copy.nav.orders, icon: Package },
-  { href: "/admin/brand-orders", area: "orders", label: brandCopy.admin.nav, icon: Sparkles },
-  { href: "/admin/coins", area: "orders", label: copy.nav.coins, icon: Coins },
-  { href: "/admin/reports", area: "reports", label: copy.nav.reports, icon: LineChart },
-];
-
-const content: NavLink[] = [
-  { href: "/admin/content/sections", area: "content", label: home.sections, icon: LayoutList },
-  { href: "/admin/content/hero", area: "content", label: home.hero, icon: GalleryHorizontal },
-  { href: "/admin/content/offers", area: "content", label: home.offers, icon: Tag },
-  { href: "/admin/content/stats", area: "content", label: home.stats, icon: BarChart3 },
-  { href: "/admin/content/quick-actions", area: "content", label: home.quickActions, icon: Zap },
-  { href: "/admin/content/categories", area: "content", label: home.categories, icon: Shapes },
-  { href: "/admin/content/feedback", area: "content", label: home.feedback, icon: MessageSquareQuote },
-  { href: "/admin/content/why", area: "content", label: home.why, icon: ListOrdered },
-  { href: "/admin/content/reels", area: "content", label: copy.nav.reels, icon: Clapperboard },
-  { href: "/admin/content/brands", area: "content", label: copy.nav.brands, icon: Building2 },
-  {
-    href: "/admin/content/courses",
-    area: "content",
-    label: copy.nav.courses,
-    icon: GraduationCap,
-  },
-  { href: "/admin/content/quiz", area: "content", label: copy.nav.quiz, icon: ListChecks },
-];
-
-const rest: NavLink[] = [
-  { href: "/admin/settings", area: "settings", label: copy.nav.settings, icon: Settings },
-  { href: "/admin/database", area: "database", label: copy.nav.database, icon: Database },
-  { href: "/admin/errors", area: "errors", label: errorLog.nav, icon: Bug },
-  { href: "/admin/admins", area: "admins", label: adminSecurity.admins.nav, icon: ShieldCheck },
-  { href: "/account/two-factor", area: "dashboard", label: adminSecurity.twoFactor.metaTitle, icon: KeyRound },
-];
-
-function isCurrent(pathname: string, href: string): boolean {
-  if (href === "/admin") return pathname === "/admin";
-  if (href === "/admin/database") {
-    return pathname === href || pathname.startsWith("/admin/tables/");
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+import { isCurrentLink, linkGroupsFor, type AdminLink } from "./admin-links";
 
 /**
- * Admin sections. From 1100 px a sidebar; below that a strip under the
- * header that scrolls sideways (the "Content" heading is hidden there).
+ * Admin sections, grouped by category. From 1100 px a sidebar with a heading
+ * per category; below that a strip under the header that scrolls sideways
+ * (the headings are hidden there).
  */
 export function AdminNav({
   pendingCount,
@@ -109,12 +21,10 @@ export function AdminNav({
   adminRole: AdminRoleKey | null;
 }) {
   const pathname = usePathname();
-  const allowed = (links: NavLink[]) =>
-    links.filter((link) => roleCanAccess(adminRole, link.area));
-  const contentLinks = allowed(content);
+  const groups = linkGroupsFor(adminRole);
 
-  const item = (link: NavLink) => {
-    const current = isCurrent(pathname, link.href);
+  const item = (link: AdminLink) => {
+    const current = isCurrentLink(pathname, link.href);
     const Icon = link.icon;
     return (
       <li key={link.href} className="shrink-0">
@@ -122,7 +32,7 @@ export function AdminNav({
           href={link.href}
           aria-current={current ? "page" : undefined}
           className={cn(
-            "flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap transition",
+            "flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap transition lg:min-h-10",
             current
               ? "bg-orange-soft font-extrabold text-orange-ink"
               : "text-ink/80 hover:bg-surface-alt hover:text-brand",
@@ -142,19 +52,20 @@ export function AdminNav({
 
   return (
     <nav aria-label={copy.nav.label}>
-      <ul className="scrollbar-none flex gap-1 overflow-x-auto px-3 py-2 lg:flex-col lg:overflow-visible lg:p-0">
-        {allowed(main).map(item)}
-        {contentLinks.length > 0 && (
+      <ul className="scrollbar-none flex gap-1 overflow-x-auto px-3 py-2 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:p-0">
+        {groups.map((group, index) => [
           <li
+            key={`group-${group.id}`}
             aria-hidden
-            className="mt-4 mb-1 hidden px-3 text-label text-muted uppercase lg:block"
+            className={cn(
+              "mb-1 hidden px-3 font-mono text-[11px] font-bold tracking-[0.08em] text-muted uppercase lg:block",
+              index === 0 ? "mt-1" : "mt-4 border-t border-line pt-4",
+            )}
           >
-            {copy.nav.contentGroup}
-          </li>
-        )}
-        {contentLinks.map(item)}
-        <li aria-hidden className="my-3 hidden border-t border-line lg:block" />
-        {allowed(rest).map(item)}
+            {group.label}
+          </li>,
+          ...group.links.map(item),
+        ])}
       </ul>
     </nav>
   );

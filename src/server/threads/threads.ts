@@ -11,9 +11,10 @@ import {
 import { threads as copy } from "@/content/threads";
 import { db } from "@/server/db";
 
-// Dr. Talk threads: a feed that signed-in users read and approved doctors
-// write. Every write checks the writer from the database (not the session
-// cookie), and the author is always the session's user id, never the form's.
+// Dr. Talk threads: a feed that signed-in users read and like, and approved
+// doctors write. Every write checks the writer from the database (not the
+// session cookie), and the author is always the session's user id, never the
+// form's.
 
 const authorSelect = {
   select: { name: true, verificationStatus: true, userType: { select: { key: true } } },
@@ -30,7 +31,7 @@ const toAuthor = (row: AuthorRow) => ({
   isDoctor: canWriteThreads({ userTypeKey: row.userType.key, verificationStatus: row.verificationStatus }),
 });
 
-/** May this user post, reply and like? Read fresh from the database. */
+/** May this user post and reply? Read fresh from the database. */
 export async function canWrite(userId: string): Promise<boolean> {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -144,9 +145,14 @@ export async function addReply(userId: string, threadId: number, input: unknown)
   return { ok: true };
 }
 
-/** Likes the thread, or removes the like if there already is one. */
+/** May this user like threads? Any signed-in member, read fresh from the database. */
+export async function canLike(userId: string): Promise<boolean> {
+  return Boolean(await db.user.findUnique({ where: { id: userId }, select: { id: true } }));
+}
+
+/** Likes the thread, or removes the like if there already is one. Open to every member. */
 export async function toggleLike(userId: string, threadId: number): Promise<ThreadResult<{ liked: boolean }>> {
-  if (!(await canWrite(userId))) return { ok: false, error: "forbidden" };
+  if (!(await canLike(userId))) return { ok: false, error: "forbidden" };
   const thread = await db.thread.findFirst({ where: { id: threadId, hidden: false }, select: { id: true } });
   if (!thread) return { ok: false, error: "notFound" };
   const key = { threadId_userId: { threadId, userId } };

@@ -44,7 +44,7 @@ export function QuickAdd({ productId, name, moq, outOfStock }: QuickAddProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-1.75">
+      <div className="grid grid-cols-1 gap-1.75 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <QuantityStepper
           id={`${id}-qty`}
           look="joined"

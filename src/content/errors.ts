@@ -71,8 +71,12 @@ export const errorLog = {
   errors: { invalid: "That status isn't valid.", gone: "That error no longer exists." },
   email: {
     subject: (message: string, route: string) => `New error on ${route}: ${message.slice(0, 80)}`,
-    body: (message: string, source: string, route: string, link: string) =>
-      `A new error was recorded.\n\nWhere: ${source}\nRoute: ${route}\nMessage: ${message}\n\nSee the details: ${link}\n\nYou get at most one email per error per hour.`,
+    heading: "A new error was recorded",
+    where: "Where",
+    route: "Route",
+    message: "Message",
+    button: "See the details",
+    limit: "You get at most one email per error per hour.",
   },
 } as const;
 

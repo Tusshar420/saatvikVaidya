@@ -185,12 +185,14 @@ export function ProfileMenu({
               {copy.menu.brandOrders}
             </Link>
           </Menu.Item>
+          {/* The admin panel opens in its own tab, so the shop stays open. */}
           {user.role === "admin" && (
             <Menu.Item asChild className={itemClasses}>
-              <Link href="/admin">
+              <a href="/admin" target="_blank" rel="noopener">
                 <LayoutDashboard aria-hidden />
                 {copy.menu.admin}
-              </Link>
+                <span className="sr-only"> {copy.register.newTab}</span>
+              </a>
             </Menu.Item>
           )}
           <Menu.Item

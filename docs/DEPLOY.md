@@ -126,7 +126,7 @@ Use the test address on a phone and a computer. Tick each line.
 - [ ] **Regular buyer:** browse Top Brands, add to cart, check out with an
       address, see the QR payment screen, the order shows "Waiting for
       payment"; the admin marks it paid; the buyer sees it paid and can track it.
-- [ ] **Bulk buyer:** Launch Your Brand, fill the Launch cart with a logo and
+- [ ] **Bulk buyer:** Build Your Brand, fill the Brand cart with a logo and
       label details, place the order, pay by QR; the admin follows the brand
       order stages and uploads a label proof.
 - [ ] **Courses:** browse and open a course (buying courses uses the same cart).

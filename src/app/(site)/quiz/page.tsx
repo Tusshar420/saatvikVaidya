@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, Star, X } from "lucide-react";
-import { PageHero } from "@/components/site/page-hero";
+import { HeroCarousel, HeroSlide, heroSlideLinkClasses, heroTitleClasses } from "@/components/site/hero-carousel";
 import { LeaderboardCard } from "@/components/site/quiz/leaderboard-card";
 import { QuizPlayer } from "@/components/site/quiz/quiz-player";
 import { Button, ButtonArrow, buttonClasses } from "@/components/ui/button";
@@ -46,10 +46,11 @@ function ChallengeHead({ time, progress }: { time?: string; progress: number }) 
 const cardClass = "rounded-xl border border-line bg-surface p-5 shadow-card max-sm:rounded-lg sm:p-7.5";
 
 /**
- * Quiz & Win (P2.3, v2 look in U.10). Anyone can read about the open quiz;
- * starting needs an account. The page is made from the server's own view of
- * the attempt, so a refresh resumes it (or shows the result once it is
- * finished). The side card is the real weekly or monthly leaderboard.
+ * Quiz & Win (P2.3, v2 look in U.10), under a two-slide hero carousel like
+ * the homepage's. Anyone can read about the open quiz; starting needs an
+ * account. The page is made from the server's own view of the attempt, so a
+ * refresh resumes it (or shows the result once it is finished). The side card
+ * is the real weekly or monthly leaderboard.
  */
 export default async function QuizPage({ searchParams }: PageProps<"/quiz">) {
   const period = boardOf((await searchParams).board);
@@ -60,33 +61,44 @@ export default async function QuizPage({ searchParams }: PageProps<"/quiz">) {
     readLeaderboard(period, session?.user.id ?? null),
   ]);
 
-  const questionCount =
-    view.state === "ready"
-      ? view.quiz.questionCount
-      : view.state === "playing"
-        ? view.questions.length
-        : view.state === "finished"
-          ? view.review.length
-          : null;
-  const weekTitle = view.state === "none" ? (view.next?.title ?? null) : view.quiz.title;
+  // The page's h1 is the quiz title in its card; with no quiz open it is the hero's.
+  const HeroTitle = view.state === "none" ? "h1" : "p";
+  const hero = copy.carousel;
 
   return (
     <>
-      <PageHero
-        eyebrow={copy.eyebrow}
-        title={copy.hero.title}
-        titleAs={view.state === "none" ? "h1" : "p"}
-        description={copy.hero.description}
-        note={{
-          status: copy.hero.status,
-          title: weekTitle ? copy.hero.thisWeek(weekTitle) : copy.hero.noQuiz,
-          text: questionCount ? copy.hero.facts(questionCount, MINUTES) : copy.hero.noQuizText,
-        }}
+      <HeroCarousel
+        labelledBy="quiz-hero-title"
+        label={hero.label}
+        slides={[
+          <HeroSlide key="play" kicker={hero.play.kicker} art="quiz">
+            <HeroTitle id="quiz-hero-title" className={heroTitleClasses}>
+              {hero.play.title}
+              <br />
+              <em className="text-gold-light not-italic">{hero.play.emphasis}</em>
+            </HeroTitle>
+            <Link href="#challenge" className={heroSlideLinkClasses}>
+              {view.state === "none" ? hero.play.ctaNone : hero.play.cta}
+              <ButtonArrow />
+            </Link>
+          </HeroSlide>,
+          <HeroSlide key="board" kicker={hero.board.kicker} art="podium">
+            <p className={heroTitleClasses}>
+              {hero.board.title}
+              <br />
+              <em className="text-gold-light not-italic">{hero.board.emphasis}</em>
+            </p>
+            <Link href="/quiz/leaderboard" className={heroSlideLinkClasses}>
+              {hero.board.cta}
+              <ButtonArrow />
+            </Link>
+          </HeroSlide>,
+        ]}
       />
 
       <div className="bg-cream pt-7 pb-19 sm:pt-9.5 md:pt-13.5 md:pb-24">
         <div className="shell grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="min-w-0">
+          <div id="challenge" className="min-w-0 scroll-mt-28">
             {view.state === "none" && (
               <section aria-labelledby="quiz-none" className={cardClass}>
                 <ChallengeHead progress={0} />

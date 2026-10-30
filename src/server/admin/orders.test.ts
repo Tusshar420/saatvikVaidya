@@ -56,7 +56,7 @@ describe("cancelOrder", () => {
     expect(after.status).toBe("cancelled");
     expect(after.cancelledAt).toBeInstanceOf(Date);
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ subject: `Order ${order.number} cancelled` });
+    expect(sent[0]).toMatchObject({ subject: `Your order ${order.number} has been cancelled` });
 
     const log = await db.adminLog.findFirstOrThrow({ where: { action: "order.cancel" } });
     expect(log.resourceId).toBe(order.orderId);

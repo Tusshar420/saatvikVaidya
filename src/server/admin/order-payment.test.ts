@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { upiLink } from "@/components/site/checkout/manual-payment";
+import { upiLink } from "@/lib/upi";
 import { settingDefaults } from "@/content/settings";
 import { addToCart, readCart, type CartOwner } from "@/server/cart/cart";
 import { placeOrder } from "@/server/checkout/orders";

@@ -11,7 +11,7 @@ export const brand = {
     title: "Your product, your label.",
     titleEmphasis: "We'll make the rest.",
     intro:
-      "Add the products you want to your launch cart and set how many of each. Then add your logo and packaging details once for the whole order, and pay. Your cart is saved to your account.",
+      "Add the products you want to your brand cart and set how many of each. Then add your logo and packaging details once for the whole order, and pay. Your cart is saved to your account.",
     stepsLabel: "Build Your Brand steps",
     steps: ["Choose product", "Quantity & brand", "Delivery & payment"] as const,
     /** Second line under each step in the steps bar. */
@@ -33,7 +33,7 @@ export const brand = {
     /** Signed-out visitors see the catalogue and a prompt to sign in. */
     guest: {
       title: "Sign in to start your brand",
-      line: "Browse the formulations and prices freely. Sign in or register to add products to your launch cart, upload your logo and place the order.",
+      line: "Browse the formulations and prices freely. Sign in or register to add products to your brand cart, upload your logo and place the order.",
       signIn: "Sign in to start",
       cardAction: "Sign in to customise",
       cardActionLabel: (name: string) => `Sign in to customise ${name}`,
@@ -83,7 +83,7 @@ export const brand = {
 
   product: {
     title: "Choose your products",
-    line: "Add as many products as you like to your launch cart. Each shows its minimum order, branded price and any bulk prices.",
+    line: "Add as many products as you like to your brand cart. Each shows its minimum order, branded price and any bulk prices.",
     searchLabel: "Search products",
     searchPlaceholder: "Search by name",
     search: "Search",
@@ -131,34 +131,34 @@ export const brand = {
     steps: (n: number) => `Order in steps of ${count(n)}`,
     price: (price: string) => `${price} each`,
     priceNote: "Branded price, GST included",
-    add: "Add to launch cart",
-    addLabel: (name: string) => `Add ${name} to your launch cart`,
+    add: "Add to brand cart",
+    addLabel: (name: string) => `Add ${name} to your brand cart`,
     addMore: (n: number) => `Add ${count(n)} more`,
-    addMoreLabel: (name: string, n: number) => `Add ${count(n)} more ${name} to your launch cart`,
+    addMoreLabel: (name: string, n: number) => `Add ${count(n)} more ${name} to your brand cart`,
     /** From the stock of the components the product is made of. */
     available: (n: number, unit: string) => `Can make up to ${count(n)} ${unit} now`,
     outOfStock: "Out of stock for now",
     outOfStockLine: "We're restocking the packaging for this product. Please check back soon, or call us.",
     inCart: "In cart",
     inCartLine: (n: number, unit: string) => `${count(n)} ${unit} in your cart`,
-    added: "Added to your launch cart",
+    added: "Added to your brand cart",
     bulkFrom: (n: number, unit: string, price: string) => `Bulk: ${price} each from ${count(n)} ${unit}`,
     listLabel: "Products for your brand",
     cartBar: {
-      label: "Your launch cart",
+      label: "Your brand cart",
       summary: (products: number, units: number, total: string) =>
         `${products === 1 ? "1 product" : `${count(products)} products`} · ${count(units)} units · ${total}`,
-      view: "View launch cart",
+      view: "View brand cart",
     },
   },
 
   cart: {
-    title: "Your launch cart",
+    title: "Your brand cart",
     line: "Set how many of each product. Quantities go in steps of each product's minimum, and bulk prices apply on their own as quantities grow.",
-    listLabel: "Products in your launch cart",
+    listLabel: "Products in your brand cart",
     count: (n: number) => (n === 1 ? "1 product" : `${count(n)} products`),
     empty: {
-      title: "Your launch cart is empty",
+      title: "Your brand cart is empty",
       line: "Add products from the catalogue to start your branded order.",
       browse: "Browse products",
     },
@@ -176,8 +176,8 @@ export const brand = {
     currentTier: "your price",
     nextTier: (n: number, unit: string, price: string) => `Add ${count(n)} more ${unit} to pay ${price} each.`,
     remove: "Remove",
-    removeLabel: (name: string) => `Remove ${name} from your launch cart`,
-    removed: "Removed from your launch cart",
+    removeLabel: (name: string) => `Remove ${name} from your brand cart`,
+    removed: "Removed from your brand cart",
     unavailable: "This product isn't available for branded orders now. Remove it to continue.",
     overStock: (n: number, unit: string) =>
       n > 0
@@ -186,14 +186,14 @@ export const brand = {
     invalid: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
     overLimit:
       "Your entered price is too high",
-    tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products. Place this order first, then start another.`,
+    tooManyLines: (max: number) => `A brand cart can hold up to ${count(max)} products. Place this order first, then start another.`,
     summaryTitle: "Cart total",
     itemsLabel: "Products",
     continue: "Continue to delivery & payment",
     addMore: "Add another product",
     errors: {
       unavailable: "That product isn't available for branded orders now.",
-      notInCart: "That product is no longer in your launch cart. The page has been refreshed.",
+      notInCart: "That product is no longer in your brand cart. The page has been refreshed.",
       quantity: (min: number) => `Choose a quantity in steps of ${count(min)}, starting at ${count(min)}.`,
       aboveStock: (n: number) =>
         n > 0
@@ -201,8 +201,8 @@ export const brand = {
           : "This product is out of stock for now.",
       tooLarge:
         "Your entered price is too high",
-      tooManyLines: (max: number) => `A launch cart can hold up to ${count(max)} products.`,
-      generic: "We couldn't update your launch cart. Please try again.",
+      tooManyLines: (max: number) => `A brand cart can hold up to ${count(max)} products.`,
+      generic: "We couldn't update your brand cart. Please try again.",
     },
   },
 
@@ -229,7 +229,7 @@ export const brand = {
     packMrp: "MRP ₹ —",
     continue: "Continue — choose quantity",
     signIn: "Sign in to continue",
-    inCart: "This product is already in your launch cart. Continuing keeps its quantity and saves the new label theme.",
+    inCart: "This product is already in your brand cart. Continuing keeps its quantity and saves the new label theme.",
     errors: {
       generic: "We couldn't add this product. Please try again.",
     },
@@ -314,7 +314,7 @@ export const brand = {
   /** Saved brand profiles, like saved addresses. */
   profiles: {
     title: "Your brands",
-    line: "Save each brand once and pick it whenever you launch more products.",
+    line: "Save each brand once and pick it whenever you add more products.",
     listLabel: "Your saved brands",
     empty: {
       title: "No saved brand yet",
@@ -445,7 +445,7 @@ export const brand = {
       n === 1 ? "1 label has text that is too long." : `${n} labels have text that is too long.`,
     overBadge: "Too long",
     changedBadge: "Edited",
-    empty: "Add products to your launch cart first.",
+    empty: "Add products to your brand cart first.",
     review: {
       title: "Labels",
       none: "No label details",
@@ -469,7 +469,7 @@ export const brand = {
       address: "Choose a delivery address.",
       draft: "Something in your order is missing. Go back through the steps and try again.",
       changed:
-        "A price or product in your launch cart changed. Check your cart and try again.",
+        "A price or product in your brand cart changed. Check your cart and try again.",
       paymentsOff: "Online payment is not available right now.",
       checkoutOff: "We're not taking new orders right now. Please try again later.",
       generic: "We couldn't place your order. Please try again.",
@@ -482,7 +482,7 @@ export const brand = {
     title: "Your branded orders.",
     titleEmphasis: "Every label, in one place.",
     heroLine:
-      "Follow each branded order from payment to label proof, production and dispatch, and pick up an unfinished launch cart where you left it.",
+      "Follow each branded order from payment to label proof, production and dispatch, and pick up an unfinished brand cart where you left it.",
     note: {
       status: "Built for professionals",
       title: "Every order is reviewed",
@@ -491,11 +491,11 @@ export const brand = {
     start: "Start your brand",
     continueDraft: "Continue your order",
     draftLine: (products: number) =>
-      `You have ${products === 1 ? "1 product" : `${count(products)} products`} in your launch cart.`,
+      `You have ${products === 1 ? "1 product" : `${count(products)} products`} in your brand cart.`,
     another: "Order more products in your own packaging.",
     empty: {
       title: "No branded orders yet",
-      line: "Order products in your own packaging: add them to your launch cart, add your logo, choose how many and pay.",
+      line: "Order products in your own packaging: add them to your brand cart, add your logo, choose how many and pay.",
     },
     more: (n: number) => `and ${count(n)} more`,
     listLabel: "Your branded orders",
@@ -780,94 +780,64 @@ export const brand = {
   },
 
   /** Messages sent through the dev notifier (printed to the server log). */
+  /** Emails and SMS about brand orders (src/server/notify/brand.ts). */
   messages: {
     paid: {
-      subject: (number: string) => `Brand order ${number} is confirmed`,
-      body: (name: string, number: string, products: string[], total: string, link: string) =>
-        [
-          `Hello ${name},`,
-          "",
-          `Thank you! We've received the payment for brand order ${number}.`,
-          ...products,
-          `Total paid: ${total}.`,
-          "",
-          "Our team is preparing your label proof and will share it with you to approve before anything is printed.",
-          "",
-          `See your order: ${link}`,
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
+      subject: (number: string) => `Payment received: brand order ${number} is confirmed`,
+      preheader: "We're preparing your label proof. Nothing is printed until you approve it.",
+      heading: "Payment received. Your brand order is confirmed!",
+      line: (number: string) => `Thank you! We've received the payment for brand order ${number}.`,
+      next: "What happens next: our team prepares your label proof and shares it with you. Nothing is printed until you approve it.",
       sms: (number: string, total: string) =>
         `Saatvik Vaidya: payment of ${total} received for brand order ${number}. We'll share your label proof soon.`,
     },
     proofSent: {
-      subject: (number: string, version: number) => `Your label proof (version ${version}) for order ${number}`,
-      body: (name: string, number: string, version: number, note: string | null, link: string) =>
-        [
-          `Hello ${name},`,
-          "",
-          `We've shared version ${version} of your label proof for brand order ${number}.`,
-          ...(note ? ["", `Note from our team: ${note}`] : []),
-          "",
-          "Please check it and approve it, or ask for changes. Nothing is printed until you approve.",
-          "",
-          `Open your proof: ${link}`,
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
+      subject: (number: string, version: number) => `Your label proof (version ${version}) for order ${number} is ready`,
+      preheader: "Please check it and approve it, or ask for changes.",
+      heading: "Your label proof is ready to check.",
+      line: (number: string, version: number) => `We've shared version ${version} of your label proof for brand order ${number}.`,
+      noteTitle: "Note from our team",
+      ask: "Please check it and approve it, or ask for changes. Nothing is printed until you approve.",
+      button: "Open your proof",
       sms: (number: string) =>
         `Saatvik Vaidya: your label proof for brand order ${number} is ready. Please check and approve it in My Brand.`,
     },
     stage: {
       subject: (number: string, label: string) => `Brand order ${number}: ${label}`,
+      headings: {
+        in_production: "Your order is in production.",
+        quality_check: "Your order is in quality check.",
+        dispatched: "Your order is on its way!",
+        delivered: "Your order has been delivered.",
+      },
       lines: {
         in_production: "Your proof is approved and your order is now in production.",
         quality_check: "Your order is made and is now in quality check.",
         dispatched: "Your order has been dispatched.",
         delivered: "Your order has been delivered. Thank you!",
       },
-      courier: (name: string, awb: string) => `Courier: ${name}, tracking number ${awb}.`,
-      body: (name: string, number: string, line: string, courier: string | null, link: string) =>
-        [`Hello ${name},`, "", `Brand order ${number}: ${line}`, ...(courier ? ["", courier] : []), "", `See your order: ${link}`, "", "Saatvik Vaidya"].join("\n"),
+      button: "View your order",
       sms: (number: string, line: string) => `Saatvik Vaidya: brand order ${number}. ${line}`,
     },
     decision: {
       subjectApproved: (number: string, brandName: string) => `Proof approved: ${number} (${brandName})`,
       subjectChanges: (number: string, brandName: string) => `Changes requested: ${number} (${brandName})`,
-      approved: (number: string, customer: string, brandName: string, version: number, link: string) =>
-        [`${customer} approved version ${version} of the proof for brand order ${number} (${brandName}).`, "", `Production can start: ${link}`].join("\n"),
-      changes: (number: string, customer: string, brandName: string, version: number, comment: string, link: string) =>
-        [
-          `${customer} asked for changes to version ${version} of the proof for brand order ${number} (${brandName}).`,
-          "",
-          `Their comment: ${comment}`,
-          "",
-          `Send a new proof: ${link}`,
-        ].join("\n"),
+      headingApproved: "The customer approved the proof.",
+      headingChanges: "The customer asked for changes.",
+      approved: (number: string, customer: string, brandName: string, version: number) =>
+        `${customer} approved version ${version} of the proof for brand order ${number} (${brandName}). Production can start.`,
+      changes: (number: string, customer: string, brandName: string, version: number) =>
+        `${customer} asked for changes to version ${version} of the proof for brand order ${number} (${brandName}).`,
+      comment: "Their comment",
+      buttonApproved: "Start production",
+      buttonChanges: "Send a new proof",
     },
-    /** One product line in a message, e.g. "Triphala Churna, 50 jars". */
-    line: (product: string, units: string) => `${product}, ${units}`,
     admin: {
-      subject: (number: string, brandName: string) => `New brand order ${number}: ${brandName}`,
-      body: (
-        number: string,
-        customer: string,
-        brandName: string,
-        products: string[],
-        total: string,
-        link: string,
-      ) =>
-        [
-          `Brand order ${number} is paid.`,
-          "",
-          `Customer: ${customer}`,
-          `Brand: ${brandName}`,
-          "Products:",
-          ...products.map((line) => `- ${line}`),
-          `Total: ${total}`,
-          "",
-          `Open it: ${link}`,
-        ].join("\n"),
+      subject: (number: string, brandName: string, total: string) => `Brand order ${number} is paid: ${brandName} (${total})`,
+      heading: (number: string) => `Brand order ${number} is paid`,
+      line: (customer: string, brandName: string, total: string) =>
+        `${customer} paid ${total} for their brand order (${brandName}). Please prepare the label proof.`,
+      button: "Open the order",
     },
   },
 };

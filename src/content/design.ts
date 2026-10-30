@@ -154,7 +154,7 @@ export const designPage = {
     eyebrowBar: "Built for Ayurveda professionals",
   },
   iconTiles: {
-    orange: "Launch",
+    orange: "Build",
     brand: "Brands",
     blue: "Track",
     gold: "Courses",

@@ -72,7 +72,9 @@ export const home = {
   },
   reels: {
     play: (title: string) => `Play ${title}`,
-    close: "Close video",
+    pause: (title: string) => `Pause ${title}`,
+    soundOn: "Turn sound on",
+    soundOff: "Turn sound off",
     scroller: "Reels",
   },
   launch: {
@@ -92,10 +94,10 @@ export const home = {
     units: (n: number, unit: string) => `${n.toLocaleString("en-IN")} ${unit}`,
     noPayment: "No online payment required",
     add: "Add to Order",
-    added: "Added to your Launch order.",
+    added: "Added to your Build Your Brand order.",
     viewOrder: "View order →",
     footnote: "*MOQ and rates vary by formulation and pack size.",
-    empty: "Launch products are being added. Explore the full range on Build Your Brand.",
+    empty: "Products are being added. Explore the full range on Build Your Brand.",
   },
   brands: {
     stock: "In stock",

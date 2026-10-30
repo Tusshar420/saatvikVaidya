@@ -10,9 +10,9 @@ import { hitRateLimit } from "@/server/auth/rate-limit";
 import { requireUser } from "@/server/auth/session";
 import { addReply, createThread, toggleLike, type ThreadResult } from "@/server/threads/threads";
 
-// Server actions for Dr. Talk. Each checks the session itself and the
-// server module checks that the user is a verified doctor; the author id
-// always comes from the session.
+// Server actions for Dr. Talk. Each checks the session itself; the server
+// module checks that posts and replies come from a verified doctor (likes are
+// open to every member). The author id always comes from the session.
 
 const idSchema = z.coerce.number().int().positive();
 

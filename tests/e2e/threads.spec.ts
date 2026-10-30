@@ -4,7 +4,8 @@ import { e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
 // Dr. Talk threads: a verified doctor posts, replies and likes; a customer
-// reads but cannot write; signed-out visitors are asked to sign in.
+// reads and likes but cannot post or reply; signed-out visitors are asked to
+// sign in.
 
 test("signed-out visitors are asked to sign in", async ({ page }) => {
   await page.goto("/doctor-talk");
@@ -47,7 +48,7 @@ test("a verified doctor posts, replies and likes", async ({ page, baseURL }) => 
   expect(errors).toEqual([]);
 });
 
-test("a customer can read threads but not write", async ({ page, baseURL }) => {
+test("a customer can read and like threads but not post or reply", async ({ page, baseURL }) => {
   await useFreshIp(page);
   const author = await signInAs(page, baseURL!, {
     role: "user",
@@ -63,6 +64,9 @@ test("a customer can read threads but not write", async ({ page, baseURL }) => {
   await page.goto(`/doctor-talk/${thread.id}`);
   await expect(page.getByRole("heading", { level: 1, name: "E2E readable thread" })).toBeVisible();
   await expect(page.getByLabel(copy.reply.label)).toHaveCount(0);
+  await page.getByRole("button", { name: new RegExp(copy.likeAction) }).click();
+  await expect(page.getByRole("button", { name: new RegExp(copy.unlikeAction) })).toBeVisible();
+  await expect(page.getByText(copy.like(1))).toBeVisible();
   await page.goto("/doctor-talk");
   await expect(page.getByText(copy.readOnlyNote)).toBeVisible();
   await expect(page.getByRole("button", { name: copy.ask })).toHaveCount(0);

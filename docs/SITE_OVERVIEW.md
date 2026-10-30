@@ -220,7 +220,7 @@ without changing how orders are made, paid or refunded.
    order. The order becomes paid, the stock is sold, the GST invoice is made
    and the confirmation is sent, the same as with any other payment method.
 
-The same steps apply to Launch Your Brand (bulk branded) orders.
+The same steps apply to Build Your Brand (bulk branded) orders.
 
 **How it is split up** (`src/server/payments/`):
 

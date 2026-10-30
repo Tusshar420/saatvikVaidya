@@ -13,7 +13,7 @@ export function isThreadFilter(value: unknown): value is ThreadFilter {
 
 export const threadLimits = { title: 160, body: 5000, reply: 2000, page: 20 } as const;
 
-/** Only approved Ayurveda doctors write; everyone signed in reads. */
+/** Only approved Ayurveda doctors post and reply; everyone signed in reads and likes. */
 export function canWriteThreads(user: {
   userTypeKey: string;
   verificationStatus: string;

@@ -17,7 +17,7 @@ function CardPrice({ price }: { price: ProductCardData["price"] }) {
     : 0;
   const rateLabel = price.tier === "mrp" ? copy.card.ourPrice : copy.card.netRate;
   return (
-    <div className="mt-3.5 mb-3 flex items-end justify-between gap-3">
+    <div className="mt-3.5 mb-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <p className="flex flex-col">
         <span className="text-[11px] leading-tight text-muted">{copy.card.mrp}</span>
         {below ? (
@@ -79,7 +79,7 @@ export function ProductCard({
           name={product.name}
           index={index}
         />
-        <div className="flex flex-1 flex-col px-3.75 pt-3.75">
+        <div className="flex flex-1 flex-col px-3 pt-3.75 sm:px-3.75">
           <div className="flex flex-wrap items-center gap-1.5">
             {product.inStock ? (
               <span className={cn(pill, "bg-success-soft text-success")}>{copy.card.inStock}</span>
@@ -99,7 +99,7 @@ export function ProductCard({
           </div>
         </div>
       </Link>
-      <div className="px-3.75 pb-3.75">
+      <div className="px-3 pb-3.75 sm:px-3.75">
         <QuickAdd
           productId={product.id}
           name={product.name}
@@ -112,8 +112,8 @@ export function ProductCard({
 }
 
 /**
- * Product cards: four across from 1100 px, three from 820 px, two from
- * 560 px; on phones one row that scrolls sideways (the mockup's snap row).
+ * Product cards: four across from 1100 px, three from 820 px, and two across
+ * on every smaller screen, phones included, wrapping into rows of two.
  */
 export function ProductGrid({
   products,
@@ -125,14 +125,13 @@ export function ProductGrid({
   return (
     <ul
       aria-label={label}
-      className="-mr-3.25 flex snap-x snap-mandatory scrollbar-none gap-3.25 overflow-x-auto pb-2 sm:mr-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 md:grid-cols-3 lg:grid-cols-4"
+      className="grid grid-cols-2 gap-3 sm:gap-3.25 md:grid-cols-3 lg:grid-cols-4"
     >
       {products.map((product, index) => (
         <ProductCard
           key={product.slug}
           product={product}
           index={index}
-          className="w-62.5 shrink-0 snap-start sm:w-auto"
         />
       ))}
     </ul>

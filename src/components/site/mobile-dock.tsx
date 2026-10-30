@@ -34,7 +34,7 @@ export function MobileDock({ className }: { className?: string }) {
     <nav
       aria-label={shell.dock.label}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-150 border-t border-line bg-paper/96 px-2 pt-1.75 pb-[calc(7px+env(safe-area-inset-bottom))] shadow-dock backdrop-blur-[16px] sm:hidden",
+        "fixed inset-x-0 bottom-0 z-150 border-t border-line bg-paper/96 px-2 pt-1.75 pb-[calc(7px+env(safe-area-inset-bottom))] shadow-dock backdrop-blur-[16px] transform-gpu sm:hidden",
         className,
       )}
     >

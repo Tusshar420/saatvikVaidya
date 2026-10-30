@@ -53,12 +53,7 @@ describe("proxy", () => {
   });
 });
 
-describe("proxy on the private test site", () => {
-  const basic = (user: string, password: string) =>
-    `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`;
-  const gated = (path: string, authorization?: string) =>
-    new NextRequest(`http://localhost:3000${path}`, { headers: authorization ? { authorization } : {} });
-
+describe("proxy on the test site", () => {
   beforeEach(() => {
     vi.stubEnv("STAGING_ACCESS_PASSWORD", "s3cret-team-pass");
     vi.stubEnv("STAGING_ACCESS_USER", "team");
@@ -67,51 +62,33 @@ describe("proxy on the private test site", () => {
     vi.unstubAllEnvs();
   });
 
-  it("asks for the password on every page and API route", () => {
-    for (const path of ["/", "/products", "/admin", "/api/auth/get-session"]) {
-      const response = proxy(gated(path));
-      expect(response.status, path).toBe(401);
-      expect(response.headers.get("www-authenticate")).toContain("Basic");
-      expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  it("opens every page without a password box, marked noindex", () => {
+    for (const path of ["/", "/products", "/api/auth/get-session"]) {
+      const response = proxy(request(path));
+      expect(response.headers.get("x-middleware-next"), path).toBe("1");
+      expect(response.headers.get("www-authenticate"), path).toBeNull();
+      expect(response.headers.get("x-robots-tag"), path).toBe("noindex, nofollow");
     }
   });
 
-  it("refuses a wrong user or password", () => {
-    for (const header of [basic("team", "wrong"), basic("other", "s3cret-team-pass"), "Basic !!!", "Bearer x", basic("team", "")]) {
-      expect(proxy(gated("/", header)).status, header).toBe(401);
-    }
+  it("still guards signed-in pages", () => {
+    expect(proxy(request("/checkout")).status).toBe(307);
   });
 
-  it("lets the team in, marks pages noindex, and still guards signed-in pages", () => {
-    const ok = proxy(gated("/products", basic("team", "s3cret-team-pass")));
-    expect(ok.headers.get("x-middleware-next")).toBe("1");
-    expect(ok.headers.get("x-robots-tag")).toBe("noindex, nofollow");
-    expect(proxy(gated("/checkout", basic("team", "s3cret-team-pass"))).status).toBe(307);
-  });
-
-  it("tells crawlers to stay away in /robots.txt, without the password", async () => {
-    for (const header of [undefined, basic("team", "s3cret-team-pass")]) {
-      const response = proxy(gated("/robots.txt", header));
-      expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("text/plain");
-      expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
-      expect(await response.text()).toBe(testSiteRobots);
-    }
+  it("tells crawlers to stay away in /robots.txt", async () => {
+    const response = proxy(request("/robots.txt"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/plain");
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(await response.text()).toBe(testSiteRobots);
     expect(testSiteRobots).toMatch(/^User-agent: \*\nDisallow: \/$/m);
-    // Only the exact path; anything else still needs the password.
-    expect(proxy(gated("/robots.txt/x")).status).toBe(401);
   });
 
-  it("allows a password that contains a colon", () => {
-    vi.stubEnv("STAGING_ACCESS_PASSWORD", "a:b:c");
-    expect(proxy(gated("/", basic("team", "a:b:c"))).headers.get("x-middleware-next")).toBe("1");
-  });
-
-  it("is off when no password is set", () => {
+  it("does nothing extra on the live site (setting unset)", () => {
     vi.stubEnv("STAGING_ACCESS_PASSWORD", "");
-    expect(proxy(gated("/")).headers.get("x-middleware-next")).toBe("1");
-    expect(proxy(gated("/")).headers.get("x-robots-tag")).toBeNull();
+    expect(proxy(request("/")).headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(request("/")).headers.get("x-robots-tag")).toBeNull();
     // The live site's /robots.txt is left to the app (no "Disallow: /").
-    expect(proxy(gated("/robots.txt")).headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(request("/robots.txt")).headers.get("x-middleware-next")).toBe("1");
   });
 });

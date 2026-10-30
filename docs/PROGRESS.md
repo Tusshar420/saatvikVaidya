@@ -5539,3 +5539,230 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   shipping updates, admin alerts. Phone-only accounts (placeholder email) get none.
 - Checked: typecheck, lint, notify/auth/checkout unit tests. Not run: e2e, build,
   and a real send (needs the mailbox password on the server).
+
+## Phone product grid and bottom bar (2026-10-30)
+
+- Product listing (`ProductGrid`): two cards per row on phones, wrapping into
+  rows (was one sideways-scrolling row). Cards stack the quantity stepper above
+  "Add to Order" under 560 px so they fit.
+- "Order List" button now clears the iPhone home-bar space (safe-area) and sits
+  at the left on phones so it no longer covers the chat buttons.
+- Bottom dock: own graphics layer (`transform-gpu`), and `html`/`body` no
+  longer use `h-full`/`min-h-full` (body is `min-h-dvh`), the usual cause of a
+  fixed bar floating up on iOS browsers.
+- Checked at 390 px in Chromium (no sideways scroll, two per row), typecheck,
+  lint. Not checked: a real iPhone (the floating-dock fix is the standard
+  remedy but could not be reproduced here), e2e.
+
+## Checkout 500 on MariaDB: coin ledger LIKE (2026-10-30)
+
+- `POST /checkout` failed on Hostinger with "Illegal mix of collations ... for
+  operation 'like'" from `heldFor` (`src/server/coins/ledger.ts`), which used a
+  `reference startsWith` search. It now loads the user's redeem rows and
+  filters the reference in code. The connection-collation fix did not cover it.
+- Other `contains` / `startsWith` searches (catalogue search, admin lists,
+  `inventory/engine.ts` batch number) still use LIKE; if one fails on MariaDB,
+  apply the same approach. The `/checkout` React #441 and `/ebooks` "destination
+  stream closed early" entries were not investigated.
+- Checked: typecheck, lint, coins and checkout unit tests (MySQL 8). Not
+  checked on MariaDB itself.
+
+## "Send a test email" button (2026-10-30)
+
+- /account, under the email address: **Send a test email** mails the signed-in
+  user's own address and shows success, or the mail server's real error (code
+  and message, never the password). `sendTestEmail` in `src/server/notify/index.ts`
+  does not swallow errors like the normal sender. Rate limit 5 per 15 minutes
+  per account (`testEmailPerUser`). Copy in `content/account.ts` (`testEmail`).
+- Phone-only accounts (placeholder email) get a "add an email first" message.
+- Checked: typecheck, lint, notify unit tests, account e2e (phone and desktop).
+
+## "Launch Your Brand" renamed to "Build Your Brand" (2026-10-30)
+
+- The last places with the old name now say **Build Your Brand**: the side
+  menu (`content/shell.ts`), the account page help, admin stock labels and the
+  hero-panel type option, the inventory screens ("Brand product", "Build Your
+  Brand order"), the design page tile, and `scripts/clear-test-data.ts`.
+- "Launch cart" is now **"Brand cart"** everywhere on the site (step bar,
+  buttons, messages in `content/brand.ts`). The hero panel label is now
+  "Brand Studio".
+- Migration `20261030160000_build_your_brand_name` updates homepage rows seeded
+  before the rename (hero button and panel label, section eyebrow, reel badge
+  and label, offer link, quick action) and the saved "popular searches"
+  list in the header. Only rows still holding the old seeded
+  text change, so admin edits are kept.
+- Kept on purpose: the `/launch` web address and internal code names
+  (`LAUNCH_STUDIO`, `launch` keys), so links and bookmarks keep working. The
+  sentence "Launch without a large inventory burden" uses "launch" as a verb
+  and stays. Team docs (test plan, testing guide, launch and deploy notes,
+  site overview) use the new name; older PROGRESS/CHUNKS history is unchanged.
+- The admin search keywords in `content/admin.ts` (from the admin console work
+  running at the same time) still include "launch your brand", which helps
+  people who search the old name.
+- Checked: typecheck, lint, seed/content/brand/inventory unit tests, the new
+  migration on the local database. Browser tests: homepage and menu specs on
+  phone and desktop, 44 passed; 2 menu tests failed because other sessions
+  were changing the menu order at the same time (their unfinished work, not
+  this rename). Not run: the full e2e suite and build (other sessions were
+  using the test server), and the migration on MariaDB.
+
+## Quiz & Win hero carousel (2026-10-30)
+
+- The Quiz & Win page now opens with the same dark green slide carousel as the
+  homepage hero, with 2 slides: "Learn Ayurveda. / Earn rewards." (link down
+  to the quiz card, or "See when the next quiz opens" when none is open) and
+  "Top the leaderboard. / Earn Saatvik Coins." (link to the full leaderboard).
+  It replaces the plain page banner and its "This week" side note; the quiz
+  card below already shows the quiz title and facts.
+- The hero band, slide layout and link/title styles moved into
+  `components/site/hero-carousel.tsx`, used by both pages; the homepage looks
+  the same. New "podium" illustration in `hero-art.tsx` for the second slide.
+  Slide text is in `content/quiz.ts` (`carousel`); the unused `eyebrow` and
+  `hero` strings were removed.
+- The first slide's title is the page h1 only when no quiz is open (as
+  before); otherwise the quiz title in the card stays the h1.
+- Checked in a separate worktree with its own database and port (another
+  session was running e2e on :3100): typecheck, lint, build; quiz e2e on phone
+  and desktop 15 passed (1 skipped by design); homepage, shell and layout
+  specs 71 of 72 passed. The one failure was the layout-width loop timing out
+  on /terms while the machine was very busy (load ~14), not the quiz page; a
+  re-run hit the same timeout at a different width. Screens checked at 375 and
+  1280 px. Not run: unit tests and the full e2e suite.
+
+## Top menu and bottom bar: client's new order (2026-10-30)
+
+**Built**
+- The client gave a fixed order for both screen sizes. Phones (under 560 px,
+  where the bottom bar shows): Home, Dr. Talk, Quiz & Win, Build Your Brand,
+  Top Brands, Real Feedback, Partner & Grow, Why Saatvik in the top menu, and
+  Coins, Updates, Courses, Order, You in the bottom bar (unchanged).
+  Bigger screens (no bottom bar): Home, Dr. Talk, Courses, Quiz & Win, Build
+  Your Brand, Top Brands, Saatvik Coins, Track Order, Real Feedback,
+  Partner & Grow, Why Saatvik.
+- `siteNav` in `content/shell.ts` holds the order; Courses, Saatvik Coins and
+  Track Order carry `wideOnly`, and the nav rail hides those under 560 px.
+- The rail no longer adds the dock's Updates, My Orders and My Account after
+  a divider on bigger screens (the 2026-10-20 "Later" item): the client's
+  list leaves them out, and the header's bell and profile menu already go
+  there. `railLabel`, `railOrders` and `railYou` are gone.
+- At 1280 px all 11 links fit on one line.
+
+**Checked**
+- Typecheck and lint pass. `shell`, `homepage-part2` and `notifications` e2e
+  pass on phone and desktop (58 tests); the shell test now checks the exact
+  order on both sizes. Screens checked at 375 and 1280 px.
+- Tests ran in a separate worktree on port 3220 with its own test database,
+  because another session was building and testing in the main folder at the
+  same time (the shared test database gave random deadlock failures). Unit
+  tests there: all pass apart from the check that the database is named
+  `saatvik_vaidya_test` (expected with the other name).
+- Full e2e suite not run (it takes over 10 minutes and the other session was
+  using port 3100).
+
+**Later**
+- The bottom bar has no unread badges, so on phones a new course shows only
+  on the bell now that Courses has left the phone top menu.
+
+## 2026-10-30: Removed the password box on the test address
+
+**What changed**
+- The owner asked to remove the browser "Sign in" box (HTTP Basic auth) on
+  `staging.saatvikvaidya.in`. `src/proxy.ts` no longer asks for the team user
+  name and password; `src/lib/site-gate.ts` is deleted.
+- `STAGING_ACCESS_PASSWORD` still marks the test address: every answer says
+  noindex, `/robots.txt` disallows everything, and the start-up check in
+  `src/server/site-check.ts` still needs it to match a test database. So the
+  setting must stay on the server; deleting it would stop the site starting.
+- `.env.example` and `docs/ACCESS_CONTROL.md` say so.
+
+**Checked**
+- `src/proxy.test.ts` rewritten for the new behaviour; it and
+  `site-check.test.ts` pass. Typecheck and lint pass. Full e2e not run (the
+  e2e server never sets the team password, so it is not affected).
+
+**Later**
+- The brief says only the team should open the test address. With the box
+  gone, anyone with the link can sign up and place test orders there. If that
+  matters, use the hPanel IP allow-list (docs/ACCESS_CONTROL.md) or bring the
+  box back.
+
+## Order and account emails like a big shop's (2026-10-30)
+
+**What changed**
+- Every email now has a designed HTML version as well as the plain text: the
+  logo (sent inside the email, so it shows even behind a password), a heading,
+  an order tracker bar, an item table with totals, the address, one orange
+  button and a green footer with the support phone. One renderer,
+  `src/server/notify/email.ts` (blocks → HTML + text); `compose.ts` adds the
+  site address and phone and sends. Colours are the DESIGN.md tokens written
+  out inline (email apps ignore CSS variables). Shared text: `content/emails.ts`.
+- New emails:
+  - **Order received** (store and brand orders, QR/bank or phone payment):
+    summary, address and how to pay. With `PAYMENT_PROVIDER=manual` it carries
+    the UPI QR code as a PNG image, UPI ID and bank details from the
+    "payment.manual" setting; with `request` it says the team will call. Not
+    sent with test payments (they confirm on the spot).
+  - **New order** to every orders admin (super/orders role), with customer
+    contact, items and a link to the admin order page.
+  - **Welcome** on email sign-up (`databaseHooks.user.create.after`). An
+    existing email still gets only the "someone tried to register" email, so
+    both cases send one email (no account hint).
+  - **Courses**: course to review → content team; approved / sent back (with
+    the note) → doctor; new enrolment → doctor.
+- Restyled: payment confirmed, shipped, out for delivery, delivered, delivery
+  failed, returned, cancelled, all Build Your Brand emails (paid, proof ready,
+  production, dispatch, delivery, proof decision), password reset, verify
+  email, doctor document emails, error alerts and the "Send a test email" one.
+- Delivery steps now email only when they matter, like Amazon: shipped, out for
+  delivery, delivered, undelivered, returned. "Preparing", "packed" and "in
+  transit" only show in the bell. Subjects changed, e.g. "Shipped: your order
+  SV-… is on its way", "Your order SV-… is confirmed".
+- `upiLink` moved from the pay-page component to `src/lib/upi.ts`.
+- Buyers' "order emails" setting is still respected; phone-only accounts still
+  get an SMS (dev log only, no SMS provider yet).
+
+**Checked**
+- New `notify/email.test.ts` (rendering, escaping, attachments) and
+  `notify/order-emails.test.ts` (QR email, staff alert, request and test
+  providers, opt-out, confirmation, delivery emails). Tests added for welcome,
+  brand order-placed and course emails; shipment and subject tests updated.
+- `EMAIL_PREVIEW_DIR=/tmp/emails pnpm vitest run src/server/notify/order-emails.test.ts`
+  saves the emails as HTML files; checked by eye at 375 and 1280 px.
+- typecheck, lint, all unit tests (86 files), build, and the full e2e suite
+  (phone, desktop, exclusive and last groups, plus the manual and request
+  configs) pass.
+
+**Known gaps / later**
+- Not tried in real inboxes yet (Gmail, Outlook, Apple Mail). Send one from the
+  test address with "Send a test email" on /account once SMTP is set.
+- No email when a QR payment is found short of stock (order goes to
+  "payment failed"); staff see it in the admin panel.
+- Emails are sent during the request; a slow mail server slows checkout by a
+  few seconds. A background queue would fix that later.
+
+## Dr. Talk: every member can like threads (2026-10-31)
+
+**Built**
+- The client asked that anyone can like the threads and discussions. Likes
+  were limited to approved doctors; now every signed-in member (buyers, bulk
+  buyers, doctors still waiting for approval) can like and unlike a thread on
+  `/doctor-talk` and `/doctor-talk/[id]`. Posting and replying stay with
+  approved doctors.
+- `toggleLike` now checks `canLike` (the user exists, read fresh from the
+  database) instead of `canWrite`. The like action keeps the session check and
+  the `threadWritePerUser` rate limit.
+- Wording updated: the read-only note and the signed-out text say members can
+  like.
+- Signed-out visitors still see the sign-in prompt (they can't see the feed,
+  and a like needs an account).
+
+**Checked**
+- New Vitest case (customer, bulk buyer and pending doctor like; unknown user
+  refused; missing thread is notFound). `threads.spec.ts` now has the customer
+  like and unlike a thread. typecheck, lint, all unit tests (86 files), build,
+  and the threads and ebooks specs pass. The main e2e suite passed 308 tests;
+  one ebook test timed out on a slow machine (disk 96% full), then passed on
+  its own with `--workers=1`.
+
+**Later**
+- Replies have no likes; add `ThreadReplyLike` if the client wants them.

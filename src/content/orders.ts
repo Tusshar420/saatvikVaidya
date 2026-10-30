@@ -154,10 +154,33 @@ export const orders = {
     close: "Close",
   },
 
-  /** Messages sent through the dev notifier (printed to the server log). */
+  /** Emails and SMS about deliveries and cancellations (src/server/notify/orders.ts). */
   messages: {
     shipment: {
-      subject: (number: string, step: string) => `Order ${number}: ${step}`,
+      /** Steps that also send an email or SMS; the others only show in the bell. */
+      emailSteps: ["shipped", "out_for_delivery", "delivered", "undelivered", "returned", "cancelled"],
+      subjects: {
+        created: (number: string) => `We're preparing your order ${number}`,
+        packed: (number: string) => `Your order ${number} is packed`,
+        shipped: (number: string) => `Shipped: your order ${number} is on its way`,
+        in_transit: (number: string) => `Your order ${number} is in transit`,
+        out_for_delivery: (number: string) => `Out for delivery: your order ${number} arrives today`,
+        delivered: (number: string) => `Delivered: your order ${number}`,
+        undelivered: (number: string) => `Delivery attempt failed: order ${number}`,
+        returned: (number: string) => `Returned to us: order ${number}`,
+        cancelled: (number: string) => `Shipment cancelled: order ${number}`,
+      },
+      headings: {
+        created: "We're preparing your order.",
+        packed: "Your order is packed.",
+        shipped: "Your order is on its way!",
+        in_transit: "Your order is in transit.",
+        out_for_delivery: "Arriving today!",
+        delivered: "Your order has been delivered.",
+        undelivered: "We couldn't deliver your order.",
+        returned: "Your order came back to us.",
+        cancelled: "The shipment for your order was cancelled.",
+      },
       lines: {
         created: "We're preparing your order for dispatch.",
         packed: "Your order is packed and ready for the courier.",
@@ -169,35 +192,33 @@ export const orders = {
         returned: "Your order came back to us undelivered. Please call us to arrange delivery.",
         cancelled: "The shipment for your order was cancelled.",
       },
-      courier: (courier: string, awb: string) => `Courier: ${courier}, tracking number ${awb}.`,
-      body: (name: string, number: string, line: string, courier: string | null, trackUrl: string) =>
-        [
-          `Namaste ${name},`,
-          "",
-          `Order ${number}: ${line}`,
-          ...(courier ? [courier] : []),
-          "",
-          `Track it any time: ${trackUrl}`,
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
+      /** The longer line in the email, under the heading. */
+      details: {
+        created: (number: string) => `We're getting order ${number} ready for the courier.`,
+        packed: (number: string) => `Order ${number} is packed and waiting for the courier.`,
+        shipped: (number: string) =>
+          `Good news! Order ${number} has left our warehouse. You can follow it any time from your order page.`,
+        in_transit: (number: string) => `Order ${number} is moving through the courier's network.`,
+        out_for_delivery: (number: string) =>
+          `Order ${number} is out for delivery and should reach you today. Please keep your phone close so the courier can call you.`,
+        delivered: (number: string) =>
+          `Order ${number} has been delivered. We hope you love it! If anything isn't right, please call us and we'll sort it out.`,
+        undelivered: (number: string) =>
+          `The courier tried to deliver order ${number} but couldn't. They'll try again soon. To arrange a time, please call us.`,
+        returned: (number: string) =>
+          `Order ${number} came back to us undelivered. Please call us and we'll arrange delivery again.`,
+        cancelled: (number: string) => `The shipment for order ${number} was cancelled. Please call us if you didn't expect this.`,
+      },
       sms: (number: string, line: string) => `Saatvik Vaidya: order ${number}. ${line}`,
     },
     cancelled: {
-      subject: (number: string) => `Order ${number} cancelled`,
-      body: (name: string, number: string, paid: boolean) =>
-        [
-          `Namaste ${name},`,
-          "",
-          `Order ${number} has been cancelled.`,
-          paid
-            ? "You had already paid, so our team will contact you about your refund."
-            : "No payment was taken for it.",
-          "",
-          "Questions? Please call us and we will help.",
-          "",
-          "Saatvik Vaidya",
-        ].join("\n"),
+      subject: (number: string) => `Your order ${number} has been cancelled`,
+      preheader: (paid: boolean) =>
+        paid ? "Our team will contact you about your refund." : "No payment was taken for it.",
+      heading: "Your order has been cancelled.",
+      line: (number: string) => `Order ${number} has been cancelled.`,
+      paid: "You had already paid, so our team will contact you about your refund.",
+      unpaid: "No payment was taken for it, so there's nothing more you need to do.",
       sms: (number: string) => `Saatvik Vaidya: order ${number} has been cancelled.`,
     },
   },

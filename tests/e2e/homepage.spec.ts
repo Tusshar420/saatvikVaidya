@@ -70,6 +70,19 @@ test.describe("Homepage sections (A7)", () => {
     expect(await reels.getByRole("list", { name: "Reels" }).locator("li").count()).toBeGreaterThan(0);
   });
 
+  test("video reels play muted once in view and pause when scrolled away", async ({ page }) => {
+    const video = page.locator("#reels video").first();
+    const paused = () => video.evaluate((v: HTMLVideoElement) => v.paused);
+    expect(await paused()).toBe(true);
+
+    await page.locator("#reels").scrollIntoViewIfNeeded();
+    await expect.poll(paused).toBe(false);
+    expect(await video.evaluate((v: HTMLVideoElement) => v.muted)).toBe(true);
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(paused).toBe(true);
+  });
+
   // The v2 redesign removed the Offers and Quick actions sections from the
   // homepage, so the tests for them are gone; this checks they stay gone.
   test("offers and quick actions sections are no longer on the homepage", async ({

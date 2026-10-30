@@ -90,6 +90,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 afterAll(async () => {
@@ -568,6 +569,24 @@ describe("paying for a brand order", () => {
     const cancelled = await cancelOrder(ordersAdmin, placed.orderId);
     expect(cancelled).toMatchObject({ ok: true, restocked: false });
     expect(await stockOf(db, who.product.id)).toBe(3);
+  });
+
+  it("with QR or bank payment, emails the buyer how to pay and alerts the order admins when it's placed", async () => {
+    vi.stubEnv("PAYMENT_PROVIDER", "manual");
+    const who = await readyDraft();
+    const ordersAdmin = await makeAdmin(db);
+    await db.user.update({ where: { id: ordersAdmin }, data: { adminRole: "orders" } });
+    sent.length = 0;
+    const placed = await place(who);
+    if (!placed.ok) throw new Error("not placed");
+    const order = await db.order.findUniqueOrThrow({ where: { id: placed.orderId }, include: { user: true } });
+    const buyer = sent.find((message) => message.channel === "email" && message.to === order.user!.email);
+    expect(buyer).toMatchObject({ subject: `We've received your order ${order.number}` });
+    expect(buyer?.channel === "email" && buyer.text).toContain("Label proof");
+    const admin = await db.user.findUniqueOrThrow({ where: { id: ordersAdmin } });
+    const alert = sent.find((message) => message.channel === "email" && message.to === admin.email);
+    expect(alert?.channel === "email" && alert.subject).toContain(`New brand order ${order.number}: Vaidya Care`);
+    expect(alert?.channel === "email" && alert.text).toContain(`/admin/brand-orders/${order.id}`);
   });
 
   it("holds the recipe's components when paid, and gives them back when cancelled", async () => {

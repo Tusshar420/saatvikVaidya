@@ -37,20 +37,23 @@ export type SiteNavLink = {
   href: string;
   label: string;
   tone?: SiteNavTone;
+  /** Hidden on phones, where the bottom dock already covers it. */
+  wideOnly?: boolean;
 };
 
 /**
- * The v2 nav rail (U.4), in the client's order. Every link is a real page;
- * Home is added by the rail itself.
+ * The v2 nav rail (U.4), in the client's order (30 Oct 2026). Every link is
+ * a real page; Home is added by the rail itself. On phones the `wideOnly`
+ * links are left out, because the bottom dock has Coins, Courses and Order.
  */
 export const siteNav: readonly SiteNavLink[] = [
   { href: "/doctor-talk", label: "Dr. Talk", tone: "brand" },
+  { href: "/courses", label: "Courses", wideOnly: true },
   { href: "/quiz", label: "Quiz & Win" },
-  { href: "/launch", label: "Launch Your Brand" },
+  { href: "/launch", label: "Build Your Brand" },
   { href: "/products", label: "Top Brands" },
-  { href: "/courses", label: "Courses" },
-  { href: "/coins", label: "Saatvik Coins" },
-  { href: "/track", label: "Track Order" },
+  { href: "/coins", label: "Saatvik Coins", wideOnly: true },
+  { href: "/track", label: "Track Order", wideOnly: true },
   { href: "/feedback", label: "Real Feedback" },
   { href: "/partner", label: "Partner & Grow" },
   { href: "/why-saatvik", label: "Why Saatvik" },
@@ -156,9 +159,6 @@ export const shell = {
     courses: "Courses",
     orders: "Order",
     you: "You",
-    /** The same links in the nav rail on bigger screens, where there's room. */
-    railOrders: "My Orders",
-    railYou: "My Account",
   },
   trackOrder: {
     eyebrow: "Track order",
@@ -174,17 +174,17 @@ export const shell = {
 } as const;
 
 /**
- * The phone dock's links. Under 560 px the dock shows them at the bottom of
- * the screen; from 560 px up there is no dock, so the nav rail shows them
- * after the main links instead (the client asked for every link to stay
- * reachable on big screens without repeating them on phones).
+ * The phone dock's links, shown at the bottom of the screen under 560 px.
+ * From 560 px up there is no dock: the nav rail shows Courses, Saatvik Coins
+ * and Track Order instead, and the header's bell and profile menu cover
+ * Updates, My Orders and My Account.
  */
 export const dockNav = [
-  { href: "/coins", label: shell.dock.coins, railLabel: shell.dock.coins },
-  { href: "/notifications", label: shell.dock.updates, railLabel: shell.dock.updates },
-  { href: "/courses", label: shell.dock.courses, railLabel: shell.dock.courses },
-  { href: "/orders", label: shell.dock.orders, railLabel: shell.dock.railOrders },
-  { href: "/account", label: shell.dock.you, railLabel: shell.dock.railYou },
+  { href: "/coins", label: shell.dock.coins },
+  { href: "/notifications", label: shell.dock.updates },
+  { href: "/courses", label: shell.dock.courses },
+  { href: "/orders", label: shell.dock.orders },
+  { href: "/account", label: shell.dock.you },
 ] as const;
 
 export type DockHref = (typeof dockNav)[number]["href"];

@@ -63,6 +63,8 @@ export const rateLimitRules = {
   trackOrderPerNumber: { name: "track-order:number", windowSeconds: 60 * 60, max: 10 },
   /** Wrong-password guesses on "change password": 5 per 15 minutes per account. */
   passwordChangePerUser: { name: "password-change:user", windowSeconds: 15 * 60, max: 5 },
+  /** "Send test email" button: 5 per 15 minutes per account. */
+  testEmailPerUser: { name: "test-email:user", windowSeconds: 15 * 60, max: 5 },
   /** Build Your Brand logo uploads by one account: 20 per hour (P2.1). */
   brandLogoUploadPerUser: { name: "brand-logo-upload:user", windowSeconds: 60 * 60, max: 20 },
   /** Label proof uploads by one admin: 60 per hour (P2.2). */

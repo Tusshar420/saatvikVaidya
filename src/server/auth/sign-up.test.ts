@@ -103,6 +103,21 @@ describe("email + password sign-up", () => {
     },
   );
 
+  it("sends a welcome email to a new account, and only the usual notice to an existing one", async () => {
+    const input = emailSignUp();
+    await callAuth("/sign-up/email", input);
+    const welcome = sent.filter((message) => message.channel === "email" && message.to === input.email);
+    expect(welcome).toHaveLength(1);
+    expect(welcome[0]).toMatchObject({ subject: "Welcome to Saatvik Vaidya" });
+    expect(welcome[0]?.channel === "email" && welcome[0].html).toContain("Namaste Asha Gupta,");
+
+    // Signing up again with the same email sends one email too (no hint that the account exists).
+    sent.length = 0;
+    await callAuth("/sign-up/email", input);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ subject: "Someone tried to register with your email" });
+  });
+
   it("defaults marketingOptIn to false", async () => {
     const input = emailSignUp();
     await callAuth("/sign-up/email", input);

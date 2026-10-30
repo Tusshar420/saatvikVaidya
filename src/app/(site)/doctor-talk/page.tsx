@@ -24,8 +24,8 @@ const copy = portalPages.doctorTalk;
 export const metadata: Metadata = { title: copy.metaTitle };
 
 /**
- * Dr. Talk: the Thread feed. Signed-in members read; verified doctors start
- * threads, reply and like.
+ * Dr. Talk: the Thread feed. Signed-in members read and like; verified
+ * doctors start threads and reply.
  */
 export default async function DoctorTalkPage({
   searchParams,
@@ -76,7 +76,7 @@ export default async function DoctorTalkPage({
                   <ul className="grid gap-3.5">
                     {items.map((thread) => (
                       <li key={thread.id}>
-                        <ThreadCard thread={thread} canLike={writer} />
+                        <ThreadCard thread={thread} canLike />
                       </li>
                     ))}
                   </ul>

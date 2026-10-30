@@ -141,7 +141,7 @@ under "I am a". (The site has no button that says "bulk buyer".)
 Try these:
 
 - Upload your documents. Staff will approve or reject them.
-- Open **Launch Your Brand**.
+- Open **Build Your Brand**.
 - Pick medicines and a number to order. Add your own brand name.
 - Send the request. Then check the order and the payment details.
 - Check that the prices and the numbers add up.
@@ -262,7 +262,7 @@ new one.
 | --- | --- |
 | **Sun 25 Oct** | The test address is ready. The owner shares the address and the team password. |
 | **Mon 26 to Tue 27 Oct** | Everyone makes test accounts. Try signing up, signing in, the shop and orders. |
-| **Wed 28 Oct** | Try doctor jobs, courses, Launch Your Brand, and the quiz. Staff try the admin panel. |
+| **Wed 28 Oct** | Try doctor jobs, courses, Build Your Brand, and the quiz. Staff try the admin panel. |
 | **Thu 29 Oct** | Test on different phones and browsers. Keep adding problems to the bug list. |
 | **Fri 30 Oct** | The developer fixes problems. You try the same steps again and mark them **Re-checked**. |
 | **Sat 31 Oct** | **Last day.** Final check. Every row in the bug list must be **Re-checked**. Sign off in `docs/TEST_PLAN.md`. |

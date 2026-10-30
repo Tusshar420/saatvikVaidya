@@ -11,7 +11,7 @@ export function OrderListButton({ count }: { count: number }) {
     <Link
       href="/cart"
       aria-label={copy.listing.orderListLabel(count)}
-      className="fixed right-3.25 bottom-20.5 z-40 inline-flex min-h-11.5 items-center gap-2.25 rounded-[14px] bg-cta px-4.25 font-heading text-small font-extrabold text-white shadow-cta transition hover:-translate-y-0.5 md:right-6.25 md:bottom-6.25"
+      className="fixed left-3.25 bottom-[calc(5.125rem+env(safe-area-inset-bottom))] z-40 inline-flex min-h-11.5 items-center gap-2.25 rounded-[14px] bg-cta px-4.25 font-heading text-small font-extrabold text-white shadow-cta transition hover:-translate-y-0.5 sm:right-6.25 sm:left-auto sm:bottom-6.25"
     >
       <ShoppingBag aria-hidden className="size-4" />
       {copy.listing.orderList}

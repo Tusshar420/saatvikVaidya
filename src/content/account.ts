@@ -74,9 +74,10 @@ export const account = {
   shortcuts: {
     title: "Profile menu",
     overview: "Overview",
+    newTab: "(opens in a new tab)",
     admin: { label: "Admin panel", help: "Manage the store and approvals." },
     orders: { label: "Orders & Requests", help: "Track and review your orders." },
-    brandOrders: { label: "Branded orders", help: "Launch Your Brand orders and label proofs." },
+    brandOrders: { label: "Branded orders", help: "Build Your Brand orders and label proofs." },
     coins: { label: "Saatvik Coins", help: "Your balance and history." },
     ebooks: { label: "My ebooks", help: "Download what you've bought." },
     addresses: { label: "Saved addresses", help: "Where we deliver." },
@@ -128,6 +129,19 @@ export const account = {
     failed: "We couldn't send the link. Please try again in a few minutes.",
     tooMany: "Too many requests. Please wait a few minutes and try again.",
     justVerified: "Your email is verified. Thank you.",
+  },
+
+  testEmail: {
+    send: "Send a test email",
+    hint: "Sends a short message to this address so you can check that our emails reach you.",
+    subject: "Saatvik Vaidya: test email",
+    heading: "Email is working!",
+    line: "This is a test email from Saatvik Vaidya. If you can read it, our emails reach you. Order emails look like this one.",
+    sent: (email: string) => `Test email sent to ${email}. Check your inbox and the spam folder.`,
+    notConfigured: "Email is not set up on this server yet (the mail settings are empty).",
+    failed: (detail: string) => `The mail server refused the email: ${detail}`,
+    tooMany: "Too many tests. Please wait a few minutes and try again.",
+    noEmail: "Add an email address to your account first.",
   },
 
   password: {

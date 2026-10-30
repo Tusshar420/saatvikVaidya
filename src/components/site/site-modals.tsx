@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Suspense,
   createContext,
   use,
   useCallback,
@@ -13,7 +14,7 @@ import {
   type RefObject,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalClose, ModalContent } from "@/components/ui/modal";
@@ -85,15 +86,11 @@ export function SiteModalsProvider({
     setOpen(modal);
   }, []);
 
-  // `?auth=sign-in` opens sign-in. Read once from the address bar rather
-  // than useSearchParams, which would stop the pages from being static.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("auth") !== "sign-in") return;
-    nextPath.current = safeNextPath(params.get("next"));
+  // `?auth=sign-in` opens sign-in, on first load and after in-site
+  // navigation (the layout stays mounted, so this can't be a mount effect).
+  const requestSignIn = useCallback((next: string | null) => {
+    nextPath.current = next;
     openedFromUrl.current = true;
-    // Opening a modal from the URL on first load is an external sync.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen("signIn");
   }, []);
 
@@ -164,12 +161,20 @@ export function SiteModalsProvider({
     const key = returnFocus.current?.dataset.focusKey;
     if (key) api.requestFocus(key);
     setOpen(null);
+    // Staying on this page: re-render it on the server so guest-only parts
+    // (Dr. Talk's "Sign in to read", course and quiz buttons) show the
+    // signed-in view without a manual reload.
+    if (!nextPath.current) router.refresh();
     goNext();
   };
 
   return (
     <SiteModalsContext value={api}>
       {children}
+      {/* Suspense keeps useSearchParams from stopping the pages being static. */}
+      <Suspense fallback={null}>
+        <SignInRequestWatcher onRequest={requestSignIn} />
+      </Suspense>
       <Modal open={open === "signIn"} onOpenChange={onOpenChange}>
         <SignInModal
           userTypes={userTypes}
@@ -187,6 +192,21 @@ export function SiteModalsProvider({
       </Modal>
     </SiteModalsContext>
   );
+}
+
+/** Calls `onRequest(next)` whenever the address gains `?auth=sign-in`. */
+function SignInRequestWatcher({
+  onRequest,
+}: {
+  onRequest: (next: string | null) => void;
+}) {
+  const params = useSearchParams();
+  const auth = params.get("auth");
+  const next = params.get("next");
+  useEffect(() => {
+    if (auth === "sign-in") onRequest(safeNextPath(next));
+  }, [auth, next, onRequest]);
+  return null;
 }
 
 function useSiteModalsApi(): SiteModalsApi {

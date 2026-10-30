@@ -51,6 +51,25 @@ test.describe("guest account page", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
     expect(errors).toEqual([]);
   });
+
+  test("a sign-in link opens sign-in after an in-site click, not just the homepage", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    await page.goto("/account");
+    // A client-side navigation: the site layout stays mounted.
+    await page.getByRole("link", { name: /Orders & Requests/ }).click();
+    await expect(page).toHaveURL(/auth=sign-in/);
+    await expect(page.getByRole("dialog")).toBeVisible();
+    // Closing it, going back and clicking again opens it again.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/account$/);
+    await page.getByRole("link", { name: /Orders & Requests/ }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe("guest orders page", () => {

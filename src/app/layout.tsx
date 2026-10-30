@@ -49,9 +49,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${dmSans.variable} ${notoSansDevanagari.variable} ${notoSerifDevanagari.variable} h-full antialiased`}
+      className={`${manrope.variable} ${dmSans.variable} ${notoSansDevanagari.variable} ${notoSerifDevanagari.variable} antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-dvh flex-col">
         <ErrorReporter />
         <ToastProvider>{children}</ToastProvider>
       </body>

@@ -77,7 +77,7 @@ describe("test shipping provider", () => {
 });
 
 describe("createShipment", () => {
-  it("books a paid order with a fake courier and AWB, and tells the buyer", async () => {
+  it("books a paid order with a fake courier and AWB, and tells the buyer in the bell", async () => {
     const order = await makeOrder(db);
     sent.length = 0;
     const result = await createShipment(adminId, order.orderId);
@@ -90,8 +90,9 @@ describe("createShipment", () => {
     expect(shipment.events.map((event) => event.status)).toEqual(["created"]);
     expect(shipment.events[0]?.actorId).toBe(adminId);
     expect(await orderStatus(order.orderId)).toBe("processing");
-    expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ channel: "email", subject: expect.stringContaining(order.number) });
+    // "Preparing your order" only shows in the bell; the first email is "Shipped".
+    expect(sent).toHaveLength(0);
+    expect(await db.notification.count({ where: { userId: order.userId, title: { contains: order.number } } })).toBeGreaterThan(0);
     expect(await db.adminLog.count({ where: { action: "shipment.create", resourceId: order.orderId } })).toBe(1);
   });
 
@@ -119,7 +120,7 @@ describe("createShipment", () => {
 });
 
 describe("moving a shipment on", () => {
-  it("goes through every step, moving the order's status and sending a message each time", async () => {
+  it("goes through every step, moving the order's status and emailing the steps that matter", async () => {
     const order = await makeOrder(db);
     await createShipment(adminId, order.orderId);
     sent.length = 0;
@@ -147,9 +148,13 @@ describe("moving a shipment on", () => {
     ]);
     // Out for delivery and delivered happen in the buyer's city.
     expect(shipment.events.at(-1)?.location).toBe("Pune");
-    expect(sent).toHaveLength(5);
-    expect(sent.at(-1)).toMatchObject({ subject: `Order ${order.number}: Delivered` });
-    expect(sent[1]?.channel === "email" && sent[1].text).toContain(shipment.awb);
+    // Shipped, out for delivery and delivered, like a big shop; packed and in transit only show in the bell.
+    expect(sent.map((message) => message.channel === "email" && message.subject)).toEqual([
+      `Shipped: your order ${order.number} is on its way`,
+      `Out for delivery: your order ${order.number} arrives today`,
+      `Delivered: your order ${order.number}`,
+    ]);
+    expect(sent[0]?.channel === "email" && sent[0].text).toContain(shipment.awb);
 
     // Nothing follows delivery.
     expect(await simulateShipmentStep(adminId, order.orderId, "next", "delivered")).toEqual({
@@ -165,14 +170,15 @@ describe("moving a shipment on", () => {
   it("applies a double click once", async () => {
     const order = await makeOrder(db);
     await createShipment(adminId, order.orderId);
+    await simulateShipmentStep(adminId, order.orderId, "next", "created");
     sent.length = 0;
     const results = await Promise.all([
-      simulateShipmentStep(adminId, order.orderId, "next", "created"),
-      simulateShipmentStep(adminId, order.orderId, "next", "created"),
+      simulateShipmentStep(adminId, order.orderId, "next", "packed"),
+      simulateShipmentStep(adminId, order.orderId, "next", "packed"),
     ]);
     expect(results.filter((result) => result.ok && result.changed)).toHaveLength(1);
-    expect((await shipmentOf(order.orderId)).status).toBe("packed");
-    expect(await db.shipmentEvent.count({ where: { status: "packed" } })).toBe(1);
+    expect((await shipmentOf(order.orderId)).status).toBe("shipped");
+    expect(await db.shipmentEvent.count({ where: { status: "shipped" } })).toBe(1);
     expect(sent).toHaveLength(1);
   });
 
@@ -215,7 +221,7 @@ describe("moving a shipment on", () => {
       status: "returned",
     });
     expect(await orderStatus(order.orderId)).toBe("returned");
-    expect(sent.at(-1)).toMatchObject({ subject: `Order ${order.number}: Returned to us` });
+    expect(sent.at(-1)).toMatchObject({ subject: `Returned to us: order ${order.number}` });
   });
 
   it("doesn't move a cancelled order's status", async () => {

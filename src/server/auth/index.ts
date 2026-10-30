@@ -15,6 +15,7 @@ import {
   sendOtpSms,
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendWelcomeEmail,
 } from "@/server/notify/auth";
 import { placeholderEmailFor } from "./placeholder-email";
 import {
@@ -61,6 +62,13 @@ export const auth = betterAuth({
     user: {
       create: {
         before: (user, ctx) => prepareNewUser(user, ctx?.body),
+        // A welcome email (email sign-ups only). A mail problem never
+        // breaks sign-up: the sender logs it instead.
+        after: async (user) => {
+          await sendWelcomeEmail(user).catch((error: unknown) => {
+            console.error("sign-up: welcome email not sent.", error);
+          });
+        },
       },
     },
   },

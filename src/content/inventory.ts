@@ -37,7 +37,7 @@ export const inventory = {
     adjustment: "Adjusted",
     expiry_write_off: "Expired write-off",
   } as Record<string, string>,
-  refTypes: { order: "Order", brand_order: "Launch order" } as Record<string, string>,
+  refTypes: { order: "Order", brand_order: "Build Your Brand order" } as Record<string, string>,
 
   b2c: {
     metaTitle: "B2C Inventory",
@@ -151,7 +151,7 @@ export const inventory = {
   b2b: {
     metaTitle: "B2B Inventory",
     intro:
-      "Components for Build Your Brand: blank bottles, tubes, jars, caps, boxes, label stock and the product base. Each Launch product has a recipe; what can be ordered is what the components can make.",
+      "Components for Build Your Brand: blank bottles, tubes, jars, caps, boxes, label stock and the product base. Each Build Your Brand product has a recipe; what can be ordered is what the components can make.",
     components: {
       title: "Components",
       add: "Add a component",
@@ -170,7 +170,7 @@ export const inventory = {
     canMake: {
       title: "What we can make",
       help: "Available components divided by each recipe, rounded down to the product's order step.",
-      columns: { product: "Launch product", recipe: "Recipe", canMake: "Can make", limitedBy: "Runs out first", actions: "Recipe" },
+      columns: { product: "Brand product", recipe: "Recipe", canMake: "Can make", limitedBy: "Runs out first", actions: "Recipe" },
       none: "No recipe yet",
       noLimit: "No limit",
       lines: (n: number) => count(n, "component", "components"),
@@ -227,7 +227,7 @@ export const inventory = {
     back: "Back to B2B Inventory",
     title: (name: string) => `Recipe: ${name}`,
     intro:
-      "What one unit of this Launch product is made of. Quantities are in each component's own unit (pieces, ml or g). One component can be used in many recipes.",
+      "What one unit of this Build Your Brand product is made of. Quantities are in each component's own unit (pieces, ml or g). One component can be used in many recipes.",
     columns: { component: "Component", quantity: "Per unit", remove: "Remove" },
     empty: "No components yet. Without a recipe this product has no stock limit.",
     add: "Add a component",

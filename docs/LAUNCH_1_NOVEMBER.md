@@ -165,7 +165,7 @@ The test address keeps running after launch, for future testing, so it is
 emptied rather than deleted. The tool for this is `pnpm db:clear-test-data`
 (the code is `scripts/clear-test-data.ts`).
 
-**What it removes:** every order (store and Launch Your Brand, with their
+**What it removes:** every order (store and Build Your Brand, with their
 payments, invoices and delivery steps), every quiz attempt, every Super Coin
 entry, all notifications, bug reports and error log entries, and **every
 account that is not an admin** (doctors, regular and bulk buyers, with their
@@ -210,7 +210,7 @@ Steps:
 
    Would remove:
      Accounts (not admins):  14 (6 Ayurveda Doctor, 5 Customer, 3 Pharmacy / Store)
-     Orders:                 22 (4 Launch Your Brand), with 25 payment(s) and 9 invoice(s)
+     Orders:                 22 (4 Build Your Brand), with 25 payment(s) and 9 invoice(s)
      Quiz attempts:          11
      ...
    Keeps:
@@ -409,7 +409,7 @@ Signed in as admin, while Maintenance mode is on:
 3. **Admin > Users / admins:** invite the other staff admins
    (Admin > Admins > Invite). Each sets a strong password and two-factor
    sign-in.
-4. **Content:** quizzes, courses, Launch Your Brand products and the home
+4. **Content:** quizzes, courses, Build Your Brand products and the home
    page look right. Create the first real quiz if one should be open on day
    one.
 

@@ -5,8 +5,8 @@ import { clearAuthTables, clearContentTables } from "../../../tests/setup/conten
 import { makeUser } from "../../../tests/setup/shop";
 import { addReply, canWrite, createThread, listThreads, readThread, toggleLike } from "./threads";
 
-// Dr. Talk threads: only approved doctors write, everyone reads, and the
-// author always comes from the caller's id.
+// Dr. Talk threads: only approved doctors post and reply, everyone reads and
+// likes, and the author always comes from the caller's id.
 
 beforeAll(async () => {
   await clearContentTables(db);
@@ -37,15 +37,31 @@ describe("who may write", () => {
     expect(await canWrite("no-such-user")).toBe(false);
   });
 
-  it("refuses threads, replies and likes from everyone else", async () => {
+  it("refuses threads and replies from everyone else", async () => {
     const author = await doctor();
     const created = await createThread(author, valid);
     if (!created.ok) throw new Error("setup failed");
     const customer = await makeUser(db, { type: "customer" });
     expect(await createThread(customer, valid)).toMatchObject({ ok: false, error: "forbidden" });
     expect(await addReply(customer, created.id, { body: "hi" })).toMatchObject({ ok: false, error: "forbidden" });
-    expect(await toggleLike(customer, created.id)).toMatchObject({ ok: false, error: "forbidden" });
     expect(await db.thread.count()).toBe(1);
+  });
+
+  it("lets every member like, but not unknown users", async () => {
+    const author = await doctor();
+    const created = await createThread(author, valid);
+    if (!created.ok) throw new Error("setup failed");
+    const members = [
+      await makeUser(db, { type: "customer" }),
+      await makeUser(db, { type: "pharmacy", verificationStatus: "approved" }),
+      await makeUser(db, { type: "doctor", verificationStatus: "pending" }),
+    ];
+    for (const id of members) expect(await toggleLike(id, created.id)).toEqual({ ok: true, liked: true });
+    expect((await readThread(members[0], created.id))?.thread).toMatchObject({ likeCount: 3, likedByMe: true });
+    expect(await toggleLike(members[0], created.id)).toEqual({ ok: true, liked: false });
+    expect(await toggleLike("no-such-user", created.id)).toMatchObject({ ok: false, error: "forbidden" });
+    expect(await toggleLike(members[0], 999_999)).toMatchObject({ ok: false, error: "notFound" });
+    expect(await db.threadLike.count()).toBe(2);
   });
 });
 
