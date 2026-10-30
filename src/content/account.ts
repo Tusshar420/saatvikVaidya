@@ -74,6 +74,7 @@ export const account = {
   shortcuts: {
     title: "Profile menu",
     overview: "Overview",
+    newTab: "(opens in a new tab)",
     admin: { label: "Admin panel", help: "Manage the store and approvals." },
     orders: { label: "Orders & Requests", help: "Track and review your orders." },
     brandOrders: { label: "Branded orders", help: "Build Your Brand orders and label proofs." },

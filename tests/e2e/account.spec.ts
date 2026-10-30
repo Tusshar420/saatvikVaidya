@@ -155,20 +155,27 @@ test("an admin sees the reports and downloads a logged CSV; others can't", async
   await expect(adminLink).toHaveAttribute("href", "/admin");
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   await page.screenshot({ path: testInfo.outputPath("account-admin.png"), fullPage: true });
-  await adminLink.click();
-  await expect(page).toHaveURL(/\/admin$/);
+  // It opens the panel in a new tab and leaves the account page open.
+  const [adminTab] = await Promise.all([page.waitForEvent("popup"), adminLink.click()]);
+  await expect(adminTab).toHaveURL(/\/admin$/);
+  await adminTab.close();
+  await expect(page).toHaveURL(/\/account$/);
 
   // So does the header's account menu (from 560 px; phones have the
   // account page's link above).
   if (!isMobile) {
-    await page.goto("/account");
     await page
       .getByRole("banner")
       .getByRole("button", { name: signIn.menu.trigger(adminUser.name) })
       .click();
     await expect(page.getByRole("menuitem", { name: signIn.menu.brandOrders })).toHaveAttribute("href", "/my-brand");
-    await page.getByRole("menuitem", { name: signIn.menu.admin }).click();
-    await expect(page).toHaveURL(/\/admin$/);
+    const [menuTab] = await Promise.all([
+      page.waitForEvent("popup"),
+      page.getByRole("menuitem", { name: signIn.menu.admin }).click(),
+    ]);
+    await expect(menuTab).toHaveURL(/\/admin$/);
+    await menuTab.close();
+    await expect(page).toHaveURL(/\/account$/);
   }
 
   await page.goto("/admin/reports");
