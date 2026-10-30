@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BadgeCheck, BookOpen, ChevronRight, Coins, GraduationCap, LayoutDashboard, Presentation, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, Sparkles, UserRound, type LucideIcon } from "lucide-react";
 import { PageHero } from "@/components/site/page-hero";
-import { NameForm, NotificationsForm, PasswordForm, VerifyEmailButton } from "@/components/site/account/profile-forms";
+import { NameForm, NotificationsForm, PasswordForm, TestEmailButton, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { DocumentUpload } from "@/components/site/account/document-upload";
 import { MyEbooks } from "@/components/site/ebooks/my-ebooks";
@@ -175,6 +175,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                     <>
                       <Contact value={profile.email} verified={profile.emailVerified} />
                       {!profile.emailVerified && <VerifyEmailButton />}
+                      <TestEmailButton />
                     </>
                   ) : (
                     <span className="text-muted">{copy.notAdded}</span>

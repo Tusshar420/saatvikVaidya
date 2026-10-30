@@ -5566,3 +5566,13 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   stream closed early" entries were not investigated.
 - Checked: typecheck, lint, coins and checkout unit tests (MySQL 8). Not
   checked on MariaDB itself.
+
+## "Send a test email" button (2026-10-30)
+
+- /account, under the email address: **Send a test email** mails the signed-in
+  user's own address and shows success, or the mail server's real error (code
+  and message, never the password). `sendTestEmail` in `src/server/notify/index.ts`
+  does not swallow errors like the normal sender. Rate limit 5 per 15 minutes
+  per account (`testEmailPerUser`). Copy in `content/account.ts` (`testEmail`).
+- Phone-only accounts (placeholder email) get a "add an email first" message.
+- Checked: typecheck, lint, notify unit tests, account e2e (phone and desktop).

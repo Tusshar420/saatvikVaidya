@@ -41,13 +41,22 @@ export const devLogNotifier: Notifier = {
  * not thrown, so a mail problem never breaks sign-up, checkout or an admin
  * action. SMS still goes to the dev log (no SMS provider yet).
  */
-function smtpNotifier(config: NonNullable<ReturnType<typeof smtpEnv>>): Notifier {
-  const transport = nodemailer.createTransport({
+type SmtpConfig = NonNullable<ReturnType<typeof smtpEnv>>;
+
+function createTransport(config: SmtpConfig) {
+  return nodemailer.createTransport({
     host: config.SMTP_HOST,
     port: config.SMTP_PORT,
     secure: config.SMTP_PORT === 465,
     auth: config.SMTP_USER ? { user: config.SMTP_USER, pass: config.SMTP_PASS } : undefined,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
   });
+}
+
+function smtpNotifier(config: SmtpConfig): Notifier {
+  const transport = createTransport(config);
   return {
     async send(message) {
       if (message.channel !== "email") return devLogNotifier.send(message);
@@ -63,6 +72,30 @@ function smtpNotifier(config: NonNullable<ReturnType<typeof smtpEnv>>): Notifier
       }
     },
   };
+}
+
+export type TestEmailResult =
+  | { ok: true }
+  | { ok: false; reason: "not-configured" }
+  | { ok: false; reason: "failed"; detail: string };
+
+/**
+ * Sends one email and reports what happened, instead of swallowing the
+ * error like the normal sender. For the "Send test email" button, so the
+ * team can see why mail isn't arriving. The detail never includes the password.
+ */
+export async function sendTestEmail(to: string, subject: string, text: string): Promise<TestEmailResult> {
+  const config = smtpEnv();
+  if (!config) return { ok: false, reason: "not-configured" };
+  try {
+    await createTransport(config).sendMail({ from: config.EMAIL_FROM, to, subject, text });
+    return { ok: true };
+  } catch (error) {
+    console.error(`[notify:smtp] test email to ${to} failed`, error);
+    const code = error instanceof Error && "code" in error ? String((error as { code: unknown }).code) : "";
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return { ok: false, reason: "failed", detail: [code, message].filter(Boolean).join(": ").slice(0, 300) };
+  }
 }
 
 let smtp: { key: string; notifier: Notifier } | undefined;

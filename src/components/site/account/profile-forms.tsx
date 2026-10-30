@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import {
   changePasswordAction,
   saveNotificationsAction,
+  sendTestEmailAction,
   sendVerificationEmailAction,
   updateNameAction,
 } from "@/app/(site)/account/actions";
@@ -48,6 +49,22 @@ export function VerifyEmailButton() {
           {copy.emailVerify.send}
         </Button>
       )}
+    </form>
+  );
+}
+
+/** "Send a test email" to the account's own address, showing the result or the mail error. */
+export function TestEmailButton() {
+  const [state, action, pending] = useActionState(sendTestEmailAction, idleForm);
+  return (
+    <form action={action} className="mt-2 flex flex-col gap-2">
+      <p className="text-xs text-muted">{copy.testEmail.hint}</p>
+      {state.status !== "idle" && state.message && (
+        <FormAlert tone={state.status === "success" ? "success" : "error"}>{state.message}</FormAlert>
+      )}
+      <Button type="submit" variant="secondary" size="sm" loading={pending} className="self-start max-sm:w-full">
+        {copy.testEmail.send}
+      </Button>
     </form>
   );
 }

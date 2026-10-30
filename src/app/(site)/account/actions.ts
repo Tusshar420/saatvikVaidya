@@ -12,7 +12,9 @@ import { auth } from "@/server/auth";
 import { rateLimitRules } from "@/server/auth/policy";
 import { hitRateLimit } from "@/server/auth/rate-limit";
 import { readAccount } from "@/server/auth/account";
+import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { requireUser } from "@/server/auth/session";
+import { sendTestEmail } from "@/server/notify";
 import {
   deleteAddress,
   saveAddressFromForm,
@@ -109,6 +111,23 @@ export async function sendVerificationEmailAction(): Promise<FormState> {
     };
   }
   return { status: "success", message: copy.emailVerify.sent(profile.email) };
+}
+
+/** Sends a test email to the signed-in user's own address and says what happened. */
+export async function sendTestEmailAction(): Promise<FormState> {
+  const { user } = await requireUser("/account");
+  const profile = await readAccount(user.id);
+  if (!profile?.email || isPlaceholderEmail(profile.email)) {
+    return { status: "error", message: copy.testEmail.noEmail };
+  }
+  const limit = await hitRateLimit(rateLimitRules.testEmailPerUser, user.id);
+  if (!limit.allowed) return { status: "error", message: copy.testEmail.tooMany };
+  const result = await sendTestEmail(profile.email, copy.testEmail.subject, copy.testEmail.body(profile.name));
+  if (result.ok) return { status: "success", message: copy.testEmail.sent(profile.email) };
+  return {
+    status: "error",
+    message: result.reason === "not-configured" ? copy.testEmail.notConfigured : copy.testEmail.failed(result.detail),
+  };
 }
 
 export async function saveAccountAddressAction(
