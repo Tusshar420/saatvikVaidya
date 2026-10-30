@@ -161,6 +161,10 @@ export function SiteModalsProvider({
     const key = returnFocus.current?.dataset.focusKey;
     if (key) api.requestFocus(key);
     setOpen(null);
+    // Staying on this page: re-render it on the server so guest-only parts
+    // (Dr. Talk's "Sign in to read", course and quiz buttons) show the
+    // signed-in view without a manual reload.
+    if (!nextPath.current) router.refresh();
     goNext();
   };
 

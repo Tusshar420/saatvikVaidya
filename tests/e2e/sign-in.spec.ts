@@ -3,6 +3,7 @@ import { account } from "../../src/content/account";
 import { authErrors } from "../../src/content/auth";
 import { shell } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
+import { threads } from "../../src/content/threads";
 import { verification } from "../../src/content/verification";
 import {
   createEmailAccount,
@@ -420,6 +421,50 @@ test("a signed-in page sends a signed-out visitor to sign-in, then back", async 
     page.getByRole("main").getByRole("heading", { level: 1 }),
   ).toContainText(account.addresses.title);
   await expect(bell(page)).toBeVisible();
+});
+
+test("signing in from the header updates the page underneath, no reload needed", async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  // Phones sign in from /account (the dock), not over another page.
+  test.skip(onPhone(page), "The header profile button is desktop-only.");
+  const email = freshEmail();
+  const password = "Tulsi-ginger-tea-26";
+  const name = "Meera Joshi";
+  await createEmailAccount(request, baseURL!, {
+    name,
+    email,
+    password,
+    userType: "customer",
+  });
+
+  await page.goto("/doctor-talk");
+  const main = page.getByRole("main");
+  await expect(
+    main.getByRole("heading", { name: threads.signedOutTitle }),
+  ).toBeVisible();
+
+  await openSignIn(page);
+  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page)
+    .getByRole("textbox", { name: signIn.email.email })
+    .fill(email);
+  await dialog(page)
+    .getByLabel(signIn.email.password, { exact: true })
+    .fill(password);
+  await dialog(page).getByRole("button", { name: signIn.email.submit }).click();
+  await expectSignedIn(page, name);
+
+  // Still on Dr. Talk, now showing the signed-in feed.
+  await expect(page).toHaveURL(/\/doctor-talk$/);
+  await expect(
+    main.getByRole("heading", { name: threads.signedOutTitle }),
+  ).toHaveCount(0);
+  await expect(
+    main.getByRole("navigation", { name: threads.filtersLabel }),
+  ).toBeVisible();
 });
 
 test("forgot password: the emailed link sets a new password", async ({
