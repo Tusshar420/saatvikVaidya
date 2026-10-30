@@ -11,7 +11,7 @@ import { coins as coinsCopy } from "../../src/content/coins";
 import { notFoundScreen } from "../../src/content/errors";
 import { settingDefaults } from "../../src/content/settings";
 import { orders } from "../../src/content/orders";
-import { dockNav, policyLinks, shell, siteNav } from "../../src/content/shell";
+import { policyLinks, shell, siteNav } from "../../src/content/shell";
 import { signIn } from "../../src/content/sign-in";
 import { ui } from "../../src/content/ui";
 import { e2eDb, signInAs, useFreshIp } from "./auth-helpers";
@@ -207,23 +207,51 @@ test.describe("nav rail", () => {
     const lastLink = nav.getByRole("link", { name: last.label });
 
     await expect(home).toHaveAttribute("aria-current", "page");
-    for (const link of siteNav)
-      await expect(
-        nav.getByRole("link", { name: link.label, exact: true }),
-      ).toHaveAttribute("href", link.href);
-
-    // The dock's links join the rail only where the dock is hidden.
-    // Ones already in the main order (Coins, Courses) stay where they are.
-    for (const link of dockNav.filter(
-      (d) => !siteNav.some((n) => n.href === d.href),
-    )) {
-      const dockLink = nav.getByRole("link", { name: link.railLabel, exact: true });
-      if (isMobile) await expect(dockLink).toBeHidden();
+    for (const link of siteNav) {
+      const navLink = nav.getByRole("link", { name: link.label, exact: true });
+      // Courses, Saatvik Coins and Track Order are left off on phones,
+      // where the bottom dock has them.
+      if (isMobile && link.wideOnly) await expect(navLink).toBeHidden();
       else {
-        await expect(dockLink).toBeVisible();
-        await expect(dockLink).toHaveAttribute("href", link.href);
+        await expect(navLink).toBeVisible();
+        await expect(navLink).toHaveAttribute("href", link.href);
       }
     }
+
+    // The client's order (30 Oct 2026), phone and desktop.
+    const shown = await nav
+      .getByRole("link")
+      .evaluateAll((links) =>
+        links
+          .filter((a) => (a as HTMLElement).offsetParent !== null)
+          .map((a) => a.textContent?.trim()),
+      );
+    expect(shown).toEqual(
+      isMobile
+        ? [
+            shell.nav.home,
+            "Dr. Talk",
+            "Quiz & Win",
+            "Build Your Brand",
+            "Top Brands",
+            "Real Feedback",
+            "Partner & Grow",
+            "Why Saatvik",
+          ]
+        : [
+            shell.nav.home,
+            "Dr. Talk",
+            "Courses",
+            "Quiz & Win",
+            "Build Your Brand",
+            "Top Brands",
+            "Saatvik Coins",
+            "Track Order",
+            "Real Feedback",
+            "Partner & Grow",
+            "Why Saatvik",
+          ],
+    );
 
     if (isMobile) {
       // The links don't fit on a phone, so the rail scrolls sideways.

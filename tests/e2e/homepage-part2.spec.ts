@@ -32,11 +32,13 @@ test.describe("Homepage part 2 (bottom half)", () => {
     ).toBeVisible();
   });
 
-  test("nav rail includes all sections", async ({ page }) => {
+  test("nav rail includes all sections", async ({ page, isMobile }) => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: /sections/i });
 
-    // v2 rail links to pages, not to homepage sections.
+    // v2 rail links to pages, not to homepage sections. On phones the bottom
+    // dock has Courses, Coins and Order, so the rail leaves those out.
+    const wideOnly = ["Courses", "Saatvik Coins", "Track Order"];
     for (const name of [
       "Dr. Talk",
       "Quiz & Win",
@@ -49,9 +51,9 @@ test.describe("Homepage part 2 (bottom half)", () => {
       "Partner & Grow",
       "Why Saatvik",
     ]) {
-      await expect(
-        nav.getByRole("link", { name, exact: true }),
-      ).toBeVisible();
+      const link = nav.getByRole("link", { name, exact: true });
+      if (isMobile && wideOnly.includes(name)) await expect(link).toBeHidden();
+      else await expect(link).toBeVisible();
     }
   });
 

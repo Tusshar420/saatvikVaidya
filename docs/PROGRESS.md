@@ -5628,3 +5628,37 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   on /terms while the machine was very busy (load ~14), not the quiz page; a
   re-run hit the same timeout at a different width. Screens checked at 375 and
   1280 px. Not run: unit tests and the full e2e suite.
+
+## Top menu and bottom bar: client's new order (2026-10-30)
+
+**Built**
+- The client gave a fixed order for both screen sizes. Phones (under 560 px,
+  where the bottom bar shows): Home, Dr. Talk, Quiz & Win, Build Your Brand,
+  Top Brands, Real Feedback, Partner & Grow, Why Saatvik in the top menu, and
+  Coins, Updates, Courses, Order, You in the bottom bar (unchanged).
+  Bigger screens (no bottom bar): Home, Dr. Talk, Courses, Quiz & Win, Build
+  Your Brand, Top Brands, Saatvik Coins, Track Order, Real Feedback,
+  Partner & Grow, Why Saatvik.
+- `siteNav` in `content/shell.ts` holds the order; Courses, Saatvik Coins and
+  Track Order carry `wideOnly`, and the nav rail hides those under 560 px.
+- The rail no longer adds the dock's Updates, My Orders and My Account after
+  a divider on bigger screens (the 2026-10-20 "Later" item): the client's
+  list leaves them out, and the header's bell and profile menu already go
+  there. `railLabel`, `railOrders` and `railYou` are gone.
+- At 1280 px all 11 links fit on one line.
+
+**Checked**
+- Typecheck and lint pass. `shell`, `homepage-part2` and `notifications` e2e
+  pass on phone and desktop (58 tests); the shell test now checks the exact
+  order on both sizes. Screens checked at 375 and 1280 px.
+- Tests ran in a separate worktree on port 3220 with its own test database,
+  because another session was building and testing in the main folder at the
+  same time (the shared test database gave random deadlock failures). Unit
+  tests there: all pass apart from the check that the database is named
+  `saatvik_vaidya_test` (expected with the other name).
+- Full e2e suite not run (it takes over 10 minutes and the other session was
+  using port 3100).
+
+**Later**
+- The bottom bar has no unread badges, so on phones a new course shows only
+  on the bell now that Courses has left the phone top menu.

@@ -160,6 +160,7 @@ test("someone else's notification can't be marked read", async ({ page, baseURL 
 test("sections with a new notification get a badge on their nav link", async ({
   page,
   baseURL,
+  isMobile,
 }) => {
   await useFreshIp(page);
   const errors = collectErrors(page);
@@ -179,7 +180,8 @@ test("sections with a new notification get a badge on their nav link", async ({
   await page.goto("/cart");
   const rail = page.getByRole("navigation", { name: "Sections" });
   const badge = (name: RegExp) => rail.getByRole("link", { name }).getByTestId("nav-badge");
-  await expect(badge(/Courses/)).toHaveText("2");
+  // Phones leave Courses out of the rail (the bottom dock has it).
+  if (!isMobile) await expect(badge(/Courses/)).toHaveText("2");
   await expect(badge(/Dr\. Talk/)).toHaveText("1");
   await expect(badge(/Quiz & Win/)).toHaveText("1");
   await expect(badge(/Top Brands/)).toHaveText("1");
