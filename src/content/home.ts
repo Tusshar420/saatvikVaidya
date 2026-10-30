@@ -72,7 +72,9 @@ export const home = {
   },
   reels: {
     play: (title: string) => `Play ${title}`,
-    close: "Close video",
+    pause: (title: string) => `Pause ${title}`,
+    soundOn: "Turn sound on",
+    soundOff: "Turn sound off",
     scroller: "Reels",
   },
   launch: {

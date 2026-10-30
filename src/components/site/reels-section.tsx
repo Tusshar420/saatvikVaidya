@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { CirclePlay, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CirclePlay, Pause, Volume2, VolumeX } from "lucide-react";
 import { home as copy } from "@/content/home";
 import { cn } from "@/lib/cn";
 import type { ReelItem, SectionHeading as SectionHeadingData } from "@/server/content/home";
@@ -84,7 +84,6 @@ export function ReelsSection({ heading, filters, reels }: ReelsSectionProps) {
 }
 
 function ReelCard({ reel }: { reel: ReelItem }) {
-  const [playing, setPlaying] = useState(false);
   const isVideo = reel.mediaKind === "VIDEO" && reel.mediaSrc;
   const image = reel.mediaKind === "IMAGE" ? reel.mediaSrc : reel.posterSrc;
   const label = reel.badge ?? reel.poster?.kicker ?? null;
@@ -128,38 +127,7 @@ function ReelCard({ reel }: { reel: ReelItem }) {
   );
 
   if (isVideo) {
-    if (playing) {
-      return (
-        <div className={cn(cardClasses, "p-0")}>
-          <video
-            src={reel.mediaSrc ?? undefined}
-            autoPlay
-            controls
-            playsInline
-            className="absolute inset-0 size-full bg-ink object-cover"
-            aria-label={reel.mediaLabel ?? reel.title}
-          />
-          <button
-            type="button"
-            onClick={() => setPlaying(false)}
-            aria-label={copy.reels.close}
-            className="absolute top-2 right-2 z-1 grid size-11 place-items-center rounded-full bg-ink/60 text-white"
-          >
-            <X aria-hidden className="size-5" />
-          </button>
-        </div>
-      );
-    }
-    return (
-      <button
-        type="button"
-        onClick={() => setPlaying(true)}
-        aria-label={copy.reels.play(reel.title)}
-        className={cardClasses}
-      >
-        {body}
-      </button>
-    );
+    return <VideoReel reel={reel} className={cn(cardClasses, "p-0")} />;
   }
 
   if (reel.link.href) {
@@ -170,4 +138,101 @@ function ReelCard({ reel }: { reel: ReelItem }) {
     );
   }
   return <div className={cardClasses}>{body}</div>;
+}
+
+/**
+ * A video reel plays on its own, muted and looping, while at least half of it
+ * is on screen, and pauses when it scrolls away. Browsers only allow muted
+ * autoplay, so sound is a separate button. Under reduced motion it waits for
+ * a tap instead.
+ */
+function VideoReel({ reel, className }: { reel: ReelItem; className: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const pausedByUser = useRef(false);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+        if (entry.isIntersecting) {
+          // A blocked autoplay (for example iOS low power mode) leaves the play button showing.
+          if (!pausedByUser.current) video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  function togglePlay() {
+    const video = ref.current;
+    if (!video) return;
+    if (video.paused) {
+      pausedByUser.current = false;
+      video.play().catch(() => {});
+    } else {
+      pausedByUser.current = true;
+      video.pause();
+    }
+  }
+
+  return (
+    <div className={className}>
+      <video
+        ref={ref}
+        src={reel.mediaSrc ?? undefined}
+        poster={reel.posterSrc ?? undefined}
+        muted={muted}
+        loop
+        playsInline
+        preload="metadata"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        className="absolute inset-0 size-full bg-ink object-cover"
+        aria-label={reel.mediaLabel ?? reel.title}
+      />
+      {!playing && (
+        <button
+          type="button"
+          onClick={togglePlay}
+          aria-label={copy.reels.play(reel.title)}
+          className="absolute inset-0 grid place-items-center bg-ink/20"
+        >
+          <CirclePlay aria-hidden className="size-13 fill-white/12 stroke-[1.8]" />
+        </button>
+      )}
+      <div className="absolute top-1 right-1 z-1 flex flex-col">
+        {playing && (
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label={copy.reels.pause(reel.title)}
+            className="group grid size-11 place-items-center text-white"
+          >
+            <span className="grid size-8 place-items-center rounded-full bg-ink/60 group-focus-visible:ring-2 group-focus-visible:ring-white">
+              <Pause aria-hidden className="size-4" />
+            </span>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setMuted((value) => !value)}
+          aria-label={muted ? copy.reels.soundOn : copy.reels.soundOff}
+          className="group grid size-11 place-items-center text-white"
+        >
+          <span className="grid size-8 place-items-center rounded-full bg-ink/60 group-focus-visible:ring-2 group-focus-visible:ring-white">
+            {muted ? <VolumeX aria-hidden className="size-4" /> : <Volume2 aria-hidden className="size-4" />}
+          </span>
+        </button>
+      </div>
+    </div>
+  );
 }
