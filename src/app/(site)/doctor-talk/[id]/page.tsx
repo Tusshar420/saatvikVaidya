@@ -38,7 +38,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           <h1 className="mt-4 text-h3 text-ink">{thread.title}</h1>
           <p className="mt-3 text-body-lg whitespace-pre-line text-ink">{thread.body}</p>
           <div className="mt-4 border-t border-line pt-2">
-            <LikeButton thread={thread} canLike={writer} />
+            <LikeButton thread={thread} canLike />
           </div>
         </article>
 

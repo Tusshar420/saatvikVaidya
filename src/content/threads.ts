@@ -16,10 +16,10 @@ export const threads = {
   filtersLabel: "Discussion categories",
   doctorBadge: "Verified doctor",
   signedOutTitle: "Sign in to read Dr. Talk",
-  signedOutText: "Discussions are open to signed-in members. Verified Ayurveda doctors can post and reply.",
+  signedOutText: "Discussions are open to signed-in members, and anyone signed in can like them. Verified Ayurveda doctors can post and reply.",
   signIn: "Sign in",
   readOnlyNote:
-    "You can read every discussion. Posting, replying and liking are for verified Ayurveda doctors.",
+    "You can read and like every discussion. Posting and replying are for verified Ayurveda doctors.",
   emptyTitle: "No discussions yet",
   emptyText: "Be the first verified doctor to start a conversation.",
   emptyReadOnlyText: "Verified doctors will start the first conversations here.",

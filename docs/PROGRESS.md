@@ -5739,3 +5739,30 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
   "payment failed"); staff see it in the admin panel.
 - Emails are sent during the request; a slow mail server slows checkout by a
   few seconds. A background queue would fix that later.
+
+## Dr. Talk: every member can like threads (2026-10-31)
+
+**Built**
+- The client asked that anyone can like the threads and discussions. Likes
+  were limited to approved doctors; now every signed-in member (buyers, bulk
+  buyers, doctors still waiting for approval) can like and unlike a thread on
+  `/doctor-talk` and `/doctor-talk/[id]`. Posting and replying stay with
+  approved doctors.
+- `toggleLike` now checks `canLike` (the user exists, read fresh from the
+  database) instead of `canWrite`. The like action keeps the session check and
+  the `threadWritePerUser` rate limit.
+- Wording updated: the read-only note and the signed-out text say members can
+  like.
+- Signed-out visitors still see the sign-in prompt (they can't see the feed,
+  and a like needs an account).
+
+**Checked**
+- New Vitest case (customer, bulk buyer and pending doctor like; unknown user
+  refused; missing thread is notFound). `threads.spec.ts` now has the customer
+  like and unlike a thread. typecheck, lint, all unit tests (86 files), build,
+  and the threads and ebooks specs pass. The main e2e suite passed 308 tests;
+  one ebook test timed out on a slow machine (disk 96% full), then passed on
+  its own with `--workers=1`.
+
+**Later**
+- Replies have no likes; add `ThreadReplyLike` if the client wants them.
