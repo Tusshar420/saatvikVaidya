@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { BadgeCheck, Check, Heart, MessageCircle } from "lucide-react";
 import { likeAction, voteAction } from "@/app/(site)/doctor-talk/actions";
@@ -5,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
-import { pollPercent, type PollView, type ThreadAuthor, type ThreadView } from "@/lib/threads";
+import { pollPercent, splitLinks, type PollView, type ThreadAuthor, type ThreadView } from "@/lib/threads";
 import { threads as copy } from "@/content/threads";
 import { portalCardClasses } from "../portal/page-hero";
 
@@ -25,6 +26,71 @@ export function AuthorLine({ author, createdAt }: { author: ThreadAuthor; create
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Plain text with pasted web links shown as links (opening in a new tab).
+ * Links come from members, so search engines are told not to follow them,
+ * and the new tab gets no access to this page.
+ */
+export function LinkedText({ text }: { text: string }) {
+  return splitLinks(text).map((part, index) =>
+    part.type === "text" ? (
+      <Fragment key={index}>{part.value}</Fragment>
+    ) : (
+      <a
+        key={index}
+        href={part.href}
+        target="_blank"
+        rel="noopener noreferrer nofollow ugc"
+        className="font-bold break-all text-brand underline underline-offset-2 hover:text-brand-mid"
+      >
+        {part.value}
+        <span className="sr-only"> {copy.newTab}</span>
+      </a>
+    ),
+  );
+}
+
+const imageSrc = (id: number) => `/api/thread-images/${id}`;
+
+/**
+ * A thread's images. On the thread page they show large and each opens full
+ * size in a new tab; in the feed (`href`) they are a row of small squares
+ * that lead to the thread.
+ */
+export function ThreadImages({ thread, href }: { thread: ThreadView; href?: string }) {
+  const { images } = thread;
+  if (images.length === 0) return null;
+  const large = !href && images.length === 1;
+  return (
+    <ul
+      aria-label={copy.imagesLabel}
+      className={cn(
+        "mt-3.5 grid gap-2",
+        href ? "max-w-md grid-cols-4" : large ? "grid-cols-1" : "grid-cols-2",
+      )}
+    >
+      {images.map((id, index) => (
+        <li key={id}>
+          <a
+            href={href ?? imageSrc(id)}
+            {...(!href && { target: "_blank", rel: "noopener" })}
+            className="block overflow-hidden rounded-md border border-line bg-surface-alt"
+          >
+            {/* Plain <img>: our own private route, which next/image can't fetch with the member's cookie. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageSrc(id)}
+              alt={copy.imageAlt(index + 1, images.length, thread.author.name)}
+              loading="lazy"
+              className={cn("w-full", large ? "max-h-96 object-contain" : "aspect-square object-cover")}
+            />
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -123,7 +189,10 @@ export function ThreadCard({ thread, canLike }: { thread: ThreadView; canLike: b
           {thread.title}
         </Link>
       </h3>
-      <p className="mt-1.5 line-clamp-3 text-small whitespace-pre-line text-muted">{thread.body}</p>
+      <p className="mt-1.5 line-clamp-3 text-small whitespace-pre-line text-muted">
+        <LinkedText text={thread.body} />
+      </p>
+      <ThreadImages thread={thread} href={`/doctor-talk/${thread.id}`} />
       {thread.poll && <ThreadPoll threadId={thread.id} poll={thread.poll} />}
       <div className="mt-3 flex items-center gap-3 border-t border-line pt-2">
         <LikeButton thread={thread} canLike={canLike} />

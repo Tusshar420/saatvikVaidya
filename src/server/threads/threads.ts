@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   canWriteThreads,
   pollLimits,
+  threadImageUpload,
   threadKinds,
   threadLimits,
   type PollView,
@@ -12,6 +13,8 @@ import {
 } from "@/lib/threads";
 import { threads as copy } from "@/content/threads";
 import { db } from "@/server/db";
+import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
+import { checkUpload } from "@/server/storage/files";
 
 // Dr. Talk threads: a feed that signed-in users read and like, and approved
 // doctors write. Every write checks the writer from the database (not the
@@ -54,6 +57,7 @@ type ThreadRow = {
   likes: { userId: string }[];
   pollOptions: { id: number; label: string; _count: { votes: number } }[];
   pollVotes: { optionId: number }[];
+  images: { id: number }[];
 };
 
 const threadSelect = (viewerId: string) =>
@@ -72,6 +76,7 @@ const threadSelect = (viewerId: string) =>
       select: { id: true, label: true, _count: { select: { votes: true } } },
     },
     pollVotes: { where: { userId: viewerId }, select: { optionId: true } },
+    images: { orderBy: { position: "asc" }, select: { id: true } },
   }) as const;
 
 function toPoll(row: ThreadRow, viewerId: string): PollView | null {
@@ -97,6 +102,7 @@ const toThread = (row: ThreadRow, viewerId: string): ThreadView => ({
   likeCount: row._count.likes,
   likedByMe: row.likes.length > 0,
   poll: toPoll(row, viewerId),
+  images: row.images.map((image) => image.id),
 });
 
 export async function listThreads(viewerId: string, filter: ThreadFilter): Promise<ThreadView[]> {
@@ -157,20 +163,63 @@ const newThread = z.object({
   pollOptions: pollOptions.optional(),
 });
 
-export async function createThread(userId: string, input: unknown): Promise<ThreadResult<{ id: number }>> {
+/**
+ * Starts a thread. `images` are the raw files the doctor attached; each one's
+ * real type and size are checked from its bytes before anything is saved.
+ */
+export async function createThread(
+  userId: string,
+  input: unknown,
+  images: Uint8Array[] = [],
+): Promise<ThreadResult<{ id: number }>> {
   if (!(await canWrite(userId))) return { ok: false, error: "forbidden" };
   const parsed = newThread.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid", fieldErrors: firstErrors(parsed.error) };
+  if (images.length > threadImageUpload.maxCount) {
+    return { ok: false, error: "invalid", fieldErrors: { images: copy.errors.imageCount } };
+  }
+  const files: { key: string; contentType: string; bytes: Uint8Array }[] = [];
+  for (const bytes of images) {
+    const checked = checkUpload(bytes, threadImageUpload);
+    if (!checked.ok) {
+      const message = checked.error === "tooLarge" ? copy.errors.imageTooLarge : copy.errors.imageType;
+      return { ok: false, error: "invalid", fieldErrors: { images: message } };
+    }
+    files.push({ key: newFileKey("threads", userId, checked.extension), contentType: checked.contentType, bytes });
+  }
+
   const { pollOptions: options, ...thread } = parsed.data;
-  const row = await db.thread.create({
-    data: {
-      ...thread,
-      authorId: userId,
-      ...(options && { pollOptions: { create: options.map((label, position) => ({ label, position })) } }),
-    },
-    select: { id: true },
+  try {
+    // Files first, then the rows that point at them; if the rows fail, the
+    // files are removed again.
+    for (const file of files) await getStorage().put(file.key, file.bytes);
+    const row = await db.thread.create({
+      data: {
+        ...thread,
+        authorId: userId,
+        ...(options && { pollOptions: { create: options.map((label, position) => ({ label, position })) } }),
+        ...(files.length > 0 && {
+          images: {
+            create: files.map((file, position) => ({ fileKey: file.key, contentType: file.contentType, position })),
+          },
+        }),
+      },
+      select: { id: true },
+    });
+    return { ok: true, id: row.id };
+  } catch (error) {
+    await deleteFilesQuietly(files.map((file) => file.key));
+    throw error;
+  }
+}
+
+/** A thread image for a signed-in member; null if the id is wrong or its thread is hidden. */
+export async function findViewableThreadImage(id: number): Promise<{ key: string; contentType: string } | null> {
+  const image = await db.threadImage.findFirst({
+    where: { id, thread: { hidden: false } },
+    select: { fileKey: true, contentType: true },
   });
-  return { ok: true, id: row.id };
+  return image && { key: image.fileKey, contentType: image.contentType };
 }
 
 const newReply = z.object({

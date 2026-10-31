@@ -128,6 +128,9 @@ async function fileKeys(db: Db, userIds: string[]): Promise<string[]> {
     ...(await db.brandOrderDetails.findMany({ select: { logoKey: true } })).map((row) => row.logoKey),
     ...(await db.brandProof.findMany({ select: { fileKey: true } })).map((row) => row.fileKey),
     ...(await db.bugReport.findMany({ select: { screenshotKey: true } })).map((row) => row.screenshotKey),
+    ...(await db.threadImage.findMany({ where: { thread: { authorId: { in: userIds } } }, select: { fileKey: true } })).map(
+      (row) => row.fileKey,
+    ),
   ];
   return [...new Set(keys.flatMap((key) => (key ? [key] : [])))];
 }

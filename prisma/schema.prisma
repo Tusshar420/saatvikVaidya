@@ -1855,6 +1855,8 @@ model Thread {
   /// Optional poll: two to six choices. The thread title is the question.
   pollOptions ThreadPollOption[]
   pollVotes   ThreadPollVote[]
+  /// Up to four images shared with the thread (private files in Storage).
+  images      ThreadImage[]
 
   @@index([hidden, createdAt])
   @@index([kind, createdAt])
@@ -1890,6 +1892,20 @@ model ThreadPollOption {
   label    String           @db.VarChar(120)
   position Int
   votes    ThreadPollVote[]
+
+  @@index([threadId, position])
+}
+
+/// An image shared with a thread. The file is private in Storage and served
+/// only to signed-in members by /api/thread-images/[id].
+model ThreadImage {
+  id          Int      @id @default(autoincrement())
+  threadId    Int
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  fileKey     String   @unique @db.VarChar(191)
+  contentType String   @db.VarChar(32)
+  position    Int
+  createdAt   DateTime @default(now())
 
   @@index([threadId, position])
 }

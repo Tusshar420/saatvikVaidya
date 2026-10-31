@@ -6062,3 +6062,46 @@ remain.
 **Later**
 - Edit a prepared order's items (today: cancel and prepare a new one).
 - Real SMS (MSG91) so phone-only customers get the link and code.
+
+## Dr. Talk threads: "Heading", images and clickable links (2026-10-31)
+
+**Built**
+- The client asked for: the thread "Title" field renamed to **Heading**, and
+  thread content that can carry images and pasted links.
+- "Start a thread" now has **Images (optional)**: up to 4 PNG, JPEG or WebP
+  images, 5 MB each, with previews and a remove button for each. An image
+  pasted into Details (a screenshot, or copied from another app) is added
+  too. Each file's real type and size are checked again on the server from
+  its bytes.
+- Links pasted into a thread or a reply show as links (http, https or
+  "www."), opening in a new tab with `rel="noopener noreferrer nofollow
+  ugc"`. Text is never treated as HTML (`splitLinks()` in `src/lib/threads.ts`).
+- Images show as small squares in the feed (they lead to the thread) and
+  large on the thread page (each opens full size).
+- New table `ThreadImage` (migration `20261031145750_thread_images`). Files
+  are private in Storage (`threads/<user>/<random>.<ext>`) and served by
+  `GET /api/thread-images/[id]` to signed-in members only (404 for anyone
+  else or a hidden thread). `pnpm db:clear-test-data` removes test accounts'
+  thread images.
+- The verified-doctor tick after a name is orange (`text-orange-strong`).
+
+**Decisions**
+- New threads are posted to `POST /api/threads` (multipart, same-origin,
+  size-capped, rate-limited like before) instead of a server action, because
+  server actions cap request bodies at 1 MB and phone photos are bigger.
+  `createThreadAction` is gone; replies, likes and votes are unchanged.
+- Replies stay text only (links in them are clickable).
+
+**Checked**
+- Typecheck, lint, unit tests (1011; new `src/lib/threads.test.ts` and image
+  tests in `threads.test.ts`) and build pass. E2E: `threads.spec` (new image
+  and link test), `layout-widths`, `notifications` and `sign-in` specs pass
+  on phone and desktop. The full e2e suite was not run.
+- Screens checked at 375 and 1280 px.
+
+**Later**
+- Admins can hide a thread but not see or remove its images from the admin
+  screens; deleting a thread row would leave its files in Storage.
+
+**Deploy note**
+- Needs `pnpm db:deploy` for the new table.

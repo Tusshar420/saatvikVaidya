@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { threads as copy } from "@/content/threads";
 import { db } from "@/server/db";
 import { seedDatabase } from "@/server/seed";
 import { clearAuthTables, clearContentTables } from "../../../tests/setup/content-db";
 import { makeUser } from "../../../tests/setup/shop";
-import { addReply, canWrite, createThread, listThreads, readThread, toggleLike, votePoll } from "./threads";
+import { getStorage } from "@/server/storage";
+import { addReply, canWrite, createThread, findViewableThreadImage, listThreads, readThread, toggleLike, votePoll } from "./threads";
 
 // Dr. Talk threads: only approved doctors post and reply, everyone reads and
 // likes, and the author always comes from the caller's id.
@@ -164,5 +166,51 @@ describe("polls", () => {
     await db.thread.update({ where: { id: b.id }, data: { hidden: true } });
     expect(await votePoll(voter, b.id, otherOption.id)).toMatchObject({ ok: false, error: "notFound" });
     expect(await db.threadPollVote.count()).toBe(0);
+  });
+});
+
+describe("images", () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+  const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 1, 2]);
+
+  it("stores up to four real images privately, in order", async () => {
+    const author = await doctor();
+    const created = await createThread(author, valid, [png, jpeg]);
+    if (!created.ok) throw new Error("create failed");
+    const rows = await db.threadImage.findMany({ where: { threadId: created.id }, orderBy: { position: "asc" } });
+    expect(rows.map((row) => row.contentType)).toEqual(["image/png", "image/jpeg"]);
+    expect(rows[0].fileKey).toMatch(/^threads\/[a-z0-9_-]+\/[0-9a-f]{32}\.png$/);
+    expect(await getStorage().get(rows[0].fileKey)).not.toBeNull();
+    expect((await readThread(author, created.id))?.thread.images).toEqual(rows.map((row) => row.id));
+    expect(await findViewableThreadImage(rows[1].id)).toEqual({ key: rows[1].fileKey, contentType: "image/jpeg" });
+  });
+
+  it("refuses other files, too many images and too large ones, saving nothing", async () => {
+    const author = await doctor();
+    expect(await createThread(author, valid, [png, pdf])).toEqual({
+      ok: false,
+      error: "invalid",
+      fieldErrors: { images: copy.errors.imageType },
+    });
+    expect(await createThread(author, valid, [png, png, png, png, png])).toMatchObject({
+      fieldErrors: { images: copy.errors.imageCount },
+    });
+    const huge = new Uint8Array(5 * 1024 * 1024 + 1);
+    huge.set(png);
+    expect(await createThread(author, valid, [huge])).toMatchObject({
+      fieldErrors: { images: copy.errors.imageTooLarge },
+    });
+    expect(await db.thread.count()).toBe(0);
+    expect(await db.threadImage.count()).toBe(0);
+  });
+
+  it("hides the images of a hidden thread", async () => {
+    const created = await createThread(await doctor(), valid, [png]);
+    if (!created.ok) throw new Error("create failed");
+    const image = await db.threadImage.findFirstOrThrow({ where: { threadId: created.id } });
+    await db.thread.update({ where: { id: created.id }, data: { hidden: true } });
+    expect(await findViewableThreadImage(image.id)).toBeNull();
+    expect(await findViewableThreadImage(999_999)).toBeNull();
   });
 });
