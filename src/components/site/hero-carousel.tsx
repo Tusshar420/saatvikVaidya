@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LabelDot } from "@/components/ui/badge";
 import { Carousel } from "@/components/ui/carousel";
 import { HeroArt, type HeroArtKind } from "./hero-art";
 
@@ -73,7 +74,7 @@ export function HeroSlide({
   return (
     <div className="relative shell grid h-full grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-3 pt-1 sm:gap-x-8">
       <p className="col-span-2 mb-2 flex self-end sm:col-span-1 items-center gap-2.25 font-heading text-label text-brand-soft uppercase">
-        <span aria-hidden className="h-0.5 w-7 shrink-0 rounded-sm bg-orange" />
+        <LabelDot onDark />
         {kicker}
       </p>
       <div className="min-w-0 max-w-176 self-start">{children}</div>

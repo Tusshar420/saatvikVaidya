@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sparkles } from "lucide-react";
 import { PortalShell } from "@/components/site/portal/page-hero";
 import { PurposeGrid, StatBand } from "@/components/site/why/why-blocks";
+import { LabelDot } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { portalPages } from "@/content/portal-pages";
 import { getWhyContent } from "@/server/content/pages";
@@ -21,7 +22,7 @@ export default async function WhySaatvikPage() {
       <section aria-labelledby="purpose-title">
         <div className="mb-8.75 text-center">
           <p className="mb-3.5 flex items-center justify-center gap-2 text-label text-brand uppercase">
-            <span aria-hidden className="h-0.5 w-6 shrink-0 bg-orange" />
+            <LabelDot />
             {copy.purposeKicker}
           </p>
           <h1

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
+import { LabelDot } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 
 export type PageHeroProps = {
-  /** Gold uppercase eyebrow with the short orange bar. */
+  /** Gold uppercase eyebrow led by the green dot. */
   eyebrow: string;
   title: ReactNode;
   /** `p` when the page's h1 sits further down (e.g. the quiz title in its card). */
@@ -30,7 +31,7 @@ export function PageHero({ eyebrow, title, titleAs: Title = "h1", description, n
       <div className="shell flex flex-col items-start gap-6 md:flex-row md:items-end md:justify-between md:gap-9">
         <div className="min-w-0">
           <p className="mb-3.25 flex items-center gap-2 font-heading text-label text-gold-light uppercase">
-            <span aria-hidden className="h-0.5 w-6.25 shrink-0 bg-orange" />
+            <LabelDot onDark />
             {eyebrow}
           </p>
           <Title className="mb-3.5 font-heading text-h1 text-balance">{title}</Title>

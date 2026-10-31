@@ -53,16 +53,33 @@ export function Badge({
   );
 }
 
+/**
+ * The small green dot with a soft ring that leads an eyebrow label (it
+ * replaced the short orange line, 2026-10-31). `onDark` for dark sections.
+ */
+export function LabelDot({ onDark = false, className }: { onDark?: boolean; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "size-1.75 shrink-0 rounded-full ring-4",
+        onDark ? "bg-brand-light ring-brand-light/15" : "bg-brand-mid ring-brand-mid/15",
+        className,
+      )}
+    />
+  );
+}
+
 export type EyebrowProps = ComponentProps<"p"> & {
-  /** Short orange bar before the text, as on the hero. */
-  bar?: boolean;
+  /** Green dot before the text, as on the hero. */
+  dot?: boolean;
   /** `light` for dark sections. */
   tone?: "brand" | "light";
 };
 
 /** The uppercase label that sits above section and hero titles. */
 export function Eyebrow({
-  bar = false,
+  dot = false,
   tone = "brand",
   className,
   children,
@@ -77,7 +94,7 @@ export function Eyebrow({
       )}
       {...props}
     >
-      {bar && <span aria-hidden className="h-0.5 w-7 shrink-0 rounded-full bg-orange" />}
+      {dot && <LabelDot onDark={tone === "light"} />}
       {children}
     </p>
   );

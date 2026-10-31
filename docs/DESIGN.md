@@ -49,7 +49,7 @@ Orange (action):
 
 | Token | Value | Role |
 |---|---|---|
-| `orange` | `#f36c21` | Accents: eyebrow line, bars, dots, progress, brand mark, `cta` glow |
+| `orange` | `#f36c21` | Accents: bars, dots, progress, brand mark, `cta` glow |
 | `orange-strong` | `#c2540a` | Fill behind white text (primary button, announcement), 4.6:1 |
 | `orange-dark` | `#b34a08` | Hover/pressed for `orange-strong`, 5.4:1 with white |
 | `orange-ink` | `#a8470a` | Orange text on white, paper, cream and `orange-soft` (4.8:1+) |
@@ -148,9 +148,10 @@ example: "Your Ayurveda brand, *made simple.*" or "Learn. Connect. *Build.
 Grow.*"
 
 **Eyebrow.** Above each section title: an 11–12 px uppercase Manrope label in
-`brand-mid` (`brand-soft` on dark backgrounds), led by a short orange line
-(28 × 2 px, rounded). Inner-page heroes use a gold eyebrow with the same
-orange line.
+`brand-mid` (`brand-soft` on dark backgrounds), led by a small green dot
+(7 px, with a soft 4 px ring: `brand-mid` on light backgrounds, `brand-light`
+on dark; the `LabelDot` component). Inner-page heroes use a gold eyebrow with
+the same dot. (The dot replaced the old short orange line on 2026-10-31.)
 
 ### Spacing, radius, shadow
 
@@ -225,7 +226,7 @@ brings it to v2.
 | **PillTabs** | Pill tab group, active solid `brand`. Used on Dr. Talk, Courses, Feedback, leaderboard. (`.portal-tabs`) | U.2/U.3 |
 | **Card** | White, `line` border, radius `xl`, padding 24–26 (18 on phones), `card` shadow; `interactive` lifts on hover; `featured` gold (`bg-quiz`) and dark green (`bg-forest`) variants. (`.portal-card`, `.feature-panel`) | U.2 |
 | **Badge / Pill** | `sm`-radius tag (not fully rounded), 11 px uppercase: `brand`, `success` ("In stock"), `orange`, `blue`, `gold`, `live` (red dot), `soon` ("Coming next"). (`.pill`, `.stock`) | U.2 |
-| **Eyebrow** | See [Eyebrow](#typography): orange line plus `brand-mid` label; `light` on dark. (`.eyebrow`, `.portal-kicker`) | U.2 |
+| **Eyebrow** | See [Eyebrow](#typography): green dot plus `brand-mid` label; `light` on dark. (`.eyebrow`, `.portal-kicker`) | U.2 |
 | **IconTile** | Rounded square (37–56 px) with a soft tint: `brand`, `orange`, `blue`, `gold`. (`.feature-icon`, `.partner-icon`) | U.2 |
 | **Avatar** | Initials on `bg-avatar`, rounded 12 px square. (`.avatar`) | U.2 |
 | **CoinPill** | `gold-soft` pill with the coin, balance and "MY WALLET" label; icon only on phones. (`.coin-pill`) | U.2 |
