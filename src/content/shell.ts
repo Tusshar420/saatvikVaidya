@@ -43,13 +43,14 @@ export type SiteNavLink = {
 
 /**
  * The v2 nav rail (U.4), in the client's order (30 Oct 2026). Every link is
- * a real page; Home is added by the rail itself. On phones the `wideOnly`
- * links are left out, because the bottom dock has Coins, Courses and Order.
+ * a real page; there is no Home link, the logo goes home (31 Oct 2026). On phones the `wideOnly`
+ * links are left out, because the bottom dock has Coins, Quiz & Win and Order.
+ * Courses sits in the rail on phones too (client, 31 Oct 2026).
  */
 export const siteNav: readonly SiteNavLink[] = [
   { href: "/doctor-talk", label: "Dr. Talk", tone: "brand" },
-  { href: "/courses", label: "Courses", wideOnly: true },
-  { href: "/quiz", label: "Quiz & Win" },
+  { href: "/courses", label: "Courses" },
+  { href: "/quiz", label: "Quiz & Win", wideOnly: true },
   { href: "/launch", label: "Build Your Brand" },
   { href: "/products", label: "Top Brands" },
   { href: "/coins", label: "Saatvik Coins", wideOnly: true },
@@ -125,7 +126,6 @@ export const shell = {
   },
   nav: {
     label: "Sections",
-    home: "Home",
     soon: "Soon",
   },
   footer: {
@@ -156,7 +156,7 @@ export const shell = {
     label: "Quick navigation",
     coins: "Coins",
     updates: "Updates",
-    courses: "Courses",
+    quiz: "Quiz & Win",
     orders: "Order",
     you: "You",
   },
@@ -175,14 +175,14 @@ export const shell = {
 
 /**
  * The phone dock's links, shown at the bottom of the screen under 560 px.
- * From 560 px up there is no dock: the nav rail shows Courses, Saatvik Coins
- * and Track Order instead, and the header's bell and profile menu cover
+ * From 560 px up there is no dock: the nav rail shows Quiz & Win, Saatvik
+ * Coins and Track Order instead, and the header's bell and profile menu cover
  * Updates, My Orders and My Account.
  */
 export const dockNav = [
   { href: "/coins", label: shell.dock.coins },
   { href: "/notifications", label: shell.dock.updates },
-  { href: "/courses", label: shell.dock.courses },
+  { href: "/quiz", label: shell.dock.quiz },
   { href: "/orders", label: shell.dock.orders },
   { href: "/account", label: shell.dock.you },
 ] as const;

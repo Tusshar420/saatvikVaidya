@@ -24,7 +24,7 @@ export function GuestOrders() {
       <div className="mx-auto max-w-3xl">
         <Eyebrow>{orders.list.eyebrow}</Eyebrow>
         <h1 className="mt-2 text-h2 text-ink">
-          {orders.list.title} <em className="block text-orange-title not-italic">{orders.list.titleEmphasis}</em>
+          {text.pageTitle} <em className="block text-orange-title not-italic">{text.pageTitleEmphasis}</em>
         </h1>
 
         <section aria-labelledby="guest-orders-title" className={cn(cardClass, "mt-8")}>

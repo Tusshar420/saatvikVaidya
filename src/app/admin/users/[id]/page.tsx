@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, FileText, Pencil } from "lucide-react";
+import { ChevronLeft, FileText, Pencil, PhoneCall } from "lucide-react";
 import { AdjustCoinsForm } from "@/components/admin/adjust-coins-form";
 import { CoinActivity } from "@/components/admin/coin-activity";
 import { ActivityList } from "@/components/admin/activity-list";
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { admin as copy } from "@/content/admin";
+import { assistedOrders } from "@/content/assisted-orders";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { formatIndianPhone } from "@/lib/phone";
 import { getUserDetail } from "@/server/admin/users";
@@ -71,6 +72,15 @@ export default async function UserDetailPage({
               <Pencil aria-hidden className="size-4" />
               {text.edit}
             </Link>
+            {user.role === "user" && (
+              <Link
+                href={`/admin/assisted-orders/new?user=${encodeURIComponent(user.id)}`}
+                className={buttonClasses({ variant: "secondary", size: "sm" })}
+              >
+                <PhoneCall aria-hidden className="size-4" />
+                {assistedOrders.admin.newButton}
+              </Link>
+            )}
             {!isSelf && (
               <ConfirmDelete
                 action={deleteUserAction}

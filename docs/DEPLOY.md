@@ -78,10 +78,11 @@ transfer (see "Payments").
 | `BETTER_AUTH_SECRET` | a new random value (`openssl rand -base64 32`) | a different new random value |
 | `STORAGE_DIR` | a folder on persistent disk **outside** the web folder | another such folder |
 | `PAYMENT_PROVIDER` | `manual` | `manual` |
-| `SHIPPING_PROVIDER` | `test` (see "Known limits") | `test` until Shiprocket |
+| `SHIPPING_PROVIDER` | `manual` (`test` also works: on a server it acts as `manual`) | `manual` until Shiprocket |
 | `STAGING_ACCESS_USER` | `team` (or any name) | _leave unset_ |
 | `STAGING_ACCESS_PASSWORD` | a long password | _leave unset_ |
 | `SHOW_DESIGN_PAGE` | `false` | `false` |
+| `SITE_COMING_SOON` | _leave unset_ | `true` until launch day, then remove it (`docs/PRODUCTION_SETUP.md`) |
 | `DEV_SHOW_OTP` | `false` | `false` |
 | `TEST_PAYMENTS_IN_LOCAL_BUILD`, `TEST_SHIPPING_IN_LOCAL_BUILD` | unset | unset |
 | `APP_VERSION` | optional label shown in the error log | optional |
@@ -146,10 +147,14 @@ Use the test address on a phone and a computer. Tick each line.
 - **Emails do not go out** (verification, forgot-password, order messages):
   they print to the server log. If a tester is locked out, an admin resets
   them: re-run `pnpm admin:create` for admins, or delete the test account.
-- **Shipping:** the test shipping provider refuses to run on a server, so
-  "Create shipment" shows as switched off. Orders can be marked paid and
-  brand orders move through their stages; delivery steps wait for Shiprocket
-  (G.2).
+- **Shipping is by hand** until Shiprocket (G.2). Book the parcel with any
+  courier, then in Admin > Orders > the order > **Shipment**, type the
+  courier's name and tracking number (both optional; the order number is used
+  if the tracking number is empty) and press **Create shipment**. Then press
+  **Mark as: Packed**, **Shipped**, **In transit**, **Out for delivery** and
+  **Delivered** as the parcel moves. The customer sees each step on their
+  order page and gets a message. Brand orders are dispatched from their own
+  page as before.
 - **Uploaded files** (documents, logos, proofs, invoices) are saved in
   `STORAGE_DIR` on the server's disk. Keep that folder out of the web folder
   and include it in backups. Cloud storage (R2) comes later (G.4).
@@ -204,7 +209,8 @@ Use the test address on a phone and a computer. Tick each line.
 ## 7. 1 November: the main address
 
 The full launch-day plan (checklists, who does what, timings and rollback) is
-`docs/LAUNCH_1_NOVEMBER.md`. Summary:
+`docs/LAUNCH_1_NOVEMBER.md`. To set the live app up early behind "Coming soon"
+(`SITE_COMING_SOON=true`), follow `docs/PRODUCTION_SETUP.md`. Summary:
 
 Until then the main address keeps its "Coming soon" page. To switch:
 

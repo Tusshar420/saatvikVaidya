@@ -76,6 +76,7 @@ export type TestDataCounts = {
     accountsByType: Record<string, number>;
     orders: number;
     brandOrders: number;
+    preparedOrders: number;
     invoices: number;
     payments: number;
     quizAttempts: number;
@@ -127,6 +128,9 @@ async function fileKeys(db: Db, userIds: string[]): Promise<string[]> {
     ...(await db.brandOrderDetails.findMany({ select: { logoKey: true } })).map((row) => row.logoKey),
     ...(await db.brandProof.findMany({ select: { fileKey: true } })).map((row) => row.fileKey),
     ...(await db.bugReport.findMany({ select: { screenshotKey: true } })).map((row) => row.screenshotKey),
+    ...(await db.threadImage.findMany({ where: { thread: { authorId: { in: userIds } } }, select: { fileKey: true } })).map(
+      (row) => row.fileKey,
+    ),
   ];
   return [...new Set(keys.flatMap((key) => (key ? [key] : [])))];
 }
@@ -150,6 +154,7 @@ export async function countTestData(db: Db): Promise<TestDataCounts> {
       accountsByType,
       orders: await db.order.count(),
       brandOrders: await db.order.count({ where: { type: "brand" } }),
+      preparedOrders: await db.assistedOrder.count(),
       invoices: await db.invoice.count(),
       payments: await db.payment.count(),
       quizAttempts: await db.quizAttempt.count(),
@@ -219,6 +224,8 @@ export async function clearTestData(db: Db, storageDir: string): Promise<{ files
       // order. Items, payments, deliveries and brand details go with orders.
       await tx.invoice.deleteMany({ where: { kind: "credit_note" } });
       await tx.invoice.deleteMany({});
+      // Orders staff prepared for customers (their items go with them).
+      await tx.assistedOrder.deleteMany({});
       await tx.order.deleteMany({});
       await tx.quizAttempt.deleteMany({});
       await tx.coinLedger.deleteMany({});

@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
+import { sortField, type Sort } from "@/lib/admin-sort";
 import { MAX_BRAND_MIN_QTY, MAX_BRAND_TIERS, MAX_BRAND_UNITS, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
 import type { Prisma } from "@/generated/prisma/client";
 import {
@@ -288,11 +289,31 @@ export function parseProductForm(
 
 const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
 
+export const PRODUCT_SORTS = ["order", "name", "brand", "price", "added"] as const;
+export const PRODUCT_SORT_DEFAULT: Sort<(typeof PRODUCT_SORTS)[number]> = { key: "order", dir: "asc" };
+
 export const productFiltersSchema = z.object({
   q: z.preprocess(first, z.string().trim().max(100).optional()).catch(undefined),
   status: z.preprocess(first, z.enum(["active", "hidden"]).optional()).catch(undefined),
   page: z.preprocess(first, z.coerce.number().int().min(1).max(10_000)).catch(1),
+  sort: sortField(PRODUCT_SORTS, PRODUCT_SORT_DEFAULT),
 });
+
+function productsOrderBy(sort: Sort<(typeof PRODUCT_SORTS)[number]>): Prisma.ProductOrderByWithRelationInput[] {
+  const tail: Prisma.ProductOrderByWithRelationInput[] = [{ sortOrder: "asc" }, { id: "asc" }];
+  switch (sort.key) {
+    case "name":
+      return [{ name: sort.dir }, ...tail];
+    case "brand":
+      return [{ brand: { name: sort.dir } }, { name: "asc" }, ...tail];
+    case "price":
+      return [{ mrpPaise: sort.dir }, ...tail];
+    case "added":
+      return [{ createdAt: sort.dir }, ...tail];
+    default:
+      return [{ sortOrder: sort.dir }, { id: sort.dir }];
+  }
+}
 
 export type ProductFilters = z.infer<typeof productFiltersSchema>;
 
@@ -308,7 +329,7 @@ export async function listAdminProducts(filters: ProductFilters) {
   const page = Math.min(filters.page, pageCount);
   const products = await db.product.findMany({
     where,
-    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    orderBy: productsOrderBy(filters.sort),
     skip: (page - 1) * ADMIN_PRODUCTS_PAGE_SIZE,
     take: ADMIN_PRODUCTS_PAGE_SIZE,
     select: {

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LabelDot } from "@/components/ui/badge";
 
 export type LaunchHeroProps = {
   kicker: string;
@@ -32,7 +33,7 @@ export function LaunchHero({
       <div className="relative shell flex flex-col items-start gap-6 md:flex-row md:items-end md:justify-between md:gap-9">
         <div className="min-w-0">
           <p className="mb-3.5 flex items-center gap-2 font-heading text-label text-gold-light uppercase">
-            <span aria-hidden className="h-0.5 w-6.25 shrink-0 bg-orange" />
+            <LabelDot onDark />
             {kicker}
           </p>
           <h1 className="mb-3.5 text-h1 text-white">{title}</h1>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LabelDot } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { portalPages, type PageHeroCopy } from "@/content/portal-pages";
 
@@ -18,7 +19,7 @@ export function PageHero({ copy }: { copy: PageHeroCopy }) {
       <div className="shell relative flex items-end justify-between gap-9 max-md:flex-col max-md:items-start max-md:gap-6">
         <div className="min-w-0 flex-1">
           <p className="mb-3.5 flex items-center gap-2 text-label text-gold-light uppercase">
-            <span aria-hidden className="h-0.5 w-6 shrink-0 bg-orange" />
+            <LabelDot onDark />
             {copy.kicker}
           </p>
           <h1 className="mb-3.5 max-w-[860px] text-h1 text-white">

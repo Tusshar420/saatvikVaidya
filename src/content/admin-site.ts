@@ -88,6 +88,8 @@ export const adminSettings = {
       maintenance: "Maintenance mode",
       maintenanceHelp:
         "On: everyone except signed-in admins sees the maintenance page. Admins can still sign in.",
+      maintenanceComingSoonHelp:
+        "Locked on by the server setting SITE_COMING_SOON: visitors see the Coming soon page until it is removed and the site redeployed. Admins can still sign in.",
       maintenanceMessage: "Maintenance message",
       maintenanceMessageHelp: "Shown on the maintenance page.",
     },

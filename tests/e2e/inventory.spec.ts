@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+import { admin as adminCopy } from "../../src/content/admin";
 import { inventory as copy } from "../../src/content/inventory";
 import { E2E_CONTENT_PREFIX, e2eDb, signInAs, useFreshIp } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
@@ -162,9 +163,48 @@ test("the admin sets up components and a recipe in B2B Inventory", async ({ page
   await expect(page.getByText(copy.recipe.makeable(150, "units"))).toBeVisible();
   await checkPage(page, errors);
 
-  // The "can make" view and the Launch catalogue show the same figure.
+  // The "can make" view and the Launch catalogue show the same figure. The
+  // product list is searched (it holds every Launch product).
   await page.goto("/admin/inventory/b2b");
+  const productSearch = page.getByRole("search", { name: copy.b2b.canMake.filters.label });
+  await productSearch.getByRole("searchbox", { name: copy.b2b.canMake.filters.search }).fill(product.name);
+  await productSearch.getByRole("searchbox").press("Enter");
+  await expect(page).toHaveURL(/pq=/);
   const row = page.getByRole("row", { name: new RegExp(product.name) });
   await expect(row).toContainText(copy.b2b.canMake.units(150, "bottles"));
   await expect(row).toContainText(baseName);
+
+  // The component list: search, a status filter and a sort, each keeping
+  // the product search.
+  const componentSearch = page.getByRole("search", { name: copy.b2b.components.filters.label });
+  await componentSearch.getByRole("searchbox", { name: copy.b2b.components.filters.search }).fill(token);
+  await componentSearch.getByRole("searchbox").press("Enter");
+  await expect(page).toHaveURL(/[?&]q=/);
+  const components = page.getByRole("table", { name: copy.b2b.components.title });
+  await expect(components.getByRole("row")).toHaveCount(3);
+  await expect(row).toBeVisible();
+  // Picking a sort applies it straight away; the 30 L of base comes first.
+  await componentSearch.getByLabel(adminCopy.common.sortBy).selectOption("-available");
+  await expect(page).toHaveURL(/sort=-available/);
+  await expect(components.getByRole("row").nth(1)).toContainText(baseName);
+  await componentSearch.getByLabel(copy.b2b.components.filters.status).selectOption("low");
+  await expect(page).toHaveURL(/status=low/);
+  await expect(components).toContainText(adminCopy.common.noResults);
+  await expect(row).toBeVisible();
+  await checkPage(page, errors);
+});
+
+test("B2B Inventory's column headers sort the components", async ({ page, baseURL }, testInfo) => {
+  test.skip(testInfo.project.name.startsWith("phone"), "Phones hide table headers; they sort with the select.");
+  await useFreshIp(page);
+  await signInAs(page, baseURL!, { role: "admin" });
+  await page.goto("/admin/inventory/b2b");
+  const components = page.getByRole("table", { name: copy.b2b.components.title });
+  const header = components.getByRole("link", { name: adminCopy.common.sortColumn(copy.b2b.components.columns.available) });
+  await header.click();
+  await expect(page).toHaveURL(/sort=available/);
+  await expect(components.getByRole("columnheader", { name: new RegExp(copy.b2b.components.columns.available, "i") })).toHaveAttribute("aria-sort", "ascending");
+  await header.click();
+  await expect(page).toHaveURL(/sort=-available/);
+  await expect(components.getByRole("columnheader", { name: new RegExp(copy.b2b.components.columns.available, "i") })).toHaveAttribute("aria-sort", "descending");
 });

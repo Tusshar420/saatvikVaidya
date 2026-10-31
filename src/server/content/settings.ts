@@ -8,6 +8,7 @@ import {
 import { indianState } from "@/lib/india";
 import { linkTargetSchema } from "./home-schema";
 import { db } from "@/server/db";
+import { isComingSoon } from "@/server/env";
 import { cachedRead, contentTags } from "./cache";
 
 /**
@@ -121,5 +122,12 @@ export async function getSetting<K extends SettingKey>(
     console.error("getSetting: settings unavailable, using defaults.", error);
     stored = {};
   }
-  return resolveSetting(key, stored[key]);
+  const value = resolveSetting(key, stored[key]);
+  // SITE_COMING_SOON keeps the live site closed until launch (env.ts).
+  if (key === "site.maintenance" && isComingSoon()) {
+    // Safe: K is "site.maintenance" here; TypeScript can't narrow a generic.
+    const current = value as SettingValues["site.maintenance"];
+    return { ...current, enabled: true } as SettingValues[K];
+  }
+  return value;
 }

@@ -22,6 +22,7 @@ import {
   ListOrdered,
   MessageSquareQuote,
   Package,
+  PhoneCall,
   Pill,
   Plus,
   Settings,
@@ -34,6 +35,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
+import { assistedOrders as assistedCopy } from "@/content/assisted-orders";
 import { adminSecurity } from "@/content/admin-security";
 import { adminHome } from "@/content/admin-site";
 import { brand as brandCopy } from "@/content/brand";
@@ -92,6 +94,13 @@ export const adminLinkGroups: AdminLinkGroup[] = [
         label: copy.nav.orders,
         icon: Package,
         keywords: words.orders,
+      },
+      {
+        href: "/admin/assisted-orders",
+        area: "orders",
+        label: assistedCopy.admin.nav,
+        icon: PhoneCall,
+        keywords: assistedCopy.admin.keywords,
       },
       {
         href: "/admin/brand-orders",

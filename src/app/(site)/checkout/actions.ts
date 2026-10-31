@@ -52,6 +52,7 @@ const placeErrors: Record<PlaceOrderError, string> = {
   checkout_off: copy.place.errors.checkoutOff,
   coins: copy.place.errors.coins,
   rate_limited: copy.place.errors.generic,
+  closed: copy.place.errors.generic,
 };
 
 export async function placeOrderAction(_: FormState, formData: FormData): Promise<FormState> {

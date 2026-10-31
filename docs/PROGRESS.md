@@ -5766,3 +5766,388 @@ Found in the staging Error log (Hostinger runs MariaDB, local dev runs MySQL 8):
 
 **Later**
 - Replies have no likes; add `ThreadReplyLike` if the client wants them.
+
+## Polls on Dr. Talk threads (2026-10-31)
+
+**What changed**
+- The owner asked for poll options on questions. A verified doctor starting a
+  thread can tap **Add a poll** and enter 2 to 6 choices ("Add a choice" adds
+  boxes; blank ones are dropped). The thread title is the poll question. Any
+  thread type can carry a poll, though questions are the main use.
+- Every signed-in member can vote (same as likes): one vote per thread;
+  tapping another choice moves the vote, tapping yours again removes it. Before
+  voting you see only the choices and the vote count; after voting (and always
+  for the author) each choice shows a bar and a percentage, with your choice
+  ticked. Shown on the feed card and the thread page. Each choice is a plain
+  form, so voting works without JavaScript.
+- Tables `ThreadPollOption` and `ThreadPollVote` (migration
+  `20261030222950_thread_polls`, new tables only; deleting a thread or user
+  removes their polls and votes). Code: `createThread` / `votePoll` in
+  `src/server/threads/threads.ts`, `voteAction` in
+  `app/(site)/doctor-talk/actions.ts` (same 60/hour rate limit), `ThreadPoll`
+  in `thread-card.tsx`, the poll part of the form in `thread-forms.tsx`, text in
+  `content/threads.ts`.
+
+**Checked**
+- Built in a separate worktree with its own databases, because the "anyone can
+  like" task was changing the same files at the same time.
+- New Vitest cases (choices saved in order, blank ones dropped, 2–6 / length /
+  duplicate rules, one vote per member that moves or is removed, unknown users,
+  choices from another thread, hidden threads) and a Playwright test (doctor
+  adds a three-choice poll, a customer votes, results on the thread and the
+  feed, axe and no sideways scroll) on phone and desktop. Screens checked at
+  375 and 1280 px.
+- typecheck, lint, all unit tests and build pass on top of the likes commit;
+  `threads.spec.ts` passes on phone and desktop. The full e2e suite was not re-run (only Dr. Talk files
+  changed).
+
+**On the server**
+- Nothing to do by hand: `scripts/hostinger-start.mjs` runs
+  `prisma migrate deploy` on every start, so the two new tables are created on
+  the next redeploy.
+
+**Later**
+- No end date or "close poll" yet, no multi-choice polls, and choices can't be
+  edited after posting.
+
+## Admin lists: search, sorting and quicker filters (2026-10-31)
+
+Asked by the owner from a screenshot of B2B Inventory: add search and sort
+buttons there, and make the other admin lists easier to use.
+
+**Built**
+- B2B Inventory: both lists get their own filter bar. Components: search by
+  name or code, type, status (low, short, made to order, not in use, OK) and
+  sort. "What we can make": search by name or pack size, show (has a recipe,
+  no recipe yet, can't make any now), sort, and 25 per page (it held all 163
+  products on one page). Each list keeps the other's filters. Rows with no
+  recipe show a "No recipe yet" badge, "–" instead of the misleading "No
+  limit", and an "Add recipe" button.
+- Column headers sort: click once to sort, again to flip (arrow shows the
+  direction, `aria-sort` set). Phones hide table headers, so every such list
+  also has a "Sort by" select. Added to B2B and B2C Inventory, Orders, Brand
+  orders, Products (catalogue) and Users.
+- Picking a filter or sort option applies it straight away (`AutoSubmit`);
+  search text still waits for Enter or "Apply filters".
+- Inventory stat tiles are now shortcuts: "Low: reorder", "No recipe yet",
+  "Out of stock", "Expiring" and so on open the list already filtered.
+- Sort lives in the URL (`sort=name` / `sort=-name`), so paging, bookmarks and
+  "Clear" keep it. Shared code: `src/lib/admin-sort.ts` (parse, Zod field,
+  in-memory sort with natural text order and empties last, link builder),
+  `components/admin/sort-header.tsx`, `sort-select.tsx`, `filter-bar.tsx`,
+  `auto-submit.tsx`. `Pagination` takes `pageParam` and `hash` for a page with
+  two lists.
+
+**Checked**
+- New Vitest cases for the sort helpers, the B2B filters and sorts, order and
+  user sorting, and bad URL values falling back. Playwright: the B2B test now
+  searches products, filters and sorts components (phone and desktop), and a
+  desktop test clicks a column header twice. One older orders test matched
+  "To" inside "Sort by total"; it now matches the label exactly and waits for
+  the status filter to apply.
+- typecheck, lint, all unit tests (976), build and the full e2e suite (three
+  batches plus the manual and request configs) pass. Screens checked at 375
+  and 1280 px.
+
+**Later**
+- Errors and problem reports already had a sort select; they don't
+  auto-apply yet. Content lists (courses, quizzes, brands, reels, ebooks) are
+  short and have no search or sort yet.
+
+## Delivery by hand: courier, tracking number and "Mark as" buttons (2026-10-31)
+
+The owner asked how to move a paid order on, since there is no courier
+integration. On a server the order page said "Shipping is coming soon":
+the test shipping provider refuses to run there, so no delivery buttons
+showed (and brand orders couldn't be dispatched either).
+
+**Built**
+- New `manual` shipping provider (`src/server/shipping/manual-provider.ts`):
+  nothing is booked through the site. "Create shipment" asks for the courier
+  name and tracking number (both optional; empty means "Saatvik Vaidya" and
+  the order number). Then "Mark as: Packed / Shipped / In transit / Out for
+  delivery / Delivered" (plus "Mark undelivered" / "Mark returned") move it on.
+  The buyer sees each step and gets the usual message. No made-up locations.
+- `SHIPPING_PROVIDER=manual`, and `test` on a server now falls back to
+  `manual`, so the test address works without changing its settings.
+- A tracking number already on another order is refused ("awb_taken");
+  tracking numbers allow letters, numbers, `/` and `-`, max 40 characters.
+- Brand order dispatch uses the same provider, so it works on a server too.
+- `playwright.request.config.ts` now runs with `manual`, like the server.
+- DEPLOY.md and `.env.example` updated.
+
+**Checked**
+- New Vitest cases (manual fallback, typed courier and tracking, fallbacks,
+  taken tracking number, brand dispatch on a server). The request e2e test
+  now creates a shipment with a courier and tracking number, marks every step
+  to Delivered and checks the buyer's page (phone and desktop).
+- typecheck, lint, all unit tests (980) and the full e2e suite pass (main
+  batch 311 passed; one catalogue listing test failed once and passed 4/4 on
+  re-run, unrelated; exclusive+last 27, manual 2, request 2). Screens checked
+  at 375 and 1280 px.
+
+**Later**
+- Brand dispatch could also ask for the courier and tracking number (it uses
+  the fallbacks now).
+- A shortcut from "Shipped" straight to "Delivered" if the team finds five
+  clicks too many.
+
+## Live site set up early behind "Coming soon" (2026-10-31)
+
+The owner asked to move everything to the live (production) address while
+team testing goes on, so that after testing only a code push and small changes
+remain.
+
+**Built**
+- New server setting `SITE_COMING_SOON=true` (`isComingSoon()` in
+  `src/server/env.ts`). `getSetting("site.maintenance")` then always says
+  "on", so every place that obeys maintenance mode (site layout, checkout,
+  brand orders) keeps the live site closed from its very first start, before
+  any admin has signed in. Admins sign in and see everything.
+- The maintenance page shows "Coming soon" wording in that case
+  (`comingSoon` in `content/maintenance.ts`). Admin > Settings says the switch
+  is locked on by the server setting.
+- `docs/PRODUCTION_SETUP.md`: the live app on `main`, its own database and
+  settings, how fixes move from `staging` to `main`, and launch day (remove the
+  setting, redeploy). `DEPLOY.md` and `.env.example` list the setting.
+
+**Checked**
+- Typecheck, lint, all unit tests (981, one new) and the build pass. The main
+  e2e batch: 311 passed, 1 failed (`ebooks.spec.ts:180`, see Later). The site
+  settings exclusive spec (maintenance page): 12 passed on phone and desktop.
+- A local production server with `SITE_COMING_SOON=true`: `/` and `/checkout`
+  show the Coming soon page; screens checked at 375 and 1280 px.
+
+**Needs a person**
+- Create the live app and database in hPanel (PRODUCTION_SETUP.md), and merge
+  `staging` into `main` (agents don't push to `main` without the owner's word).
+
+**Later**
+- While `SITE_COMING_SOON` is on, search engines may index the Coming soon
+  page. Fine for a launch a few days away.
+- `ebooks.spec.ts:180` is flaky (fails about 1 run in 3): after the admin
+  turns ebook downloads back on, `/ebooks` sometimes still says paused (cached
+  setting). It fails the same way without this change.
+
+## Top menu: no Home link, the logo goes home (2026-10-31)
+
+**Built**
+- The client asked to drop Home from the top menu and use the logo as the
+  home button. The nav rail no longer adds a Home pill; it now starts with
+  Dr. Talk on both screen sizes. The header logo already linked to `/`
+  ("Saatvik Vaidya home"), so nothing new was needed there.
+- `shell.nav.home` and the rail's House icon are gone.
+
+**Checked**
+- Typecheck, lint, unit tests (981) and build pass. Full e2e: main projects,
+  exclusive and last projects, manual and request configs all pass.
+- The shell test now checks the rail has no Home link and that the logo
+  takes you back home. Header checked at 375 and 1280 px.
+- Side effect fixed in `courses.spec`: after the empty-form errors the test
+  was left at the submit button, where a form field peeks ~6 px out from
+  under the sticky header. With the Home pill gone, axe's target-size rule
+  started flagging that field. The page itself did not change; the test now
+  scrolls to the first error before the accessibility check.
+
+## Phone menus: Quiz & Win in the bottom bar, Courses up top (2026-10-31)
+
+**Built**
+- The client asked to swap two items on phones (under 560 px). The bottom
+  bar now reads Coins, Updates, Quiz & Win (trophy icon), Order, You.
+  Courses moved up into the top menu, right after Dr. Talk.
+- In `siteNav`, Quiz & Win is now `wideOnly` (hidden on phones, since the
+  bottom bar has it) and Courses is not. `dockNav` links to `/quiz`;
+  `shell.dock.courses` became `shell.dock.quiz`.
+- Desktop is unchanged: there is no bottom bar, and the top menu still shows
+  Dr. Talk, Courses, Quiz & Win and the rest in the same order.
+
+**Checked**
+- Typecheck, lint, unit tests (981) and build pass. e2e: `shell`,
+  `homepage-part2` and `notifications` specs pass on phone and desktop. The
+  full e2e suite was not re-run for this small change.
+- Tests updated for the new phone order. The notification badge test now
+  checks the Courses badge on both widths; on phones it opens the Dr. Talk
+  notification instead of the quiz one, because the rail has no Quiz & Win
+  link there.
+- Screens checked at 375 and 1280 px.
+
+## My orders laid out like Amazon's: Buy again, compact list, period filters (2026-10-31)
+
+**Built**
+- The client sent a screenshot of Amazon's "Your Orders" and asked for the
+  same layout on `/orders`.
+- "Buy again" row on top: products from the buyer's paid store orders
+  (paid, processing, shipped, delivered), newest first, each once, up to 10.
+  Products taken off sale are left out. Each card has the photo (or form
+  mark), name, pack size and an "Add to cart" button that adds the minimum
+  order; out-of-stock ones show a disabled "Out of stock".
+  (`listBuyAgainForUser` in `src/server/orders/history.ts`,
+  `src/components/site/orders/buy-again-button.tsx`.)
+- "Purchase history": each order is now one compact row: thumbnail of the
+  first product, the order's name (first item, "+ N more"), its status and
+  date, and a chevron. The whole row opens the order page, which already
+  has the full details (timeline, address, payment, items, total,
+  documents, "Complete payment"). The order number is read out to screen
+  readers but not shown.
+- Period filters as links: All orders, This month, Last 3 months, This year,
+  Last year (`?range=`, kept by the page links). Periods follow India time
+  (`src/lib/order-ranges.ts`). An empty period shows "No orders in this
+  period" with a "Show all orders" button.
+- The signed-in title is now just "Your orders" (smaller); the signed-out
+  page keeps its longer title (`orders.guest.pageTitle`).
+
+**Checked**
+- Typecheck, lint, unit tests (991, new `order-ranges.test.ts` and
+  `history.test.ts`) and build pass. Full e2e suite passes (339 main, plus
+  manual-payment and order-request); `orders.spec` updated for the compact
+  rows, Buy again and filters.
+- Screens checked at 375 and 1280 px.
+
+**Later**
+- Amazon also has "Search all orders" and a "You might like" box; not built.
+
+## Orders for customers: staff prepare an order, the customer confirms it (2026-10-31)
+
+**Built**
+- The client asked for a way for staff to place orders for customers who
+  call or message. New admin section **Orders for customers**
+  (`/admin/assisted-orders`, orders area: super and orders admins), with a
+  "Prepare an order" button there and on each customer's admin page.
+- Preparing: find the customer by name, mobile or email (customer accounts
+  only, never staff), add medicines with quantities (minimum order quantity
+  checked), add a message. Saving sends the customer the link by email, adds
+  a bell notification, and shows it in a "Prepared for you by our team" box
+  on their **Your orders** page. The link works for 7 days.
+- The customer finishes it from the link (`/orders/prepared/[id]`, only for
+  that account): the items priced for them, then the normal checkout
+  (address, Super Coins, place order, payment details as usual).
+- Or staff confirm it on the call: pick or add the customer's address, press
+  "Send code to customer" (6 digits, works 10 minutes, 5 wrong tries, 3
+  codes per 10 minutes, stored only as a hash), type the code the customer
+  reads back, and the order is placed on their account. The customer then
+  gets the usual "order received" message with how to pay.
+- Staff can also copy the link or share it on WhatsApp (a wa.me link the
+  staff member's own WhatsApp opens; no WhatsApp integration), send it again,
+  or cancel the prepared order. Every step is in the activity log.
+- `placeOrder()` takes an optional prepared order: its items are ordered
+  instead of the cart's (the cart is left alone), and it is marked placed in
+  the same transaction, so it can only be placed once (staff and customer at
+  the same moment included).
+- New tables `AssistedOrder` and `AssistedOrderItem` (migration
+  `20261031141506_assisted_orders`). `pnpm db:clear-test-data` removes and
+  counts them.
+
+**Decisions**
+- Products only (no ebooks or courses), priced for the customer when placed,
+  never by staff. Coins are offered only when the customer places it.
+- There is no SMS provider yet, so SMS still go to the server log only.
+  New `smsDelivered()` in `src/server/notify` (false for now): staff screens
+  count only email as "sent", and a customer with no real email (phone-only
+  account) can't get a code. For them staff copy the link or share it on
+  WhatsApp. When MSG91 is added, set `smsDelivered()` true and SMS counts.
+
+**Checked**
+- Typecheck, lint, unit tests (1004; new `assisted-orders.test.ts`) and
+  build pass. Full e2e: main projects (316 incl. the new
+  `assisted-orders.spec`), exclusive and last projects, manual and request
+  configs all pass.
+- `admin.spec` nav test now matches whole link names ("Orders" no longer
+  matches "Orders for customers"); `admin-access.test` knows the new pages.
+- Screens checked at 375 and 1280 px.
+
+**Deploy note**
+- The test and live servers need `pnpm db:deploy` after this commit (new
+  tables), before the new pages are opened.
+
+**Later**
+- Edit a prepared order's items (today: cancel and prepare a new one).
+- Real SMS (MSG91) so phone-only customers get the link and code.
+
+## Dr. Talk threads: "Heading", images and clickable links (2026-10-31)
+
+**Built**
+- The client asked for: the thread "Title" field renamed to **Heading**, and
+  thread content that can carry images and pasted links.
+- "Start a thread" now has **Images (optional)**: up to 4 PNG, JPEG or WebP
+  images, 5 MB each, with previews and a remove button for each. An image
+  pasted into Details (a screenshot, or copied from another app) is added
+  too. Each file's real type and size are checked again on the server from
+  its bytes.
+- Links pasted into a thread or a reply show as links (http, https or
+  "www."), opening in a new tab with `rel="noopener noreferrer nofollow
+  ugc"`. Text is never treated as HTML (`splitLinks()` in `src/lib/threads.ts`).
+- Images show as small squares in the feed (they lead to the thread) and
+  large on the thread page (each opens full size).
+- New table `ThreadImage` (migration `20261031145750_thread_images`). Files
+  are private in Storage (`threads/<user>/<random>.<ext>`) and served by
+  `GET /api/thread-images/[id]` to signed-in members only (404 for anyone
+  else or a hidden thread). `pnpm db:clear-test-data` removes test accounts'
+  thread images.
+- The verified-doctor tick after a name is orange (`text-orange-strong`).
+
+**Decisions**
+- New threads are posted to `POST /api/threads` (multipart, same-origin,
+  size-capped, rate-limited like before) instead of a server action, because
+  server actions cap request bodies at 1 MB and phone photos are bigger.
+  `createThreadAction` is gone; replies, likes and votes are unchanged.
+- Replies stay text only (links in them are clickable).
+
+**Checked**
+- Typecheck, lint, unit tests (1011; new `src/lib/threads.test.ts` and image
+  tests in `threads.test.ts`) and build pass. E2E: `threads.spec` (new image
+  and link test), `layout-widths`, `notifications` and `sign-in` specs pass
+  on phone and desktop. The full e2e suite was not run.
+- Screens checked at 375 and 1280 px.
+
+**Later**
+- Admins can hide a thread but not see or remove its images from the admin
+  screens; deleting a thread row would leave its files in Storage.
+
+**Deploy note**
+- Needs `pnpm db:deploy` for the new table.
+
+## Verification documents by account type, and a Student account (2026-10-31)
+
+**Built**
+- The client's list of documents to check for each account type
+  (`src/lib/verification.ts`):
+  - Ayurveda Doctor: **State board registration** (the old "Registration
+    certificate", renamed, so files already uploaded still count) and a
+    **Degree certificate**.
+  - New **Ayurveda Student** type: **College ID card**.
+  - Clinic / Hospital and Stockist / Distributor: **Aadhaar card**, **PAN
+    card** and a **phone number**.
+- The phone number: an account that signed in by mobile already has one and
+  it is used as is. An email account gets a "Phone number" card next to the
+  uploads on /account, where they type a 10-digit Indian mobile. It is saved
+  as `User.contactPhone` (only for our team to call; it never signs anyone
+  in, so a wrong or someone else's number can't open an account). Saving it
+  can complete the set and send the account for review, like a last upload.
+- The admin review page shows the contact number with "Given for
+  verification, not checked yet".
+- Migration `20261031151339_verification_documents`: adds
+  `User.contactPhone` and inserts the Student type, because live servers
+  only run `db:seed` on their first start. The seed has Student too.
+
+**Decisions**
+- Pharmacy / Store wasn't in the client's list, so it still needs a drug
+  licence and GST certificate. A one-line change if it should match
+  stockists.
+- Students are a professional type like doctors: once verified they see
+  professional prices (not bulk tiers). Dr. Talk and teaching stay
+  doctors-only.
+- Accounts already pending keep their status. A doctor who sent only the
+  registration certificate now shows the degree as missing on both screens;
+  the admin can reject with a note asking for it.
+- "Clinic registration" is no longer asked for; the type is kept so old
+  files still show by name.
+
+**Checked**
+- Typecheck, lint, unit tests (1017; new student, clinic, stockist and
+  contact-phone tests) and build pass. Full e2e: main batch 322 passed,
+  exclusive/last 27 passed, manual 2, request 2. New e2e tests for the
+  doctor's two documents, the student and the clinic's phone card.
+- Screens checked at 375 and 1280 px (account documents and admin review).
+
+**Deploy note**
+- Needs `pnpm db:deploy` for the new column and the Student type.

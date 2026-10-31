@@ -8,24 +8,53 @@ export const orders = {
   list: {
     metaTitle: "My orders",
     eyebrow: "My orders",
-    title: "Your orders,",
-    titleEmphasis: "every step in one place.",
+    title: "Your orders",
     listLabel: "Orders",
     emptyTitle: "No orders yet",
     emptyLine: "When you place an order, it shows here and you can follow its delivery.",
     shop: "Browse products",
+    /** The order's name in the list: its first item, and how many more. */
+    name: (first: string, more: number) => (more > 0 ? `${first} + ${count(more)} more` : first),
     placedOn: (date: string) => `Placed ${date}`,
     items: (n: number) => `${count(n)} ${n === 1 ? "item" : "items"}`,
     view: "View order",
     viewLabel: (number: string) => `View order ${number}`,
-    payNow: "Complete payment",
+    /** Read out before each row's name, so screen readers hear the number. */
+    orderLabel: (number: string) => `Order ${number}:`,
     previous: "Newer orders",
     next: "Older orders",
     page: (current: number, total: number) => `Page ${current} of ${total}`,
+    historyTitle: "Purchase history",
+    rangesLabel: "Show orders from",
+    ranges: {
+      all: "All orders",
+      month: "This month",
+      "3months": "Last 3 months",
+      year: "This year",
+      lastyear: "Last year",
+    },
+    rangeEmptyTitle: "No orders in this period",
+    rangeEmptyLine: "Try another period, or see all your orders.",
+    showAll: "Show all orders",
+  },
+
+  /** The "Buy again" row at the top of /orders. */
+  buyAgain: {
+    title: "Buy again",
+    lead: "Products from your past orders",
+    label: "Products to buy again",
+    packSize: (size: string) => `Pack: ${size}`,
+    add: "Add to cart",
+    addLabel: (name: string) => `Add to cart: ${name}`,
+    added: "Added",
+    viewCart: "View cart",
+    outOfStock: "Out of stock",
   },
 
   /** The signed-out /orders page. */
   guest: {
+    pageTitle: "Your orders,",
+    pageTitleEmphasis: "every step in one place.",
     title: "Sign in to see your orders",
     description:
       "Your orders, delivery tracking, invoices and payment reminders are saved to your account.",

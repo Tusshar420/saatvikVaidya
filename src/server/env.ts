@@ -68,6 +68,19 @@ export function isDevOtpVisible(
   return env.NODE_ENV !== "production" && env.DEV_SHOW_OTP === "true";
 }
 
+/**
+ * The live site before launch day: with SITE_COMING_SOON=true, maintenance
+ * mode stays on (with "Coming soon" wording) whatever the admin switch says,
+ * from the very first start, so a new live app never shows the full site
+ * early. Admins still sign in and see everything. Read at call time: remove
+ * the setting and redeploy to open the site.
+ */
+export function isComingSoon(
+  env: Partial<Record<string, string>> = process.env,
+): boolean {
+  return env.SITE_COMING_SOON === "true";
+}
+
 // Outgoing email. Without SMTP_HOST the dev sender just prints to the log.
 const smtpEnvSchema = z.object({
   SMTP_HOST: z.string().trim().optional(),

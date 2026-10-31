@@ -193,7 +193,7 @@ export default async function DesignPage() {
   return (
     <main id="main" className="shell flex flex-col gap-14 py-10 sm:py-14">
       <header>
-        <Eyebrow bar>{copy.eyebrow}</Eyebrow>
+        <Eyebrow dot>{copy.eyebrow}</Eyebrow>
         <h1 className="mt-3 text-display">{copy.title}</h1>
         <p className="mt-4 max-w-2xl text-body-lg text-muted">{copy.intro}</p>
         <nav aria-label={copy.contentsLabel} className="mt-6">
@@ -241,7 +241,7 @@ export default async function DesignPage() {
             <div className="relative overflow-hidden rounded-2xl bg-hero p-6 text-white sm:p-9">
               <span aria-hidden className="absolute inset-0 bg-dots" />
               <div className="relative">
-                <Eyebrow bar tone="light">
+                <Eyebrow dot tone="light">
                   {copy.type.heroEyebrow}
                 </Eyebrow>
                 <p className="mt-3 font-heading text-display">
@@ -531,7 +531,7 @@ export default async function DesignPage() {
               <Badge variant="dark">{copy.badges.dark}</Badge>
             </div>
             <Eyebrow>{copy.badges.eyebrow}</Eyebrow>
-            <Eyebrow bar>{copy.badges.eyebrowBar}</Eyebrow>
+            <Eyebrow dot>{copy.badges.eyebrowBar}</Eyebrow>
             <div className="rounded-xl p-5 bg-forest">
               <Eyebrow tone="light">{copy.badges.eyebrow}</Eyebrow>
             </div>

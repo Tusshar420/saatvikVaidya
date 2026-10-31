@@ -156,6 +156,11 @@ Try these:
 - Sign in. Open **Admin panel** from your account menu.
 - Check **Approvals**. Approve one document and reject one with a reason.
 - Open the **orders**. Open a test order. Mark it as paid.
+- Place an order for a customer: **Orders for customers**, then **Prepare an
+  order**. Find a test customer, add two medicines and save. Then either
+  sign in as that customer and place it from **Your orders**, or use
+  "Confirm on the call": send the code, ask the customer for it (it arrives
+  by email) and place the order.
 - Add a **course**. Check that it shows on the **Courses** page.
 - Check a doctor's course: open **Courses** in the admin panel, open the
   course that is "Waiting for review", then approve it or send it back with
