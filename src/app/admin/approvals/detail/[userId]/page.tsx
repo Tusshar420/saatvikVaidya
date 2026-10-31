@@ -121,6 +121,11 @@ export default async function ReviewPage({
               <Row label={text.fields.phone}>
                 {review.phoneNumber ? (
                   formatIndianPhone(review.phoneNumber)
+                ) : review.contactPhone ? (
+                  <>
+                    {formatIndianPhone(review.contactPhone)}
+                    <span className="block text-small font-medium text-muted">{text.contactPhoneNote}</span>
+                  </>
                 ) : (
                   <span className="text-muted">{copy.users.noPhone}</span>
                 )}

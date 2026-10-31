@@ -6105,3 +6105,49 @@ remain.
 
 **Deploy note**
 - Needs `pnpm db:deploy` for the new table.
+
+## Verification documents by account type, and a Student account (2026-10-31)
+
+**Built**
+- The client's list of documents to check for each account type
+  (`src/lib/verification.ts`):
+  - Ayurveda Doctor: **State board registration** (the old "Registration
+    certificate", renamed, so files already uploaded still count) and a
+    **Degree certificate**.
+  - New **Ayurveda Student** type: **College ID card**.
+  - Clinic / Hospital and Stockist / Distributor: **Aadhaar card**, **PAN
+    card** and a **phone number**.
+- The phone number: an account that signed in by mobile already has one and
+  it is used as is. An email account gets a "Phone number" card next to the
+  uploads on /account, where they type a 10-digit Indian mobile. It is saved
+  as `User.contactPhone` (only for our team to call; it never signs anyone
+  in, so a wrong or someone else's number can't open an account). Saving it
+  can complete the set and send the account for review, like a last upload.
+- The admin review page shows the contact number with "Given for
+  verification, not checked yet".
+- Migration `20261031151339_verification_documents`: adds
+  `User.contactPhone` and inserts the Student type, because live servers
+  only run `db:seed` on their first start. The seed has Student too.
+
+**Decisions**
+- Pharmacy / Store wasn't in the client's list, so it still needs a drug
+  licence and GST certificate. A one-line change if it should match
+  stockists.
+- Students are a professional type like doctors: once verified they see
+  professional prices (not bulk tiers). Dr. Talk and teaching stay
+  doctors-only.
+- Accounts already pending keep their status. A doctor who sent only the
+  registration certificate now shows the degree as missing on both screens;
+  the admin can reject with a note asking for it.
+- "Clinic registration" is no longer asked for; the type is kept so old
+  files still show by name.
+
+**Checked**
+- Typecheck, lint, unit tests (1017; new student, clinic, stockist and
+  contact-phone tests) and build pass. Full e2e: main batch 322 passed,
+  exclusive/last 27 passed, manual 2, request 2. New e2e tests for the
+  doctor's two documents, the student and the clinic's phone card.
+- Screens checked at 375 and 1280 px (account documents and admin review).
+
+**Deploy note**
+- Needs `pnpm db:deploy` for the new column and the Student type.

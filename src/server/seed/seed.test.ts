@@ -76,6 +76,7 @@ describe("seedDatabase", () => {
     expect(userTypes.map((t) => [t.key, t.label])).toEqual([
       ["customer", "Customer"],
       ["doctor", "Ayurveda Doctor"],
+      ["student", "Ayurveda Student"],
       ["clinic", "Clinic / Hospital"],
       ["pharmacy", "Pharmacy / Store"],
       ["stockist", "Stockist / Distributor"],

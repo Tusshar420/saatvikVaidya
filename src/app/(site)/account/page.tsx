@@ -6,6 +6,7 @@ import { BadgeCheck, BookOpen, ChevronRight, Coins, GraduationCap, LayoutDashboa
 import { PageHero } from "@/components/site/page-hero";
 import { NameForm, NotificationsForm, PasswordForm, TestEmailButton, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
+import { ContactPhone } from "@/components/site/account/contact-phone";
 import { DocumentUpload } from "@/components/site/account/document-upload";
 import { MyEbooks } from "@/components/site/ebooks/my-ebooks";
 import { listOwnedEbooks } from "@/server/ebooks/ebooks";
@@ -503,6 +504,13 @@ function Documents({ verification }: { verification: ProfessionalVerification })
             />
           );
         })}
+        {verification.phone && (
+          <ContactPhone
+            number={verification.phone.number}
+            fromSignIn={verification.phone.fromSignIn}
+            locked={locked}
+          />
+        )}
       </ul>
     </Card>
   );

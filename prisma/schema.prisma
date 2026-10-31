@@ -77,6 +77,10 @@ model User {
   /// E.164, Indian mobiles only: "+91XXXXXXXXXX".
   phoneNumber             String?                @unique @db.VarChar(20)
   phoneNumberVerified     Boolean                @default(false)
+  /// A phone number given for verification by types that need one (see
+  /// src/lib/verification.ts) when the account has no sign-in mobile. Only
+  /// for our team to call; it never signs anyone in.
+  contactPhone            String?                @db.VarChar(20)
   userTypeId              Int
   userType                UserType               @relation(fields: [userTypeId], references: [id], onDelete: Restrict)
   role                    UserRole               @default(user)

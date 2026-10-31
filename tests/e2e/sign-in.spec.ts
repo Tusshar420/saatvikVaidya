@@ -178,6 +178,7 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
   await expect(types).toHaveText([
     "Customer",
     "Ayurveda Doctor",
+    "Ayurveda Student",
     "Clinic / Hospital",
     "Pharmacy / Store",
     "Stockist / Distributor",

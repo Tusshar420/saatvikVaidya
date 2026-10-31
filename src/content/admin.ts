@@ -453,6 +453,7 @@ export const admin = {
     previewAlt: (label: string) => `${label} (image)`,
     pdfOnPhones: "Open the PDF to read it on this screen.",
     otherDocument: "Other document",
+    contactPhoneNote: "Given for verification, not checked yet",
     applicantTitle: "Applicant",
     fields: {
       type: "User type",
