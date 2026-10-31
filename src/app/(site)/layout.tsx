@@ -12,7 +12,7 @@ import { shell } from "@/content/shell";
 import { formatNumber } from "@/lib/format";
 import { getSetting } from "@/server/content/settings";
 import { getSignUpUserTypes } from "@/server/content/user-types";
-import { isDevOtpVisible } from "@/server/env";
+import { isComingSoon, isDevOtpVisible } from "@/server/env";
 import { getSession } from "@/server/auth/session";
 import { cartCount } from "@/server/cart/cart";
 import { currentCartOwner } from "@/server/cart/request";
@@ -56,7 +56,7 @@ export default async function SiteLayout({
         userTypes={userTypes}
         devShowOtp={isDevOtpVisible()}
       >
-        <MaintenancePage message={maintenance.message} phone={phone} />
+        <MaintenancePage message={maintenance.message} phone={phone} comingSoon={isComingSoon()} />
       </SiteModalsProvider>
     );
   }

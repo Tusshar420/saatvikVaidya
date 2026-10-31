@@ -5891,3 +5891,40 @@ showed (and brand orders couldn't be dispatched either).
   the fallbacks now).
 - A shortcut from "Shipped" straight to "Delivered" if the team finds five
   clicks too many.
+
+## Live site set up early behind "Coming soon" (2026-10-31)
+
+The owner asked to move everything to the live (production) address while
+team testing goes on, so that after testing only a code push and small changes
+remain.
+
+**Built**
+- New server setting `SITE_COMING_SOON=true` (`isComingSoon()` in
+  `src/server/env.ts`). `getSetting("site.maintenance")` then always says
+  "on", so every place that obeys maintenance mode (site layout, checkout,
+  brand orders) keeps the live site closed from its very first start, before
+  any admin has signed in. Admins sign in and see everything.
+- The maintenance page shows "Coming soon" wording in that case
+  (`comingSoon` in `content/maintenance.ts`). Admin > Settings says the switch
+  is locked on by the server setting.
+- `docs/PRODUCTION_SETUP.md`: the live app on `main`, its own database and
+  settings, how fixes move from `staging` to `main`, and launch day (remove the
+  setting, redeploy). `DEPLOY.md` and `.env.example` list the setting.
+
+**Checked**
+- Typecheck, lint, all unit tests (981, one new) and the build pass. The main
+  e2e batch: 311 passed, 1 failed (`ebooks.spec.ts:180`, see Later). The site
+  settings exclusive spec (maintenance page): 12 passed on phone and desktop.
+- A local production server with `SITE_COMING_SOON=true`: `/` and `/checkout`
+  show the Coming soon page; screens checked at 375 and 1280 px.
+
+**Needs a person**
+- Create the live app and database in hPanel (PRODUCTION_SETUP.md), and merge
+  `staging` into `main` (agents don't push to `main` without the owner's word).
+
+**Later**
+- While `SITE_COMING_SOON` is on, search engines may index the Coming soon
+  page. Fine for a launch a few days away.
+- `ebooks.spec.ts:180` is flaky (fails about 1 run in 3): after the admin
+  turns ebook downloads back on, `/ebooks` sometimes still says paused (cached
+  setting). It fails the same way without this change.

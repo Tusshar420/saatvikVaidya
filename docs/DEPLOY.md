@@ -82,6 +82,7 @@ transfer (see "Payments").
 | `STAGING_ACCESS_USER` | `team` (or any name) | _leave unset_ |
 | `STAGING_ACCESS_PASSWORD` | a long password | _leave unset_ |
 | `SHOW_DESIGN_PAGE` | `false` | `false` |
+| `SITE_COMING_SOON` | _leave unset_ | `true` until launch day, then remove it (`docs/PRODUCTION_SETUP.md`) |
 | `DEV_SHOW_OTP` | `false` | `false` |
 | `TEST_PAYMENTS_IN_LOCAL_BUILD`, `TEST_SHIPPING_IN_LOCAL_BUILD` | unset | unset |
 | `APP_VERSION` | optional label shown in the error log | optional |
@@ -208,7 +209,8 @@ Use the test address on a phone and a computer. Tick each line.
 ## 7. 1 November: the main address
 
 The full launch-day plan (checklists, who does what, timings and rollback) is
-`docs/LAUNCH_1_NOVEMBER.md`. Summary:
+`docs/LAUNCH_1_NOVEMBER.md`. To set the live app up early behind "Coming soon"
+(`SITE_COMING_SOON=true`), follow `docs/PRODUCTION_SETUP.md`. Summary:
 
 Until then the main address keeps its "Coming soon" page. To switch:
 
