@@ -12,6 +12,9 @@
   --color-brand-dark: #042f28;
   --color-brand-soft: #e8f2ec;
   --color-brand-light: #8fd9b6;
+  /* The logo's own green and orange, for the rules around the header slogan. */
+  --color-logo-green: #037c32;
+  --color-logo-orange: #ed6200;
 
   --color-orange: #f36c21;
   --color-orange-soft: #fff0e7;

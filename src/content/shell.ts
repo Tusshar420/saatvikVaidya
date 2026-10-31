@@ -100,6 +100,8 @@ export const shell = {
     second: "Vaidya",
     mark: "SV",
     tagline: "हमारा आयुर्वेद, हमारा गर्व",
+    /** Shown as text under the header logo (31 Oct 2026). */
+    slogan: "Empowering Doctors!",
   },
   search: {
     label: "Search the website",
