@@ -44,24 +44,42 @@ test("the buyer sees their orders, newest first, and opens one", async ({ page, 
   const theirs = await makeE2eOrder({ userId: stranger.id, product });
 
   await page.goto("/orders");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(orders.list.title);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(orders.list.title);
   const list = page.getByRole("list", { name: orders.list.listLabel });
-  const cards = list.getByRole("listitem");
-  await expect(cards).toHaveCount(2);
-  await expect(cards.nth(0)).toContainText(unpaid.number);
-  await expect(cards.nth(0)).toContainText(orders.status.pending_payment);
-  await expect(cards.nth(0).getByRole("link", { name: orders.list.payNow })).toHaveAttribute(
+  const rows = list.getByRole("listitem");
+  await expect(rows).toHaveCount(2);
+  // Compact rows: the product name, status and date; the whole row opens the order.
+  await expect(rows.nth(0)).toContainText(product.name);
+  await expect(rows.nth(0)).toContainText(orders.status.pending_payment);
+  await expect(rows.nth(0).getByRole("link", { name: unpaid.number })).toHaveAttribute(
     "href",
-    `/checkout/pay/${unpaid.id}`,
+    `/orders/${unpaid.id}`,
   );
-  await expect(cards.nth(1)).toContainText(older.number);
-  await expect(cards.nth(1)).toContainText(orders.status.paid);
-  await expect(cards.nth(1)).toContainText("₹720");
+  await expect(rows.nth(1)).toContainText(orders.status.paid);
+  await expect(rows.nth(1).getByRole("link")).toHaveAccessibleName(new RegExp(older.number));
   await expect(list).not.toContainText(theirs.number);
+
+  // Buy again: the paid order's product, one tap back into the cart.
+  const buyAgain = main(page).getByRole("region", { name: orders.buyAgain.label });
+  await expect(buyAgain.getByRole("listitem")).toHaveCount(1);
+  await expect(buyAgain).toContainText(product.name);
+  await buyAgain.getByRole("button", { name: orders.buyAgain.addLabel(product.name) }).click();
+  await expect(buyAgain.getByRole("link", { name: orders.buyAgain.viewCart })).toBeVisible();
   await checkPage(page, errors);
 
-  // The order page: timeline, address, payment and items.
-  await cards.nth(1).getByRole("link", { name: orders.list.viewLabel(older.number) }).click();
+  // The period filters.
+  const ranges = main(page).getByRole("navigation", { name: orders.list.rangesLabel });
+  await expect(ranges.getByRole("link", { name: orders.list.ranges.all })).toHaveAttribute("aria-current", "true");
+  await ranges.getByRole("link", { name: orders.list.ranges.lastyear }).click();
+  await expect(page).toHaveURL("/orders?range=lastyear");
+  await expect(main(page).getByRole("heading", { name: orders.list.rangeEmptyTitle })).toBeVisible();
+  await checkPage(page, errors);
+  await ranges.getByRole("link", { name: orders.list.ranges["3months"] }).click();
+  await expect(page).toHaveURL("/orders?range=3months");
+  await expect(rows).toHaveCount(2);
+
+  // The order page: timeline, address, payment, items and total.
+  await rows.nth(1).getByRole("link").click();
   await expect(page).toHaveURL(`/orders/${older.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(older.number);
   const timeline = page.getByRole("list", { name: orders.tracking.timelineLabel(older.number) });
@@ -71,6 +89,7 @@ test("the buyer sees their orders, newest first, and opens one", async ({ page, 
   await expect(main(page).getByText("Pune, Maharashtra 411001")).toBeVisible();
   await expect(main(page).getByText(orders.detail.testNote)).toBeVisible();
   await expect(main(page).getByText(product.name)).toBeVisible();
+  await expect(main(page)).toContainText("₹720");
   await checkPage(page, errors);
 
   // Someone else's order is not found; the list link is back to all orders.

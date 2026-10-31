@@ -5970,3 +5970,38 @@ remain.
   notification instead of the quiz one, because the rail has no Quiz & Win
   link there.
 - Screens checked at 375 and 1280 px.
+
+## My orders laid out like Amazon's: Buy again, compact list, period filters (2026-10-31)
+
+**Built**
+- The client sent a screenshot of Amazon's "Your Orders" and asked for the
+  same layout on `/orders`.
+- "Buy again" row on top: products from the buyer's paid store orders
+  (paid, processing, shipped, delivered), newest first, each once, up to 10.
+  Products taken off sale are left out. Each card has the photo (or form
+  mark), name, pack size and an "Add to cart" button that adds the minimum
+  order; out-of-stock ones show a disabled "Out of stock".
+  (`listBuyAgainForUser` in `src/server/orders/history.ts`,
+  `src/components/site/orders/buy-again-button.tsx`.)
+- "Purchase history": each order is now one compact row: thumbnail of the
+  first product, the order's name (first item, "+ N more"), its status and
+  date, and a chevron. The whole row opens the order page, which already
+  has the full details (timeline, address, payment, items, total,
+  documents, "Complete payment"). The order number is read out to screen
+  readers but not shown.
+- Period filters as links: All orders, This month, Last 3 months, This year,
+  Last year (`?range=`, kept by the page links). Periods follow India time
+  (`src/lib/order-ranges.ts`). An empty period shows "No orders in this
+  period" with a "Show all orders" button.
+- The signed-in title is now just "Your orders" (smaller); the signed-out
+  page keeps its longer title (`orders.guest.pageTitle`).
+
+**Checked**
+- Typecheck, lint, unit tests (991, new `order-ranges.test.ts` and
+  `history.test.ts`) and build pass. Full e2e suite passes (339 main, plus
+  manual-payment and order-request); `orders.spec` updated for the compact
+  rows, Buy again and filters.
+- Screens checked at 375 and 1280 px.
+
+**Later**
+- Amazon also has "Search all orders" and a "You might like" box; not built.
