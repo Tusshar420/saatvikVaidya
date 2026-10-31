@@ -17,7 +17,7 @@ export function AuthorLine({ author, createdAt }: { author: ThreadAuthor; create
         <p className="flex items-center gap-1.5 text-small font-extrabold text-ink">
           <span className="truncate">{author.name}</span>
           {author.isDoctor && (
-            <BadgeCheck aria-label={copy.doctorBadge} role="img" className="size-4 shrink-0 text-brand" />
+            <BadgeCheck aria-label={copy.doctorBadge} role="img" className="size-4 shrink-0 text-orange-strong" />
           )}
         </p>
         <p className="text-xs text-muted">
