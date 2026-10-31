@@ -6005,3 +6005,60 @@ remain.
 
 **Later**
 - Amazon also has "Search all orders" and a "You might like" box; not built.
+
+## Orders for customers: staff prepare an order, the customer confirms it (2026-10-31)
+
+**Built**
+- The client asked for a way for staff to place orders for customers who
+  call or message. New admin section **Orders for customers**
+  (`/admin/assisted-orders`, orders area: super and orders admins), with a
+  "Prepare an order" button there and on each customer's admin page.
+- Preparing: find the customer by name, mobile or email (customer accounts
+  only, never staff), add medicines with quantities (minimum order quantity
+  checked), add a message. Saving sends the customer the link by email, adds
+  a bell notification, and shows it in a "Prepared for you by our team" box
+  on their **Your orders** page. The link works for 7 days.
+- The customer finishes it from the link (`/orders/prepared/[id]`, only for
+  that account): the items priced for them, then the normal checkout
+  (address, Super Coins, place order, payment details as usual).
+- Or staff confirm it on the call: pick or add the customer's address, press
+  "Send code to customer" (6 digits, works 10 minutes, 5 wrong tries, 3
+  codes per 10 minutes, stored only as a hash), type the code the customer
+  reads back, and the order is placed on their account. The customer then
+  gets the usual "order received" message with how to pay.
+- Staff can also copy the link or share it on WhatsApp (a wa.me link the
+  staff member's own WhatsApp opens; no WhatsApp integration), send it again,
+  or cancel the prepared order. Every step is in the activity log.
+- `placeOrder()` takes an optional prepared order: its items are ordered
+  instead of the cart's (the cart is left alone), and it is marked placed in
+  the same transaction, so it can only be placed once (staff and customer at
+  the same moment included).
+- New tables `AssistedOrder` and `AssistedOrderItem` (migration
+  `20261031141506_assisted_orders`). `pnpm db:clear-test-data` removes and
+  counts them.
+
+**Decisions**
+- Products only (no ebooks or courses), priced for the customer when placed,
+  never by staff. Coins are offered only when the customer places it.
+- There is no SMS provider yet, so SMS still go to the server log only.
+  New `smsDelivered()` in `src/server/notify` (false for now): staff screens
+  count only email as "sent", and a customer with no real email (phone-only
+  account) can't get a code. For them staff copy the link or share it on
+  WhatsApp. When MSG91 is added, set `smsDelivered()` true and SMS counts.
+
+**Checked**
+- Typecheck, lint, unit tests (1004; new `assisted-orders.test.ts`) and
+  build pass. Full e2e: main projects (316 incl. the new
+  `assisted-orders.spec`), exclusive and last projects, manual and request
+  configs all pass.
+- `admin.spec` nav test now matches whole link names ("Orders" no longer
+  matches "Orders for customers"); `admin-access.test` knows the new pages.
+- Screens checked at 375 and 1280 px.
+
+**Deploy note**
+- The test and live servers need `pnpm db:deploy` after this commit (new
+  tables), before the new pages are opened.
+
+**Later**
+- Edit a prepared order's items (today: cancel and prepare a new one).
+- Real SMS (MSG91) so phone-only customers get the link and code.

@@ -128,6 +128,10 @@ model User {
   threadLikes             ThreadLike[]
   threadPollVotes         ThreadPollVote[]
   coursesAuthored         CourseTeaser[]         @relation("CourseAuthor")
+  /// Orders our staff prepared for this customer.
+  assistedOrders          AssistedOrder[]        @relation("AssistedOrderCustomer")
+  /// Orders this staff member prepared for customers.
+  assistedOrdersCreated   AssistedOrder[]        @relation("AssistedOrderStaff")
 
   @@index([userTypeId])
 }
@@ -936,6 +940,7 @@ model Product {
   cartItems              CartItem[]
   orderItems             OrderItem[]
   brandCartItems         BrandCartItem[]
+  assistedOrderItems     AssistedOrderItem[]
   brandTiers             BrandPriceTier[]
   /// What the label of this product can print (null: the general spec).
   labelSpecId            Int?
@@ -1124,6 +1129,8 @@ model Order {
   invoices          Invoice[]
   /// Logo and packaging details of a brand order (P2.1).
   brandDetails      BrandOrderDetails?
+  /// Set when our staff prepared this order for the customer.
+  assistedOrder     AssistedOrder?
 
   @@unique([userId, checkoutKey])
   @@index([userId, createdAt])
@@ -1899,4 +1906,64 @@ model ThreadPollVote {
 
   @@id([threadId, userId])
   @@index([optionId])
+}
+
+// ─── Orders prepared by staff ───────────────────────────────────────────────
+
+enum AssistedOrderStatus {
+  /// Waiting for the customer (or for their code on a phone call).
+  open
+  /// Became a real order (see orderId).
+  placed
+  /// Withdrawn by staff.
+  cancelled
+}
+
+/// An order our staff prepared for a customer who asked by phone or
+/// WhatsApp. The customer finishes it from the link (sent to them and shown
+/// on their account), or confirms it on the call with a code sent to them,
+/// and staff place it. Only products; priced for the customer when placed.
+model AssistedOrder {
+  /// Random; it is the link's last part (/orders/prepared/<id>).
+  id            String              @id @db.VarChar(32)
+  userId        String              @db.VarChar(64)
+  user          User                @relation("AssistedOrderCustomer", fields: [userId], references: [id], onDelete: Cascade)
+  /// The staff member who prepared it (null if their account was removed).
+  createdById   String?             @db.VarChar(64)
+  createdBy     User?               @relation("AssistedOrderStaff", fields: [createdById], references: [id], onDelete: SetNull)
+  status        AssistedOrderStatus @default(open)
+  /// A message from staff to the customer, shown with the order.
+  note          String?             @db.VarChar(500)
+  /// The order it became.
+  orderId       String?             @unique @db.VarChar(32)
+  order         Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  /// "customer" (from the link) or "staff" (on a call, with the customer's code).
+  placedBy      String?             @db.VarChar(16)
+  placedAt      DateTime?
+  /// The confirmation code sent to the customer: SHA-256 of id and code.
+  codeHash      String?             @db.Char(64)
+  codeExpiresAt DateTime?
+  /// Wrong codes typed since the last one was sent.
+  codeAttempts  Int                 @default(0)
+  /// The link stops working after this.
+  expiresAt     DateTime
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  items         AssistedOrderItem[]
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([createdById])
+}
+
+model AssistedOrderItem {
+  id              Int           @id @default(autoincrement())
+  assistedOrderId String        @db.VarChar(32)
+  assistedOrder   AssistedOrder @relation(fields: [assistedOrderId], references: [id], onDelete: Cascade)
+  productId       Int
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity        Int
+
+  @@unique([assistedOrderId, productId])
+  @@index([productId])
 }

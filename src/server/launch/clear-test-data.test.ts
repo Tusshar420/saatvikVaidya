@@ -117,6 +117,16 @@ describe("clearing the test data", () => {
     await writeFile(join(storageDir, screenshot), "png");
     await db.bugReport.create({ data: { description: "Button overlaps", userId: doctor, screenshotKey: screenshot } });
     await db.errorGroup.create({ data: { fingerprint: "f".repeat(64), source: "server", message: "Boom", route: "/x" } });
+    // An order staff prepared for the doctor.
+    await db.assistedOrder.create({
+      data: {
+        id: "prepared-order-for-test1",
+        userId: doctor,
+        createdById: adminId,
+        expiresAt: new Date(Date.now() + 86_400_000),
+        items: { create: { productId: paid.productId, quantity: 1 } },
+      },
+    });
     return { paid, unpaid, brand, doctor, screenshot };
   }
 
@@ -131,6 +141,7 @@ describe("clearing the test data", () => {
       accounts: 4,
       orders: 3,
       brandOrders: 1,
+      preparedOrders: 1,
       quizAttempts: 1,
       coinEntries: 1,
       threads: 1,
@@ -170,6 +181,8 @@ describe("clearing the test data", () => {
       db.address.count(),
       db.cart.count(),
       db.brandProfile.count(),
+      db.assistedOrder.count(),
+      db.assistedOrderItem.count(),
     ]) {
       expect(await count).toBe(0);
     }

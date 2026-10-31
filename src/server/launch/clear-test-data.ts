@@ -76,6 +76,7 @@ export type TestDataCounts = {
     accountsByType: Record<string, number>;
     orders: number;
     brandOrders: number;
+    preparedOrders: number;
     invoices: number;
     payments: number;
     quizAttempts: number;
@@ -150,6 +151,7 @@ export async function countTestData(db: Db): Promise<TestDataCounts> {
       accountsByType,
       orders: await db.order.count(),
       brandOrders: await db.order.count({ where: { type: "brand" } }),
+      preparedOrders: await db.assistedOrder.count(),
       invoices: await db.invoice.count(),
       payments: await db.payment.count(),
       quizAttempts: await db.quizAttempt.count(),
@@ -219,6 +221,8 @@ export async function clearTestData(db: Db, storageDir: string): Promise<{ files
       // order. Items, payments, deliveries and brand details go with orders.
       await tx.invoice.deleteMany({ where: { kind: "credit_note" } });
       await tx.invoice.deleteMany({});
+      // Orders staff prepared for customers (their items go with them).
+      await tx.assistedOrder.deleteMany({});
       await tx.order.deleteMany({});
       await tx.quizAttempt.deleteMany({});
       await tx.coinLedger.deleteMany({});

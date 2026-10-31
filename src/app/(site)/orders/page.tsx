@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardList, Package } from "lucide-react";
 import { ProductVisual } from "@/components/site/catalogue/product-visual";
 import { BuyAgainButton } from "@/components/site/orders/buy-again-button";
 import { GuestOrders } from "@/components/site/orders/guest-orders";
@@ -8,11 +8,15 @@ import { Eyebrow } from "@/components/ui/badge";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HScroller } from "@/components/ui/hscroller";
+import { assistedOrders } from "@/content/assisted-orders";
 import { orders as copy } from "@/content/orders";
+import { preparedOrderPath } from "@/lib/assisted-orders";
 import { cn } from "@/lib/cn";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPaise } from "@/lib/format";
 import { ORDER_RANGES, ordersHref, parseOrderRange, type OrderRange } from "@/lib/order-ranges";
+import { listOpenPreparedOrders, type OpenPreparedOrder } from "@/server/assisted-orders/assisted-orders";
 import { getSession } from "@/server/auth/session";
+import { getPricingViewer } from "@/server/pricing";
 import { listBuyAgainForUser, listOrdersForUser, type BuyAgainItem, type OrderListItem } from "@/server/orders/history";
 
 const text = copy.list;
@@ -39,9 +43,10 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
   const { user } = session;
   const params = await searchParams;
   const range = parseOrderRange(params.range);
-  const [{ orders, page, pageCount, total }, buyAgain] = await Promise.all([
+  const [{ orders, page, pageCount, total }, buyAgain, prepared] = await Promise.all([
     listOrdersForUser(user.id, pageOf(params.page), range),
     listBuyAgainForUser(user.id),
+    getPricingViewer().then((viewer) => listOpenPreparedOrders(user.id, viewer)),
   ]);
   const noOrdersAtAll = total === 0 && range === "all";
 
@@ -50,6 +55,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
       <div className="mx-auto max-w-3xl">
         <Eyebrow>{text.eyebrow}</Eyebrow>
         <h1 className="mt-2 text-h3 text-ink">{text.title}</h1>
+
+        {prepared.length > 0 && <PreparedForYou orders={prepared} />}
 
         {noOrdersAtAll ? (
           <EmptyState
@@ -227,5 +234,43 @@ function Pagination({ range, page, pageCount }: { range: OrderRange; page: numbe
         <span />
       )}
     </nav>
+  );
+}
+
+/** Orders our staff prepared for this customer, waiting to be placed. */
+function PreparedForYou({ orders }: { orders: OpenPreparedOrder[] }) {
+  const list = assistedOrders.customer.list;
+  return (
+    <section
+      aria-labelledby="prepared-title"
+      className="mt-6 rounded-xl border border-orange/40 bg-orange-soft/50 p-4 sm:p-5"
+    >
+      <h2 id="prepared-title" className="flex items-center gap-2 font-heading text-h4 text-ink">
+        <ClipboardList aria-hidden className="size-5 shrink-0 text-orange-ink" />
+        {list.title}
+      </h2>
+      <p className="mt-1 text-sm text-muted">{list.line}</p>
+      <ul aria-label={list.label} className="mt-3 flex flex-col gap-2">
+        {orders.map((order) => (
+          <li
+            key={order.id}
+            className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <span className="text-sm">
+              <span className="block font-bold text-ink">{list.summary(order.itemCount, formatPaise(order.totalPaise))}</span>
+              <span className="block text-small text-muted">{list.preparedOn(formatDate(order.createdAt))}</span>
+            </span>
+            <Link
+              href={preparedOrderPath(order.id)}
+              aria-label={list.openLabel(formatDate(order.createdAt))}
+              className={buttonClasses({ size: "sm", className: "max-sm:w-full" })}
+            >
+              {list.open}
+              <ButtonArrow />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

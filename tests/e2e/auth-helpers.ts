@@ -288,6 +288,10 @@ export async function cleanUpE2eData() {
   const orderNumbers = (
     await db.order.findMany({ where: { userId: { in: ids } }, select: { number: true } })
   ).map((order) => `track-order:number:${order.number.toLowerCase()}`);
+  // Orders staff prepared for e2e users: their code and link send limits.
+  const assistedKeys = (
+    await db.assistedOrder.findMany({ where: { userId: { in: ids } }, select: { id: true } })
+  ).flatMap(({ id }) => [`assisted-code:order:${id.toLowerCase()}`, `assisted-link:order:${id.toLowerCase()}`]);
   // Invoices and credit notes of e2e users' orders (P1.6), with their PDFs.
   const invoiceFiles = await db.invoice.findMany({
     where: { order: { userId: { in: ids } } },
@@ -384,6 +388,7 @@ export async function cleanUpE2eData() {
           { key: { in: ids.map((id) => `brand-logo-upload:user:${id.toLowerCase()}`) } },
           { key: { in: ids.map((id) => `brand-proof-upload:user:${id.toLowerCase()}`) } },
           { key: { in: orderNumbers } },
+          { key: { in: assistedKeys } },
           { key: { contains: `:+91${E2E_PHONE_PREFIX}` } },
           { key: { contains: `@${E2E_EMAIL_DOMAIN}` } },
           { key: { contains: `:${E2E_IP_PREFIX}` } },

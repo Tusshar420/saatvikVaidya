@@ -101,9 +101,9 @@ test.describe("as an admin", () => {
       copy.nav.orders,
       copy.nav.settings,
     ]) {
-      // Starts with the label: "Approvals" carries a count, and "Orders"
-      // mustn't match "Brand orders" (P2.1).
-      const name = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+      // The whole name, maybe with a count ("Approvals" carries one), so
+      // "Orders" doesn't match "Brand orders" (P2.1) or "Orders for customers".
+      const name = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s*\\d+)?$`);
       await expect(nav.getByRole("link", { name })).toHaveCount(1);
     }
     await expect(
