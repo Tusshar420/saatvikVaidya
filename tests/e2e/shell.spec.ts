@@ -202,11 +202,11 @@ test.describe("nav rail", () => {
     await page.goto("/");
     const nav = rail(page);
     const scroller = nav.locator("> div");
-    const home = nav.getByRole("link", { name: shell.nav.home, exact: true });
     const last = siteNav[siteNav.length - 1];
     const lastLink = nav.getByRole("link", { name: last.label });
 
-    await expect(home).toHaveAttribute("aria-current", "page");
+    // No Home link: the logo is the way home (client, 31 Oct 2026).
+    await expect(nav.getByRole("link", { name: /^home$/i })).toHaveCount(0);
     for (const link of siteNav) {
       const navLink = nav.getByRole("link", { name: link.label, exact: true });
       // Courses, Saatvik Coins and Track Order are left off on phones,
@@ -229,7 +229,6 @@ test.describe("nav rail", () => {
     expect(shown).toEqual(
       isMobile
         ? [
-            shell.nav.home,
             "Dr. Talk",
             "Quiz & Win",
             "Build Your Brand",
@@ -239,7 +238,6 @@ test.describe("nav rail", () => {
             "Why Saatvik",
           ]
         : [
-            shell.nav.home,
             "Dr. Talk",
             "Courses",
             "Quiz & Win",
@@ -268,7 +266,13 @@ test.describe("nav rail", () => {
     await brands.click();
     await expect(page).toHaveURL("/products");
     await expect(brands).toHaveAttribute("aria-current", "page");
-    await expect(home).not.toHaveAttribute("aria-current");
+
+    // The logo takes you back home.
+    await header(page)
+      .getByRole("link", { name: shell.brand.homeLabel })
+      .click();
+    await expect(page).toHaveURL("/");
+    await expect(brands).not.toHaveAttribute("aria-current");
   });
 
   test("Build Your Brand opens the Launch page", async ({

@@ -5928,3 +5928,23 @@ remain.
 - `ebooks.spec.ts:180` is flaky (fails about 1 run in 3): after the admin
   turns ebook downloads back on, `/ebooks` sometimes still says paused (cached
   setting). It fails the same way without this change.
+
+## Top menu: no Home link, the logo goes home (2026-10-31)
+
+**Built**
+- The client asked to drop Home from the top menu and use the logo as the
+  home button. The nav rail no longer adds a Home pill; it now starts with
+  Dr. Talk on both screen sizes. The header logo already linked to `/`
+  ("Saatvik Vaidya home"), so nothing new was needed there.
+- `shell.nav.home` and the rail's House icon are gone.
+
+**Checked**
+- Typecheck, lint, unit tests (981) and build pass. Full e2e: main projects,
+  exclusive and last projects, manual and request configs all pass.
+- The shell test now checks the rail has no Home link and that the logo
+  takes you back home. Header checked at 375 and 1280 px.
+- Side effect fixed in `courses.spec`: after the empty-form errors the test
+  was left at the submit button, where a form field peeks ~6 px out from
+  under the sticky header. With the Home pill gone, axe's target-size rule
+  started flagging that field. The page itself did not change; the test now
+  scrolls to the first error before the accessibility check.

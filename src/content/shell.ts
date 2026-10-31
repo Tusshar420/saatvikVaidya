@@ -43,7 +43,7 @@ export type SiteNavLink = {
 
 /**
  * The v2 nav rail (U.4), in the client's order (30 Oct 2026). Every link is
- * a real page; Home is added by the rail itself. On phones the `wideOnly`
+ * a real page; there is no Home link, the logo goes home (31 Oct 2026). On phones the `wideOnly`
  * links are left out, because the bottom dock has Coins, Courses and Order.
  */
 export const siteNav: readonly SiteNavLink[] = [
@@ -125,7 +125,6 @@ export const shell = {
   },
   nav: {
     label: "Sections",
-    home: "Home",
     soon: "Soon",
   },
   footer: {

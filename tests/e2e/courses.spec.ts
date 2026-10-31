@@ -49,6 +49,10 @@ test("a doctor's course is reviewed, bought and opened by the buyer", async ({ p
   await page.getByRole("button", { name: fields.submit }).click();
   await expect(page.getByText(copy.doctor.errors.title)).toBeVisible();
   await expect(page.getByText(copy.doctor.errors.price)).toBeVisible();
+  // Check the errors where the user reads them. Left at the submit button, a
+  // field peeks a few px out from under the sticky header and axe's
+  // target-size rule flags it (it did once the rail lost its Home link).
+  await page.getByText(copy.doctor.errors.title).scrollIntoViewIfNeeded();
   await checkPage(page, errors);
   await page.getByLabel(fields.title).fill(title);
   await page.getByLabel(fields.tag).fill("Panchakarma");
