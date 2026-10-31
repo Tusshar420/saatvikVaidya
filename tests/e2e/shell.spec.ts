@@ -209,7 +209,7 @@ test.describe("nav rail", () => {
     await expect(nav.getByRole("link", { name: /^home$/i })).toHaveCount(0);
     for (const link of siteNav) {
       const navLink = nav.getByRole("link", { name: link.label, exact: true });
-      // Courses, Saatvik Coins and Track Order are left off on phones,
+      // Quiz & Win, Saatvik Coins and Track Order are left off on phones,
       // where the bottom dock has them.
       if (isMobile && link.wideOnly) await expect(navLink).toBeHidden();
       else {
@@ -230,7 +230,7 @@ test.describe("nav rail", () => {
       isMobile
         ? [
             "Dr. Talk",
-            "Quiz & Win",
+            "Courses",
             "Build Your Brand",
             "Top Brands",
             "Real Feedback",
@@ -317,7 +317,7 @@ test.describe("mobile dock", () => {
     for (const label of [
       shell.dock.coins,
       shell.dock.updates,
-      shell.dock.courses,
+      shell.dock.quiz,
       shell.dock.orders,
       shell.dock.you,
     ])
@@ -359,10 +359,10 @@ test.describe("mobile dock", () => {
     };
     for (const [label, href] of Object.entries(hrefs))
       await expect(bar.getByRole("link", { name: label })).toHaveAttribute("href", href);
-    await bar.getByRole("link", { name: shell.dock.courses }).click();
-    await expect(page).toHaveURL("/courses");
+    await bar.getByRole("link", { name: shell.dock.quiz }).click();
+    await expect(page).toHaveURL("/quiz");
     await expect(
-      bar.getByRole("link", { name: shell.dock.courses }),
+      bar.getByRole("link", { name: shell.dock.quiz }),
     ).toHaveAttribute("aria-current", "page");
   });
 });

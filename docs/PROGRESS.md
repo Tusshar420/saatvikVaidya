@@ -5948,3 +5948,25 @@ remain.
   under the sticky header. With the Home pill gone, axe's target-size rule
   started flagging that field. The page itself did not change; the test now
   scrolls to the first error before the accessibility check.
+
+## Phone menus: Quiz & Win in the bottom bar, Courses up top (2026-10-31)
+
+**Built**
+- The client asked to swap two items on phones (under 560 px). The bottom
+  bar now reads Coins, Updates, Quiz & Win (trophy icon), Order, You.
+  Courses moved up into the top menu, right after Dr. Talk.
+- In `siteNav`, Quiz & Win is now `wideOnly` (hidden on phones, since the
+  bottom bar has it) and Courses is not. `dockNav` links to `/quiz`;
+  `shell.dock.courses` became `shell.dock.quiz`.
+- Desktop is unchanged: there is no bottom bar, and the top menu still shows
+  Dr. Talk, Courses, Quiz & Win and the rest in the same order.
+
+**Checked**
+- Typecheck, lint, unit tests (981) and build pass. e2e: `shell`,
+  `homepage-part2` and `notifications` specs pass on phone and desktop. The
+  full e2e suite was not re-run for this small change.
+- Tests updated for the new phone order. The notification badge test now
+  checks the Courses badge on both widths; on phones it opens the Dr. Talk
+  notification instead of the quiz one, because the rail has no Quiz & Win
+  link there.
+- Screens checked at 375 and 1280 px.

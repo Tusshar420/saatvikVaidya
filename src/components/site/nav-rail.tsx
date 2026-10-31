@@ -111,7 +111,7 @@ const toneClasses: Record<SiteNavTone, { idle: string; active: string }> = {
  * The v2 nav rail under the header bar (46 px, 43 under 820 px): pill links
  * to every main page (the logo is the way home), with Dr. Talk as a solid green pill and
  * Quiz & Win as a solid orange one. Under 560 px the `wideOnly` links
- * (Courses, Saatvik Coins, Track Order) are hidden, because the phone dock
+ * (Quiz & Win, Saatvik Coins, Track Order) are hidden, because the phone dock
  * has them. It scrolls sideways with an edge fade on narrow screens and
  * marks the current page.
  */
