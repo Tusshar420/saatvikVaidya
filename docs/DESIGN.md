@@ -132,7 +132,8 @@ Fonts load with `next/font` (self-hosted, no external origin) in
 | Token | Size (phone → desktop) | Weight | Line height | Letter spacing | Use |
 |---|---|---|---|---|---|
 | `text-display` | 44 → 82 px (`clamp(44px, 6vw, 82px)`) | 800 | 1 | −0.045em | Home hero h1 |
-| `text-h1` | 36 → 64 px (`clamp(36px, 5vw, 64px)`) | 800 | 1.02 | −0.045em | Inner-page hero h1 |
+| `text-h1` | 36 → 64 px (`clamp(36px, 5vw, 64px)`) | 800 | 1.02 | −0.045em | Large standalone page titles (maintenance) |
+| `text-page-title` | 24 → 36 px (`clamp(24px, 1.6vw + 18px, 36px)`) | 800 | 1.08 | −0.04em | Inner-page hero h1 (kept below the home hero title) |
 | `text-h2` | 34 → 54 px (`clamp(34px, 4.3vw, 54px)`) | 800 | 1.05 | −0.045em | Section titles |
 | `text-h3` | 22 → 28 px | 800 | 1.15 | −0.035em | Panel and portal section titles |
 | `text-h4` | 16 → 18 px | 800 | 1.3 | −0.02em | Card titles |
@@ -159,8 +160,9 @@ the same dot. (The dot replaced the old short orange line on 2026-10-31.)
 - Page container (`shell`): `min(1180px, 100% − 40px)`; under 820 px
   `min(100% − 30px, 720px)`; under 560 px `100% − 26px`.
 - Section vertical padding (`section-y`): 100 px, 78 px under 820 px and 62 px
-  under 560 px. Inner pages: hero 54 px (42 under 760, 35 under 560), body
-  54 px top.
+  under 560 px. Inner pages: hero 32 px (28 under 820, 24 under 560), body
+  54 px top. Every inner-page hero (and the compact Quiz & Win carousel)
+  stays shorter than the home hero (client request, 1 Nov 2026).
 - Radius tokens:
   - `sm` 8 px (small pills, tags, small buttons inside cards)
   - `md` 12 px (inputs, chips, icon tiles, avatars)
@@ -235,7 +237,7 @@ brings it to v2.
 | **Skeleton**, **EmptyState / ComingSoon** | Loading shapes; icon, title, one line, optional button. ComingSoon uses the v2 "Coming next" pill. | U.2 |
 | **Carousel**, **HScroller** | Keyboard-accessible slides; horizontal snap lists on phones (reels, product and course cards) with an edge fade. | U.2 |
 | **SectionHeading** | Eyebrow, two-tone title, optional description on the right and a "View all →" link (stacked on phones). (`.section-head`) | now (colours); U.3 (layout) |
-| **PageHero** | Dark green `bg-page-hero` with `bg-dots`, gold eyebrow, `text-h1` title, description, and the "BUILT FOR PROFESSIONALS" side note card (stacks under on phones). (`.portal-hero`) | U.3 |
+| **PageHero** | Dark green `bg-page-hero` with `bg-dots`, gold eyebrow, `text-page-title` title, description, and the "BUILT FOR PROFESSIONALS" side note card (from 820 px up only, so the hero stays short on phones). (`.portal-hero`) | U.3 |
 | **StatStrip** | 4-up band, `gold-light` numbers in Manrope, 2 × 2 on phones. (`.proof-strip`) | U.3 |
 | **FilterBar** | Search field and select filters in one row, stacking on phones. (`.shop-bar`) | U.3 |
 | **ProgressBar**, **StepsBar**, **Stepper** | Thin bar; numbered 1–2–3 step strip; Track Order dots-and-line (done `brand`, active `gold` with halo). (`.progress`, `.stepper`, `.track-steps`) | U.3 |

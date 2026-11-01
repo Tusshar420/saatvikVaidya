@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, Star, X } from "lucide-react";
-import { HeroCarousel, HeroSlide, heroSlideLinkClasses, heroTitleClasses } from "@/components/site/hero-carousel";
+import { HeroCarousel, HeroSlide, heroCompactTitleClasses, heroSlideLinkClasses } from "@/components/site/hero-carousel";
 import { LeaderboardCard } from "@/components/site/quiz/leaderboard-card";
 import { QuizPlayer } from "@/components/site/quiz/quiz-player";
 import { Button, ButtonArrow, buttonClasses } from "@/components/ui/button";
@@ -70,9 +70,10 @@ export default async function QuizPage({ searchParams }: PageProps<"/quiz">) {
       <HeroCarousel
         labelledBy="quiz-hero-title"
         label={hero.label}
+        compact
         slides={[
-          <HeroSlide key="play" kicker={hero.play.kicker} art="quiz">
-            <HeroTitle id="quiz-hero-title" className={heroTitleClasses}>
+          <HeroSlide key="play" kicker={hero.play.kicker} art="quiz" compact>
+            <HeroTitle id="quiz-hero-title" className={heroCompactTitleClasses}>
               {hero.play.title}
               <br />
               <em className="text-gold-light not-italic">{hero.play.emphasis}</em>
@@ -82,8 +83,8 @@ export default async function QuizPage({ searchParams }: PageProps<"/quiz">) {
               <ButtonArrow />
             </Link>
           </HeroSlide>,
-          <HeroSlide key="board" kicker={hero.board.kicker} art="podium">
-            <p className={heroTitleClasses}>
+          <HeroSlide key="board" kicker={hero.board.kicker} art="podium" compact>
+            <p className={heroCompactTitleClasses}>
               {hero.board.title}
               <br />
               <em className="text-gold-light not-italic">{hero.board.emphasis}</em>

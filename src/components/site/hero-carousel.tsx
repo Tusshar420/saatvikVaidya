@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LabelDot } from "@/components/ui/badge";
 import { Carousel } from "@/components/ui/carousel";
+import { cn } from "@/lib/cn";
 import { HeroArt, type HeroArtKind } from "./hero-art";
 
 /**
@@ -14,15 +15,21 @@ export const heroSlideLinkClasses =
 export const heroTitleClasses =
   "text-[24px] leading-[1.08] font-extrabold tracking-[-0.04em] sm:text-[36px] sm:leading-[1] lg:text-[clamp(36px,3.5vw,44px)]";
 
+/** Smaller title for a `compact` band (Quiz & Win), below the home hero's. */
+export const heroCompactTitleClasses =
+  "text-[22px] leading-[1.08] font-extrabold tracking-[-0.04em] sm:text-[28px] lg:text-[32px]";
+
 /**
  * The dark green hero band with the slide carousel, shared by the homepage
- * and Quiz & Win. It is only as tall as its tallest slide.
+ * and Quiz & Win. It is only as tall as its tallest slide. `compact` (Quiz &
+ * Win) keeps it shorter than the home hero.
  */
 export function HeroCarousel({
   id,
   labelledBy,
   label,
   slides,
+  compact = false,
 }: {
   id?: string;
   /** Id of the first slide's title, which names the whole band. */
@@ -30,12 +37,16 @@ export function HeroCarousel({
   /** Accessible name of the carousel itself. */
   label: string;
   slides: readonly ReactNode[];
+  compact?: boolean;
 }) {
   return (
     <section
       id={id}
       aria-labelledby={labelledBy}
-      className="relative overflow-hidden pt-4 text-white bg-hero sm:pt-6 md:pt-8"
+      className={cn(
+        "relative overflow-hidden text-white bg-hero",
+        compact ? "pt-3 sm:pt-4 md:pt-5" : "pt-4 sm:pt-6 md:pt-8",
+      )}
     >
       <div
         aria-hidden
@@ -65,10 +76,13 @@ export function HeroCarousel({
 export function HeroSlide({
   kicker,
   art,
+  compact = false,
   children,
 }: {
   kicker: string;
   art: HeroArtKind;
+  /** Smaller art, for a `compact` HeroCarousel. */
+  compact?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -80,7 +94,10 @@ export function HeroSlide({
       <div className="min-w-0 max-w-176 self-start">{children}</div>
       <HeroArt
         kind={art}
-        className="size-24 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:size-40 md:size-48 lg:mr-8 lg:size-56"
+        className={cn(
+          "sm:col-start-2 sm:row-span-2 sm:row-start-1 lg:mr-8",
+          compact ? "size-20 sm:size-28 md:size-32 lg:size-36" : "size-24 sm:size-40 md:size-48 lg:size-56",
+        )}
       />
     </div>
   );
