@@ -76,5 +76,6 @@ export async function clearContentTables(db: PrismaClient): Promise<void> {
     db.whyStep.deleteMany(),
     // Questions and options go with their quiz (onDelete: Cascade).
     db.quiz.deleteMany(),
+    db.quizCategory.deleteMany(),
   ]);
 }

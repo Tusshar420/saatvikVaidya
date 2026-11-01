@@ -373,6 +373,7 @@ export async function cleanUpE2eData() {
       where: { key: { startsWith: E2E_CONTENT_PREFIX } },
     }),
     db.quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } }),
+    db.quizCategory.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
     db.verification.deleteMany({
       where: { OR: [{ identifier: phones }, { value: { in: ids } }] },
     }),

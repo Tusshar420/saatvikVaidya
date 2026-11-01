@@ -243,6 +243,7 @@ brings it to v2.
 | **ProgressBar**, **StepsBar**, **Stepper** | Thin bar; numbered 1–2–3 step strip; Track Order dots-and-line (done `brand`, active `gold` with halo). (`.progress`, `.stepper`, `.track-steps`) | U.3 |
 | **Drawer** | Side sheet on desktop, bottom sheet on phones, focus trapped. (`.order-drawer`) | U.3 |
 | **RankList**, **MediaCard**, **InfoCard**, **QuantityStepper** | Leaderboard rows; reel/feedback cards with tag, play overlay and caption; icon tile + number + title + text + link; − qty + stepper. | U.3 |
+| **QuizGrid / QuizBox** | /quiz boxes grouped under a bold category heading, like a grocery app's category tiles: a square tile (radius `lg`, `line` border) in one soft tint per category in turn (`brand`, `orange`, `gold`, `blue`; `surface-alt` and `muted` until it opens) with the quiz's Devanagari mark, then the title (2 lines max) and a muted status line ("Open till 8 Nov", "Opens 4 Nov", "Played"). Three across on phones, four from 640 px. A played quiz gets a small `brand` tick in the corner. | Quiz categories (2026-11-01) |
 
 ### Site-level pieces
 

@@ -6251,3 +6251,69 @@ another session's unfinished quiz-category work was in the main tree)
   "several products" still times out (known, see earlier entries).
 - Not checked on MariaDB itself (none here). After redeploying, retry the
   customer search on /admin/assisted-orders/new and mark the errors fixed.
+
+## Quiz & Win: quizzes as boxes, grouped by category (2026-11-01)
+
+The client sent a grocery-app screenshot (category headings, each with a
+grid of picture tiles) and asked for the quizzes to look like that:
+grouped by category, each quiz shown as a box.
+
+**Built**
+- New `QuizCategory` table (key, name, mark, order, shown/hidden) and two
+  new `Quiz` fields: `categoryId` (optional; deleting a category leaves its
+  quizzes without one) and `glyph`, a short mark for the quiz's box.
+  Migration `20261101140423_quiz_categories`. The seed adds four starting
+  categories: Ayurveda Basics, Dosha & Prakriti, Herbs & Formulations, Diet
+  & Daily Routine.
+- `/quiz` now shows every published quiz that is open or coming up, as
+  boxes under a heading per category (in the admin's order; quizzes with no
+  category, or a hidden one, go under "More quizzes"). A box is a tinted
+  square with the quiz's mark (else its category's, else "प्र"), the title
+  and a short line: "Open till 7 Nov", "Opens 5 Nov", "In progress" or
+  "Played" (with a tick). Three boxes across on phones, four from 640 px.
+  Each category gets the next soft tint (green, orange, gold, blue); quizzes
+  not open yet are grey. The hero carousel and the leaderboard card stay.
+- Each box opens the new `/quiz/[id]` page: the same card as before (ready
+  to start, playing, result with answers), plus "hasn't opened yet" and
+  "has closed" states and an "All quizzes" link back. A player's result
+  stays viewable after the quiz closes.
+- Several quizzes can now be open at once, and any open one can be started
+  (`startAttempt` used to accept only the newest). Each quiz is still one
+  attempt with its own coins; the leaderboard adds them up as before. The
+  homepage card still shows the newest open quiz and links to `/quiz`.
+- Admin: "Quiz categories" at `/admin/content/quiz-categories` (the same
+  list and form as the other content kinds; in the admin menu and as a
+  button on the Quizzes page). The quiz form has a Category select and a
+  "Box mark" field; the quiz list shows each quiz's category.
+- The card code moved out of `quiz/page.tsx` into `quiz-challenge.tsx`; the
+  side leaderboard is `side-leaderboard.tsx`; the boxes are `quiz-grid.tsx`.
+  DESIGN.md has a QuizGrid / QuizBox row.
+
+**Decisions**
+- Boxes show a Devanagari mark rather than photos: quizzes have no images
+  and uploads aren't built, and it matches the product tiles without
+  photos. A quiz image field can be added later if the client wants
+  pictures like the screenshot.
+- Coming quizzes are listed (greyed) so people can see what's next; closed
+  ones drop off the list.
+
+**Checked**
+- Typecheck, lint and build pass. Unit tests: 1029, all pass (4 timed out under
+  heavy load from two other runs and passed on re-run). New tests for the
+  grouping and order, played/in-progress marks, upcoming/closed pages,
+  starting either of two open quizzes, and saving a category on a quiz.
+- e2e: `quiz.last.spec` (phone + desktop, 17 tests including a new
+  category-boxes test and the 360–1280 px width/axe pass) passes; admin,
+  homepage, shell and layout-widths specs: 108 pass (3 phone admin tests
+  in reels/approvals timed out once and passed on re-run). Two quiz
+  failures on the first run came from another session's e2e cleanup
+  deleting "E2E" quizzes in the shared database mid-test; they passed
+  alone. The full e2e suite was not run in one go (other runs held the
+  machine and port 3100).
+- Screens checked at 375 and 1280 px: boxes page, an open quiz and a
+  coming quiz. No sideways scroll.
+
+**Deploy note**
+- Needs `pnpm db:deploy` (new table and columns) and `pnpm db:seed` for
+  the four starting categories (the seed only adds missing rows). Then pick
+  a category for each quiz in the admin.

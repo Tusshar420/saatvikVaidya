@@ -45,6 +45,7 @@ async function snapshot() {
     liveSessions: strip(await db.liveSession.findMany(byId)),
     feedback: strip(await db.feedback.findMany(byId)),
     whySteps: strip(await db.whyStep.findMany(byId)),
+    quizCategories: strip(await db.quizCategory.findMany(byId)),
   };
 }
 

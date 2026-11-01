@@ -77,6 +77,7 @@ export type AdminResource =
   | "Brand"
   | "CourseTeaser"
   | "Quiz"
+  | "QuizCategory"
   | "Product"
   | "Order"
   | "AssistedOrder"

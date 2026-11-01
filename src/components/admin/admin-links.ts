@@ -191,6 +191,13 @@ export const adminLinkGroups: AdminLinkGroup[] = [
         keywords: words.quiz,
       },
       {
+        href: "/admin/content/quiz-categories",
+        area: "content",
+        label: home.quizCategories,
+        icon: Shapes,
+        keywords: words.quiz,
+      },
+      {
         href: "/admin/content/reels",
         area: "content",
         label: copy.nav.reels,

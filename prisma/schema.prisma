@@ -819,10 +819,31 @@ model WhyStep {
 // in src/server/quiz. Correct answers are never selected for a question that
 // is being played; they are read only once the attempt is finished.
 
+/// A group of quizzes on /quiz ("Doshas", "Herbs"...). Managed at
+/// /admin/content/quiz-categories; hidden ones put their quizzes under "More quizzes".
+model QuizCategory {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(64)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  name      String   @db.VarChar(80)
+  /// Short mark shown on its quizzes' boxes when a quiz has none, e.g. "वात".
+  glyph     String?  @db.VarChar(8)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  quizzes   Quiz[]
+
+  @@index([active, sortOrder])
+}
+
 model Quiz {
   id          Int            @id @default(autoincrement())
   title       String         @db.VarChar(160)
   description String?        @db.VarChar(600)
+  categoryId  Int?
+  category    QuizCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  /// Short mark on the quiz's box on /quiz; blank uses the category's.
+  glyph       String?        @db.VarChar(8)
   /// Finished and ready to publish once Quiz & Win launches.
   active      Boolean        @default(false)
   /// The week it can be played (an instant). Null: not scheduled, so not
@@ -837,6 +858,7 @@ model Quiz {
   attempts    QuizAttempt[]
 
   @@index([active, startsAt])
+  @@index([categoryId])
 }
 
 model QuizQuestion {

@@ -113,7 +113,7 @@ export const adminSettings = {
 };
 
 export const adminHome = {
-  nav: { sections: "Sections", hero: "Hero slides", offers: "Offers", stats: "Trust stats", quickActions: "Quick actions", categories: "Categories", feedback: "Feedback", why: "Why Saatvik" },
+  nav: { sections: "Sections", hero: "Hero slides", offers: "Offers", stats: "Trust stats", quickActions: "Quick actions", categories: "Categories", feedback: "Feedback", why: "Why Saatvik", quizCategories: "Quiz categories" },
   notFound: "That item could not be found.",
   keyTaken: "That key is already used. Choose another.",
   keyInvalid: "Use lowercase letters, numbers and dashes only.",
@@ -173,7 +173,8 @@ export type HomeKindKey =
   | "quick-action"
   | "category"
   | "feedback"
-  | "why";
+  | "why"
+  | "quiz-category";
 
 export type HomeFieldType = "text" | "textarea" | "select" | "checkbox" | "number" | "json";
 
@@ -336,6 +337,17 @@ export const homeKinds: Record<HomeKindKey, HomeKindSpec> = {
     fields: [
       { name: "title", label: "Title", type: "text", max: 80 },
       { name: "body", label: "Text", type: "textarea", max: 300, wide: true },
+      ...placement,
+    ],
+  },
+  "quiz-category": {
+    label: "quiz category",
+    plural: "Quiz categories",
+    path: "quiz-categories",
+    titleField: "name",
+    fields: [
+      { name: "name", label: "Name", type: "text", max: 80, help: "The heading its quizzes are grouped under on /quiz." },
+      { name: "glyph", label: "Box mark", type: "text", max: 8, optional: true, help: 'A short mark shown on its quizzes\' boxes, such as "वात". A quiz can set its own.' },
       ...placement,
     ],
   },
