@@ -74,10 +74,19 @@ export function expiryFrom(from: Date, rules: Pick<CoinRules, "expiryMonths">): 
   return at;
 }
 
-/** Coins earned on `basePaise` of items (the order's items after coins used). */
-export function coinsEarned(basePaise: number, rules: CoinRules): number {
-  if (!rules.enabled || basePaise <= 0) return 0;
+/**
+ * Coins earned on `basePaise` of items (the order's items after coins used).
+ * None when the order's items total, `orderPaise` (before coins used), is
+ * under the minimum.
+ */
+export function coinsEarned(basePaise: number, rules: CoinRules, orderPaise = basePaise): number {
+  if (!rules.enabled || basePaise <= 0 || orderPaise < rules.minOrderRupees * 100) return 0;
   return Math.floor((basePaise * rules.earnPerThousandRupees) / 100_000);
+}
+
+/** The order the coin examples use: ₹10,000, or the minimum if it's higher. */
+export function exampleOrderRupees(rules: Pick<CoinRules, "minOrderRupees">): number {
+  return Math.max(10_000, rules.minOrderRupees);
 }
 
 /** The rupee value, in paise, of `coins`. */

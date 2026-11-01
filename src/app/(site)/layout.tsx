@@ -9,6 +9,7 @@ import { StickyActions } from "@/components/site/sticky-actions";
 import { SiteModalsProvider } from "@/components/site/site-modals";
 import { SkipLink } from "@/components/site/skip-link";
 import { shell } from "@/content/shell";
+import { coinsEarned, exampleOrderRupees } from "@/lib/coins";
 import { formatNumber } from "@/lib/format";
 import { getSetting } from "@/server/content/settings";
 import { getSignUpUserTypes } from "@/server/content/user-types";
@@ -71,8 +72,8 @@ export default async function SiteLayout({
       : coinRules.enabled
         ? {
             text: shell.announcement.earn(
-              formatNumber(10_000),
-              formatNumber(coinRules.earnPerThousandRupees * 10),
+              formatNumber(exampleOrderRupees(coinRules)),
+              formatNumber(coinsEarned(exampleOrderRupees(coinRules) * 100, coinRules)),
             ),
             detail: `${shell.announcement.rate(formatNumber(coinRules.coinsPerRupee))} · ${shell.announcement.validity(coinRules.expiryMonths)}`,
             href: "/coins",

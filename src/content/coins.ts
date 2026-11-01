@@ -50,8 +50,8 @@ export const coins = {
 
   earn: {
     title: "How to earn",
-    order: (per: number, rupees: string, afterDelivery: boolean) =>
-      `${count(per)} coins for every ${rupees} of products${afterDelivery ? ", added once your order is delivered" : ", added when your order is paid"}.`,
+    order: (per: number, rupees: string, minOrder: string | null, afterDelivery: boolean) =>
+      `${count(per)} coins for every ${rupees} of products${minOrder ? ` on orders of ${minOrder} or more` : ""}${afterDelivery ? ", added once your order is delivered" : ", added when your order is paid"}.`,
     interests: (n: number) => `${count(n)} coins for adding your practice interests.`,
     quiz: (n: number) => `${count(n)} coins for a qualifying score in the weekly Quiz & Win.`,
     details: (n: number) => `${count(n)} coins once your professional details are approved.`,

@@ -177,7 +177,7 @@ export async function earnForOrder(orderId: string, trigger: "paid" | "delivered
     select: { userId: true, status: true, subtotalPaise: true, coinDiscountPaise: true },
   });
   if (!order?.userId || order.status === "cancelled" || order.status === "returned") return 0;
-  const coins = coinsEarned(order.subtotalPaise - order.coinDiscountPaise, rules);
+  const coins = coinsEarned(order.subtotalPaise - order.coinDiscountPaise, rules, order.subtotalPaise);
   if (coins <= 0) return 0;
   const userId = order.userId;
   return ledgerTransaction(async (tx) => {

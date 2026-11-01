@@ -1082,6 +1082,9 @@ export const admin = {
       earnPerThousandRupees: "Coins earned per ₹1,000",
       earnPerThousandRupeesHelp:
         "On the items total after any coins used, without delivery. 100 means 1,000 coins on a ₹10,000 order.",
+      minOrderRupees: "Smallest order that earns coins (₹)",
+      minOrderRupeesHelp:
+        "Orders whose items total (before coins, without delivery) is below this earn no coins. 0 means every order earns.",
       earnAfterDelivery: "Earn after delivery",
       earnAfterDeliveryHelp: "Off: coins are earned when the order is paid.",
       interestsReward: "Reward: practice interests",

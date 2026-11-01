@@ -65,7 +65,23 @@ async function deliver(orderId: string) {
 }
 
 describe("earning", () => {
+  it("earns nothing on an order under the ₹10,000 minimum", async () => {
+    await setRules({ earnAfterDelivery: false });
+    const order = await makeOrder(db); // ₹640
+    expect(await balance(order.userId)).toBe(0);
+    expect(await db.coinLedger.count({ where: { userId: order.userId, reason: "earn_order" } })).toBe(0);
+  });
+
+  it("earns 100 coins per ₹1,000 on an order of ₹10,000 or more", async () => {
+    await setRules({ earnAfterDelivery: false });
+    const order = await makeOrder(db, { mrpPaise: 800_000 });
+    const { subtotalPaise } = await db.order.findUniqueOrThrow({ where: { id: order.orderId } });
+    expect(subtotalPaise).toBeGreaterThanOrEqual(1_000_000);
+    expect(await balance(order.userId)).toBe(Math.floor(subtotalPaise / 1_000));
+  });
+
   it("credits after delivery by default, once, and not before", async () => {
+    await setRules({ minOrderRupees: 0 });
     const order = await makeOrder(db); // 2 × ₹320 = ₹640 → 64 coins
     expect(await balance(order.userId)).toBe(0);
     await deliver(order.orderId);
@@ -80,7 +96,7 @@ describe("earning", () => {
   });
 
   it("credits on payment when the rules say so, and the delivery then adds nothing", async () => {
-    await setRules({ earnAfterDelivery: false });
+    await setRules({ earnAfterDelivery: false, minOrderRupees: 0 });
     const order = await makeOrder(db);
     expect(await balance(order.userId)).toBe(64);
     await deliver(order.orderId);
@@ -95,6 +111,7 @@ describe("earning", () => {
   });
 
   it("earns on the items after coins were used, not on delivery", async () => {
+    await setRules({ minOrderRupees: 0 });
     const userId = await makeUser(db);
     await giveCoins(userId, 5_000);
     const order = await makeOrder(db, { userId, redeemCoins: true });
@@ -260,7 +277,7 @@ describe("giving coins back", () => {
   });
 
   it("takes back what a paid order earned when it is cancelled", async () => {
-    await setRules({ earnAfterDelivery: false });
+    await setRules({ earnAfterDelivery: false, minOrderRupees: 0 });
     const order = await makeOrder(db);
     expect(await balance(order.userId)).toBe(64);
     await cancelOrder(adminId, order.orderId);

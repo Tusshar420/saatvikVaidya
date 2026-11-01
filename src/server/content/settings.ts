@@ -40,6 +40,8 @@ export const settingSchemas = {
   "coins.rules": z.object({
     enabled: z.boolean(),
     earnPerThousandRupees: z.number().int().min(0).max(10_000),
+    // Added on 1 November 2026: rows saved before then don't have it.
+    minOrderRupees: z.number().int().min(0).max(10_000_000).default(10_000),
     earnAfterDelivery: z.boolean(),
     interestsReward: z.number().int().min(0).max(1_000_000),
     detailsReward: z.number().int().min(0).max(1_000_000),

@@ -6179,3 +6179,38 @@ history" list with the same steps. They asked to keep one.
 - A wider e2e run: 320 passed. `catalogue.spec` "no console errors" failed
   once and passed on re-run. `brand.spec` "several products" still times
   out (known, see earlier entries); not touched here.
+
+## Saatvik Coins: only orders of ₹10,000 or more earn coins (2026-11-01)
+
+The client asked that coins be given only on orders of at least ₹10,000
+(₹10,000 → 1,000 coins). Before this, every order earned 100 coins per
+₹1,000, so a ₹640 order earned 64 coins.
+
+**What changed**
+- New coin rule `minOrderRupees` (default 10,000) in the "coins.rules"
+  setting. Admins change it on /admin/coins ("Smallest order that earns
+  coins"); 0 means every order earns. Rows saved before today get 10,000.
+- `coinsEarned` returns 0 when the order's items total is under the
+  minimum. `earnForOrder` passes the items total.
+- /coins "How to earn" now says "... on orders of ₹10,000 or more". The
+  orange bar, the home coins strip, the /coins example and the admin example
+  use ₹10,000, or the minimum if an admin sets it higher.
+
+**Decisions**
+- The minimum is checked on the items total before coins used, without
+  delivery (what the buyer sees as the order value). Coins are still earned
+  on the items after coins used, as before. Above the minimum the rate stays
+  100 coins per ₹1,000 (₹15,000 → 1,500 coins).
+- Only store orders earn coins; Build Your Brand orders still earn none.
+
+**Checked**
+- Built and tested in a separate copy with its own databases, because
+  another session had unfinished quiz work in the main folder (it breaks the
+  typecheck there) and was using the test database and port 3100.
+- Typecheck, lint and build pass. Unit tests: 1018 passed; 2 failed for
+  reasons outside this change (`db.test.ts` checks the default test
+  database name; a rate-limit test timed out with the machine under heavy
+  load). New tests cover under/over ₹10,000 and the before-coins check.
+- `coins.spec.ts` and `shell.spec.ts` on phone and desktop: 38 passed, 2
+  desktop timeouts that passed on re-run. /coins checked at 375 and 1280 px.
+- Full e2e not run (the other session's tests were using port 3100).

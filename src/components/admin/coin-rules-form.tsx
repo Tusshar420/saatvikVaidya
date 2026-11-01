@@ -38,6 +38,7 @@ export function CoinRulesForm({ rules }: { rules: CoinRules }) {
           className="sm:col-span-2"
         />
         {number("earnPerThousandRupees", fields.earnPerThousandRupees, fields.earnPerThousandRupeesHelp)}
+        {number("minOrderRupees", fields.minOrderRupees, fields.minOrderRupeesHelp)}
         <CheckboxField
           name="earnAfterDelivery"
           label={fields.earnAfterDelivery}
