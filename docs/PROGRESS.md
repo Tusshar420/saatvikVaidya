@@ -6151,3 +6151,31 @@ remain.
 
 **Deploy note**
 - Needs `pnpm db:deploy` for the new column and the Student type.
+
+## Delivery tracking shows its steps once, not twice (2026-11-01)
+
+The client saw the delivery steps twice on an order: the step tracker
+(Confirmed, Packed, Shipped, ... with dates) and, under it, a "Tracking
+history" list with the same steps. They asked to keep one.
+
+**What changed**
+- `TrackingTimeline` no longer shows the "Tracking history" list. It keeps
+  the courier and tracking number, the step tracker (with each step's date)
+  and the one-line note. Same on the order page, /track and the Track Order
+  modal.
+- Its unused `headingLevel` prop and the two "Tracking history" texts in
+  `src/content/orders.ts` are gone.
+
+**Decisions**
+- Kept the step tracker, not the list: it reads at a glance on a phone and
+  already has the dates. The list only added the time of day and a courier
+  location, which the test courier doesn't send.
+
+**Checked**
+- Typecheck, lint, unit tests (1017) and build pass. `orders.spec.ts` (8)
+  passes on phone and desktop, including the tracking walk-through, now
+  checked through the step tracker. That test also checks for sideways
+  scroll and axe issues at both sizes.
+- A wider e2e run: 320 passed. `catalogue.spec` "no console errors" failed
+  once and passed on re-run. `brand.spec` "several products" still times
+  out (known, see earlier entries); not touched here.

@@ -126,11 +126,7 @@ export function TrackOrderForm({
             </div>
             <OrderStatusBadge status={tracking.status} />
           </div>
-          <TrackingTimeline
-            tracking={tracking}
-            headingLevel={headingLevel === "h2" ? "h3" : "h4"}
-            className={page ? "mt-6" : "mt-4"}
-          />
+          <TrackingTimeline tracking={tracking} className={page ? "mt-6" : "mt-4"} />
         </section>
       )}
     </div>

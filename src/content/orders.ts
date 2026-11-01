@@ -131,8 +131,6 @@ export const orders = {
     awb: "Tracking number",
     testCourier: "Test delivery: the courier and tracking number are simulated.",
     notShipped: "We're preparing your order. The courier and tracking number show here once it ships.",
-    historyTitle: "Tracking history",
-    historyLabel: "Tracking history, newest first",
     awaitingPayment: "This order is waiting for payment. Tracking starts once it's paid.",
     paymentFailed: "The payment for this order didn't go through, so it hasn't been sent.",
     cancelled: "This order was cancelled. If you had already paid, our team will contact you about your refund.",

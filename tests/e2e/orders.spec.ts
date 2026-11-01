@@ -156,7 +156,6 @@ test("the admin moves a shipment through every step and the buyer sees each one"
   await checkPage(page, errors);
 
   // Each step, as the admin moves it on and as the buyer sees it.
-  const history = buyerPage.getByRole("list", { name: orders.tracking.historyLabel });
   const steps = [
     { step: "packed", current: orders.steps.shipped },
     { step: "shipped", current: orders.steps.in_transit },
@@ -170,13 +169,11 @@ test("the admin moves a shipment through every step and the buyer sees each one"
     await expect(shipment.getByRole("status")).toHaveText(detail.results.moved(label));
 
     await buyerPage.getByRole("button", { name: track.again }).click();
-    await expect(history.getByRole("listitem").first()).toContainText(label);
     if (current) await expect(currentStep(timeline)).toContainText(current);
     else await expect(currentStep(timeline)).toHaveCount(0);
   }
   await expect(buyerPage.getByText(orders.tracking.delivered)).toBeVisible();
   await expect(buyerPage.getByText(awb)).toBeVisible();
-  await expect(history.getByRole("listitem")).toHaveCount(6);
   expect(await horizontalOverflow(buyerPage)).toBeLessThanOrEqual(0);
   expect(await axeViolations(buyerPage)).toEqual([]);
   expect(buyerErrors).toEqual([]);
