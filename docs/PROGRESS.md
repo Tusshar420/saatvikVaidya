@@ -6214,3 +6214,40 @@ The client asked that coins be given only on orders of at least ₹10,000
 - `coins.spec.ts` and `shell.spec.ts` on phone and desktop: 38 passed, 2
   desktop timeouts that passed on re-run. /coins checked at 375 and 1280 px.
 - Full e2e not run (the other session's tests were using port 3100).
+
+## Error log fixes: customer search on MariaDB, "stream closed early" (2026-11-01)
+
+From the staging Error log (Hostinger, MariaDB):
+- `GET /admin/assisted-orders/new` 500, "Illegal mix of collations
+  (utf8mb4_unicode_ci,IMPLICIT) and (utf8mb4_bin,NONE) for operation 'like'"
+  from `findCustomers`, plus the browser "React error #441" on the same page
+  (the page showing that failure).
+- `GET /` "The destination stream closed early."
+
+**What changed**
+- `src/server/db.ts`: the Prisma MariaDB adapter now uses the driver's text
+  protocol (`useTextProtocol: true`). Prisma writes every `contains` search
+  as `LIKE CONCAT('%', ?, '%')`; with the default binary protocol MariaDB
+  types the `?` value as utf8mb4_bin even with the connection collation set
+  (the 2026-10-30 fix), so the search failed. As text, values arrive as
+  plain string literals with the connection collation. This fixes all 12
+  `contains`/`startsWith` searches at once (catalogue search, admin users,
+  orders, errors, bug reports, brand orders, assisted orders, inventory
+  batch numbers), not just this page.
+- `src/server/errors/server.ts`: "The destination stream closed early." is
+  no longer recorded. It happens when the browser drops a request while the
+  page is still streaming (the visitor clicked away, or a prefetch was
+  cancelled); locally it had 470+ entries and none was a real fault. New
+  unit test in `server.test.ts`.
+
+**Checked** (in a clean worktree at HEAD with only these files, because
+another session's unfinished quiz-category work was in the main tree)
+- Typecheck and lint pass. Unit tests on a fresh test database: 1017 passed;
+  the 1 failure is `db.test.ts`, which requires the name
+  `saatvik_vaidya_test` (expected with a private database).
+- Build passes. e2e (phone + desktop) for assisted-orders (includes the
+  customer search), admin, catalogue, ebooks, brand, sign-in and
+  layout-widths: 94 passed; 2 failures passed on re-run; `brand.spec`
+  "several products" still times out (known, see earlier entries).
+- Not checked on MariaDB itself (none here). After redeploying, retry the
+  customer search on /admin/assisted-orders/new and mark the errors fixed.
