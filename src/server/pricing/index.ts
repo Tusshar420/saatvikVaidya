@@ -25,3 +25,19 @@ export const getPricingViewer = cache(async (): Promise<PricingViewer> => {
     userType,
   });
 });
+
+/**
+ * The pricing viewer for another user, e.g. the customer our staff prepare
+ * an order for. Null if there is no such user.
+ */
+export async function pricingViewerForUserId(userId: string): Promise<PricingViewer | null> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      verificationStatus: true,
+      userType: { select: { isProfessional: true, requiresVerification: true, bulkPricing: true } },
+    },
+  });
+  if (!user) return null;
+  return pricingViewerFor({ verificationStatus: user.verificationStatus, userType: user.userType });
+}

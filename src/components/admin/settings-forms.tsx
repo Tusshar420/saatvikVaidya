@@ -87,9 +87,11 @@ export type SettingsFormsProps = {
     maintenance: boolean;
     maintenanceMessage: string;
   };
+  /** SITE_COMING_SOON is set, so maintenance mode is locked on. */
+  comingSoon?: boolean;
 };
 
-export function SettingsForms({ contact, announcement, shipping, discount, payment, seller, switches }: SettingsFormsProps) {
+export function SettingsForms({ contact, announcement, shipping, discount, payment, seller, switches, comingSoon = false }: SettingsFormsProps) {
   const g = copy.groups;
   return (
     <div className="mt-6 flex max-w-4xl flex-col gap-8">
@@ -102,7 +104,7 @@ export function SettingsForms({ contact, announcement, shipping, discount, payme
             <CheckboxField
               name="maintenance"
               label={g.switches.maintenance}
-              help={g.switches.maintenanceHelp}
+              help={comingSoon ? g.switches.maintenanceComingSoonHelp : g.switches.maintenanceHelp}
               values={values}
             />
             <TextAreaField

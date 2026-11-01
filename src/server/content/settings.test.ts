@@ -91,6 +91,29 @@ describe("getSetting", () => {
     log.mockRestore();
   });
 
+  it("locks maintenance mode on when SITE_COMING_SOON is true", async () => {
+    await seedDatabase(db);
+    await db.setting.update({
+      where: { key: "site.maintenance" },
+      data: { value: { enabled: false, message: "Back at noon." } },
+    });
+    vi.stubEnv("SITE_COMING_SOON", "true");
+    try {
+      expect(await getSetting("site.maintenance")).toEqual({
+        enabled: true,
+        message: "Back at noon.",
+      });
+      // Other settings are untouched.
+      expect(await getSetting("checkout.enabled")).toEqual(
+        settingDefaults["checkout.enabled"],
+      );
+      vi.stubEnv("SITE_COMING_SOON", "false");
+      expect((await getSetting("site.maintenance")).enabled).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("has defaults that pass their own schema", () => {
     for (const key of keys) {
       expect(settingSchemas[key].safeParse(settingDefaults[key]).success).toBe(

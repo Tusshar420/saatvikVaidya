@@ -23,6 +23,14 @@ export const userTypeSeed = [
     sortOrder: 20,
   },
   {
+    key: "student",
+    bulkPricing: false,
+    label: "Ayurveda Student",
+    isProfessional: true,
+    requiresVerification: true,
+    sortOrder: 25,
+  },
+  {
     key: "clinic",
     bulkPricing: false,
     label: "Clinic / Hospital",

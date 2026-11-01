@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CircleUserRound, Coins, GraduationCap, Truck } from "lucide-react";
+import { Bell, CircleUserRound, Coins, Trophy, Truck } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { dockNav, shell, type DockHref } from "@/content/shell";
 
@@ -14,7 +14,7 @@ const labelClasses = "text-[11px] leading-tight font-bold";
 const icons: Record<DockHref, typeof Coins> = {
   "/coins": Coins,
   "/notifications": Bell,
-  "/courses": GraduationCap,
+  "/quiz": Trophy,
   "/orders": Truck,
   "/account": CircleUserRound,
 };
@@ -23,7 +23,8 @@ const links = dockNav.map((link) => ({ ...link, Icon: icons[link.href] }));
 
 /**
  * Fixed bottom bar on phones (under 560 px), as the client asked: Coins,
- * Updates, Courses, Order and You. From 560 px up the nav rail shows these
+ * Updates, Quiz & Win, Order and You (Quiz & Win replaced Courses, which
+ * moved up to the nav rail, 31 Oct 2026). From 560 px up the nav rail shows these
  * links instead (`dockNav`). It clears the
  * home indicator with safe-area-inset-bottom; the footer carries matching
  * bottom padding so nothing hides behind it.

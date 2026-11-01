@@ -180,21 +180,25 @@ test("sections with a new notification get a badge on their nav link", async ({
   await page.goto("/cart");
   const rail = page.getByRole("navigation", { name: "Sections" });
   const badge = (name: RegExp) => rail.getByRole("link", { name }).getByTestId("nav-badge");
-  // Phones leave Courses out of the rail (the bottom dock has it).
-  if (!isMobile) await expect(badge(/Courses/)).toHaveText("2");
+  await expect(badge(/Courses/)).toHaveText("2");
   await expect(badge(/Dr\. Talk/)).toHaveText("1");
-  await expect(badge(/Quiz & Win/)).toHaveText("1");
+  // Phones leave Quiz & Win out of the rail (the bottom dock has it).
+  if (!isMobile) await expect(badge(/Quiz & Win/)).toHaveText("1");
   await expect(badge(/Top Brands/)).toHaveText("1");
   await expect(rail.getByRole("link", { name: /Top Brands/ })).toContainText("1 new");
   // The bell counts all five.
   await expect(page.getByTestId("notification-count")).toHaveText("5");
   expect(await horizontalOverflow(page)).toBe(0);
 
-  // Opening one clears its section's badge.
+  // Opening one clears its section's badge: Quiz & Win, or Dr. Talk on
+  // phones, where the rail has no Quiz & Win link.
+  const opened = isMobile
+    ? { title: /E2E new thread/, url: /\/doctor-talk/, link: /Dr\. Talk/ }
+    : { title: /E2E quiz open/, url: /\/quiz/, link: /Quiz & Win/ };
   await bell(page).click();
-  await panel(page).getByRole("link", { name: /E2E quiz open/ }).click();
-  await expect(page).toHaveURL(/\/quiz/);
-  await expect(badge(/Quiz & Win/)).toHaveCount(0);
+  await panel(page).getByRole("link", { name: opened.title }).click();
+  await expect(page).toHaveURL(opened.url);
+  await expect(badge(opened.link)).toHaveCount(0);
   await expect(badge(/Top Brands/)).toHaveText("1");
   expect(errors).toEqual([]);
 });

@@ -4,9 +4,14 @@
 
 export const documentTypes = [
   "registration_certificate",
-  "clinic_registration",
+  "degree_certificate",
+  "college_id_card",
+  "aadhaar_card",
+  "pan_card",
   "drug_licence",
   "gst_certificate",
+  // No longer asked for; kept so files uploaded earlier still show by name.
+  "clinic_registration",
 ] as const;
 
 export type DocumentType = (typeof documentTypes)[number];
@@ -15,13 +20,21 @@ export function isDocumentType(value: unknown): value is DocumentType {
   return documentTypes.includes(value as DocumentType);
 }
 
-/** Required documents per user type key, from docs/CHUNKS.md (P1.2). */
+/**
+ * Required documents per user type key (the client's list, 31 Oct 2026):
+ * doctors send their state board registration and degree, students their
+ * college ID card, clinics and stockists their Aadhaar and PAN cards.
+ */
 const requiredByUserType: Record<string, readonly DocumentType[]> = {
-  doctor: ["registration_certificate"],
-  clinic: ["clinic_registration", "gst_certificate"],
+  doctor: ["registration_certificate", "degree_certificate"],
+  student: ["college_id_card"],
+  clinic: ["aadhaar_card", "pan_card"],
   pharmacy: ["drug_licence", "gst_certificate"],
-  stockist: ["drug_licence", "gst_certificate"],
+  stockist: ["aadhaar_card", "pan_card"],
 };
+
+/** Types that must also give a phone number before their review starts. */
+const phoneRequiredFor: ReadonlySet<string> = new Set(["clinic", "stockist"]);
 
 /**
  * What a professional of this type must upload. A type added later without
@@ -29,6 +42,11 @@ const requiredByUserType: Record<string, readonly DocumentType[]> = {
  */
 export function requiredDocumentsFor(userTypeKey: string): readonly DocumentType[] {
   return requiredByUserType[userTypeKey] ?? ["registration_certificate"];
+}
+
+/** Whether this type must have a phone number on the account to be reviewed. */
+export function requiresPhoneFor(userTypeKey: string): boolean {
+  return phoneRequiredFor.has(userTypeKey);
 }
 
 /** Accepted files: the type is checked from the file's first bytes on the server. */

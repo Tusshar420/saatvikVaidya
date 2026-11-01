@@ -32,7 +32,7 @@ import { canCancelOrder, readAdminOrder } from "@/server/admin/orders";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { requireAdmin } from "@/server/auth/session";
 import { readOrderDocuments } from "@/server/invoices/invoices";
-import { shippingAvailable } from "@/server/shipping";
+import { shippingAvailable, shippingIsManual } from "@/server/shipping";
 
 const text = copy.orderDetail;
 
@@ -116,6 +116,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                 <ShipmentPanel
                   orderId={order.id}
                   canCreate={order.status === "paid"}
+                  manual={shippingIsManual()}
                   shipment={
                     shipment
                       ? { status: shipment.status, courierName: shipment.courierName, awb: shipment.awb }

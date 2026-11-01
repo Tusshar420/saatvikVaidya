@@ -31,6 +31,10 @@ const pdf = Buffer.from(
 const jpg = readFileSync("public/media/doctor-feedback-english.jpg");
 
 const certificate = copy.documentTypes.registration_certificate.label;
+const degree = copy.documentTypes.degree_certificate.label;
+const collegeId = copy.documentTypes.college_id_card.label;
+const aadhaar = copy.documentTypes.aadhaar_card.label;
+const pan = copy.documentTypes.pan_card.label;
 const licence = copy.documentTypes.drug_licence.label;
 const gst = copy.documentTypes.gst_certificate.label;
 
@@ -77,7 +81,7 @@ async function professionalPage(
   return { proPage, account, context };
 }
 
-test("a doctor uploads their certificate and waits for review", async ({
+test("a doctor uploads their registration and degree and waits for review", async ({
   page,
   baseURL,
 }) => {
@@ -122,6 +126,14 @@ test("a doctor uploads their certificate and waits for review", async ({
     name: "registration.pdf",
     mimeType: "application/pdf",
     buffer: pdf,
+  });
+  // The degree is still missing, so the review hasn't started.
+  await expect(statusCard(page)).toContainText(copy.state.needed.badge);
+  await expect(documentCard(page, degree)).toContainText(copy.missing);
+  await uploadThroughUi(page, degree, {
+    name: "degree.jpg",
+    mimeType: "image/jpeg",
+    buffer: jpg,
   });
   await expect(statusCard(page)).toContainText(copy.state.review.badge);
   await expect(statusCard(page)).toContainText(/Submitted on \d{1,2} \w{3} \d{4}/);
@@ -169,6 +181,69 @@ test("a pharmacy is submitted only once both documents are in", async ({
   await expect(statusCard(page)).toContainText(copy.state.review.badge);
 });
 
+test("a student is submitted with their college ID card", async ({
+  page,
+  baseURL,
+}) => {
+  await signInAs(page, baseURL!, {
+    role: "user",
+    userType: "student",
+    name: `E2E Student ${token()}`,
+    verificationStatus: "pending",
+  });
+  await page.goto("/account");
+  await expect(statusCard(page)).toContainText(copy.state.needed.badge);
+  await uploadThroughUi(page, collegeId, {
+    name: "college-id.jpg",
+    mimeType: "image/jpeg",
+    buffer: jpg,
+  });
+  await expect(statusCard(page)).toContainText(copy.state.review.badge);
+});
+
+test("a clinic gives its Aadhaar and PAN cards and a phone number", async ({
+  page,
+  baseURL,
+}) => {
+  const errors = collectErrors(page);
+  await signInAs(page, baseURL!, {
+    role: "user",
+    userType: "clinic",
+    name: `E2E Clinic ${token()}`,
+    verificationStatus: "pending",
+  });
+  await page.goto("/account");
+  await uploadThroughUi(page, aadhaar, {
+    name: "aadhaar.jpg",
+    mimeType: "image/jpeg",
+    buffer: jpg,
+  });
+  await uploadThroughUi(page, pan, {
+    name: "pan.pdf",
+    mimeType: "application/pdf",
+    buffer: pdf,
+  });
+  // Both cards are in, but the phone number is still missing.
+  await expect(statusCard(page)).toContainText(copy.state.needed.badge);
+  const phoneCard = documentCard(page, copy.phoneLabel);
+  await expect(phoneCard).toContainText(copy.phone.missing);
+
+  const field = phoneCard.getByLabel(copy.phone.field);
+  await field.fill("12345");
+  await phoneCard.getByRole("button", { name: copy.phone.save }).click();
+  await expect(phoneCard).toContainText(copy.phone.invalid);
+
+  await field.fill("98123 45678");
+  await phoneCard.getByRole("button", { name: copy.phone.save }).click();
+  await expect(phoneCard.getByRole("status")).toHaveText(copy.submitted);
+  await expect(phoneCard).toContainText("+91 98123 45678");
+  await expect(statusCard(page)).toContainText(copy.state.review.badge);
+
+  expect(await horizontalOverflow(page)).toBe(0);
+  expect(await axeViolations(page)).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test("admin review: reject with a reason, re-upload, then approve", async ({
   page,
   browser,
@@ -190,14 +265,22 @@ test("admin review: reject with a reason, re-upload, then approve", async ({
       file: { name: "blurred.pdf", mimeType: "application/pdf", buffer: pdf },
     },
   });
-  expect(await sent.json()).toEqual({ ok: true, complete: true });
+  expect(await sent.json()).toEqual({ ok: true, complete: false });
+  const second = await proPage.request.post("/api/account/documents", {
+    headers: { origin: baseURL! },
+    multipart: {
+      documentType: "degree_certificate",
+      file: { name: "degree.pdf", mimeType: "application/pdf", buffer: pdf },
+    },
+  });
+  expect(await second.json()).toEqual({ ok: true, complete: true });
 
   // The admin finds them in approvals and opens the review.
   const errors = collectErrors(page);
   await signInAs(page, baseURL!, { role: "admin" });
   await page.goto("/admin/approvals");
   const row = page.locator("#admin-main").getByRole("row").filter({ hasText: name });
-  await expect(row).toContainText(admin.approvals.documentCount(1, 1));
+  await expect(row).toContainText(admin.approvals.documentCount(2, 2));
   await row.getByRole("link", { name: admin.approvals.reviewNamed(name) }).click();
 
   const main = page.locator("#admin-main");

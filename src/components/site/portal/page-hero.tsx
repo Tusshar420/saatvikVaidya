@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
+import { LabelDot } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { portalPages, type PageHeroCopy } from "@/content/portal-pages";
 
 /**
  * v2 inner-page hero (`.portal-hero`): dark green with the dotted texture and
- * ring, gold kicker, big title, intro, and the "Built for professionals" side
- * note (stacks under the text below 820 px).
+ * ring, gold kicker, title, intro, and the "Built for professionals" side
+ * note. Kept shorter than the home hero, so the side note only shows from
+ * 820 px up (on phones it would stack under the text).
  */
 export function PageHero({ copy }: { copy: PageHeroCopy }) {
   return (
-    <section className="relative overflow-hidden bg-page-hero py-13.5 text-white max-md:py-10.5 max-sm:py-8.75">
+    <section className="relative overflow-hidden bg-page-hero py-8 text-white max-md:py-7 max-sm:py-6">
       <span aria-hidden className="absolute inset-0 bg-dots" />
       <span
         aria-hidden
@@ -17,18 +19,18 @@ export function PageHero({ copy }: { copy: PageHeroCopy }) {
       />
       <div className="shell relative flex items-end justify-between gap-9 max-md:flex-col max-md:items-start max-md:gap-6">
         <div className="min-w-0 flex-1">
-          <p className="mb-3.5 flex items-center gap-2 text-label text-gold-light uppercase">
-            <span aria-hidden className="h-0.5 w-6 shrink-0 bg-orange" />
+          <p className="mb-2.5 flex items-center gap-2 text-label text-gold-light uppercase">
+            <LabelDot onDark />
             {copy.kicker}
           </p>
-          <h1 className="mb-3.5 max-w-[860px] text-h1 text-white">
+          <h1 className="mb-2.5 max-w-[860px] font-heading text-page-title text-white">
             {copy.title}
           </h1>
-          <p className="max-w-[690px] text-body-lg text-forest-ink max-sm:text-[15px] max-sm:leading-relaxed">
+          <p className="max-w-[690px] text-body text-forest-ink max-sm:text-sm">
             {copy.description}
           </p>
         </div>
-        <aside className="w-[270px] shrink-0 rounded-lg border border-white/16 bg-white/9 p-4.5 max-md:w-full">
+        <aside className="w-[260px] shrink-0 rounded-lg border border-white/16 bg-white/9 p-4 max-md:hidden">
           <p className="mb-2 flex items-center gap-2 text-[11px] font-extrabold tracking-[0.1em] text-gold-light uppercase">
             <span
               aria-hidden

@@ -36,8 +36,8 @@ export default defineConfig({
     env: {
       BETTER_AUTH_URL: baseURL,
       PAYMENT_PROVIDER: "request",
-      SHIPPING_PROVIDER: "test",
-      TEST_SHIPPING_IN_LOCAL_BUILD: "true",
+      // Like the test address and the live site: the team books the courier.
+      SHIPPING_PROVIDER: "manual",
     },
   },
 });

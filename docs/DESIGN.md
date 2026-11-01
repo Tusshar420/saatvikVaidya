@@ -49,7 +49,7 @@ Orange (action):
 
 | Token | Value | Role |
 |---|---|---|
-| `orange` | `#f36c21` | Accents: eyebrow line, bars, dots, progress, brand mark, `cta` glow |
+| `orange` | `#f36c21` | Accents: bars, dots, progress, brand mark, `cta` glow |
 | `orange-strong` | `#c2540a` | Fill behind white text (primary button, announcement), 4.6:1 |
 | `orange-dark` | `#b34a08` | Hover/pressed for `orange-strong`, 5.4:1 with white |
 | `orange-ink` | `#a8470a` | Orange text on white, paper, cream and `orange-soft` (4.8:1+) |
@@ -132,7 +132,8 @@ Fonts load with `next/font` (self-hosted, no external origin) in
 | Token | Size (phone → desktop) | Weight | Line height | Letter spacing | Use |
 |---|---|---|---|---|---|
 | `text-display` | 44 → 82 px (`clamp(44px, 6vw, 82px)`) | 800 | 1 | −0.045em | Home hero h1 |
-| `text-h1` | 36 → 64 px (`clamp(36px, 5vw, 64px)`) | 800 | 1.02 | −0.045em | Inner-page hero h1 |
+| `text-h1` | 36 → 64 px (`clamp(36px, 5vw, 64px)`) | 800 | 1.02 | −0.045em | Large standalone page titles (maintenance) |
+| `text-page-title` | 24 → 36 px (`clamp(24px, 1.6vw + 18px, 36px)`) | 800 | 1.08 | −0.04em | Inner-page hero h1 (kept below the home hero title) |
 | `text-h2` | 34 → 54 px (`clamp(34px, 4.3vw, 54px)`) | 800 | 1.05 | −0.045em | Section titles |
 | `text-h3` | 22 → 28 px | 800 | 1.15 | −0.035em | Panel and portal section titles |
 | `text-h4` | 16 → 18 px | 800 | 1.3 | −0.02em | Card titles |
@@ -148,9 +149,10 @@ example: "Your Ayurveda brand, *made simple.*" or "Learn. Connect. *Build.
 Grow.*"
 
 **Eyebrow.** Above each section title: an 11–12 px uppercase Manrope label in
-`brand-mid` (`brand-soft` on dark backgrounds), led by a short orange line
-(28 × 2 px, rounded). Inner-page heroes use a gold eyebrow with the same
-orange line.
+`brand-mid` (`brand-soft` on dark backgrounds), led by a small green dot
+(7 px, with a soft 4 px ring: `brand-mid` on light backgrounds, `brand-light`
+on dark; the `LabelDot` component). Inner-page heroes use a gold eyebrow with
+the same dot. (The dot replaced the old short orange line on 2026-10-31.)
 
 ### Spacing, radius, shadow
 
@@ -158,8 +160,9 @@ orange line.
 - Page container (`shell`): `min(1180px, 100% − 40px)`; under 820 px
   `min(100% − 30px, 720px)`; under 560 px `100% − 26px`.
 - Section vertical padding (`section-y`): 100 px, 78 px under 820 px and 62 px
-  under 560 px. Inner pages: hero 54 px (42 under 760, 35 under 560), body
-  54 px top.
+  under 560 px. Inner pages: hero 32 px (28 under 820, 24 under 560), body
+  54 px top. Every inner-page hero (and the compact Quiz & Win carousel)
+  stays shorter than the home hero (client request, 1 Nov 2026).
 - Radius tokens:
   - `sm` 8 px (small pills, tags, small buttons inside cards)
   - `md` 12 px (inputs, chips, icon tiles, avatars)
@@ -225,7 +228,7 @@ brings it to v2.
 | **PillTabs** | Pill tab group, active solid `brand`. Used on Dr. Talk, Courses, Feedback, leaderboard. (`.portal-tabs`) | U.2/U.3 |
 | **Card** | White, `line` border, radius `xl`, padding 24–26 (18 on phones), `card` shadow; `interactive` lifts on hover; `featured` gold (`bg-quiz`) and dark green (`bg-forest`) variants. (`.portal-card`, `.feature-panel`) | U.2 |
 | **Badge / Pill** | `sm`-radius tag (not fully rounded), 11 px uppercase: `brand`, `success` ("In stock"), `orange`, `blue`, `gold`, `live` (red dot), `soon` ("Coming next"). (`.pill`, `.stock`) | U.2 |
-| **Eyebrow** | See [Eyebrow](#typography): orange line plus `brand-mid` label; `light` on dark. (`.eyebrow`, `.portal-kicker`) | U.2 |
+| **Eyebrow** | See [Eyebrow](#typography): green dot plus `brand-mid` label; `light` on dark. (`.eyebrow`, `.portal-kicker`) | U.2 |
 | **IconTile** | Rounded square (37–56 px) with a soft tint: `brand`, `orange`, `blue`, `gold`. (`.feature-icon`, `.partner-icon`) | U.2 |
 | **Avatar** | Initials on `bg-avatar`, rounded 12 px square. (`.avatar`) | U.2 |
 | **CoinPill** | `gold-soft` pill with the coin, balance and "MY WALLET" label; icon only on phones. (`.coin-pill`) | U.2 |
@@ -234,12 +237,13 @@ brings it to v2.
 | **Skeleton**, **EmptyState / ComingSoon** | Loading shapes; icon, title, one line, optional button. ComingSoon uses the v2 "Coming next" pill. | U.2 |
 | **Carousel**, **HScroller** | Keyboard-accessible slides; horizontal snap lists on phones (reels, product and course cards) with an edge fade. | U.2 |
 | **SectionHeading** | Eyebrow, two-tone title, optional description on the right and a "View all →" link (stacked on phones). (`.section-head`) | now (colours); U.3 (layout) |
-| **PageHero** | Dark green `bg-page-hero` with `bg-dots`, gold eyebrow, `text-h1` title, description, and the "BUILT FOR PROFESSIONALS" side note card (stacks under on phones). (`.portal-hero`) | U.3 |
+| **PageHero** | Dark green `bg-page-hero` with `bg-dots`, gold eyebrow, `text-page-title` title, description, and the "BUILT FOR PROFESSIONALS" side note card (from 820 px up only, so the hero stays short on phones). (`.portal-hero`) | U.3 |
 | **StatStrip** | 4-up band, `gold-light` numbers in Manrope, 2 × 2 on phones. (`.proof-strip`) | U.3 |
 | **FilterBar** | Search field and select filters in one row, stacking on phones. (`.shop-bar`) | U.3 |
 | **ProgressBar**, **StepsBar**, **Stepper** | Thin bar; numbered 1–2–3 step strip; Track Order dots-and-line (done `brand`, active `gold` with halo). (`.progress`, `.stepper`, `.track-steps`) | U.3 |
 | **Drawer** | Side sheet on desktop, bottom sheet on phones, focus trapped. (`.order-drawer`) | U.3 |
 | **RankList**, **MediaCard**, **InfoCard**, **QuantityStepper** | Leaderboard rows; reel/feedback cards with tag, play overlay and caption; icon tile + number + title + text + link; − qty + stepper. | U.3 |
+| **QuizGrid / QuizBox** | /quiz boxes grouped under a bold category heading, like a grocery app's category tiles: a square tile (radius `lg`, `line` border) in one soft tint per category in turn (`brand`, `orange`, `gold`, `blue`; `surface-alt` and `muted` until it opens) with the quiz's Devanagari mark, then the title (2 lines max) and a muted status line ("Open till 8 Nov", "Opens 4 Nov", "Played"). Three across on phones, four from 640 px. A played quiz gets a small `brand` tick in the corner. | Quiz categories (2026-11-01) |
 
 ### Site-level pieces
 

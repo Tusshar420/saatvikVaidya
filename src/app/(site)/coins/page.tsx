@@ -8,7 +8,7 @@ import { coins as copy } from "@/content/coins";
 import { coinReasonText } from "@/lib/coin-reason";
 import { signInPath } from "@/lib/auth-routes";
 import { cn } from "@/lib/cn";
-import { coinValuePaise } from "@/lib/coins";
+import { coinsEarned, coinValuePaise, exampleOrderRupees } from "@/lib/coins";
 import { formatDate, formatINR, formatNumber, formatPaise } from "@/lib/format";
 import { getSession } from "@/server/auth/session";
 import { COIN_PAGE_SIZE, coinSummary, readCoinHistory } from "@/server/coins/ledger";
@@ -36,7 +36,8 @@ export default async function CoinsPage({ searchParams }: PageProps<"/coins">) {
   const pageCount = history ? Math.max(1, Math.ceil(history.total / COIN_PAGE_SIZE)) : 1;
   const pageHref = (target: number) => (target > 1 ? `/coins?page=${target}` : "/coins");
 
-  const formulaCoins = rules.earnPerThousandRupees * 10;
+  const formulaOrder = exampleOrderRupees(rules);
+  const formulaCoins = coinsEarned(formulaOrder * 100, rules);
   const ruleCards = [
     {
       id: "coin-earn",
@@ -44,7 +45,14 @@ export default async function CoinsPage({ searchParams }: PageProps<"/coins">) {
       title: copy.earn.title,
       body: (
         <>
-          <p>{copy.earn.order(rules.earnPerThousandRupees, formatINR(1_000), rules.earnAfterDelivery)}</p>
+          <p>
+            {copy.earn.order(
+              rules.earnPerThousandRupees,
+              formatINR(1_000),
+              rules.minOrderRupees > 0 ? formatINR(rules.minOrderRupees) : null,
+              rules.earnAfterDelivery,
+            )}
+          </p>
           <p className="mt-1">{copy.earn.extras(rules.quizReward, rules.interestsReward, rules.detailsReward)}</p>
         </>
       ),
@@ -137,7 +145,7 @@ export default async function CoinsPage({ searchParams }: PageProps<"/coins">) {
               {rules.earnPerThousandRupees > 0 && (
                 <div className="my-7 flex items-center gap-3.5">
                   <div className="flex flex-col">
-                    <b className="font-heading text-[21px] font-extrabold">{formatINR(10_000)}</b>
+                    <b className="font-heading text-[21px] font-extrabold">{formatINR(formulaOrder)}</b>
                     <small className="text-small text-forest-ink">{copy.wallet.formulaOrder}</small>
                   </div>
                   <ArrowRight aria-hidden className="size-4 shrink-0 text-forest-ink" />

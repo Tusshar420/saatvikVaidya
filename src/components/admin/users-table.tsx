@@ -10,13 +10,15 @@ import { Modal, ModalContent } from "@/components/ui/modal";
 import { bulkUsersAction } from "@/app/admin/users/actions";
 import { admin as copy } from "@/content/admin";
 import { cn } from "@/lib/cn";
+import type { Sort } from "@/lib/admin-sort";
 import { formatDate } from "@/lib/format";
 import { formatIndianPhone } from "@/lib/phone";
 import { idleForm, type FormState } from "@/server/admin/form";
-import type { UserRow } from "@/server/admin/users";
+import type { USER_SORTS, UserRow } from "@/server/admin/users";
 import { VerificationBadge } from "./badges";
 import { dangerButtonClasses } from "./confirm-delete";
 import { DataTable, EmptyRow, TBody, THead, Td, Th, Tr } from "./data-table";
+import { SortTh } from "./sort-header";
 
 const text = copy.users;
 type Operation = "approve" | "reject" | "delete";
@@ -29,11 +31,16 @@ export function UsersTable({
   rows,
   currentUserId,
   emptyText = text.empty,
+  sort,
+  sortLinks,
 }: {
   rows: UserRow[];
   currentUserId: string;
   /** Shown in the table when there are no rows. */
   emptyText?: string;
+  /** The list's sort, and where each sortable header links to. */
+  sort: Sort<(typeof USER_SORTS)[number]>;
+  sortLinks: { name: string; joined: string };
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<Operation | null>(null);
@@ -126,11 +133,15 @@ export function UsersTable({
           <Th className="w-12">
             <span className="sr-only">{text.columns.select}</span>
           </Th>
-          <Th>{text.columns.name}</Th>
+          <SortTh column="name" sort={sort} href={() => sortLinks.name}>
+            {text.columns.name}
+          </SortTh>
           <Th>{text.columns.contact}</Th>
           <Th>{text.columns.type}</Th>
           <Th>{text.columns.status}</Th>
-          <Th>{text.columns.joined}</Th>
+          <SortTh column="joined" sort={sort} href={() => sortLinks.joined}>
+            {text.columns.joined}
+          </SortTh>
         </THead>
         <TBody>
           {rows.length === 0 && <EmptyRow colSpan={6}>{emptyText}</EmptyRow>}

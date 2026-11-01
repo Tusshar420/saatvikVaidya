@@ -5,15 +5,6 @@ export const account = {
   eyebrow: "My account",
   title: (name: string) => `Namaste, ${name}.`,
   titleEmphasis: "Your profile, in one place.",
-  hero: {
-    eyebrow: "My profile",
-    title: "One profile. Every opportunity.",
-    description: "Manage your orders, Coins, ebooks and professional details from one simple dashboard.",
-    status: "Built for professionals",
-    noteTitle: "Start simple",
-    noteText:
-      "Start with your mobile number and role. Add other details only when you use a service or choose to personalise your experience.",
-  },
   summary: {
     completion: "Profile completion",
     completionLabel: (percent: number) => `Profile ${percent}% complete`,

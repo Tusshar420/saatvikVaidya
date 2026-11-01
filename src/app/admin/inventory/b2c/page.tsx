@@ -7,20 +7,25 @@ import { InventoryTabs } from "@/components/admin/inventory-tabs";
 import { MovementsTable } from "@/components/admin/inventory-movements";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Pagination } from "@/components/admin/pagination";
+import { AutoSubmit } from "@/components/admin/auto-submit";
+import { SortTh } from "@/components/admin/sort-header";
+import { SortSelect } from "@/components/admin/sort-select";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
 import { admin as adminCopy } from "@/content/admin";
 import { inventory as copy } from "@/content/inventory";
+import { listHref, sortParam } from "@/lib/admin-sort";
 import { cn } from "@/lib/cn";
 import { formatDate, formatNumber } from "@/lib/format";
 import { EXPIRY_WARN_DAYS } from "@/lib/inventory";
-import { B2C_VIEWS, parseB2cFilters, readB2cOverview, readMovements } from "@/server/admin/inventory";
+import { B2C_SORT_DEFAULT, B2C_VIEWS, parseB2cFilters, readB2cOverview, readMovements } from "@/server/admin/inventory";
 import { requireAdmin } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: copy.b2c.metaTitle };
 
 const text = copy.b2c;
+const basePath = "/admin/inventory/b2c";
 
 export default async function B2cInventoryPage({ searchParams }: PageProps<"/admin/inventory/b2c">) {
   await requireAdmin("inventory");
@@ -31,6 +36,14 @@ export default async function B2cInventoryPage({ searchParams }: PageProps<"/adm
   ]);
   const { rows, counts } = overview;
   const filtered = Boolean(filters.q || filters.brandId || filters.partner || filters.view !== "all");
+  const params = {
+    q: filters.q ?? undefined,
+    brand: filters.brandId ? String(filters.brandId) : undefined,
+    partner: filters.partner ? "1" : undefined,
+    view: filters.view === "all" ? undefined : filters.view,
+    sort: sortParam(filters.sort, B2C_SORT_DEFAULT),
+  };
+  const viewHref = (view: (typeof B2C_VIEWS)[number]) => listHref(basePath, { sort: params.sort, view }, "stock");
 
   return (
     <>
@@ -41,23 +54,32 @@ export default async function B2cInventoryPage({ searchParams }: PageProps<"/adm
       <InventoryStats
         label={text.metaTitle}
         stats={[
-          { label: text.stats.items, value: formatNumber(counts.items) },
-          { label: text.stats.low, value: formatNumber(counts.low), warn: counts.low > 0 },
-          { label: text.stats.out, value: formatNumber(counts.out), warn: counts.out > 0 },
-          { label: text.stats.expiring(EXPIRY_WARN_DAYS), value: formatNumber(counts.expiringBatches), warn: counts.expiringBatches > 0 },
+          { label: text.stats.items, value: formatNumber(counts.items), href: listHref(basePath, { sort: params.sort }, "stock") },
+          { label: text.stats.low, value: formatNumber(counts.low), warn: counts.low > 0, href: viewHref("low") },
+          { label: text.stats.out, value: formatNumber(counts.out), warn: counts.out > 0, href: viewHref("out") },
+          {
+            label: text.stats.expiring(EXPIRY_WARN_DAYS),
+            value: formatNumber(counts.expiringBatches),
+            warn: counts.expiringBatches > 0,
+            href: viewHref("expiring"),
+          },
         ]}
       />
       {counts.expiredBatches > 0 && (
         <p className="mt-3 text-sm font-bold text-danger">
-          {text.stats.expired}: {formatNumber(counts.expiredBatches)}
+          <Link href={viewHref("expired")} className="underline-offset-4 hover:underline">
+            {text.stats.expired}: {formatNumber(counts.expiredBatches)}
+          </Link>
         </p>
       )}
 
       <form
+        id="stock"
         method="get"
+        action={`${basePath}#stock`}
         role="search"
         aria-label={text.filters.search}
-        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_auto]"
+        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.2fr_auto] scroll-mt-24"
       >
         <div className="flex flex-col">
           <label htmlFor="inv-q" className="mb-1.5 text-xs font-extrabold text-ink">
@@ -102,31 +124,46 @@ export default async function B2cInventoryPage({ searchParams }: PageProps<"/adm
             ))}
           </select>
         </div>
+        <SortSelect id="inv-sort" sort={filters.sort} options={text.filters.sorts} />
         <div className="flex items-end gap-2">
           <Button type="submit" variant="secondary" className="flex-1 sm:flex-none">
             {adminCopy.common.filter}
           </Button>
           {filtered && (
-            <Link href="/admin/inventory/b2c" className={buttonClasses({ variant: "link" })}>
+            <Link href={listHref(basePath, { sort: params.sort }, "stock")} className={buttonClasses({ variant: "link" })}>
               {adminCopy.common.clearFilters}
             </Link>
           )}
         </div>
-        <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink sm:col-span-2 lg:col-span-4">
+        <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink sm:col-span-2 lg:col-span-5">
           <input type="checkbox" name="partner" value="1" defaultChecked={filters.partner} className="size-4.5 accent-brand" />
           {text.filters.partnerOnly}
         </label>
+        <AutoSubmit />
       </form>
 
       <p className="mt-4 text-small text-muted">{text.count(overview.total)}</p>
       <DataTable caption={text.metaTitle} className="mt-3">
         <THead>
-          <Th>{text.columns.product}</Th>
-          <Th>{text.columns.partner}</Th>
-          <Th>{text.columns.onHand}</Th>
-          <Th>{text.columns.reserved}</Th>
-          <Th>{text.columns.available}</Th>
-          <Th>{text.columns.expiry}</Th>
+          {(
+            [
+              ["name", text.columns.product],
+              ["brand", text.columns.partner],
+              ["onHand", text.columns.onHand],
+              ["reserved", text.columns.reserved],
+              ["available", text.columns.available],
+              ["expiry", text.columns.expiry],
+            ] as const
+          ).map(([column, label]) => (
+            <SortTh
+              key={column}
+              column={column}
+              sort={filters.sort}
+              href={(sort) => listHref(basePath, { ...params, sort: sortParam(sort, B2C_SORT_DEFAULT) }, "stock")}
+            >
+              {label}
+            </SortTh>
+          ))}
           <Th>{text.columns.status}</Th>
           <Th>
             <span className="sr-only">{text.columns.actions}</span>
@@ -183,14 +220,10 @@ export default async function B2cInventoryPage({ searchParams }: PageProps<"/adm
       </DataTable>
       <Pagination
         basePath="/admin/inventory/b2c"
-        params={{
-          q: filters.q ?? undefined,
-          brand: filters.brandId ? String(filters.brandId) : undefined,
-          partner: filters.partner ? "1" : undefined,
-          view: filters.view === "all" ? undefined : filters.view,
-        }}
+        params={params}
         page={overview.page}
         pageCount={overview.pageCount}
+        hash="stock"
       />
 
       <h2 className="mt-10 text-h3 text-ink">{text.recent}</h2>

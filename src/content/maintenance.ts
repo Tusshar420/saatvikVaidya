@@ -10,6 +10,15 @@ export const maintenance = {
   adminSignIn: "Admin sign-in",
 } as const;
 
+// The same page on the live site before launch (SITE_COMING_SOON=true).
+export const comingSoon = {
+  eyebrow: "Coming soon",
+  title: "Saatvik Vaidya is",
+  titleEmphasis: "opening soon.",
+  message:
+    "Our Ayurveda store, courses and doctors' community open shortly. Until then, call us for anything you need.",
+} as const;
+
 export const announcement = {
   label: "Announcement",
 } as const;

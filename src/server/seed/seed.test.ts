@@ -45,6 +45,7 @@ async function snapshot() {
     liveSessions: strip(await db.liveSession.findMany(byId)),
     feedback: strip(await db.feedback.findMany(byId)),
     whySteps: strip(await db.whyStep.findMany(byId)),
+    quizCategories: strip(await db.quizCategory.findMany(byId)),
   };
 }
 
@@ -76,6 +77,7 @@ describe("seedDatabase", () => {
     expect(userTypes.map((t) => [t.key, t.label])).toEqual([
       ["customer", "Customer"],
       ["doctor", "Ayurveda Doctor"],
+      ["student", "Ayurveda Student"],
       ["clinic", "Clinic / Hospital"],
       ["pharmacy", "Pharmacy / Store"],
       ["stockist", "Stockist / Distributor"],

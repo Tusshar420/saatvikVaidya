@@ -5,7 +5,7 @@ import { QuizBuilder } from "@/components/admin/quiz-builder";
 import { admin as copy } from "@/content/admin";
 import { formatIstLocal } from "@/lib/quiz";
 import { intId } from "@/server/admin/form";
-import { getQuiz } from "@/server/admin/quiz";
+import { getQuiz, listQuizCategoryOptions } from "@/server/admin/quiz";
 import { requireAdmin } from "@/server/auth/session";
 import { updateQuizAction } from "../../../actions";
 
@@ -16,7 +16,10 @@ export default async function EditQuizPage({
 }: PageProps<"/admin/content/quiz/[id]/edit">) {
   await requireAdmin("content");
   const id = intId.safeParse((await params).id);
-  const quiz = id.success ? await getQuiz(id.data) : null;
+  const [quiz, categories] = await Promise.all([
+    id.success ? getQuiz(id.data) : null,
+    listQuizCategoryOptions(),
+  ]);
   if (!quiz) notFound();
   return (
     <>
@@ -30,12 +33,15 @@ export default async function EditQuizPage({
         initial={{
           title: quiz.title,
           description: quiz.description,
+          categoryId: quiz.categoryId === null ? "" : String(quiz.categoryId),
+          glyph: quiz.glyph,
           active: quiz.active,
           startsAt: quiz.startsAt ? formatIstLocal(quiz.startsAt) : "",
           endsAt: quiz.endsAt ? formatIstLocal(quiz.endsAt) : "",
           passPercent: quiz.passPercent,
         }}
         initialQuestions={quiz.questions.map((question) => ({ ...question, explanation: question.explanation ?? "" }))}
+        categories={categories}
         lockedAttempts={quiz.attempts}
       />
     </>

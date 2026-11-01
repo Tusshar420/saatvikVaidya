@@ -11,16 +11,20 @@ import {
   Tr,
 } from "@/components/admin/data-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AutoSubmit } from "@/components/admin/auto-submit";
 import { Pagination } from "@/components/admin/pagination";
+import { SortTh } from "@/components/admin/sort-header";
+import { SortSelect } from "@/components/admin/sort-select";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
 import { admin as copy } from "@/content/admin";
+import { listHref, sortParam } from "@/lib/admin-sort";
 import { cn } from "@/lib/cn";
 import { formatDateTime, formatPaise } from "@/lib/format";
 import { formatIndianPhone } from "@/lib/phone";
-import { listAdminOrders, orderFiltersSchema, orderStatuses } from "@/server/admin/orders";
+import { listAdminOrders, ORDER_SORT_DEFAULT, orderFiltersSchema, orderStatuses } from "@/server/admin/orders";
 import { requireAdmin } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: copy.orders.metaTitle };
@@ -36,6 +40,14 @@ export default async function AdminOrdersPage({
   const badRange = Boolean(filters.from && filters.to && filters.from > filters.to);
   const { orders, total, page, pageCount } = await listAdminOrders(filters);
   const filtered = Boolean(filters.q || filters.status || filters.from || filters.to);
+  const params = {
+    q: filters.q,
+    status: filters.status,
+    from: filters.from,
+    to: filters.to,
+    sort: sortParam(filters.sort, ORDER_SORT_DEFAULT),
+  };
+  const sortHref = (sort: typeof filters.sort) => listHref("/admin/orders", { ...params, sort: sortParam(sort, ORDER_SORT_DEFAULT) });
 
   return (
     <>
@@ -49,7 +61,7 @@ export default async function AdminOrdersPage({
         method="get"
         role="search"
         aria-label={text.searchLabel}
-        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1.3fr_1fr_1fr_auto]"
+        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1.3fr_1fr_1fr_1.3fr]"
       >
         <div className="flex flex-col sm:col-span-2 lg:col-span-1">
           <label htmlFor="filter-q" className="mb-1.5 text-xs font-extrabold text-ink">
@@ -113,16 +125,18 @@ export default async function AdminOrdersPage({
             className={inputClasses}
           />
         </div>
-        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
+        <SortSelect id="filter-sort" sort={filters.sort} options={text.sorts} />
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
           <Button type="submit" variant="secondary" className="flex-1 lg:flex-none">
             {copy.common.filter}
           </Button>
           {filtered && (
-            <Link href="/admin/orders" className={buttonClasses({ variant: "link" })}>
+            <Link href={listHref("/admin/orders", { sort: params.sort })} className={buttonClasses({ variant: "link" })}>
               {copy.common.clearFilters}
             </Link>
           )}
         </div>
+        <AutoSubmit />
       </form>
 
       {badRange && <FormAlert className="mt-4">{text.invalidDates}</FormAlert>}
@@ -132,9 +146,13 @@ export default async function AdminOrdersPage({
         <THead>
           <Th>{text.columns.id}</Th>
           <Th>{text.columns.customer}</Th>
-          <Th>{text.columns.total}</Th>
+          <SortTh column="total" sort={filters.sort} href={sortHref} firstDir="desc">
+            {text.columns.total}
+          </SortTh>
           <Th>{text.columns.status}</Th>
-          <Th>{text.columns.date}</Th>
+          <SortTh column="date" sort={filters.sort} href={sortHref} firstDir="desc">
+            {text.columns.date}
+          </SortTh>
           <Th>
             <span className="sr-only">{text.columns.actions}</span>
           </Th>
@@ -186,7 +204,7 @@ export default async function AdminOrdersPage({
       </DataTable>
       <Pagination
         basePath="/admin/orders"
-        params={{ q: filters.q, status: filters.status, from: filters.from, to: filters.to }}
+        params={params}
         page={page}
         pageCount={pageCount}
       />

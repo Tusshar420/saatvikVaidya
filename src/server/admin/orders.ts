@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { OrderStatus, OrderType, Prisma } from "@/generated/prisma/client";
+import { sortField, type Sort } from "@/lib/admin-sort";
 import { canCancelBrandStage, type BrandStageKey } from "@/lib/brand-stage";
 import { isOrderId } from "@/lib/orders";
 import { cancelStageInTx } from "@/server/brand/stages";
@@ -30,6 +31,8 @@ export const orderStatuses = [
 ] as const satisfies readonly OrderStatus[];
 
 export const ADMIN_ORDERS_PAGE_SIZE = 25;
+export const ORDER_SORTS = ["date", "total"] as const;
+export const ORDER_SORT_DEFAULT: Sort<(typeof ORDER_SORTS)[number]> = { key: "date", dir: "desc" };
 
 const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
 const isoDate = z.iso.date();
@@ -44,16 +47,24 @@ export const orderFiltersSchema = z.object({
   from: z.preprocess(first, isoDate.optional()).catch(undefined),
   to: z.preprocess(first, isoDate.optional()).catch(undefined),
   page: z.preprocess(first, z.coerce.number().int().min(1).max(10_000).optional()).catch(undefined),
+  sort: sortField(ORDER_SORTS, ORDER_SORT_DEFAULT),
 });
 
 export type OrderFilters = z.infer<typeof orderFiltersSchema>;
+
+/** Newest / oldest or biggest / smallest first, for store and brand orders. */
+export function ordersOrderBy(sort: OrderFilters["sort"]): Prisma.OrderOrderByWithRelationInput[] {
+  return sort.key === "total"
+    ? [{ totalPaise: sort.dir }, { createdAt: "desc" }, { id: "asc" }]
+    : [{ createdAt: sort.dir }, { id: "asc" }];
+}
 
 /** Start of a day in India ("2026-10-01" -> 1 Oct 00:00 IST). */
 const istDayStart = (day: string) => new Date(`${day}T00:00:00+05:30`);
 
 /** Where clause for the filters, for one order type (store orders or brand orders). */
 export function filtersWhere(
-  filters: OrderFilters,
+  filters: Partial<OrderFilters>,
   type: OrderType = "store",
 ): Prisma.OrderWhereInput {
   const where: Prisma.OrderWhereInput = { type };
@@ -108,7 +119,7 @@ export async function listAdminOrders(filters: OrderFilters): Promise<{
   const page = Math.min(filters.page ?? 1, pageCount);
   const rows = await db.order.findMany({
     where,
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    orderBy: ordersOrderBy(filters.sort),
     skip: (page - 1) * ADMIN_ORDERS_PAGE_SIZE,
     take: ADMIN_ORDERS_PAGE_SIZE,
     select: {

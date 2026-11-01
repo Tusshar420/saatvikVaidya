@@ -87,4 +87,8 @@ export const rateLimitRules = {
   bugReportPerUser: { name: "bug-report:user", windowSeconds: 24 * 60 * 60, max: 10 },
   /** Guest reports from everyone together: 60 per hour, so a flood can't bury real ones. */
   bugReportGuestsPerHour: { name: "bug-report:guests", windowSeconds: 60 * 60, max: 60 },
+  /** Confirmation codes for one order prepared by staff: 3 per 10 minutes, like sign-in codes. */
+  assistedCodePerOrder: { name: "assisted-code:order", windowSeconds: 10 * 60, max: 3 },
+  /** Link messages for one order prepared by staff: 5 per hour. */
+  assistedLinkPerOrder: { name: "assisted-link:order", windowSeconds: 60 * 60, max: 5 },
 } as const satisfies Record<string, RateLimitRule>;

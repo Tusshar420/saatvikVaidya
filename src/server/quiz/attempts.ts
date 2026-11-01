@@ -35,10 +35,14 @@ export function readAnswers(value: unknown): Answers {
   return parsed.success ? parsed.data : {};
 }
 
-/** The quiz that can be played at `now`: active, scheduled, inside its week, with all its questions. */
-export async function findOpenQuiz(now: Date) {
+/**
+ * A quiz that can be played at `now`: active, scheduled, inside its week, with
+ * all its questions. Several can be open at once (one per category, say);
+ * without `quizId` this is the one that opened last.
+ */
+export async function findOpenQuiz(now: Date, quizId?: number) {
   const quiz = await db.quiz.findFirst({
-    where: { active: true, startsAt: { lte: now }, endsAt: { gt: now } },
+    where: { id: quizId, active: true, startsAt: { lte: now }, endsAt: { gt: now } },
     orderBy: [{ startsAt: "desc" }, { id: "desc" }],
     select: {
       id: true,
@@ -66,8 +70,8 @@ export type StartResult = { ok: true; attemptId: number } | { ok: false; error: 
 
 /** Starts the user's attempt on the open quiz. Starting again returns the same attempt. */
 export async function startAttempt(userId: string, quizId: number, now = new Date()): Promise<StartResult> {
-  const open = await findOpenQuiz(now);
-  if (!open || open.id !== quizId) return { ok: false, error: "closed" };
+  const open = await findOpenQuiz(now, quizId);
+  if (!open) return { ok: false, error: "closed" };
   try {
     const attempt = await db.$transaction(async (tx) => {
       // A shared lock on the quiz: starts run side by side, but an admin's

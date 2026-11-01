@@ -50,6 +50,7 @@ function report(counts: TestDataCounts): void {
 Would remove:
   Accounts (not admins):  ${r.accounts}${types ? ` (${types})` : ""}
   Orders:                 ${r.orders} (${r.brandOrders} Build Your Brand), with ${r.payments} payment(s) and ${r.invoices} invoice(s)
+  Prepared by staff:      ${r.preparedOrders} order(s) prepared for customers
   Quiz attempts:          ${r.quizAttempts}
   Super Coin entries:     ${r.coinEntries}
   Threads by them:        ${r.threads}

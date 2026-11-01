@@ -37,6 +37,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 afterAll(async () => {
@@ -216,6 +217,20 @@ describe("the customer's decision", () => {
 });
 
 describe("production", () => {
+  it("dispatches through the manual provider on a server, with no made-up places", async () => {
+    const ctx = await approved();
+    await advance(ctx, "proof_approved", "in_production");
+    await advance(ctx, "in_production", "quality_check");
+    vi.stubEnv("NODE_ENV", "production");
+    expect(await advance(ctx, "quality_check", "dispatched")).toMatchObject({ ok: true, stage: "dispatched" });
+    const order = await db.order.findUniqueOrThrow({
+      where: { id: ctx.orderId },
+      include: { shipment: { include: { events: true } } },
+    });
+    expect(order.shipment).toMatchObject({ provider: "manual", status: "shipped", awb: order.number });
+    expect(order.shipment?.events.every((event) => event.location === null)).toBe(true);
+  });
+
   it("starts straight from a paid order, without a proof", async () => {
     const ctx = await setup();
     expect(await advance(ctx, "awaiting_proof", "quality_check")).toEqual({ ok: false, error: "not_allowed" });

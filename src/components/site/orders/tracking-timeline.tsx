@@ -4,7 +4,7 @@ import { Stepper } from "@/components/ui/stepper";
 import { orders as copy } from "@/content/orders";
 import { ui } from "@/content/ui";
 import { cn } from "@/lib/cn";
-import { formatDateTime, formatDayMonth } from "@/lib/format";
+import { formatDayMonth } from "@/lib/format";
 import type { TrackingView } from "@/server/orders/tracking";
 
 const text = copy.tracking;
@@ -107,21 +107,11 @@ function VerticalSteps({ tracking, current }: { tracking: TrackingView; current:
 }
 
 /**
- * An order's delivery: courier and tracking number, the step timeline and
- * the full tracking history. Used on the order page, /track and the Track
- * Order modal.
+ * An order's delivery: courier and tracking number, the step timeline (with
+ * the date of each step) and a one-line note. Used on the order page, /track
+ * and the Track Order modal.
  */
-export function TrackingTimeline({
-  tracking,
-  headingLevel = "h2",
-  className,
-}: {
-  tracking: TrackingView;
-  /** Level of the "Tracking history" heading. */
-  headingLevel?: "h2" | "h3" | "h4";
-  className?: string;
-}) {
-  const Heading = headingLevel;
+export function TrackingTimeline({ tracking, className }: { tracking: TrackingView; className?: string }) {
   const { shipment } = tracking;
   const showCourier = shipment && shipment.status !== "cancelled";
   return (
@@ -164,35 +154,6 @@ export function TrackingTimeline({
       )}
 
       {statusNote(tracking)}
-
-      {tracking.events.length > 0 && (
-        <section aria-label={text.historyTitle}>
-          <Heading className="text-label text-muted uppercase">{text.historyTitle}</Heading>
-          <ol aria-label={text.historyLabel} className="mt-3 flex flex-col">
-            {tracking.events.map((event, index) => (
-              <li key={event.id} className="relative flex gap-3 pb-4 last:pb-0">
-                {index < tracking.events.length - 1 && (
-                  <span aria-hidden className="absolute top-4 bottom-0 left-[5px] w-0.5 bg-line" />
-                )}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "relative mt-1 size-3 shrink-0 rounded-full",
-                    index === 0 ? "bg-orange-strong ring-4 ring-orange/15" : "bg-success",
-                  )}
-                />
-                <span className="flex min-w-0 flex-col">
-                  <span className="text-sm font-bold text-ink">{copy.shipmentStatus[event.status]}</span>
-                  <span className="text-small text-muted">
-                    {formatDateTime(event.at)}
-                    {event.location ? ` · ${event.location}` : ""}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
     </div>
   );
 }

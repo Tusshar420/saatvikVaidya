@@ -7,7 +7,7 @@ import { seedDatabase } from "@/server/seed";
 import { clearAuthTables, clearContentTables } from "../../../tests/setup/content-db";
 import { makeUser } from "../../../tests/setup/shop";
 import { closeExpiredAttempts, findOpenQuiz, saveAnswer, startAttempt, submitAttempt } from "./attempts";
-import { getHomeQuiz, getQuizPage, readLeaderboard } from "./view";
+import { getHomeQuiz, getQuizPage, listQuizGroups, readLeaderboard } from "./view";
 
 // Quiz & Win (P2.3): who can start, the server's clock, the one attempt,
 // scoring, the single coin credit, answer leakage and the leaderboards.
@@ -73,6 +73,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await clearAuthTables(db);
   await db.quiz.deleteMany();
+  await db.quizCategory.deleteMany({ where: { key: { startsWith: "t-" } } });
   await db.setting.update({ where: { key: "coins.rules" }, data: { value: settingDefaults["coins.rules"] } });
 });
 
@@ -297,9 +298,9 @@ describe("what the player is sent", () => {
     const t0 = new Date();
     await startAttempt(userId, fx.quiz.id, t0);
     await saveAnswer(userId, fx.quiz.id, fx.questionId(2), fx.wrong(2).id, t0);
-    const view = await getQuizPage(userId, new Date(t0.getTime() + 100_000));
-    expect(view.state).toBe("playing");
-    if (view.state !== "playing") return;
+    const view = await getQuizPage(userId, fx.quiz.id, new Date(t0.getTime() + 100_000));
+    expect(view?.state).toBe("playing");
+    if (view?.state !== "playing") return;
     const sent = JSON.stringify(view);
     expect(sent).not.toMatch(/isCorrect|correctOptionId|explanation|Because/);
     expect(view.questions).toHaveLength(10);
@@ -310,9 +311,9 @@ describe("what the player is sent", () => {
   });
 
   it("shows a signed-out visitor the quiz as ready, never its questions", async () => {
-    await makeQuiz();
-    const view = await getQuizPage(null);
-    expect(view.state).toBe("ready");
+    const fx = await makeQuiz();
+    const view = await getQuizPage(null, fx.quiz.id);
+    expect(view?.state).toBe("ready");
     expect(JSON.stringify(view)).not.toMatch(/Question 1|isCorrect/);
   });
 
@@ -320,9 +321,9 @@ describe("what the player is sent", () => {
     const fx = await makeQuiz();
     const userId = await makeUser(db);
     await play(userId, fx, 3, new Date());
-    const view = await getQuizPage(userId);
-    expect(view.state).toBe("finished");
-    if (view.state !== "finished") return;
+    const view = await getQuizPage(userId, fx.quiz.id);
+    expect(view?.state).toBe("finished");
+    if (view?.state !== "finished") return;
     expect(view.result).toMatchObject({ score: 30, correctCount: 3, coinsAwarded: 0 });
     expect(view.review[0]).toMatchObject({
       explanation: "Because 1",
@@ -338,8 +339,94 @@ describe("what the player is sent", () => {
     const t0 = new Date(Date.now() - 10 * 60_000);
     await startAttempt(userId, fx.quiz.id, t0);
     await saveAnswer(userId, fx.quiz.id, fx.questionId(0), fx.right(0).id, t0);
-    const view = await getQuizPage(userId);
+    const view = await getQuizPage(userId, fx.quiz.id);
     expect(view).toMatchObject({ state: "finished", result: { score: 10, timeTakenSeconds: QUIZ_SECONDS } });
+  });
+
+  it("shows a quiz that hasn't opened or has closed, and the player's result after it closes", async () => {
+    const fx = await makeQuiz();
+    const userId = await makeUser(db);
+    await play(userId, fx, 4, new Date());
+    const before = new Date(Date.now() - 2 * DAY);
+    const after = new Date(Date.now() + 7 * DAY);
+    expect(await getQuizPage(null, fx.quiz.id, before)).toMatchObject({ state: "upcoming", quiz: { id: fx.quiz.id } });
+    expect(await getQuizPage(null, fx.quiz.id, after)).toMatchObject({ state: "closed", quiz: { id: fx.quiz.id } });
+    expect(await getQuizPage(userId, fx.quiz.id, after)).toMatchObject({ state: "finished", result: { score: 40 } });
+  });
+
+  it("has no page for drafts, unscheduled quizzes, ones without 10 questions or unknown ids", async () => {
+    const drafts = await Promise.all([
+      makeQuiz({ active: false }),
+      makeQuiz({ scheduled: false }),
+      makeQuiz({ questions: 9 }),
+    ]);
+    for (const fx of drafts) expect(await getQuizPage(null, fx.quiz.id)).toBeNull();
+    expect(await getQuizPage(null, 2_000_000_000)).toBeNull();
+  });
+});
+
+describe("the /quiz boxes", () => {
+  it("lets any open quiz be started when several are open at once", async () => {
+    const first = await makeQuiz();
+    const second = await makeQuiz();
+    const userId = await makeUser(db);
+    expect(await startAttempt(userId, first.quiz.id)).toMatchObject({ ok: true });
+    expect(await startAttempt(userId, second.quiz.id)).toMatchObject({ ok: true });
+  });
+
+  it("groups open and upcoming quizzes by category in the admin's order, with no category last", async () => {
+    const now = new Date();
+    const later = await db.quizCategory.create({ data: { key: "t-later", name: "Herbs", sortOrder: 20, glyph: "औ" } });
+    const sooner = await db.quizCategory.create({ data: { key: "t-sooner", name: "Doshas", sortOrder: 10 } });
+    const hidden = await db.quizCategory.create({ data: { key: "t-hidden", name: "Hidden", sortOrder: 5, active: false } });
+    const herbs = await makeQuiz({ now });
+    const upcoming = await makeQuiz({ now: new Date(now.getTime() + 3 * DAY) });
+    const doshas = await makeQuiz({ now });
+    const loose = await makeQuiz({ now });
+    const inHidden = await makeQuiz({ now });
+    const ended = await makeQuiz({ now: new Date(now.getTime() - 10 * DAY) });
+    const draft = await makeQuiz({ now, active: false });
+    await db.quiz.update({ where: { id: herbs.quiz.id }, data: { categoryId: later.id } });
+    // Upcoming quiz in the same category, listed after the open one even though it was made first.
+    await db.quiz.update({ where: { id: upcoming.quiz.id }, data: { categoryId: later.id, glyph: "वा" } });
+    await db.quiz.update({ where: { id: doshas.quiz.id }, data: { categoryId: sooner.id } });
+    await db.quiz.update({ where: { id: inHidden.quiz.id }, data: { categoryId: hidden.id } });
+    await db.quiz.update({ where: { id: draft.quiz.id }, data: { categoryId: sooner.id } });
+    await db.quiz.update({ where: { id: ended.quiz.id }, data: { categoryId: sooner.id } });
+
+    const groups = await listQuizGroups(null, now);
+    expect(groups.map((group) => [group.name, group.quizzes.map((quiz) => quiz.id)])).toEqual([
+      ["Doshas", [doshas.quiz.id]],
+      ["Herbs", [herbs.quiz.id, upcoming.quiz.id]],
+      [null, [loose.quiz.id, inHidden.quiz.id]],
+    ]);
+    const [, herbGroup] = groups;
+    expect(herbGroup!.quizzes.map((quiz) => [quiz.open, quiz.glyph])).toEqual([
+      [true, "औ"],
+      [false, "वा"],
+    ]);
+    // Nothing about questions or answers is in the list.
+    expect(JSON.stringify(groups)).not.toMatch(/Question 1|Right|isCorrect/);
+  });
+
+  it("marks the viewer's own quizzes as in progress or played", async () => {
+    const playing = await makeQuiz();
+    const done = await makeQuiz();
+    await makeQuiz();
+    const userId = await makeUser(db);
+    await startAttempt(userId, playing.quiz.id);
+    await play(userId, done, 5, new Date());
+    const [group] = await listQuizGroups(userId);
+    const played = new Map(group!.quizzes.map((quiz) => [quiz.id, quiz.played]));
+    expect(played.get(playing.quiz.id)).toBe("playing");
+    expect(played.get(done.quiz.id)).toBe("done");
+    expect([...played.values()].filter((value) => value === null)).toHaveLength(1);
+    expect((await listQuizGroups(null))[0]!.quizzes.every((quiz) => quiz.played === null)).toBe(true);
+  });
+
+  it("is empty with no published quiz open or coming", async () => {
+    await makeQuiz({ active: false });
+    expect(await listQuizGroups(null)).toEqual([]);
   });
 });
 

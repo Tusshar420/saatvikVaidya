@@ -1,7 +1,7 @@
 import "server-only";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
-import { ADMIN_ORDERS_PAGE_SIZE, filtersWhere, type OrderFilters } from "./orders";
+import { ADMIN_ORDERS_PAGE_SIZE, filtersWhere, ordersOrderBy, type OrderFilters } from "./orders";
 
 // Build Your Brand orders in the admin panel (/admin/brand-orders, P2.1):
 // the same filters as /admin/orders, over brand orders only, and the search
@@ -48,7 +48,7 @@ export async function listAdminBrandOrders(filters: OrderFilters): Promise<{
   const page = Math.min(filters.page ?? 1, pageCount);
   const rows = await db.order.findMany({
     where,
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    orderBy: ordersOrderBy(filters.sort),
     skip: (page - 1) * ADMIN_ORDERS_PAGE_SIZE,
     take: ADMIN_ORDERS_PAGE_SIZE,
     select: {

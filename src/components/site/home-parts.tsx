@@ -8,12 +8,13 @@ import {
   Star,
   type LucideIcon,
 } from "lucide-react";
+import { LabelDot } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 
 // Small pieces shared by the v2 homepage sections (docs/mockup-v2/index.html):
 // the eyebrow, the section head and the icon set.
 
-/** `.eyebrow`: a 28 × 2 px orange bar, then an uppercase Manrope label. */
+/** `.eyebrow`: a small green dot, then an uppercase Manrope label. */
 export function HomeEyebrow({
   children,
   light = false,
@@ -31,7 +32,7 @@ export function HomeEyebrow({
         className,
       )}
     >
-      <span aria-hidden className="h-0.5 w-7 shrink-0 rounded-sm bg-orange" />
+      <LabelDot onDark={light} />
       {children}
     </p>
   );
