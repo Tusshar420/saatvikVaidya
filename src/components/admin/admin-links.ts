@@ -20,6 +20,7 @@ import {
   LineChart,
   ListChecks,
   ListOrdered,
+  MousePointerClick,
   MessageSquareQuote,
   Package,
   PhoneCall,
@@ -41,6 +42,7 @@ import { adminHome } from "@/content/admin-site";
 import { brand as brandCopy } from "@/content/brand";
 import { errorLog } from "@/content/errors";
 import { inventory as inventoryCopy } from "@/content/inventory";
+import { traffic as trafficCopy } from "@/content/traffic";
 import {
   roleCanAccess,
   type AdminArea,
@@ -80,6 +82,13 @@ export const adminLinkGroups: AdminLinkGroup[] = [
         label: copy.nav.reports,
         icon: LineChart,
         keywords: words.reports,
+      },
+      {
+        href: "/admin/traffic",
+        area: "reports",
+        label: trafficCopy.nav,
+        icon: MousePointerClick,
+        keywords: trafficCopy.keywords,
       },
     ],
   },

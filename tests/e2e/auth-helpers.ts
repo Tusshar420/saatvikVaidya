@@ -374,6 +374,8 @@ export async function cleanUpE2eData() {
     }),
     db.quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } }),
     db.quizCategory.deleteMany({ where: { key: { startsWith: E2E_CONTENT_PREFIX } } }),
+    // Page views the traffic tests made (Traffic, /admin/traffic).
+    db.pageView.deleteMany({ where: { path: { startsWith: `/products/${E2E_CONTENT_PREFIX}` } } }),
     db.verification.deleteMany({
       where: { OR: [{ identifier: phones }, { value: { in: ids } }] },
     }),

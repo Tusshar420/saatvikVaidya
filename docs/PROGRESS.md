@@ -6317,3 +6317,75 @@ grouped by category, each quiz shown as a box.
 - Needs `pnpm db:deploy` (new table and columns) and `pnpm db:seed` for
   the four starting categories (the seed only adds missing rows). Then pick
   a category for each quiz in the admin.
+
+## Traffic: page views by module, page and account type (2026-11-07)
+
+The owner asked for analytics: which pages and modules get the most views
+and who uses them. Nothing recorded page views before this.
+
+**Built**
+- New admin page **Traffic** (`/admin/traffic`), in the menu under Overview
+  next to Reports, with the same "reports" permission (super and orders
+  admins). For a period (last 30 days by default, by day, week or month):
+  page views, visitors, pages per visitor, views by signed-in members;
+  modules (Top Brands, Courses, Dr. Talk, Quiz & Win, Build Your Brand...)
+  with views, visitors and share; the 25 most viewed pages; views by
+  account type (guests vs each user type); phone vs computer; and a trend.
+- `src/components/site/page-view-tracker.tsx` in the site layout sends the
+  page address to `POST /api/page-views` after each page renders (also on
+  in-app navigation). The browser never waits for the answer.
+- `src/server/analytics/page-views.ts`: saves one `PageView` row (day,
+  page with ids as `:id`, module, account type, device, day visitor code).
+  The endpoint is same-origin only, size-capped and capped per IP (600 per
+  10 minutes, kept in memory so it costs no extra database write). Views
+  over the cap are dropped but still answered 204, never 429: a 429 shows
+  as a console error, and phones on one mobile network often share an IP.
+- `src/lib/page-sections.ts`: which address belongs to which module. Only
+  known site addresses are counted, so 404 probes don't fill the table.
+- Tables `PageView` and `PageViewDaily`, migration
+  `20261107120000_page_views`.
+
+**Decisions**
+- No cookies, no outside service, no account id stored. A visitor is a
+  hash of IP + browser + day + the server secret, so "visitors" means
+  people per day (added up over a period); it can't be traced back.
+- Not counted: admins, bots (same check as the error log), admin pages, API
+  calls, sign-in links (/reset-password, /admin-invite) and the Coming soon
+  / maintenance page.
+- Raw rows are kept 90 days. Now and then (1 in 500 views) older days are
+  added up into `PageViewDaily` (per day: total, module, page, account
+  type, device) and their rows deleted. The report reads both, so long
+  periods still work.
+- A failure to save a view is logged and ignored; it never reaches a page.
+
+**Checked**
+- This machine had no MySQL, pnpm or Playwright browser. Installed MySQL
+  (Homebrew) and pnpm 11.24.0, created both databases, ran every migration
+  and the seed. pnpm 11 wants to reinstall `node_modules` before each run
+  (no TTY here), so runs used `pnpm_config_verify_deps_before_run=false`.
+- Typecheck and lint pass. Unit tests: 1041 pass, 11 new (module mapping,
+  saving, ignoring admins/bots/unknown pages, the per-IP cap, daily visitor
+  codes, the report, the roll-up). `admin-access.test.ts` now expects
+  `/admin/traffic` to require "reports".
+- `traffic.spec.ts` (phone 375 px and desktop 1280 px, 6 tests): a guest
+  and a signed-in doctor each add a view, admins don't, cross-site and bad
+  requests are refused, the admin page shows the figures, the empty state
+  and the menu link, with no sideways scroll and no axe issues. Screens
+  checked at 375 and 1280 px with sample data.
+- Full `pnpm test:e2e` (production build included): 357 passed, 11
+  skipped (the usual phone-only/desktop-only skips), plus 2 + 2 in the
+  manual-payment and order-request configs. The first full run had 37
+  failures, all the same cause: the endpoint answered 429 when shared-IP
+  tests went over the cap, and the browser logged it as a console error.
+  Fixed (dropped quietly with 204, cap raised to 600), then all passed.
+
+**Deploy note**
+- Needs `pnpm db:deploy` (two new tables) on staging and live. No new
+  settings or environment variables. Numbers start from the deploy; there
+  is no history before it.
+
+**Later**
+- `package.json` "pnpm.overrides" is ignored by pnpm 11 (it warns on every
+  run); move the overrides to `pnpm-workspace.yaml`.
+- Possible next steps if wanted: a CSV export of Traffic, where visitors
+  come from (referrer), and time spent on a page.

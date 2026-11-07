@@ -36,7 +36,7 @@ function expectedArea(path: string): AdminArea {
     return "orders";
   }
   if (p.startsWith("admin/content/")) return "content";
-  if (p.startsWith("admin/reports/")) return "reports";
+  if (p.startsWith("admin/reports/") || p.startsWith("admin/traffic/")) return "reports";
   if (p.startsWith("admin/settings/")) return "settings";
   if (p.startsWith("admin/users/")) return "users";
   if (p.startsWith("admin/admins/")) return "admins";

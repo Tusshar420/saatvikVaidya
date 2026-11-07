@@ -2009,3 +2009,42 @@ model AssistedOrderItem {
   @@unique([assistedOrderId, productId])
   @@index([productId])
 }
+
+/// One page opened on the public site (Traffic, /admin/traffic). Sent by the
+/// browser after the page has loaded. No cookie and no account id: `visitor`
+/// is a hash of IP + browser + the day + the server secret, so it changes
+/// every day and can't be turned back into who it was. Rows are kept 90
+/// days; older days are first added up into PageViewDaily.
+model PageView {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  /// The India day, "YYYY-MM-DD".
+  day        String   @db.VarChar(10)
+  /// The page with ids replaced by ":id" and no query string.
+  path       String   @db.VarChar(191)
+  /// The site module, e.g. "shop", "courses" (src/lib/page-sections.ts).
+  section    String   @db.VarChar(24)
+  /// The visitor's account type, or null when not signed in.
+  userTypeId Int?
+  /// mobile, tablet, desktop or unknown.
+  device     String   @db.VarChar(12)
+  visitor    String   @db.VarChar(32)
+
+  @@index([day])
+  @@index([createdAt])
+}
+
+/// Daily totals for days older than PageView keeps. One row per day and
+/// figure: `kind` is total, section, path, audience or device, and `key` the
+/// value (the path, the account type id or "guest", ...).
+model PageViewDaily {
+  id       Int    @id @default(autoincrement())
+  day      String @db.VarChar(10)
+  kind     String @db.VarChar(12)
+  key      String @db.VarChar(191)
+  views    Int
+  visitors Int
+
+  @@unique([day, kind, key])
+  @@index([kind, day])
+}

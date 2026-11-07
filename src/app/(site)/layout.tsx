@@ -5,6 +5,7 @@ import { Header } from "@/components/site/header";
 import { HideOnPaths } from "@/components/site/hide-on-paths";
 import { MaintenancePage } from "@/components/site/maintenance-page";
 import { MobileDock } from "@/components/site/mobile-dock";
+import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { StickyActions } from "@/components/site/sticky-actions";
 import { SiteModalsProvider } from "@/components/site/site-modals";
 import { SkipLink } from "@/components/site/skip-link";
@@ -90,6 +91,8 @@ export default async function SiteLayout({
       devShowOtp={isDevOtpVisible()}
     >
       <SkipLink />
+      {/* Traffic: counts page views (admins and the maintenance page aren't counted). */}
+      <PageViewTracker />
       {bar && <AnnouncementBar {...bar} />}
       <Header
         popularSearches={popularSearches}
