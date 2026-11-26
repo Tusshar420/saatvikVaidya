@@ -91,6 +91,12 @@ export const quizInputSchema = z
     .min(1, errors.title)
     .max(160, errors.title),
   description: optionalText(600, "Use up to 600 characters."),
+  // Blank: no category (the quiz shows under "More quizzes").
+  categoryId: z.preprocess(
+    blankToNull,
+    z.coerce.number({ error: errors.category }).int(errors.category).positive(errors.category).nullable(),
+  ),
+  glyph: optionalText(8, errors.glyph),
   active: checkbox,
   startsAt: istField,
   endsAt: istField,
@@ -119,6 +125,7 @@ export type QuizInput = z.infer<typeof quizInputSchema>;
 export type QuizRow = {
   id: number;
   title: string;
+  category: string | null;
   active: boolean;
   startsAt: Date | null;
   endsAt: Date | null;
@@ -131,11 +138,16 @@ export type QuizRow = {
 export async function listQuizzes(): Promise<QuizRow[]> {
   const quizzes = await db.quiz.findMany({
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    include: { questions: { select: { points: true } }, _count: { select: { attempts: true } } },
+    include: {
+      category: { select: { name: true } },
+      questions: { select: { points: true } },
+      _count: { select: { attempts: true } },
+    },
   });
   return quizzes.map((quiz) => ({
     id: quiz.id,
     title: quiz.title,
+    category: quiz.category?.name ?? null,
     active: quiz.active,
     startsAt: quiz.startsAt,
     endsAt: quiz.endsAt,
@@ -150,6 +162,8 @@ export type QuizDetail = {
   id: number;
   title: string;
   description: string | null;
+  categoryId: number | null;
+  glyph: string | null;
   active: boolean;
   startsAt: Date | null;
   endsAt: Date | null;
@@ -178,6 +192,8 @@ async function getQuizWith(client: Pick<typeof db, "quiz">, id: number): Promise
     id: quiz.id,
     title: quiz.title,
     description: quiz.description,
+    categoryId: quiz.categoryId,
+    glyph: quiz.glyph,
     active: quiz.active,
     startsAt: quiz.startsAt,
     endsAt: quiz.endsAt,
@@ -214,11 +230,27 @@ function questionCreates(
   }));
 }
 
+/** The quiz categories for the form's select, in their /quiz order. */
+export function listQuizCategoryOptions(): Promise<{ id: number; name: string; active: boolean }[]> {
+  return db.quizCategory.findMany({
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    select: { id: true, name: true, active: true },
+  });
+}
+
+/** The category id if it still exists (it may have been deleted while the form was open), else null. */
+async function existingCategory(tx: Prisma.TransactionClient, id: number | null): Promise<number | null> {
+  if (id === null) return null;
+  return (await tx.quizCategory.findUnique({ where: { id }, select: { id: true } }))?.id ?? null;
+}
+
 /** What the audit log records about a quiz (not every question's text). */
 function auditView(input: QuizInput | QuizDetail) {
   return {
     title: input.title,
     description: input.description,
+    categoryId: input.categoryId,
+    glyph: input.glyph,
     active: input.active,
     startsAt: input.startsAt?.toISOString() ?? null,
     endsAt: input.endsAt?.toISOString() ?? null,
@@ -233,10 +265,13 @@ export async function createQuiz(
   actorId: string,
 ): Promise<number> {
   return db.$transaction(async (tx) => {
+    input = { ...input, categoryId: await existingCategory(tx, input.categoryId) };
     const quiz = await tx.quiz.create({
       data: {
         title: input.title,
         description: input.description,
+        categoryId: input.categoryId,
+        glyph: input.glyph,
         active: input.active,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
@@ -275,6 +310,7 @@ export async function updateQuiz(
     await tx.$queryRaw`SELECT id FROM Quiz WHERE id = ${id} FOR UPDATE`;
     const before = await getQuizWith(tx, id);
     if (!before) return false;
+    input = { ...input, categoryId: await existingCategory(tx, input.categoryId) };
     const questionsChanged = canonical(before.questions) !== canonical(input.questions);
     if (questionsChanged && before.attempts > 0) return "locked" as const;
     const changes = diffFields(auditView(before), auditView(input));
@@ -287,6 +323,8 @@ export async function updateQuiz(
       data: {
         title: input.title,
         description: input.description,
+        categoryId: input.categoryId,
+        glyph: input.glyph,
         active: input.active,
         startsAt: input.startsAt,
         endsAt: input.endsAt,

@@ -172,6 +172,25 @@ describe("quiz storage", () => {
     expect(await db.quizQuestion.findMany({ select: { id: true } })).toEqual(before);
   });
 
+  it("files a quiz under a category with its box mark, and drops a category deleted meanwhile", async () => {
+    const category = await db.quizCategory.create({ data: { key: "doshas", name: "Doshas" } });
+    const id = await createQuiz(form({ categoryId: String(category.id), glyph: " वा " }), adminId);
+    expect(await getQuiz(id)).toMatchObject({ categoryId: category.id, glyph: "वा" });
+    expect((await listQuizzes())[0]).toMatchObject({ id, category: "Doshas" });
+    expect(await updateQuiz(id, form({ categoryId: "", glyph: "" }), adminId)).toBe(true);
+    expect(await getQuiz(id)).toMatchObject({ categoryId: null, glyph: null });
+    await db.quizCategory.delete({ where: { id: category.id } });
+    expect(await updateQuiz(id, form({ categoryId: String(category.id) }), adminId)).toBe(true);
+    expect((await getQuiz(id))?.categoryId).toBeNull();
+  });
+
+  it("refuses a category that isn't a number and a box mark over 8 characters", () => {
+    const parsed = quizInputSchema.safeParse({ ...form(), questions: JSON.stringify(questions), categoryId: "x", glyph: "123456789" });
+    expect(parsed.success).toBe(false);
+    if (parsed.success) return;
+    expect(Object.keys(fieldErrorsOf(parsed.error))).toEqual(expect.arrayContaining(["categoryId", "glyph"]));
+  });
+
   it("deletes a quiz with its questions and options", async () => {
     const id = await createQuiz(form(), adminId);
     expect(await deleteQuiz(id, adminId)).toBe(true);

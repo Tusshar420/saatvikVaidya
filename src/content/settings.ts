@@ -34,6 +34,9 @@ export type SettingValues = {
    * Super Coins rules (P1.7). Editable in /admin/coins.
    * - `earnPerThousandRupees`: coins earned per ₹1,000 of items (after
    *   coins used, without delivery).
+   * - `minOrderRupees`: an order earns coins only when its items total
+   *   (before coins used, without delivery) is at least this much; 0 for
+   *   every order.
    * - `earnAfterDelivery`: earn when delivered; otherwise when paid.
    * - `interestsReward` / `detailsReward`: profile-completion rewards.
    * - `quizReward`: coins for a qualifying Quiz & Win score (P2.3), once
@@ -46,6 +49,7 @@ export type SettingValues = {
   "coins.rules": {
     enabled: boolean;
     earnPerThousandRupees: number;
+    minOrderRupees: number;
     earnAfterDelivery: boolean;
     interestsReward: number;
     detailsReward: number;
@@ -120,10 +124,12 @@ export const settingDefaults: SettingValues = {
   },
   // From the mockup: 1,000 coins on a ₹10,000 order, 10 coins = ₹1, valid 60
   // months, 250 + 750 for completing the profile. The redeem caps are
-  // placeholders until the client confirms them.
+  // placeholders until the client confirms them. Orders under ₹10,000 earn
+  // no coins (client, 1 November 2026).
   "coins.rules": {
     enabled: true,
     earnPerThousandRupees: 100,
+    minOrderRupees: 10_000,
     earnAfterDelivery: true,
     interestsReward: 250,
     detailsReward: 750,

@@ -13,6 +13,7 @@ import {
   FormActions,
   FormError,
   FormSection,
+  SelectField,
   TextAreaField,
   TextField,
   useFormValues,
@@ -48,6 +49,8 @@ export type QuizBuilderProps = {
   initial: FieldValues;
   initialQuestions: QuestionDraft[];
   mode: "new" | "edit";
+  /** The quiz categories to choose from, in their /quiz order. */
+  categories: { id: number; name: string; active: boolean }[];
   /** People who have played: the questions are read-only. */
   lockedAttempts?: number;
 };
@@ -62,6 +65,7 @@ export function QuizBuilder({
   initial,
   initialQuestions,
   mode,
+  categories,
   lockedAttempts = 0,
 }: QuizBuilderProps) {
   const locked = lockedAttempts > 0;
@@ -111,6 +115,20 @@ export function QuizBuilder({
           optional
           className="sm:col-span-2"
         />
+        <SelectField
+          name="categoryId"
+          label={form.category}
+          help={form.categoryHelp}
+          values={values}
+          options={[
+            { value: "", label: form.categoryNone },
+            ...categories.map((category) => ({
+              value: String(category.id),
+              label: category.active ? category.name : form.categoryHidden(category.name),
+            })),
+          ]}
+        />
+        <TextField name="glyph" label={form.glyph} help={form.glyphHelp} values={values} maxLength={8} optional />
         <CheckboxField
           name="active"
           label={form.active}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { QuizBuilder } from "@/components/admin/quiz-builder";
 import { admin as copy } from "@/content/admin";
+import { listQuizCategoryOptions } from "@/server/admin/quiz";
 import { requireAdmin } from "@/server/auth/session";
 import { createQuizAction } from "../../actions";
 
@@ -9,6 +10,7 @@ export const metadata: Metadata = { title: copy.quiz.newTitle };
 
 export default async function NewQuizPage() {
   await requireAdmin("content");
+  const categories = await listQuizCategoryOptions();
   return (
     <>
       <AdminPageHeader
@@ -21,6 +23,7 @@ export default async function NewQuizPage() {
         action={createQuizAction}
         initial={{ active: false, passPercent: 60 }}
         initialQuestions={[]}
+        categories={categories}
       />
     </>
   );

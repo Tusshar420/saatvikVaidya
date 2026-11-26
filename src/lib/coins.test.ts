@@ -3,6 +3,7 @@ import { settingDefaults } from "@/content/settings";
 import { allocateDiscount, computeTotals } from "@/server/checkout/totals";
 import {
   coinsEarned,
+  exampleOrderRupees,
   coinValuePaise,
   expiryFrom,
   maxRedemption,
@@ -66,9 +67,21 @@ describe("summariseCoins", () => {
 describe("earning and value", () => {
   it("earns per ₹1,000 of items, rounded down", () => {
     expect(coinsEarned(1_000_000, rules)).toBe(1_000); // ₹10,000 → 1,000 coins
-    expect(coinsEarned(64_000, rules)).toBe(64);
-    expect(coinsEarned(999, rules)).toBe(0);
+    expect(coinsEarned(1_550_099, rules)).toBe(1_550);
+    const anyOrder = { ...rules, minOrderRupees: 0 };
+    expect(coinsEarned(64_000, anyOrder)).toBe(64);
+    expect(coinsEarned(999, anyOrder)).toBe(0);
     expect(coinsEarned(1_000_000, { ...rules, enabled: false })).toBe(0);
+  });
+
+  it("earns nothing on an order under ₹10,000", () => {
+    expect(coinsEarned(999_999, rules)).toBe(0);
+    expect(coinsEarned(64_000, rules)).toBe(0);
+    // The minimum is on the order before coins; coins are earned on the rest.
+    expect(coinsEarned(900_000, rules, 1_000_000)).toBe(900);
+    expect(coinsEarned(1_000_000, rules, 999_999)).toBe(0);
+    expect(exampleOrderRupees(rules)).toBe(10_000);
+    expect(exampleOrderRupees({ minOrderRupees: 25_000 })).toBe(25_000);
   });
 
   it("values coins at the admin's rate", () => {

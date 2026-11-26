@@ -104,7 +104,11 @@ describe("POST /api/account/documents", () => {
 
   it("saves a professional's PDF and reports the set complete", async () => {
     session.user = { id: "doc", role: "user" };
-    const response = await POST(uploadRequest(certificate()));
+    const first = await POST(uploadRequest(certificate()));
+    expect(await first.json()).toEqual({ ok: true, complete: false });
+    const response = await POST(
+      uploadRequest({ ...certificate(), documentType: "degree_certificate" }),
+    );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, complete: true });
     const user = await db.user.findUniqueOrThrow({ where: { id: "doc" } });

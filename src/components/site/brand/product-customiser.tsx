@@ -20,7 +20,8 @@ const swatches: Record<BrandThemeKey, [string, string]> = {
 };
 
 /**
- * A product's page: the big pack that follows the chosen label theme, one
+ * A product's page: the big pack that follows the chosen label theme (the
+ * admin's photo for that theme when there is one, else the drawn pack), one
  * small pack per theme, "Select variant" (a radio group, so it also works
  * with the keyboard) and the button that puts the product in the Launch cart
  * with that theme and goes on to the quantity step. `action` is a server
@@ -31,6 +32,7 @@ export function ProductCustomiser({
   name,
   detail,
   initialTheme,
+  photos = {},
   action,
   signInHref,
   children,
@@ -40,6 +42,8 @@ export function ProductCustomiser({
   /** "Tablet • 60 tabs". */
   detail: string;
   initialTheme: BrandThemeKey;
+  /** The admin's photo per label theme; themes left out show the drawn pack. */
+  photos?: Partial<Record<BrandThemeKey, { src: string; alt: string }>>;
   action: ((formData: FormData) => Promise<void>) | null;
   signInHref: string;
   /** The product's facts, drawn between the pack and the variants. */
@@ -50,7 +54,19 @@ export function ProductCustomiser({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start lg:gap-10">
       <div className="min-w-0">
         <div className="grid place-items-center rounded-2xl bg-brand-soft p-6 sm:p-10">
-          <ThemedPack theme={theme} name={name} detail={detail} size="lg" />
+          {photos[theme] ? (
+            // Plain <img>: our own image route, already sized by the admin.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={theme}
+              src={photos[theme].src}
+              alt={photos[theme].alt}
+              decoding="async"
+              className="aspect-square w-full max-w-[360px] rounded-xl object-contain"
+            />
+          ) : (
+            <ThemedPack theme={theme} name={name} detail={detail} size="lg" />
+          )}
         </div>
         <ul aria-hidden className="mt-3 grid grid-cols-4 gap-2">
           {brandThemes.map((option) => (
@@ -61,7 +77,18 @@ export function ProductCustomiser({
                 option.key === theme ? "border-brand" : "border-line",
               )}
             >
-              <ThemedPack theme={option.key} name={name} detail={detail} size="sm" />
+              {photos[option.key] ? (
+                // Decorative copy of the big picture (the list is aria-hidden).
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photos[option.key]?.src}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-square w-full max-w-17 object-contain"
+                />
+              ) : (
+                <ThemedPack theme={option.key} name={name} detail={detail} size="sm" />
+              )}
             </li>
           ))}
         </ul>

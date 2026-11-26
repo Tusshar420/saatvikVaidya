@@ -85,7 +85,7 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
               <h2 id="order-tracking" className="text-h3 text-ink">
                 {text.tracking}
               </h2>
-              <TrackingTimeline tracking={tracking} headingLevel="h3" className="mt-4" />
+              <TrackingTimeline tracking={tracking} className="mt-4" />
               {unpaid && (
                 <Link href={checkoutPathFor(order.id, order.status)} className={buttonClasses({ className: "mt-5 max-sm:w-full" })}>
                   {text.payNow}

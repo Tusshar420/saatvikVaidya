@@ -2,7 +2,9 @@ import "server-only";
 import { z } from "zod";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
+import { sortField, type Sort } from "@/lib/admin-sort";
 import { MAX_BRAND_MIN_QTY, MAX_BRAND_TIERS, MAX_BRAND_UNITS, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
+import { brandThemeKeys, type BrandThemeKey } from "@/lib/brand-theme";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_BULK_TIERS,
@@ -288,11 +290,31 @@ export function parseProductForm(
 
 const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
 
+export const PRODUCT_SORTS = ["order", "name", "brand", "price", "added"] as const;
+export const PRODUCT_SORT_DEFAULT: Sort<(typeof PRODUCT_SORTS)[number]> = { key: "order", dir: "asc" };
+
 export const productFiltersSchema = z.object({
   q: z.preprocess(first, z.string().trim().max(100).optional()).catch(undefined),
   status: z.preprocess(first, z.enum(["active", "hidden"]).optional()).catch(undefined),
   page: z.preprocess(first, z.coerce.number().int().min(1).max(10_000)).catch(1),
+  sort: sortField(PRODUCT_SORTS, PRODUCT_SORT_DEFAULT),
 });
+
+function productsOrderBy(sort: Sort<(typeof PRODUCT_SORTS)[number]>): Prisma.ProductOrderByWithRelationInput[] {
+  const tail: Prisma.ProductOrderByWithRelationInput[] = [{ sortOrder: "asc" }, { id: "asc" }];
+  switch (sort.key) {
+    case "name":
+      return [{ name: sort.dir }, ...tail];
+    case "brand":
+      return [{ brand: { name: sort.dir } }, { name: "asc" }, ...tail];
+    case "price":
+      return [{ mrpPaise: sort.dir }, ...tail];
+    case "added":
+      return [{ createdAt: sort.dir }, ...tail];
+    default:
+      return [{ sortOrder: sort.dir }, { id: sort.dir }];
+  }
+}
 
 export type ProductFilters = z.infer<typeof productFiltersSchema>;
 
@@ -308,7 +330,7 @@ export async function listAdminProducts(filters: ProductFilters) {
   const page = Math.min(filters.page, pageCount);
   const products = await db.product.findMany({
     where,
-    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    orderBy: productsOrderBy(filters.sort),
     skip: (page - 1) * ADMIN_PRODUCTS_PAGE_SIZE,
     take: ADMIN_PRODUCTS_PAGE_SIZE,
     select: {
@@ -323,6 +345,7 @@ export async function listAdminProducts(filters: ProductFilters) {
       brandEligible: true,
       brand: { select: { name: true } },
       images: {
+        where: { variant: null },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         take: 1,
         select: { id: true },
@@ -590,6 +613,15 @@ export async function updateProduct(
 
 export const imageAltSchema = requiredText(200, imageErrors.alt);
 
+/**
+ * Which picture a photo is: "" (or missing) for a general photo, or a label
+ * theme key for that Build Your Brand variant's photo.
+ */
+export const imageVariantSchema = z
+  .union([z.literal(""), z.enum(brandThemeKeys)])
+  .nullish()
+  .transform((value): BrandThemeKey | null => value || null);
+
 export type ImageUploadError =
   | "notFound"
   | "tooMany"
@@ -612,6 +644,8 @@ export async function addProductImage(options: {
   productId: number;
   bytes: Uint8Array;
   alt: string;
+  /** A label theme for a Build Your Brand variant photo; null or missing: general. */
+  variant?: BrandThemeKey | null;
   actorId: string;
 }): Promise<{ ok: true; id: number } | { ok: false; error: ImageUploadError }> {
   const checked = checkUpload(options.bytes, productImageUpload);
@@ -644,6 +678,7 @@ export async function addProductImage(options: {
           contentType: checked.contentType,
           sizeBytes: options.bytes.byteLength,
           alt: options.alt,
+          variant: options.variant ?? null,
           sortOrder: last + 10,
         },
         select: { id: true },
@@ -653,7 +688,11 @@ export async function addProductImage(options: {
         action: "product.image.add",
         resource: "Product",
         resourceId: options.productId,
-        changes: createdFields({ imageId: image.id, alt: options.alt }),
+        changes: createdFields({
+          imageId: image.id,
+          alt: options.alt,
+          variant: options.variant ?? null,
+        }),
       });
       return { ok: true as const, id: image.id };
     });
@@ -729,24 +768,31 @@ export async function moveProductImage(
   });
 }
 
-export async function updateProductImageAlt(
+/** Changes a photo's description and which variant (if any) it shows. */
+export async function updateProductImageDetails(
   imageId: number,
-  alt: string,
+  details: { alt: string; variant: BrandThemeKey | null },
   actorId: string,
 ): Promise<{ productId: number } | null> {
   return db.$transaction(async (tx) => {
     const image = await tx.productImage.findUnique({ where: { id: imageId } });
     if (!image) return null;
-    if (image.alt === alt) return { productId: image.productId };
-    await tx.productImage.update({ where: { id: imageId }, data: { alt } });
+    const changes = diffFields(
+      { alt: image.alt, variant: image.variant },
+      { alt: details.alt, variant: details.variant },
+    );
+    if (Object.keys(changes).length === 0) return { productId: image.productId };
+    await tx.productImage.update({
+      where: { id: imageId },
+      data: { alt: details.alt, variant: details.variant },
+    });
     await logAdminAction(tx, {
       actorId,
       action: "product.image.update",
       resource: "Product",
       resourceId: image.productId,
-      changes: { imageId: { from: imageId, to: imageId }, alt: { from: image.alt, to: alt } },
+      changes: { imageId: { from: imageId, to: imageId }, ...changes },
     });
     return { productId: image.productId };
   });
 }
-

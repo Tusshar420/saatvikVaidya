@@ -21,7 +21,7 @@ import {
   sendProofSent,
   sendStageUpdate,
 } from "@/server/notify/brand";
-import { getShippingProvider, simulatedEvent } from "@/server/shipping";
+import { getShippingProvider, stepEvent } from "@/server/shipping";
 import { deleteFilesQuietly, getStorage, newFileKey } from "@/server/storage";
 import { checkUpload, cleanFileName } from "@/server/storage/files";
 
@@ -375,7 +375,7 @@ export async function advanceProduction(options: {
             events: {
               create: (["created", "packed", "shipped"] as const).map((status) => ({
                 status,
-                location: simulatedEvent(booked.awb, status, order.shipCity).location,
+                location: stepEvent(provider, booked.awb, status, order.shipCity).location ?? null,
                 actorId,
               })),
             },
@@ -393,7 +393,7 @@ export async function advanceProduction(options: {
             data: (["in_transit", "out_for_delivery", "delivered"] as const).map((status) => ({
               shipmentId: shipment.id,
               status,
-              location: simulatedEvent(shipment.awb, status, order.shipCity).location,
+              location: stepEvent(provider, shipment.awb, status, order.shipCity).location ?? null,
               actorId,
             })),
           });

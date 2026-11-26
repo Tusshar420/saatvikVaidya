@@ -5,6 +5,7 @@ import { adminSettings as copy } from "@/content/admin-site";
 import { formatDateTime, paiseToRupeeInput } from "@/lib/format";
 import { readSettingHistory, readSettingsForAdmin } from "@/server/admin/settings";
 import { requireAdmin } from "@/server/auth/session";
+import { isComingSoon } from "@/server/env";
 
 export const metadata: Metadata = { title: copy.metaTitle };
 
@@ -48,6 +49,7 @@ export default async function AdminSettingsPage() {
           maintenance: s.maintenance.enabled,
           maintenanceMessage: s.maintenance.message,
         }}
+        comingSoon={isComingSoon()}
       />
       <section aria-labelledby="settings-history" className="mt-10 max-w-4xl">
         <h2 id="settings-history" className="text-h3 text-ink">

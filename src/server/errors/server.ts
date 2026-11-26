@@ -7,6 +7,9 @@ type ErrorContext = { routePath: string; routeType: string; renderSource?: strin
 
 // Next's own control-flow "errors" (redirects, notFound) aren't bugs.
 const controlFlow = /^NEXT_(REDIRECT|NOT_FOUND|HTTP_ERROR_FALLBACK)/;
+// The browser dropped the request while the page was still streaming (the
+// visitor clicked away, or a prefetch was cancelled). Nothing broke.
+const clientWentAway = "The destination stream closed early.";
 
 function header(headers: RequestInfo["headers"], name: string): string | null {
   const value = headers[name];
@@ -31,6 +34,7 @@ export async function recordServerError(error: unknown, request: RequestInfo, co
       typeof error === "object" && error !== null && "digest" in error ? String(error.digest) : undefined;
     if (digest && controlFlow.test(digest)) return;
     const err = error instanceof Error ? error : new Error(typeof error === "string" ? error : "Non-Error thrown");
+    if (err.message === clientWentAway) return;
     const host = header(request.headers, "host");
     await recordError({
       source: "server",

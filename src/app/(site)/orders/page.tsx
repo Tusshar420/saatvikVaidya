@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Package } from "lucide-react";
-import { OrderStatusBadge } from "@/components/site/orders/order-status-badge";
+import { ChevronLeft, ChevronRight, ClipboardList, Package } from "lucide-react";
+import { ProductVisual } from "@/components/site/catalogue/product-visual";
+import { BuyAgainButton } from "@/components/site/orders/buy-again-button";
+import { GuestOrders } from "@/components/site/orders/guest-orders";
 import { Eyebrow } from "@/components/ui/badge";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HScroller } from "@/components/ui/hscroller";
+import { assistedOrders } from "@/content/assisted-orders";
 import { orders as copy } from "@/content/orders";
+import { preparedOrderPath } from "@/lib/assisted-orders";
+import { cn } from "@/lib/cn";
 import { formatDate, formatPaise } from "@/lib/format";
-import { checkoutPathFor } from "@/lib/orders";
-import { GuestOrders } from "@/components/site/orders/guest-orders";
+import { ORDER_RANGES, ordersHref, parseOrderRange, type OrderRange } from "@/lib/order-ranges";
+import { listOpenPreparedOrders, type OpenPreparedOrder } from "@/server/assisted-orders/assisted-orders";
 import { getSession } from "@/server/auth/session";
-import { listOrdersForUser } from "@/server/orders/history";
+import { getPricingViewer } from "@/server/pricing";
+import { listBuyAgainForUser, listOrdersForUser, type BuyAgainItem, type OrderListItem } from "@/server/orders/history";
 
 const text = copy.list;
 
@@ -25,23 +32,33 @@ function pageOf(value: string | string[] | undefined): number {
   return Number.isInteger(page) && page > 0 && page <= 10_000 ? page : 1;
 }
 
-/** The signed-in buyer's orders, newest first. */
+/**
+ * The signed-in buyer's orders, laid out like a big store's: products to
+ * buy again on top, then a compact purchase history (name, status and date;
+ * the order page has the rest), filtered by period.
+ */
 export default async function OrdersPage({ searchParams }: PageProps<"/orders">) {
   const session = await getSession();
   if (!session) return <GuestOrders />;
   const { user } = session;
-  const { orders, page, pageCount } = await listOrdersForUser(user.id, pageOf((await searchParams).page));
-  const pageHref = (target: number) => (target > 1 ? `/orders?page=${target}` : "/orders");
+  const params = await searchParams;
+  const range = parseOrderRange(params.range);
+  const [{ orders, page, pageCount, total }, buyAgain, prepared] = await Promise.all([
+    listOrdersForUser(user.id, pageOf(params.page), range),
+    listBuyAgainForUser(user.id),
+    getPricingViewer().then((viewer) => listOpenPreparedOrders(user.id, viewer)),
+  ]);
+  const noOrdersAtAll = total === 0 && range === "all";
 
   return (
-    <div className="shell section-y">
+    <div className="shell py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
         <Eyebrow>{text.eyebrow}</Eyebrow>
-        <h1 className="mt-2 text-h2 text-ink">
-          {text.title} <em className="block text-orange-title not-italic">{text.titleEmphasis}</em>
-        </h1>
+        <h1 className="mt-2 text-h3 text-ink">{text.title}</h1>
 
-        {orders.length === 0 ? (
+        {prepared.length > 0 && <PreparedForYou orders={prepared} />}
+
+        {noOrdersAtAll ? (
           <EmptyState
             as="h2"
             icon={<Package aria-hidden />}
@@ -56,85 +73,204 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
             }
           />
         ) : (
-          <ul aria-label={text.listLabel} className="mt-8 flex flex-col gap-4">
-            {orders.map((order) => {
-              const unpaid = order.status === "pending_payment" || order.status === "payment_failed";
-              return (
-                <li
-                  key={order.id}
-                  className="rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-                    <div className="min-w-0">
-                      <h2 className="font-mono text-lg font-extrabold text-ink">{order.number}</h2>
-                      <p className="text-small text-muted">
-                        {text.placedOn(formatDate(order.createdAt))} · {text.items(order.itemCount)}
-                      </p>
-                    </div>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                  <p className="mt-3 text-sm break-words text-ink">
-                    {order.names.join(", ")}
-                    {order.itemCount > order.names.length ? "…" : ""}
-                  </p>
-                  {order.shipmentStatus &&
-                    order.status !== "cancelled" &&
-                    order.status !== "delivered" && (
-                      <p className="mt-1 text-small font-semibold text-brand">
-                        {copy.shipmentStatus[order.shipmentStatus]}
-                      </p>
-                    )}
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                    <p className="text-lg font-extrabold text-ink">{formatPaise(order.totalPaise)}</p>
-                    <div className="flex flex-wrap gap-2 max-sm:w-full max-sm:*:flex-1">
-                      {unpaid && (
-                        <Link
-                          href={checkoutPathFor(order.id, order.status)}
-                          className={buttonClasses({ size: "sm" })}
-                        >
-                          {text.payNow}
-                        </Link>
-                      )}
-                      <Link
-                        href={`/orders/${order.id}`}
-                        aria-label={text.viewLabel(order.number)}
-                        className={buttonClasses({ variant: "secondary", size: "sm" })}
-                      >
-                        {text.view}
-                      </Link>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+          <>
+            {buyAgain.length > 0 && <BuyAgain items={buyAgain} />}
 
-        {pageCount > 1 && (
-          <nav
-            aria-label={text.page(page, pageCount)}
-            className="mt-6 flex items-center justify-between gap-3"
-          >
-            {page > 1 ? (
-              <Link href={pageHref(page - 1)} className={buttonClasses({ variant: "secondary", size: "sm" })}>
-                <ChevronLeft aria-hidden className="size-4" />
-                {text.previous}
-              </Link>
-            ) : (
-              <span />
-            )}
-            <span className="text-small text-muted">{text.page(page, pageCount)}</span>
-            {page < pageCount ? (
-              <Link href={pageHref(page + 1)} className={buttonClasses({ variant: "secondary", size: "sm" })}>
-                {text.next}
-                <ChevronRight aria-hidden className="size-4" />
-              </Link>
-            ) : (
-              <span />
-            )}
-          </nav>
+            <section aria-labelledby="order-history-title" className="mt-8">
+              <h2 id="order-history-title" className="font-heading text-h4 text-ink">
+                {text.historyTitle}
+              </h2>
+              <RangeFilter current={range} />
+
+              {orders.length === 0 ? (
+                <EmptyState
+                  as="h3"
+                  icon={<Package aria-hidden />}
+                  title={text.rangeEmptyTitle}
+                  description={text.rangeEmptyLine}
+                  className="mt-4"
+                  action={
+                    <Link href="/orders" className={buttonClasses({ variant: "secondary" })}>
+                      {text.showAll}
+                    </Link>
+                  }
+                />
+              ) : (
+                <ul aria-label={text.listLabel} className="mt-4 flex flex-col gap-2.5">
+                  {orders.map((order) => (
+                    <OrderRow key={order.id} order={order} />
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {pageCount > 1 && <Pagination range={range} page={page} pageCount={pageCount} />}
+          </>
         )}
       </div>
     </div>
+  );
+}
+
+/** Products from past orders, each with a one-tap "Add to cart". */
+function BuyAgain({ items }: { items: BuyAgainItem[] }) {
+  const buy = copy.buyAgain;
+  return (
+    <section aria-labelledby="buy-again-title" className="mt-6">
+      <h2 id="buy-again-title" className="font-heading text-h4 text-ink">
+        {buy.title}
+      </h2>
+      <p className="text-small text-muted">{buy.lead}</p>
+      <HScroller label={buy.label} className="mt-3" itemClassName="w-[42vw] max-w-44 sm:w-44">
+        {items.map((item) => (
+          <article
+            key={item.productId}
+            className="flex h-full flex-col gap-2 rounded-lg border border-line bg-surface p-2.5 shadow-card"
+          >
+            <Link
+              href={`/products/${item.slug}`}
+              className="group flex flex-1 flex-col gap-2 focus-visible:outline-offset-2"
+            >
+              <span className="block aspect-square overflow-hidden rounded-md bg-cream">
+                <ProductVisual image={item.image} glyph={item.glyph} className="text-4xl" />
+              </span>
+              <span className="line-clamp-2 text-small font-bold text-ink group-hover:text-brand group-hover:underline">
+                {item.name}
+              </span>
+              <span className="mt-auto text-[11px] text-muted">{buy.packSize(item.packSize)}</span>
+            </Link>
+            <BuyAgainButton
+              productId={item.productId}
+              name={item.name}
+              moq={item.moq}
+              outOfStock={item.outOfStock}
+            />
+          </article>
+        ))}
+      </HScroller>
+    </section>
+  );
+}
+
+/** "All orders · This month · Last 3 months · This year · Last year", as links. */
+function RangeFilter({ current }: { current: OrderRange }) {
+  return (
+    <nav aria-label={text.rangesLabel} className="mt-3">
+      <ul className="-mx-1 flex scrollbar-none gap-2 overflow-x-auto px-1 py-1">
+        {ORDER_RANGES.map((range) => {
+          const active = range === current;
+          return (
+            <li key={range} className="shrink-0">
+              <Link
+                href={ordersHref(range)}
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "inline-flex min-h-10 items-center rounded-md border px-3.5 text-small font-bold whitespace-nowrap transition",
+                  active
+                    ? "border-orange bg-orange-soft font-extrabold text-orange-ink"
+                    : "border-line bg-surface text-ink hover:border-brand/60",
+                )}
+              >
+                {text.ranges[range]}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/** One order as a compact row: the whole row opens the order page. */
+function OrderRow({ order }: { order: OrderListItem }) {
+  const first = order.names[0] ?? order.number;
+  const needsPayment = order.status === "pending_payment" || order.status === "payment_failed";
+  return (
+    <li>
+      <Link
+        href={`/orders/${order.id}`}
+        className="group flex items-center gap-3 rounded-lg border border-line bg-surface p-2.5 shadow-card transition hover:border-brand/60 sm:gap-4 sm:p-3"
+      >
+        <span className="size-16 shrink-0 overflow-hidden rounded-md bg-cream sm:size-18">
+          <ProductVisual image={order.image} glyph={order.glyph} className="text-2xl" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="sr-only">{text.orderLabel(order.number)}</span>
+          <span className="truncate font-heading text-base font-extrabold text-ink group-hover:text-brand">
+            {text.name(first, order.itemCount - 1)}
+          </span>
+          <span className="text-small text-muted">
+            <span className={cn("font-bold", needsPayment ? "text-orange-ink" : "text-ink")}>
+              {copy.status[order.status]}
+            </span>
+            {" · "}
+            {text.placedOn(formatDate(order.createdAt))}
+          </span>
+        </span>
+        <ChevronRight aria-hidden className="size-5 shrink-0 text-muted group-hover:text-brand" />
+      </Link>
+    </li>
+  );
+}
+
+function Pagination({ range, page, pageCount }: { range: OrderRange; page: number; pageCount: number }) {
+  return (
+    <nav aria-label={text.page(page, pageCount)} className="mt-6 flex items-center justify-between gap-3">
+      {page > 1 ? (
+        <Link href={ordersHref(range, page - 1)} className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          <ChevronLeft aria-hidden className="size-4" />
+          {text.previous}
+        </Link>
+      ) : (
+        <span />
+      )}
+      <span className="text-small text-muted">{text.page(page, pageCount)}</span>
+      {page < pageCount ? (
+        <Link href={ordersHref(range, page + 1)} className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          {text.next}
+          <ChevronRight aria-hidden className="size-4" />
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}
+
+/** Orders our staff prepared for this customer, waiting to be placed. */
+function PreparedForYou({ orders }: { orders: OpenPreparedOrder[] }) {
+  const list = assistedOrders.customer.list;
+  return (
+    <section
+      aria-labelledby="prepared-title"
+      className="mt-6 rounded-xl border border-orange/40 bg-orange-soft/50 p-4 sm:p-5"
+    >
+      <h2 id="prepared-title" className="flex items-center gap-2 font-heading text-h4 text-ink">
+        <ClipboardList aria-hidden className="size-5 shrink-0 text-orange-ink" />
+        {list.title}
+      </h2>
+      <p className="mt-1 text-sm text-muted">{list.line}</p>
+      <ul aria-label={list.label} className="mt-3 flex flex-col gap-2">
+        {orders.map((order) => (
+          <li
+            key={order.id}
+            className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <span className="text-sm">
+              <span className="block font-bold text-ink">{list.summary(order.itemCount, formatPaise(order.totalPaise))}</span>
+              <span className="block text-small text-muted">{list.preparedOn(formatDate(order.createdAt))}</span>
+            </span>
+            <Link
+              href={preparedOrderPath(order.id)}
+              aria-label={list.openLabel(formatDate(order.createdAt))}
+              className={buttonClasses({ size: "sm", className: "max-sm:w-full" })}
+            >
+              {list.open}
+              <ButtonArrow />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -122,15 +122,6 @@ export const portalPages = {
 
   why: {
     metaTitle: "Why Saatvik",
-    hero: {
-      kicker: "Why Saatvik",
-      title: "More than a marketplace.",
-      description:
-        "Saatvik Vaidya brings learning, doctor discussions, Ayurveda products and business opportunities together, helping the Ayurveda community learn, connect, build and grow.",
-      sideTitle: "One professional ecosystem",
-      sideText:
-        "A simple platform designed around the everyday needs of Ayurveda doctors, learners and businesses.",
-    },
     purposeKicker: "Our purpose",
     purposeTitle: "Empowering Ayurveda professionals",
     purposeTitleLine2: "at every stage of growth.",

@@ -8,10 +8,11 @@ import {
   createProduct,
   deleteProductImage,
   imageAltSchema,
+  imageVariantSchema,
   moveProductImage,
   parseProductForm,
   updateProduct,
-  updateProductImageAlt,
+  updateProductImageDetails,
 } from "@/server/admin/catalogue";
 import { formValues, intId, type FormState } from "@/server/admin/form";
 import { requireAdmin } from "@/server/auth/session";
@@ -26,6 +27,7 @@ const editPath = (id: number) => `/admin/catalogue/${id}/edit`;
 function afterChange() {
   revalidatePath("/admin", "layout");
   revalidatePath("/products", "layout");
+  revalidatePath("/launch", "layout");
 }
 
 export async function createProductAction(
@@ -92,7 +94,7 @@ export async function moveProductImageAction(formData: FormData): Promise<void> 
   afterChange();
 }
 
-export async function updateProductImageAltAction(
+export async function updateProductImageAction(
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -100,14 +102,24 @@ export async function updateProductImageAltAction(
   const id = intId.safeParse(formData.get("id"));
   if (!id.success) notFound();
   const alt = imageAltSchema.safeParse(formData.get("alt"));
-  if (!alt.success) {
+  const variant = imageVariantSchema.safeParse(formData.get("variant"));
+  if (!alt.success || !variant.success) {
     return {
       status: "error",
-      fieldErrors: { alt: copy.catalogue.images.errors.alt },
+      fieldErrors: {
+        ...(alt.success ? {} : { alt: copy.catalogue.images.errors.alt }),
+        ...(variant.success
+          ? {}
+          : { variant: copy.catalogue.images.errors.variant }),
+      },
       values: formValues(formData),
     };
   }
-  const result = await updateProductImageAlt(id.data, alt.data, user.id);
+  const result = await updateProductImageDetails(
+    id.data,
+    { alt: alt.data, variant: variant.data },
+    user.id,
+  );
   if (!result) return { status: "error", message: copy.common.notFound };
   afterChange();
   return { status: "success", message: copy.common.notices.saved };

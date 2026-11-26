@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Field, inputClasses, useFieldIds } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { admin as copy } from "@/content/admin";
+import { brand as brandCopy } from "@/content/brand";
+import { brandThemes, type BrandThemeKey } from "@/lib/brand-theme";
 import { MAX_PRODUCT_IMAGES, productImageUpload } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import { formatFileSize } from "@/lib/verification";
@@ -18,24 +20,39 @@ import { ConfirmDelete } from "./confirm-delete";
 const text = copy.catalogue.images;
 const maxSize = formatFileSize(productImageUpload.maxBytes);
 
-export type ProductImageItem = { id: number; src: string; alt: string };
+const themeNames = brandCopy.customise.themes;
+
+export type ProductImageItem = {
+  id: number;
+  src: string;
+  alt: string;
+  /** The Build Your Brand variant this photo is for; null: a general photo. */
+  variant: BrandThemeKey | null;
+};
 
 export type ProductImagesProps = {
   productId: number;
   images: ProductImageItem[];
+  /** Offer "Shows for" (a Build Your Brand product, or photos already marked). */
+  variants: boolean;
   moveAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
   altAction: (state: FormState, formData: FormData) => Promise<FormState>;
 };
 
-/** A product's photos: upload, put in order, describe and delete. */
+/**
+ * A product's photos: upload, put in order, describe, mark as a Build Your
+ * Brand variant's photo, and delete. The main image is the first general one.
+ */
 export function ProductImages({
   productId,
   images,
+  variants,
   moveAction,
   deleteAction,
   altAction,
 }: ProductImagesProps) {
+  const mainId = images.find((image) => image.variant === null)?.id;
   return (
     <section
       id="images"
@@ -48,6 +65,7 @@ export function ProductImages({
       <p className="mt-1 text-small text-muted">
         {text.description(MAX_PRODUCT_IMAGES, maxSize)}
       </p>
+      {variants && <p className="mt-1 text-small text-muted">{text.variantNote}</p>}
 
       {images.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed border-line-strong bg-surface-alt px-4 py-6 text-center text-sm text-muted">
@@ -68,8 +86,18 @@ export function ProductImages({
                 className="size-24 shrink-0 rounded-md border border-line bg-surface-alt object-contain"
               />
               <div className="flex min-w-0 flex-1 flex-col gap-2">
-                {index === 0 && <Badge>{text.main}</Badge>}
-                <AltForm image={image} position={index + 1} action={altAction} />
+                {image.id === mainId && <Badge>{text.main}</Badge>}
+                {image.variant && (
+                  <Badge variant="orange">
+                    {text.variantBadge(themeNames[image.variant] ?? image.variant)}
+                  </Badge>
+                )}
+                <DetailsForm
+                  image={image}
+                  position={index + 1}
+                  variants={variants}
+                  action={altAction}
+                />
                 <div className="flex flex-wrap gap-2">
                   <form action={moveAction}>
                     <input type="hidden" name="id" value={image.id} />
@@ -107,23 +135,64 @@ export function ProductImages({
         </ol>
       )}
 
-      {images.length < MAX_PRODUCT_IMAGES && <UploadForm productId={productId} />}
+      {images.length < MAX_PRODUCT_IMAGES && (
+        <UploadForm productId={productId} variants={variants} />
+      )}
     </section>
   );
 }
 
-function AltForm({
+/** "Shows for": general, or one Build Your Brand label variant. */
+function VariantSelect({
+  label,
+  defaultValue,
+  error,
+  help,
+  className,
+}: {
+  label: string;
+  defaultValue: BrandThemeKey | null;
+  error?: string;
+  help?: string;
+  className?: string;
+}) {
+  const ids = useFieldIds(undefined, { help, error });
+  return (
+    <Field ids={ids} label={label} help={help} error={error} className={className}>
+      <select
+        id={ids.inputId}
+        name="variant"
+        defaultValue={defaultValue ?? ""}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={ids.describedBy}
+        className={cn(inputClasses, "cursor-pointer")}
+      >
+        <option value="">{text.variantGeneral}</option>
+        {brandThemes.map((theme) => (
+          <option key={theme.key} value={theme.key}>
+            {themeNames[theme.key]}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+/** A photo's description and, for a Build Your Brand product, its variant. */
+function DetailsForm({
   image,
   position,
+  variants,
   action,
 }: {
   image: ProductImageItem;
   position: number;
+  variants: boolean;
   action: ProductImagesProps["altAction"];
 }) {
   const [state, formAction, pending] = useActionState(action, idleForm);
   return (
-    <form action={formAction} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+    <form action={formAction} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
       <input type="hidden" name="id" value={image.id} />
       <Input
         name="alt"
@@ -131,8 +200,18 @@ function AltForm({
         defaultValue={image.alt}
         maxLength={200}
         error={state.fieldErrors?.alt}
-        wrapperClassName="flex-1"
+        wrapperClassName="flex-1 sm:min-w-56"
       />
+      {variants ? (
+        <VariantSelect
+          label={text.variantFor(position)}
+          defaultValue={image.variant}
+          error={state.fieldErrors?.variant}
+          className="sm:w-60"
+        />
+      ) : (
+        <input type="hidden" name="variant" value={image.variant ?? ""} />
+      )}
       <Button type="submit" variant="secondary" size="sm" loading={pending} className="sm:mb-1">
         {text.saveAlt}
       </Button>
@@ -149,9 +228,9 @@ type UploadState =
   | { status: "idle" }
   | { status: "uploading" }
   | { status: "done" }
-  | { status: "error"; message: string; field?: "file" | "alt" };
+  | { status: "error"; message: string; field?: "file" | "alt" | "variant" };
 
-function UploadForm({ productId }: { productId: number }) {
+function UploadForm({ productId, variants }: { productId: number; variants: boolean }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<UploadState>({ status: "idle" });
@@ -187,7 +266,12 @@ function UploadForm({ productId }: { productId: number }) {
         setState({
           status: "error",
           message: reply.message ?? text.errors.failed,
-          field: reply.error === "alt" ? "alt" : reply.error === "notFound" ? undefined : "file",
+          field:
+            reply.error === "alt" || reply.error === "variant"
+              ? reply.error
+              : reply.error === "notFound"
+                ? undefined
+                : "file",
         });
         return;
       }
@@ -201,6 +285,8 @@ function UploadForm({ productId }: { productId: number }) {
 
   const fileError = state.status === "error" && state.field === "file" ? state.message : undefined;
   const altError = state.status === "error" && state.field === "alt" ? state.message : undefined;
+  const variantError =
+    state.status === "error" && state.field === "variant" ? state.message : undefined;
 
   return (
     <form
@@ -235,6 +321,14 @@ function UploadForm({ productId }: { productId: number }) {
           maxLength={200}
           error={altError}
         />
+        {variants && (
+          <VariantSelect
+            label={text.variant}
+            defaultValue={null}
+            help={text.variantHelp}
+            error={variantError}
+          />
+        )}
       </div>
       <div>
         <Button

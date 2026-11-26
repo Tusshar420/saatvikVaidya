@@ -13,16 +13,21 @@ import {
 } from "@/components/admin/data-table";
 import { Notice, parseNotice } from "@/components/admin/notice";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AutoSubmit } from "@/components/admin/auto-submit";
 import { Pagination } from "@/components/admin/pagination";
+import { SortTh } from "@/components/admin/sort-header";
+import { SortSelect } from "@/components/admin/sort-select";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
+import { listHref, sortParam } from "@/lib/admin-sort";
 import { productImageSrc } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import { formatNumber, formatPaise } from "@/lib/format";
 import {
+  PRODUCT_SORT_DEFAULT,
   listAdminProducts,
   productFiltersSchema,
 } from "@/server/admin/catalogue";
@@ -40,6 +45,9 @@ export default async function CataloguePage({
   const filters = productFiltersSchema.parse(params);
   const { products, total, page, pageCount } = await listAdminProducts(filters);
   const filtered = Boolean(filters.q || filters.status);
+  const listParams = { q: filters.q, status: filters.status, sort: sortParam(filters.sort, PRODUCT_SORT_DEFAULT) };
+  const sortHref = (sort: typeof filters.sort) =>
+    listHref("/admin/catalogue", { ...listParams, sort: sortParam(sort, PRODUCT_SORT_DEFAULT) });
 
   return (
     <>
@@ -69,7 +77,7 @@ export default async function CataloguePage({
         method="get"
         role="search"
         aria-label={text.searchLabel}
-        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-[2fr_1fr_auto]"
+        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1.2fr_auto]"
       >
         <div className="flex flex-col">
           <label htmlFor="filter-q" className="mb-1.5 text-xs font-extrabold text-ink">
@@ -106,25 +114,33 @@ export default async function CataloguePage({
             <option value="hidden">{text.statuses.hidden}</option>
           </select>
         </div>
+        <SortSelect id="filter-sort" sort={filters.sort} options={text.sorts} />
         <div className="flex items-end gap-2">
           <Button type="submit" variant="secondary" className="flex-1 sm:flex-none">
             {copy.common.filter}
           </Button>
           {filtered && (
-            <Link href="/admin/catalogue" className={buttonClasses({ variant: "link" })}>
+            <Link href={listHref("/admin/catalogue", { sort: listParams.sort })} className={buttonClasses({ variant: "link" })}>
               {copy.common.clearFilters}
             </Link>
           )}
         </div>
+        <AutoSubmit />
       </form>
 
       <p className="mt-4 text-small text-muted">{text.count(total)}</p>
       <DataTable caption={text.title} className="mt-3">
         <THead>
           <Th className="w-16">{text.columns.image}</Th>
-          <Th>{text.columns.name}</Th>
-          <Th>{text.columns.brand}</Th>
-          <Th>{text.columns.prices}</Th>
+          <SortTh column="name" sort={filters.sort} href={sortHref}>
+            {text.columns.name}
+          </SortTh>
+          <SortTh column="brand" sort={filters.sort} href={sortHref}>
+            {text.columns.brand}
+          </SortTh>
+          <SortTh column="price" sort={filters.sort} href={sortHref}>
+            {text.columns.prices}
+          </SortTh>
           <Th>{text.columns.stock}</Th>
           <Th>{text.columns.status}</Th>
           <Th>
@@ -195,7 +211,7 @@ export default async function CataloguePage({
       </DataTable>
       <Pagination
         basePath="/admin/catalogue"
-        params={{ q: filters.q, status: filters.status }}
+        params={listParams}
         page={page}
         pageCount={pageCount}
       />

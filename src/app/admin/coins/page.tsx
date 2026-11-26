@@ -4,7 +4,7 @@ import { CoinRulesForm } from "@/components/admin/coin-rules-form";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { admin as copy } from "@/content/admin";
 import { formatINR, formatNumber } from "@/lib/format";
-import { coinsEarned, coinValuePaise } from "@/lib/coins";
+import { coinsEarned, coinValuePaise, exampleOrderRupees } from "@/lib/coins";
 import { requireAdmin } from "@/server/auth/session";
 import { readRecentCoinActivity } from "@/server/coins/ledger";
 import { getSetting } from "@/server/content/settings";
@@ -17,7 +17,7 @@ const text = copy.coins;
 export default async function AdminCoinsPage() {
   await requireAdmin("orders");
   const [rules, recent] = await Promise.all([getSetting("coins.rules"), readRecentCoinActivity(15)]);
-  const orderPaise = 1_000_000;
+  const orderPaise = exampleOrderRupees(rules) * 100;
   return (
     <>
       <AdminPageHeader eyebrow={text.eyebrow} title={text.title} description={text.description} />

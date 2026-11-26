@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { admin as copy } from "@/content/admin";
+import { listHref } from "@/lib/admin-sort";
 
 /** Previous / next links that keep the current filters. */
 export function Pagination({
@@ -9,23 +10,22 @@ export function Pagination({
   params,
   page,
   pageCount,
+  pageParam = "page",
+  hash,
 }: {
   basePath: string;
   /** Current query values (filters), without `page`. */
   params: Record<string, string | undefined>;
   page: number;
   pageCount: number;
+  /** Query name of the page number, for a page with two paged lists. */
+  pageParam?: string;
+  /** Section to scroll back to. */
+  hash?: string;
 }) {
   if (pageCount <= 1) return null;
-  const href = (target: number) => {
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (value) query.set(key, value);
-    }
-    if (target > 1) query.set("page", String(target));
-    const text = query.toString();
-    return text ? `${basePath}?${text}` : basePath;
-  };
+  const href = (target: number) =>
+    listHref(basePath, { ...params, [pageParam]: target > 1 ? String(target) : undefined }, hash);
   const linkClass = buttonClasses({ variant: "secondary", size: "sm" });
   return (
     <nav

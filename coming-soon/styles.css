@@ -22,6 +22,7 @@
 :root {
   --color-brand: #063f36;
   --color-brand-mid: #0a5a49;
+  --color-brand-mid-ring: rgb(10 90 73 / 0.15);
   --color-brand-soft: #e8f2ec;
   --color-orange: #f36c21;
   --color-orange-strong: #c2540a;
@@ -114,11 +115,13 @@ body {
   text-transform: uppercase;
 }
 
-.eyebrow-bar {
-  width: 28px;
-  height: 2px;
+.eyebrow-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
-  background: var(--color-orange);
+  background: var(--color-brand-mid);
+  box-shadow: 0 0 0 4px var(--color-brand-mid-ring);
 }
 
 h1 {

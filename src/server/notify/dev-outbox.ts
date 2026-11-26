@@ -5,7 +5,7 @@ import "server-only";
 // never in production. Kept on globalThis so every route in the dev server
 // shares one copy. Memory only; nothing is stored.
 
-export type OtpPurpose = "sign-in" | "password-reset";
+export type OtpPurpose = "sign-in" | "password-reset" | "order-confirm";
 
 export interface DevOtp {
   phoneNumber: string;

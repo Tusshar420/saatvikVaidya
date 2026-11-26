@@ -72,6 +72,12 @@ export type PlaceOrderInput = {
   /** The Super Coins rules, and whether the buyer chose to use their coins. */
   coinRules?: CoinRules;
   redeemCoins?: boolean;
+  /**
+   * An order our staff prepared (src/server/assisted-orders): its items are
+   * ordered instead of the cart's, and it is marked placed in the same
+   * transaction. `placedBy`: the customer from the link, or staff on a call.
+   */
+  assisted?: { id: string; placedBy: "customer" | "staff" };
 };
 
 export type PlaceOrderError =
@@ -81,7 +87,9 @@ export type PlaceOrderError =
   | "payments_off"
   | "checkout_off"
   | "rate_limited"
-  | "coins";
+  | "coins"
+  /** The prepared order was already placed, cancelled or has expired. */
+  | "closed";
 
 export type PlaceOrderResult =
   | { ok: true; orderId: string }
@@ -121,21 +129,39 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   for (let tries = 0; tries < 3 && !orderId; tries += 1) {
     try {
       orderId = await ledgerTransaction(async (tx) => {
-        const cart = await tx.cart.findUnique({
-          where: { userId },
-          select: {
-            items: {
-              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-              select: {
-                quantity: true,
-                product: { select: cartProductSelect },
-                ebook: { select: cartEbookSelect },
-                course: { select: cartCourseSelect },
+        let items;
+        if (input.assisted) {
+          // Claim the prepared order first: a second submit, or staff and
+          // the customer placing it at the same moment, finds it taken.
+          const now = new Date();
+          const claimed = await tx.assistedOrder.updateMany({
+            where: { id: input.assisted.id, userId, status: "open", expiresAt: { gt: now } },
+            data: { status: "placed", placedBy: input.assisted.placedBy, placedAt: now },
+          });
+          if (claimed.count !== 1) throw new CheckoutRefused("closed");
+          const rows = await tx.assistedOrderItem.findMany({
+            where: { assistedOrderId: input.assisted.id },
+            orderBy: { id: "asc" },
+            select: { quantity: true, product: { select: cartProductSelect } },
+          });
+          items = rows.map((row) => ({ ...row, ebook: null, course: null }));
+        } else {
+          const cart = await tx.cart.findUnique({
+            where: { userId },
+            select: {
+              items: {
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                select: {
+                  quantity: true,
+                  product: { select: cartProductSelect },
+                  ebook: { select: cartEbookSelect },
+                  course: { select: cartCourseSelect },
+                },
               },
             },
-          },
-        });
-        const items = cart?.items ?? [];
+          });
+          items = cart?.items ?? [];
+        }
         if (items.length === 0) throw new CheckoutRefused("empty");
         const sellable = await sellableByProduct(
           items.flatMap((item) => (item.product ? [item.product.id] : [])),
@@ -266,6 +292,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             },
           },
         });
+        if (input.assisted) {
+          await tx.assistedOrder.update({ where: { id: input.assisted.id }, data: { orderId: id } });
+        }
         if (coinsUsed > 0 && !(await holdCoins(tx, userId, id, coinsUsed))) {
           throw new CheckoutRefused("coins");
         }
@@ -291,8 +320,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         // A QR, bank or phone-arranged payment is made later, outside the site,
         // and staff mark it paid hours afterwards. A cart still full after "Your order
         // is placed" looks like a failed order and invites a duplicate, so it
-        // is emptied now (as brand orders do).
-        if (getPaymentProvider().name !== "test") {
+        // is emptied now (as brand orders do). A prepared order leaves the
+        // cart alone: its items never came from there.
+        if (getPaymentProvider().name !== "test" && !input.assisted) {
           await tx.cartItem.deleteMany({ where: { cart: { userId } } });
         }
         return id;

@@ -18,6 +18,7 @@ import {
   liveSessionSeed,
   offerSeed,
   quickActionSeed,
+  quizCategorySeed,
   reelSeed,
   statItemSeed,
   whyStepSeed,
@@ -69,6 +70,7 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
       await createMissing(liveSessionSeed, (args) => tx.liveSession.upsert(args));
       await createMissing(feedbackSeed, (args) => tx.feedback.upsert(args));
       await createMissing(whyStepSeed, (args) => tx.whyStep.upsert(args));
+      await createMissing(quizCategorySeed, (args) => tx.quizCategory.upsert(args));
       const productsCreated = await createMissingProducts(tx);
       await addBrandSamples(tx);
       await ensureStockItems(tx);
@@ -92,6 +94,7 @@ export async function seedDatabase(db: PrismaClient): Promise<SeedSummary> {
           liveSessionSeed,
           feedbackSeed,
           whyStepSeed,
+          quizCategorySeed,
         ].reduce((sum, rows) => sum + rows.length, 0),
         productsCreated,
       };

@@ -7,32 +7,37 @@ import { quiz } from "../../src/content/quiz";
 import { E2E_EMAIL_DOMAIN, E2E_QUIZ_PREFIX, e2eDb, signInAs } from "./auth-helpers";
 import { axeViolations, collectErrors, horizontalOverflow } from "./helpers";
 
-// Quiz & Win (P2.3), end to end: a play-through with coins, resuming after a
-// refresh, running out of time, and the leaderboards. Only one quiz is open
-// at a time and the homepage shows it, so the file runs in the "-last"
-// projects, after the exclusive ones (see playwright.config.ts). Quizzes are titled "E2E ..." and
-// removed by tests/e2e/cleanup.ts (attempts go with them).
+// Quiz & Win (P2.3), end to end: the category boxes on /quiz, a play-through
+// with coins on /quiz/[id], resuming after a refresh, running out of time,
+// and the leaderboards. The homepage shows the newest open quiz, so the file
+// runs in the "-last" projects, after the exclusive ones (see
+// playwright.config.ts). Quizzes are titled "E2E ..." and removed by
+// tests/e2e/cleanup.ts (attempts go with them); categories are keyed "e2e-...".
 
 test.describe.configure({ mode: "serial" });
 
+async function removeE2eQuizzes() {
+  await e2eDb().quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } });
+  await e2eDb().quizCategory.deleteMany({ where: { key: { startsWith: "e2e-" } } });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await e2eDb().quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } });
+  await removeE2eQuizzes();
 });
 
-test.afterEach(async () => {
-  await e2eDb().quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } });
-});
+test.afterEach(removeE2eQuizzes);
 
 const DAY = 24 * 60 * 60 * 1000;
 
 /** A 10-question quiz open for the week (first option of each question is right). */
-async function openQuiz(options: { startsInDays?: number } = {}) {
+async function openQuiz(options: { startsInDays?: number; categoryId?: number } = {}) {
   const offset = (options.startsInDays ?? -1) * DAY;
   const title = `${E2E_QUIZ_PREFIX}Quiz ${randomBytes(3).toString("hex")}`;
   const created = await e2eDb().quiz.create({
     data: {
       title,
+      categoryId: options.categoryId,
       active: true,
       passPercent: 60,
       startsAt: new Date(Date.now() + offset),
@@ -53,8 +58,11 @@ async function openQuiz(options: { startsInDays?: number } = {}) {
       },
     },
   });
-  return { id: created.id, title };
+  return { id: created.id, title, path: `/quiz/${created.id}` };
 }
+
+/** The box of quiz `title` on /quiz. */
+const box = (page: Page, title: string) => page.getByTestId("quiz-box").filter({ hasText: title });
 
 const question = (page: Page, n: number) =>
   page.getByRole("group", { name: quiz.play.question(n, 10) });
@@ -76,7 +84,10 @@ test("play through: answers, score, coins once, explanations, leaderboard", asyn
   await expect(section.getByText(home.community.quiz.leadOpen(open.title))).toBeVisible();
   await section.getByRole("link", { name: home.community.quiz.start }).click();
 
+  // It lands on the boxes; the quiz's box opens its page.
   await expect(page).toHaveURL(/\/quiz$/);
+  await box(page, open.title).click();
+  await expect(page).toHaveURL(new RegExp(`${open.path}$`));
   await expect(page.getByRole("heading", { level: 1, name: open.title })).toBeVisible();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
@@ -119,8 +130,10 @@ test("play through: answers, score, coins once, explanations, leaderboard", asyn
   await page.goto("/coins");
   await expect(page.getByText(coins.history.reason.earn_quiz())).toBeVisible();
 
-  // Second visit to start is a no-op: still one attempt.
+  // Second visit to start is a no-op: still one attempt, and its box says played.
   await page.goto("/quiz");
+  await expect(box(page, open.title)).toContainText(quiz.grid.played);
+  await page.goto(open.path);
   await expect(page.getByRole("button", { name: quiz.start })).toHaveCount(0);
   expect(await e2eDb().quizAttempt.count({ where: { userId: user.id } })).toBe(1);
 
@@ -138,10 +151,10 @@ test("play through: answers, score, coins once, explanations, leaderboard", asyn
 
 test("a refresh keeps the answers and the timer; late answers are not counted", async ({ page, baseURL }) => {
   const errors = collectErrors(page);
-  await openQuiz();
+  const open = await openQuiz();
   const user = await signInAs(page, baseURL!, { role: "user" });
 
-  await page.goto("/quiz");
+  await page.goto(open.path);
   await page.getByRole("button", { name: quiz.start }).click();
   await answer(page, 1, true);
   await answer(page, 2, true);
@@ -180,9 +193,9 @@ test("a refresh keeps the answers and the timer; late answers are not counted", 
 });
 
 test("a quiz left unfinished is scored when time runs out, on the next visit", async ({ page, baseURL }) => {
-  await openQuiz();
+  const open = await openQuiz();
   const user = await signInAs(page, baseURL!, { role: "user" });
-  await page.goto("/quiz");
+  await page.goto(open.path);
   await page.getByRole("button", { name: quiz.start }).click();
   for (let n = 1; n <= 6; n++) await answer(page, n, true);
   await expect(page.getByText(quiz.play.answered(6, 10))).toBeVisible();
@@ -196,31 +209,63 @@ test("a quiz left unfinished is scored when time runs out, on the next visit", a
     where: { userId: user.id },
     data: { startedAt: new Date(Date.now() - 20 * 60_000) },
   });
-  await page.goto("/quiz");
+  await page.goto(open.path);
   await expect(page.getByText(quiz.result.score(60, 100))).toBeVisible();
   await expect(page.getByText(quiz.result.earned(100))).toBeVisible();
 });
 
-test("signed out: the quiz can be read but needs sign-in; no quiz open shows the next start", async ({ page }) => {
-  await openQuiz();
-  await page.goto("/quiz");
+test("signed out: the quiz can be read but needs sign-in; a coming quiz shows when it opens", async ({ page }) => {
+  const open = await openQuiz();
+  await page.goto(open.path);
   await expect(page.getByRole("link", { name: quiz.signIn })).toBeVisible();
   await expect(page.getByRole("button", { name: quiz.start })).toHaveCount(0);
   await expect(page.getByText("E2E question 1?")).toHaveCount(0);
   expect(await axeViolations(page)).toEqual([]);
 
   await e2eDb().quiz.deleteMany({ where: { title: { startsWith: E2E_QUIZ_PREFIX } } });
-  await openQuiz({ startsInDays: 3 });
+  const coming = await openQuiz({ startsInDays: 3 });
   await page.goto("/");
   await expect(page.locator("#quiz").getByText(/^Opens /)).toBeVisible();
   await expect(page.locator("#quiz").getByRole("link", { name: home.community.quiz.start })).toHaveCount(0);
   await page.goto("/quiz");
-  await expect(page.getByRole("heading", { name: quiz.none.title })).toBeVisible();
-  await expect(page.getByText(/Next quiz starts/)).toBeVisible();
-  // No quiz is running, so no timer is shown.
-  await expect(page.locator("section[aria-labelledby=quiz-none]").getByText(/^\d+:\d{2}$/)).toHaveCount(0);
+  await expect(box(page, coming.title)).toContainText(/Opens /);
+  await box(page, coming.title).click();
+  await expect(page.getByRole("heading", { level: 1, name: coming.title })).toBeVisible();
+  await expect(page.getByText(quiz.upcoming.title)).toBeVisible();
+  await expect(page.getByRole("link", { name: quiz.signIn })).toHaveCount(0);
+  // The quiz isn't running, so no timer is shown.
+  await expect(page.locator("section[aria-labelledby=quiz-title]").getByText(/^\d+:\d{2}$/)).toHaveCount(0);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
+});
+
+test("the boxes are grouped under their category, open ones first", async ({ page }) => {
+  const errors = collectErrors(page);
+  const suffix = randomBytes(3).toString("hex");
+  const category = await e2eDb().quizCategory.create({
+    data: { key: `e2e-${suffix}`, name: `E2E Doshas ${suffix}`, glyph: "दो", sortOrder: -1000 },
+  });
+  const coming = await openQuiz({ startsInDays: 2, categoryId: category.id });
+  const open = await openQuiz({ categoryId: category.id });
+  await page.goto("/quiz");
+  const group = page.getByRole("region", { name: category.name });
+  await expect(group.getByRole("heading", { level: 2, name: category.name })).toBeVisible();
+  const boxes = group.getByTestId("quiz-box");
+  await expect(boxes).toHaveCount(2);
+  await expect(boxes.nth(0)).toContainText(open.title);
+  await expect(boxes.nth(0)).toContainText(/Open till /);
+  await expect(boxes.nth(1)).toContainText(coming.title);
+  await expect(boxes.nth(1)).toContainText(/Opens /);
+  // Its sort order puts it before every other group.
+  await expect(page.locator("#quizzes h2").first()).toHaveText(category.name);
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  expect(await axeViolations(page)).toEqual([]);
+
+  await boxes.nth(0).click();
+  await expect(page.getByRole("heading", { level: 1, name: open.title })).toBeVisible();
+  await page.getByRole("link", { name: quiz.back }).click();
+  await expect(page).toHaveURL(/\/quiz$/);
+  expect(errors).toEqual([]);
 });
 
 test("leaderboards: ranked by score then time, short names, own rank", async ({ page, baseURL }) => {
@@ -303,6 +348,10 @@ test("admin: the quiz form has the week and pass mark", async ({ page, baseURL }
   await expect(page.getByLabel(text.startsAt)).toBeVisible();
   await expect(page.getByLabel(text.endsAt)).toBeVisible();
   await expect(page.getByLabel(text.passPercent)).toHaveValue("60");
+  // The category list comes from Quiz categories (seeded), with "none" first.
+  await expect(page.getByLabel(text.category)).toHaveValue("");
+  await expect(page.getByLabel(text.category).locator("option")).not.toHaveCount(1);
+  await expect(page.getByLabel(text.glyph)).toBeVisible();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   expect(await axeViolations(page)).toEqual([]);
 });
@@ -347,7 +396,7 @@ test("P2.4: the quiz screens fit every width", async ({ browser, baseURL }, test
       const { context, page } = await openAt(browser, width, state);
       for (const path of paths) {
         await page.goto(path, { waitUntil: "load" });
-        if (ready && path === "/quiz") await ready(page);
+        if (ready && path === detail) await ready(page);
         expect(await horizontalOverflow(page), `${path} at ${width}px`).toBe(0);
         if (width === 360 || width === 1280) {
           expect(await axeViolations(page), `${path} at ${width}px`).toEqual([]);
@@ -357,31 +406,31 @@ test("P2.4: the quiz screens fit every width", async ({ browser, baseURL }, test
     }
   };
 
-  await openQuiz();
-  // Signed out: the open quiz and the leaderboard.
-  await checkAll(["/quiz", "/quiz/leaderboard"]);
+  const { path: detail } = await openQuiz();
+  // Signed out: the boxes, the open quiz and the leaderboard.
+  await checkAll(["/quiz", detail, "/quiz/leaderboard"]);
 
   const setup = await openAt(browser, 1280);
   await signInAs(setup.page, baseURL!, { role: "user", name: "Meera Kulkarni" });
   const state = await setup.context.storageState();
   // Signed in, before starting.
-  await checkAll(["/quiz"], state, (page) =>
+  await checkAll(["/quiz", detail], state, (page) =>
     expect(page.getByRole("button", { name: quiz.start })).toBeVisible(),
   );
 
   // Playing (well inside the 5 minutes: this pass takes about a minute).
-  await setup.page.goto("/quiz");
+  await setup.page.goto(detail);
   await setup.page.getByRole("button", { name: quiz.start }).click();
   await expect(setup.page.getByRole("timer")).toBeVisible();
   for (let n = 1; n <= 10; n++) await answer(setup.page, n, n <= 6);
   await expect(setup.page.getByText(quiz.play.answered(10, 10))).toBeVisible();
-  await checkAll(["/quiz"], state, (page) => expect(page.getByRole("timer")).toBeVisible());
+  await checkAll([detail], state, (page) => expect(page.getByRole("timer")).toBeVisible());
 
   // Finished: the result and the review, and the leaderboard with the player in it.
   await setup.page.getByRole("button", { name: quiz.play.submit }).click();
   await expect(setup.page.getByRole("heading", { name: quiz.result.title })).toBeVisible();
   await setup.context.close();
-  await checkAll(["/quiz", "/quiz/leaderboard"], state, (page) =>
+  await checkAll(["/quiz", detail, "/quiz/leaderboard"], state, (page) =>
     expect(page.getByRole("heading", { name: quiz.result.title })).toBeVisible(),
   );
 });

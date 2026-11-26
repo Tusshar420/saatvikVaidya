@@ -26,8 +26,9 @@ import {
 
 // The rest of the homepage content, managed in /admin/content: hero slides,
 // offers, trust stats, quick actions, categories, feedback and the "Why
-// Saatvik" steps, plus each section's on/off, order and heading. Callers
-// check the admin session, then expire the homepage cache.
+// Saatvik" steps, plus each section's on/off, order and heading, and the
+// quiz categories on /quiz. Callers check the admin session, then expire the
+// homepage cache.
 
 const check = "Check this field.";
 const link = "Use a site path such as \"/coins\", or \"modal:sign-in\".";
@@ -122,6 +123,11 @@ export const homeInputSchemas = {
     body: requiredText(300, check),
     ...placement,
   }),
+  "quiz-category": z.object({
+    name: requiredText(80, check),
+    glyph: optionalText(8, check),
+    ...placement,
+  }),
 } satisfies Record<HomeKindKey, z.ZodType>;
 
 export type HomeInput<K extends HomeKindKey = HomeKindKey> = z.infer<(typeof homeInputSchemas)[K]>;
@@ -138,6 +144,7 @@ const kinds: Record<
   category: { resource: "Category", delegate: (tx) => tx.category as unknown as Delegate },
   feedback: { resource: "Feedback", delegate: (tx) => tx.feedback as unknown as Delegate },
   why: { resource: "WhyStep", delegate: (tx) => tx.whyStep as unknown as Delegate },
+  "quiz-category": { resource: "QuizCategory", delegate: (tx) => tx.quizCategory as unknown as Delegate },
 };
 
 /**

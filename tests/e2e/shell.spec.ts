@@ -202,14 +202,14 @@ test.describe("nav rail", () => {
     await page.goto("/");
     const nav = rail(page);
     const scroller = nav.locator("> div");
-    const home = nav.getByRole("link", { name: shell.nav.home, exact: true });
     const last = siteNav[siteNav.length - 1];
     const lastLink = nav.getByRole("link", { name: last.label });
 
-    await expect(home).toHaveAttribute("aria-current", "page");
+    // No Home link: the logo is the way home (client, 31 Oct 2026).
+    await expect(nav.getByRole("link", { name: /^home$/i })).toHaveCount(0);
     for (const link of siteNav) {
       const navLink = nav.getByRole("link", { name: link.label, exact: true });
-      // Courses, Saatvik Coins and Track Order are left off on phones,
+      // Quiz & Win, Saatvik Coins and Track Order are left off on phones,
       // where the bottom dock has them.
       if (isMobile && link.wideOnly) await expect(navLink).toBeHidden();
       else {
@@ -229,9 +229,8 @@ test.describe("nav rail", () => {
     expect(shown).toEqual(
       isMobile
         ? [
-            shell.nav.home,
             "Dr. Talk",
-            "Quiz & Win",
+            "Courses",
             "Build Your Brand",
             "Top Brands",
             "Real Feedback",
@@ -239,7 +238,6 @@ test.describe("nav rail", () => {
             "Why Saatvik",
           ]
         : [
-            shell.nav.home,
             "Dr. Talk",
             "Courses",
             "Quiz & Win",
@@ -268,7 +266,13 @@ test.describe("nav rail", () => {
     await brands.click();
     await expect(page).toHaveURL("/products");
     await expect(brands).toHaveAttribute("aria-current", "page");
-    await expect(home).not.toHaveAttribute("aria-current");
+
+    // The logo takes you back home.
+    await header(page)
+      .getByRole("link", { name: shell.brand.homeLabel })
+      .click();
+    await expect(page).toHaveURL("/");
+    await expect(brands).not.toHaveAttribute("aria-current");
   });
 
   test("Build Your Brand opens the Launch page", async ({
@@ -313,7 +317,7 @@ test.describe("mobile dock", () => {
     for (const label of [
       shell.dock.coins,
       shell.dock.updates,
-      shell.dock.courses,
+      shell.dock.quiz,
       shell.dock.orders,
       shell.dock.you,
     ])
@@ -355,10 +359,10 @@ test.describe("mobile dock", () => {
     };
     for (const [label, href] of Object.entries(hrefs))
       await expect(bar.getByRole("link", { name: label })).toHaveAttribute("href", href);
-    await bar.getByRole("link", { name: shell.dock.courses }).click();
-    await expect(page).toHaveURL("/courses");
+    await bar.getByRole("link", { name: shell.dock.quiz }).click();
+    await expect(page).toHaveURL("/quiz");
     await expect(
-      bar.getByRole("link", { name: shell.dock.courses }),
+      bar.getByRole("link", { name: shell.dock.quiz }),
     ).toHaveAttribute("aria-current", "page");
   });
 });

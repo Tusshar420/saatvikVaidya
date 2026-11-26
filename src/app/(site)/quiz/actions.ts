@@ -15,11 +15,12 @@ const id = z.coerce.number().int().positive().max(2_147_483_647);
 
 export async function startQuizAction(formData: FormData): Promise<void> {
   const session = await getSession();
-  if (!session) redirect(signInPath("/quiz"));
   const quizId = id.safeParse(formData.get("quizId"));
+  const page = quizId.success ? `/quiz/${quizId.data}` : "/quiz";
+  if (!session) redirect(signInPath(page));
   if (quizId.success) await startAttempt(session.user.id, quizId.data);
-  revalidatePath("/quiz");
-  redirect("/quiz");
+  revalidatePath("/quiz", "layout");
+  redirect(page);
 }
 
 export type SaveAnswerResponse = { status: "saved" | "expired" | "finished" | "invalid" | "signed_out" };
@@ -39,6 +40,6 @@ export async function submitQuizAction(rawQuizId: number): Promise<{ ok: boolean
   const quizId = id.safeParse(rawQuizId);
   if (!session || !quizId.success) return { ok: false };
   const result = await submitAttempt(session.user.id, quizId.data);
-  revalidatePath("/quiz");
+  revalidatePath("/quiz", "layout");
   return { ok: result !== null };
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House } from "lucide-react";
 import { useAuthSession } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
@@ -19,7 +18,7 @@ import {
 } from "@/content/shell";
 
 export type NavRailProps = {
-  /** The links after Home; defaults to the v2 site nav. */
+  /** The rail links; defaults to the v2 site nav. */
   links?: readonly SiteNavLink[];
   /**
    * @deprecated The v2 rail links to pages, not homepage sections; kept so
@@ -86,7 +85,6 @@ function useSectionBadges(
 
 /** Is `href` the current page (or a page under it)? */
 function isCurrent(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -110,10 +108,10 @@ const toneClasses: Record<SiteNavTone, { idle: string; active: string }> = {
 };
 
 /**
- * The v2 nav rail under the header bar (46 px, 43 under 820 px): Home, then
- * pill links to every main page, with Dr. Talk as a solid green pill and
+ * The v2 nav rail under the header bar (46 px, 43 under 820 px): pill links
+ * to every main page (the logo is the way home), with Dr. Talk as a solid green pill and
  * Quiz & Win as a solid orange one. Under 560 px the `wideOnly` links
- * (Courses, Saatvik Coins, Track Order) are hidden, because the phone dock
+ * (Quiz & Win, Saatvik Coins, Track Order) are hidden, because the phone dock
  * has them. It scrolls sideways with an edge fade on narrow screens and
  * marks the current page.
  */
@@ -156,12 +154,6 @@ export function NavRail({
         className="scrollbar-none overflow-x-auto md:shell"
       >
         <ul className="flex h-10.75 w-max min-w-full items-center gap-2 px-3.25 sm:px-3.75 md:h-11.5 md:px-0">
-          <li>
-            <RailLink href="/" current={isCurrent(pathname, "/")} tone="plain">
-              <House aria-hidden className="size-3.75 max-sm:hidden" />
-              {shell.nav.home}
-            </RailLink>
-          </li>
           {links.map((link) => (
             <li
               key={link.href}

@@ -30,6 +30,16 @@ export type Message =
       attachments?: InlineImage[];
     };
 
+/**
+ * Whether SMS reach people. There is no SMS provider yet (MSG91 comes later),
+ * so every SMS only goes to the server log. Code that tells staff where a
+ * message went, or whether a customer can get a code at all, must not count
+ * SMS until this is true.
+ */
+export function smsDelivered(): boolean {
+  return false;
+}
+
 export interface Notifier {
   send(message: Message): Promise<void>;
 }

@@ -101,9 +101,9 @@ test.describe("as an admin", () => {
       copy.nav.orders,
       copy.nav.settings,
     ]) {
-      // Starts with the label: "Approvals" carries a count, and "Orders"
-      // mustn't match "Brand orders" (P2.1).
-      const name = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+      // The whole name, maybe with a count ("Approvals" carries one), so
+      // "Orders" doesn't match "Brand orders" (P2.1) or "Orders for customers".
+      const name = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s*\\d+)?$`);
       await expect(nav.getByRole("link", { name })).toHaveCount(1);
     }
     await expect(
@@ -533,8 +533,10 @@ test.describe("as an admin", () => {
     await main(page)
       .getByLabel(copy.orders.statusFilter)
       .selectOption({ label: copy.orders.statuses.shipped });
-    await main(page).getByLabel(copy.orders.from).fill("2026-10-05");
-    await main(page).getByLabel(copy.orders.to).fill("2026-10-01");
+    // Picking a status applies it straight away; dates wait for the button.
+    await expect(page).toHaveURL(/status=shipped/);
+    await main(page).getByLabel(copy.orders.from, { exact: true }).fill("2026-10-05");
+    await main(page).getByLabel(copy.orders.to, { exact: true }).fill("2026-10-01");
     await main(page).getByRole("button", { name: copy.common.filter }).click();
     await expect(page).toHaveURL(/status=shipped/);
     await expect(main(page).getByRole("alert")).toHaveText(copy.orders.invalidDates);

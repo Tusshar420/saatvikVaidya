@@ -7,12 +7,24 @@ import type { DocumentType } from "@/lib/verification";
 export const verification = {
   documentTypes: {
     registration_certificate: {
-      label: "Registration certificate",
-      help: "Your Ayurveda practitioner registration from the state board or NCISM.",
+      label: "State board registration",
+      help: "Your Ayurveda practitioner registration certificate from your state board (or NCISM).",
     },
-    clinic_registration: {
-      label: "Clinic registration",
-      help: "The registration certificate of your clinic or hospital.",
+    degree_certificate: {
+      label: "Degree certificate",
+      help: "Your BAMS (or higher) degree certificate.",
+    },
+    college_id_card: {
+      label: "College ID card",
+      help: "A clear photo or scan of your current college ID card, showing your name and photo.",
+    },
+    aadhaar_card: {
+      label: "Aadhaar card",
+      help: "A clear photo or scan of your Aadhaar card. You may hide the first 8 digits (masked Aadhaar).",
+    },
+    pan_card: {
+      label: "PAN card",
+      help: "A clear photo or scan of your PAN card.",
     },
     drug_licence: {
       label: "Drug licence",
@@ -22,7 +34,26 @@ export const verification = {
       label: "GST certificate",
       help: "Your GST registration certificate (Form REG-06).",
     },
+    clinic_registration: {
+      label: "Clinic registration",
+      help: "The registration certificate of your clinic or hospital.",
+    },
   } satisfies Record<DocumentType, { label: string; help: string }>,
+
+  /** Clinics and stockists also give a phone number (src/lib/verification.ts). */
+  phoneLabel: "Phone number",
+  phone: {
+    help: "A mobile number our team can call to verify your account.",
+    fromSignIn: "Your sign-in mobile number is used for this.",
+    missing: "Not added yet",
+    field: "Mobile number",
+    save: "Save phone number",
+    change: "Change phone number",
+    saved: "Phone number saved.",
+    invalid: "Please enter a 10-digit Indian mobile number.",
+    notNeeded: "Your account doesn't need a phone number here.",
+    locked: "Your account is already verified, so this can't be changed.",
+  },
 
   /** The status card on /account, by where the professional is in the flow. */
   state: {

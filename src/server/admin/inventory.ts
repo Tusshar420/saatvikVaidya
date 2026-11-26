@@ -14,6 +14,7 @@ import {
   unitsMakeable,
   type StockUnitKey,
 } from "@/lib/inventory";
+import { sortField, sortRows, type Sort } from "@/lib/admin-sort";
 import { db } from "@/server/db";
 import { StockError, adjustStock, receiveStock, writeOffExpired } from "@/server/inventory/engine";
 import { logAdminAction } from "./audit";
@@ -31,6 +32,8 @@ const errors = copy.errors;
 export const B2C_VIEWS = ["all", "low", "out", "expiring", "expired"] as const;
 export type B2cView = (typeof B2C_VIEWS)[number];
 export const INVENTORY_PAGE_SIZE = 25;
+export const B2C_SORTS = ["name", "brand", "onHand", "reserved", "available", "expiry"] as const;
+export const B2C_SORT_DEFAULT: Sort<(typeof B2C_SORTS)[number]> = { key: "name", dir: "asc" };
 
 const b2cFilterSchema = z.object({
   q: z.preprocess(blankToNull, z.string().trim().max(100).nullable().catch(null)),
@@ -38,6 +41,7 @@ const b2cFilterSchema = z.object({
   partner: z.preprocess((value) => value === "1", z.boolean()),
   view: z.enum(B2C_VIEWS).catch("all"),
   page: z.coerce.number().int().min(1).max(10_000).catch(1),
+  sort: sortField(B2C_SORTS, B2C_SORT_DEFAULT),
 });
 export type B2cFilters = z.output<typeof b2cFilterSchema>;
 
@@ -49,6 +53,7 @@ export function parseB2cFilters(params: Record<string, string | string[] | undef
     partner: first(params.partner),
     view: first(params.view),
     page: first(params.page),
+    sort: params.sort,
   });
 }
 
@@ -140,7 +145,7 @@ export async function readB2cOverview(filters: B2cFilters): Promise<B2cOverview>
     expiredBatches: all.reduce((sum, row) => sum + row.expiredBatches, 0),
   };
   const q = filters.q?.toLowerCase();
-  const filtered = all.filter((row) => {
+  const matching = all.filter((row) => {
     if (q && !`${row.name} ${row.slug ?? ""}`.toLowerCase().includes(q)) return false;
     if (brandName && row.brandName !== brandName) return false;
     if (filters.partner && !row.isPartner) return false;
@@ -155,6 +160,18 @@ export async function readB2cOverview(filters: B2cFilters): Promise<B2cOverview>
         return row.expiredBatches > 0;
       default:
         return true;
+    }
+  });
+  const filtered = sortRows(matching, filters.sort, (row, key) => {
+    switch (key) {
+      case "brand":
+        return row.brandName;
+      case "available":
+        return row.sellable;
+      case "expiry":
+        return row.nearestExpiry;
+      default:
+        return row[key];
     }
   });
   const pageCount = Math.max(1, Math.ceil(filtered.length / INVENTORY_PAGE_SIZE));
@@ -298,6 +315,110 @@ export async function readB2bOverview() {
     };
   });
   return { components: rows, canMake, movements };
+}
+
+export type CanMakeRow = Awaited<ReturnType<typeof readB2bOverview>>["canMake"][number];
+
+// The B2B page has two lists, each with its own search, filter and sort:
+// components (q, type, status, sort) and brand products (pq, recipe, psort,
+// ppage). Both are read whole and filtered here, like the B2C list.
+
+export const COMPONENT_STATUSES = ["all", "low", "short", "made", "inactive", "ok"] as const;
+export const COMPONENT_SORTS = ["name", "type", "onHand", "reserved", "available", "usedBy"] as const;
+export const RECIPE_VIEWS = ["all", "set", "none", "zero"] as const;
+export const CAN_MAKE_SORTS = ["name", "recipe", "canMake"] as const;
+export const COMPONENT_SORT_DEFAULT: Sort<(typeof COMPONENT_SORTS)[number]> = { key: "name", dir: "asc" };
+export const CAN_MAKE_SORT_DEFAULT: Sort<(typeof CAN_MAKE_SORTS)[number]> = { key: "name", dir: "asc" };
+
+const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+const searchText = z.preprocess((value) => blankToNull(first(value)), z.string().trim().max(100).nullable().catch(null));
+
+const b2bFilterSchema = z.object({
+  q: searchText,
+  type: z.preprocess(first, z.enum(componentTypes).nullable().catch(null)),
+  status: z.preprocess(first, z.enum(COMPONENT_STATUSES).catch("all")),
+  sort: sortField(COMPONENT_SORTS, COMPONENT_SORT_DEFAULT),
+  pq: searchText,
+  recipe: z.preprocess(first, z.enum(RECIPE_VIEWS).catch("all")),
+  psort: sortField(CAN_MAKE_SORTS, CAN_MAKE_SORT_DEFAULT),
+  ppage: z.preprocess(first, z.coerce.number().int().min(1).max(10_000).catch(1)),
+});
+export type B2bFilters = z.output<typeof b2bFilterSchema>;
+
+export function parseB2bFilters(params: Record<string, string | string[] | undefined>): B2bFilters {
+  return b2bFilterSchema.parse(params);
+}
+
+/** A component's type key: its own type, or "base" / "other" by kind. */
+export const componentTypeOf = (row: Pick<ComponentRow, "componentType" | "kind">): string =>
+  row.componentType ?? (row.kind === "base" ? "base" : "other");
+
+function componentMatches(row: ComponentRow, status: B2bFilters["status"]): boolean {
+  switch (status) {
+    case "low":
+      return row.low;
+    case "short":
+      return row.available < 0;
+    case "made":
+      return row.madeToOrder;
+    case "inactive":
+      return !row.active;
+    case "ok":
+      return row.active && !row.low && !row.madeToOrder && row.available >= 0;
+    default:
+      return true;
+  }
+}
+
+/** Searches, filters and sorts both B2B lists, and pages the products. */
+export function filterB2b(overview: { components: ComponentRow[]; canMake: CanMakeRow[] }, filters: B2bFilters) {
+  // Sorted by name first, so rows that tie on the chosen column stay A to Z.
+  const byName = <T extends { name: string }>(rows: T[]) => sortRows(rows, { key: "name", dir: "asc" }, (row) => row.name);
+  const q = filters.q?.toLowerCase();
+  const components = sortRows(
+    byName(overview.components).filter(
+      (row) =>
+        (!q || `${row.name} ${row.sku ?? ""}`.toLowerCase().includes(q)) &&
+        (!filters.type || componentTypeOf(row) === filters.type) &&
+        componentMatches(row, filters.status),
+    ),
+    filters.sort,
+    (row, key) => (key === "type" ? (copy.componentTypes[componentTypeOf(row)] ?? componentTypeOf(row)) : row[key]),
+  );
+
+  const pq = filters.pq?.toLowerCase();
+  const products = sortRows(
+    byName(overview.canMake).filter((row) => {
+      if (pq && !`${row.name} ${row.packSize}`.toLowerCase().includes(pq)) return false;
+      switch (filters.recipe) {
+        case "set":
+          return row.lineCount > 0;
+        case "none":
+          return row.lineCount === 0;
+        case "zero":
+          return row.lineCount > 0 && row.makeable === 0;
+        default:
+          return true;
+      }
+    }),
+    filters.psort,
+    (row, key) => {
+      if (key === "name") return row.name;
+      if (key === "recipe") return row.lineCount;
+      // No recipe sorts last; "no limit" counts as the most.
+      if (row.lineCount === 0) return null;
+      return row.makeable ?? Number.MAX_SAFE_INTEGER;
+    },
+  );
+  const pageCount = Math.max(1, Math.ceil(products.length / INVENTORY_PAGE_SIZE));
+  const page = Math.min(filters.ppage, pageCount);
+  return {
+    components,
+    products: products.slice((page - 1) * INVENTORY_PAGE_SIZE, page * INVENTORY_PAGE_SIZE),
+    productTotal: products.length,
+    page,
+    pageCount,
+  };
 }
 
 export async function readRecipeEditor(productId: number) {

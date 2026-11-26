@@ -5,6 +5,7 @@ import {
   documentUpload,
   isDocumentType,
   requiredDocumentsFor,
+  requiresPhoneFor,
   type DocumentType,
 } from "@/lib/verification";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
@@ -79,6 +80,12 @@ export type ProfessionalVerification = {
   /** Required documents not uploaded yet. */
   missing: DocumentType[];
   /**
+   * For types that must give a phone number (null for the others): the
+   * sign-in mobile if the account has one, else the contact number given
+   * for verification (null until given).
+   */
+  phone: { number: string | null; fromSignIn: boolean } | null;
+  /**
    * Set when the account is rejected: the reason from the latest decision
    * (null if none was given, or the status was set another way).
    */
@@ -99,6 +106,8 @@ export async function readProfessionalVerification(
       name: true,
       verificationStatus: true,
       verificationSubmittedAt: true,
+      phoneNumber: true,
+      contactPhone: true,
       userType: {
         select: { key: true, label: true, requiresVerification: true },
       },
@@ -129,11 +138,35 @@ export async function readProfessionalVerification(
     missing: required.filter(
       (type) => !user.documents.some((doc) => doc.documentType === type),
     ),
+    phone: requiresPhoneFor(user.userType.key)
+      ? {
+          number: user.phoneNumber ?? user.contactPhone,
+          fromSignIn: user.phoneNumber !== null,
+        }
+      : null,
     rejection:
       user.verificationStatus === "rejected"
         ? { comment: latest?.decision === "rejected" ? latest.comment : null }
         : null,
   };
+}
+
+/**
+ * Whether a professional has everything their type needs for review: each
+ * required document, and a phone number if their type needs one.
+ */
+export function isSubmissionComplete(
+  userTypeKey: string,
+  uploaded: Iterable<string>,
+  phone: { phoneNumber: string | null; contactPhone: string | null },
+): boolean {
+  const have = new Set(uploaded);
+  return (
+    requiredDocumentsFor(userTypeKey).every((type) => have.has(type)) &&
+    (!requiresPhoneFor(userTypeKey) ||
+      phone.phoneNumber !== null ||
+      phone.contactPhone !== null)
+  );
 }
 
 function sortDocuments(
@@ -152,6 +185,8 @@ function sortDocuments(
 export type ReviewDetail = ProfessionalVerification & {
   email: string | null;
   phoneNumber: string | null;
+  /** Given for verification when there's no sign-in mobile; not checked. */
+  contactPhone: string | null;
   createdAt: Date;
   history: DecisionView[];
 };
@@ -165,7 +200,12 @@ export async function readVerificationReview(
   const [user, history] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { email: true, phoneNumber: true, createdAt: true },
+      select: {
+        email: true,
+        phoneNumber: true,
+        contactPhone: true,
+        createdAt: true,
+      },
     }),
     readDecisionHistory(userId),
   ]);
@@ -173,6 +213,7 @@ export async function readVerificationReview(
     ...base,
     email: isPlaceholderEmail(user.email) ? null : user.email,
     phoneNumber: user.phoneNumber,
+    contactPhone: user.contactPhone,
     createdAt: user.createdAt,
     history,
   };
@@ -269,8 +310,14 @@ export async function uploadDocument(input: {
     outcome = await db.$transaction(async (tx) => {
       // Lock the user row, so an admin decision can't land in between (and
       // an approval is never undone by an upload that started before it).
-      const [row] = await tx.$queryRaw<{ verificationStatus: Status }[]>`
-        SELECT verificationStatus FROM \`User\` WHERE id = ${user.id} FOR UPDATE`;
+      const [row] = await tx.$queryRaw<
+        {
+          verificationStatus: Status;
+          phoneNumber: string | null;
+          contactPhone: string | null;
+        }[]
+      >`
+        SELECT verificationStatus, phoneNumber, contactPhone FROM \`User\` WHERE id = ${user.id} FOR UPDATE`;
       if (!row || row.verificationStatus === "approved") {
         return { locked: true as const };
       }
@@ -296,8 +343,11 @@ export async function uploadDocument(input: {
         where: { userId: user.id },
         select: { documentType: true },
       });
-      const have = new Set(uploaded.map((item) => item.documentType));
-      const complete = required.every((type) => have.has(type));
+      const complete = isSubmissionComplete(
+        user.userType.key,
+        uploaded.map((item) => item.documentType),
+        row,
+      );
       if (complete) {
         await tx.user.update({
           where: { id: user.id },
@@ -340,6 +390,81 @@ export async function uploadDocument(input: {
     );
   });
   return { ok: true, document: outcome.document, complete: outcome.complete };
+}
+
+// ─── Contact phone ──────────────────────────────────────────────────────────
+
+export type ContactPhoneError = "notNeeded" | "locked";
+
+/**
+ * Saves the phone number a professional gives for verification (types that
+ * need one, when the account has no sign-in mobile). Like an upload, it
+ * sends the account for review once everything is in. `phone` is already
+ * checked: "+91" and a valid mobile.
+ */
+export async function saveContactPhone(input: {
+  userId: string;
+  phone: string;
+}): Promise<{ ok: true; complete: boolean } | { ok: false; error: ContactPhoneError }> {
+  const user = await db.user.findUnique({
+    where: { id: input.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phoneNumber: true,
+      userType: {
+        select: { key: true, label: true, requiresVerification: true },
+      },
+    },
+  });
+  if (
+    !user?.userType.requiresVerification ||
+    !requiresPhoneFor(user.userType.key) ||
+    user.phoneNumber !== null
+  ) {
+    return { ok: false, error: "notNeeded" };
+  }
+  const outcome = await db.$transaction(async (tx) => {
+    const [row] = await tx.$queryRaw<{ verificationStatus: Status }[]>`
+      SELECT verificationStatus FROM \`User\` WHERE id = ${user.id} FOR UPDATE`;
+    if (!row || row.verificationStatus === "approved") return null;
+    const uploaded = await tx.professionalDocument.findMany({
+      where: { userId: user.id },
+      select: { documentType: true },
+    });
+    const complete = isSubmissionComplete(
+      user.userType.key,
+      uploaded.map((item) => item.documentType),
+      { phoneNumber: null, contactPhone: input.phone },
+    );
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        contactPhone: input.phone,
+        ...(complete
+          ? { verificationStatus: "pending", verificationSubmittedAt: new Date() }
+          : row.verificationStatus === "none"
+            ? { verificationStatus: "pending" }
+            : {}),
+      },
+    });
+    return { complete };
+  });
+  if (!outcome) return { ok: false, error: "locked" };
+
+  if (outcome.complete) {
+    const label = copy.phoneLabel;
+    await sendQuietly(async () => {
+      await sendDocumentReceived(user, label, true);
+      await notifyAdminsOfUpload(
+        { ...user, userTypeLabel: user.userType.label },
+        label,
+        true,
+      );
+    });
+  }
+  return { ok: true, complete: outcome.complete };
 }
 
 // ─── Viewing files ──────────────────────────────────────────────────────────

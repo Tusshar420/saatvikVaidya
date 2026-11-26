@@ -322,6 +322,7 @@ export const cartProductSelect = {
   brand: { select: { name: true } },
   form: { select: { name: true, glyph: true } },
   images: {
+    where: { variant: null },
     orderBy: [{ sortOrder: "asc" as const }, { id: "asc" as const }],
     take: 1,
     select: { id: true, alt: true },

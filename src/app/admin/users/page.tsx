@@ -3,13 +3,17 @@ import Link from "next/link";
 import { Search, UserPlus } from "lucide-react";
 import { Notice, parseNotice } from "@/components/admin/notice";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { AutoSubmit } from "@/components/admin/auto-submit";
 import { Pagination } from "@/components/admin/pagination";
+import { SortSelect } from "@/components/admin/sort-select";
 import { UsersTable } from "@/components/admin/users-table";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/field";
 import { admin as copy } from "@/content/admin";
+import { listHref, nextSort, sortParam } from "@/lib/admin-sort";
 import { cn } from "@/lib/cn";
 import {
+  USER_SORT_DEFAULT,
   listUserTypes,
   listUsers,
   userFiltersSchema,
@@ -35,6 +39,15 @@ export default async function AdminUsersPage({
   const filtered = Boolean(
     filters.q || filters.type || filters.status || filters.role,
   );
+  const listParams = {
+    q: filters.q,
+    type: filters.type,
+    status: filters.status,
+    role: filters.role,
+    sort: sortParam(filters.sort, USER_SORT_DEFAULT),
+  };
+  const sortHref = (sort: typeof filters.sort) =>
+    listHref("/admin/users", { ...listParams, sort: sortParam(sort, USER_SORT_DEFAULT) });
 
   return (
     <>
@@ -55,7 +68,7 @@ export default async function AdminUsersPage({
         method="get"
         role="search"
         aria-label={text.searchLabel}
-        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+        className="mt-6 grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1.2fr]"
       >
         <FilterField
           id="filter-q"
@@ -123,19 +136,21 @@ export default async function AdminUsersPage({
             ))}
           </select>
         </FilterField>
-        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
+        <SortSelect id="filter-sort" sort={filters.sort} options={text.sorts} />
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
           <Button type="submit" variant="secondary" className="flex-1 lg:flex-none">
             {copy.common.filter}
           </Button>
           {filtered && (
             <Link
-              href="/admin/users"
+              href={listHref("/admin/users", { sort: listParams.sort })}
               className={buttonClasses({ variant: "link" })}
             >
               {copy.common.clearFilters}
             </Link>
           )}
         </div>
+        <AutoSubmit />
       </form>
 
       {/* Always rendered, so a bulk action's message survives an empty list. */}
@@ -143,16 +158,16 @@ export default async function AdminUsersPage({
         rows={list.rows}
         currentUserId={user.id}
         emptyText={filtered ? copy.common.noResults : text.empty}
+        sort={filters.sort}
+        sortLinks={{
+          name: sortHref(nextSort(filters.sort, "name")),
+          joined: sortHref(nextSort(filters.sort, "joined", "desc")),
+        }}
       />
 
       <Pagination
         basePath="/admin/users"
-        params={{
-          q: filters.q,
-          type: filters.type,
-          status: filters.status,
-          role: filters.role,
-        }}
+        params={listParams}
         page={list.page}
         pageCount={list.pageCount}
       />

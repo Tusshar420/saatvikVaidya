@@ -1,5 +1,13 @@
 import "server-only";
-import { deadlineOf, periodEnd, periodStart, publicName, rankEntries, type LeaderboardPeriod } from "@/lib/quiz";
+import {
+  QUIZ_QUESTION_COUNT,
+  deadlineOf,
+  periodEnd,
+  periodStart,
+  publicName,
+  rankEntries,
+  type LeaderboardPeriod,
+} from "@/lib/quiz";
 import { db } from "@/server/db";
 import { closeAttempt, closeExpiredAttempts, findNextQuiz, findOpenQuiz, readAnswers } from "./attempts";
 
@@ -20,7 +28,8 @@ export type ReviewQuestion = PlayQuestion & {
 };
 
 export type QuizPageView =
-  | { state: "none"; next: { title: string; startsAt: Date } | null }
+  | { state: "upcoming"; quiz: { id: number; title: string; description: string | null; startsAt: Date } }
+  | { state: "closed"; quiz: { id: number; title: string; description: string | null } }
   | {
       state: "ready";
       passPercent: number;
@@ -42,29 +51,37 @@ export type QuizPageView =
       review: ReviewQuestion[];
     };
 
-/** The quiz open now (or the user's finished one) for the /quiz page. */
-export async function getQuizPage(userId: string | null, now = new Date()): Promise<QuizPageView> {
-  const open = await findOpenQuiz(now);
-  if (!open) {
-    // The user's latest attempt that finished while no quiz is open isn't shown here;
-    // the leaderboard has it.
-    const next = await findNextQuiz(now);
-    return { state: "none", next: next?.startsAt ? { title: next.title, startsAt: next.startsAt } : null };
-  }
+/**
+ * One quiz's page, /quiz/[id]. Null when it isn't a published, scheduled quiz
+ * with all its questions. A player's own attempt is shown (in play or with its
+ * result) even after the quiz has closed; otherwise it is ready to start
+ * inside its week, and "upcoming" or "closed" outside it.
+ */
+export async function getQuizPage(userId: string | null, quizId: number, now = new Date()): Promise<QuizPageView | null> {
+  const quiz = await db.quiz.findFirst({
+    where: { id: quizId, active: true, startsAt: { not: null }, endsAt: { not: null } },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      startsAt: true,
+      endsAt: true,
+      passPercent: true,
+      _count: { select: { questions: true } },
+    },
+  });
+  if (!quiz?.startsAt || !quiz.endsAt || quiz._count.questions !== QUIZ_QUESTION_COUNT) return null;
   const attempt = userId
-    ? await db.quizAttempt.findUnique({ where: { userId_quizId: { userId, quizId: open.id } } })
+    ? await db.quizAttempt.findUnique({ where: { userId_quizId: { userId, quizId: quiz.id } } })
     : null;
   if (!attempt) {
+    const about = { id: quiz.id, title: quiz.title, description: quiz.description };
+    if (now < quiz.startsAt) return { state: "upcoming", quiz: { ...about, startsAt: quiz.startsAt } };
+    if (now >= quiz.endsAt) return { state: "closed", quiz: about };
     return {
       state: "ready",
-      passPercent: open.passPercent,
-      quiz: {
-        id: open.id,
-        title: open.title,
-        description: open.description,
-        endsAt: open.endsAt!,
-        questionCount: open._count.questions,
-      },
+      passPercent: quiz.passPercent,
+      quiz: { ...about, endsAt: quiz.endsAt, questionCount: quiz._count.questions },
     };
   }
   const closed = attempt.submittedAt
@@ -74,7 +91,7 @@ export async function getQuizPage(userId: string | null, now = new Date()): Prom
       : null;
   if (!closed) {
     const questions = await db.quizQuestion.findMany({
-      where: { quizId: open.id },
+      where: { quizId: quiz.id },
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       // No `isCorrect`: nothing about the right answers goes to the player.
       select: {
@@ -86,13 +103,96 @@ export async function getQuizPage(userId: string | null, now = new Date()): Prom
     });
     return {
       state: "playing",
-      quiz: { id: open.id, title: open.title },
+      quiz: { id: quiz.id, title: quiz.title },
       questions,
       answers: readAnswers(attempt.answers),
       secondsLeft: Math.max(0, Math.ceil((deadlineOf(attempt.startedAt).getTime() - now.getTime()) / 1000)),
     };
   }
-  return finishedView(closed, open.title, open.passPercent);
+  return finishedView(closed, quiz.title, quiz.passPercent);
+}
+
+export type QuizBox = {
+  id: number;
+  title: string;
+  /** The quiz's mark, else its category's; null shows the default. */
+  glyph: string | null;
+  questionCount: number;
+  startsAt: Date;
+  endsAt: Date;
+  /** Open now, or opening later. */
+  open: boolean;
+  /** The viewer's own go at it, if any. */
+  played: "playing" | "done" | null;
+};
+
+/** A heading on /quiz and its quizzes. `name` null: the quizzes with no (shown) category. */
+export type QuizGroup = { key: string; name: string | null; quizzes: QuizBox[] };
+
+/**
+ * The /quiz boxes: every published quiz that is open now or scheduled to
+ * open, grouped under its category in the admin's order (open ones first,
+ * then by opening time). Quizzes with no category, or a hidden one, come last.
+ */
+export async function listQuizGroups(userId: string | null, now = new Date()): Promise<QuizGroup[]> {
+  const quizzes = await db.quiz.findMany({
+    where: { active: true, startsAt: { not: null }, endsAt: { gt: now } },
+    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      title: true,
+      glyph: true,
+      startsAt: true,
+      endsAt: true,
+      category: { select: { id: true, key: true, name: true, glyph: true, active: true, sortOrder: true } },
+      _count: { select: { questions: true } },
+    },
+  });
+  const playable = quizzes.filter((quiz) => quiz._count.questions === QUIZ_QUESTION_COUNT);
+  const attempts = userId
+    ? await db.quizAttempt.findMany({
+        where: { userId, quizId: { in: playable.map((quiz) => quiz.id) } },
+        select: { quizId: true, startedAt: true, submittedAt: true },
+      })
+    : [];
+  const playedOf = new Map(
+    attempts.map((attempt) => [
+      attempt.quizId,
+      !attempt.submittedAt && now <= deadlineOf(attempt.startedAt) ? ("playing" as const) : ("done" as const),
+    ]),
+  );
+
+  const groups = new Map<string, QuizGroup & { order: [number, number, number] }>();
+  for (const quiz of playable) {
+    const category = quiz.category?.active ? quiz.category : null;
+    const key = category?.key ?? "";
+    const group = groups.get(key) ?? {
+      key: key || "more",
+      name: category?.name ?? null,
+      quizzes: [],
+      // Categories in the admin's order; no category goes last.
+      order: category ? [0, category.sortOrder, category.id] : [1, 0, 0],
+    };
+    group.quizzes.push({
+      id: quiz.id,
+      title: quiz.title,
+      glyph: quiz.glyph ?? quiz.category?.glyph ?? null,
+      questionCount: quiz._count.questions,
+      startsAt: quiz.startsAt!,
+      endsAt: quiz.endsAt!,
+      open: quiz.startsAt! <= now,
+      played: playedOf.get(quiz.id) ?? null,
+    });
+    groups.set(key, group);
+  }
+  return [...groups.values()]
+    .sort((a, b) => a.order[0] - b.order[0] || a.order[1] - b.order[1] || a.order[2] - b.order[2])
+    .map(({ key, name, quizzes: boxes }) => ({
+      key,
+      name,
+      // Stable sort: open ones first, each part still by opening time.
+      quizzes: boxes.sort((a, b) => Number(b.open) - Number(a.open)),
+    }));
 }
 
 /** The user's finished attempt on a quiz, with answers and explanations. */

@@ -499,6 +499,15 @@ export const quickActionSeed: Seed<Prisma.QuickActionCreateInput>[] = [
   },
 ];
 
+// Starting groups for the quizzes on /quiz. Admins rename, hide or add more
+// at /admin/content/quiz-categories, and pick one for each quiz.
+export const quizCategorySeed: Seed<Prisma.QuizCategoryCreateInput>[] = [
+  { key: "ayurveda-basics", sortOrder: 10, name: "Ayurveda Basics", glyph: "आ" },
+  { key: "dosha-prakriti", sortOrder: 20, name: "Dosha & Prakriti", glyph: "दो" },
+  { key: "herbs-formulations", sortOrder: 30, name: "Herbs & Formulations", glyph: "औ" },
+  { key: "diet-lifestyle", sortOrder: 40, name: "Diet & Daily Routine", glyph: "दि" },
+];
+
 // The mockup's "By Practice Area" tab has no entries, so the practice areas
 // below are SAMPLE entries (from P1.3) that give the catalogue's practice-area
 // filter something to show. Edit or replace them once the client confirms.

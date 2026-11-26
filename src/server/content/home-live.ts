@@ -1,5 +1,6 @@
 import "server-only";
 import { MAX_BRAND_UNITS } from "@/lib/brand";
+import { coinsEarned, exampleOrderRupees } from "@/lib/coins";
 import { QUIZ_SECONDS } from "@/lib/quiz";
 import { brandProductSelect, brandProductWhere, toBrandProduct } from "@/server/brand/drafts";
 import {
@@ -117,11 +118,11 @@ export type CoinMaths = {
   expiryMonths: number;
 };
 
-/** The coins strip's worked example: a ₹10,000 order. */
+/** The coins strip's worked example: a ₹10,000 order (or the minimum). */
 export async function getCoinMaths(): Promise<CoinMaths> {
   const rules = await getSetting("coins.rules");
-  const orderRupees = 10_000;
-  const coins = (orderRupees / 1000) * rules.earnPerThousandRupees;
+  const orderRupees = exampleOrderRupees(rules);
+  const coins = coinsEarned(orderRupees * 100, rules);
   return {
     orderRupees,
     coins,

@@ -9,6 +9,7 @@ import {
   findViewableDocument,
   readProfessionalVerification,
   readVerificationReview,
+  saveContactPhone,
   uploadDocument,
   verificationStateOf,
 } from "./documents";
@@ -78,27 +79,40 @@ describe("verificationStateOf", () => {
 });
 
 describe("uploadDocument", () => {
-  it("a doctor's one certificate completes the set and goes to review", async () => {
+  it("a doctor's state board registration and degree complete the set and go to review", async () => {
     await createUser("doc", "doctor");
     const before = await readProfessionalVerification("doc");
     expect(before).toMatchObject({
       state: "needed",
-      required: ["registration_certificate"],
-      missing: ["registration_certificate"],
+      required: ["registration_certificate", "degree_certificate"],
+      missing: ["registration_certificate", "degree_certificate"],
+      phone: null,
     });
 
-    const result = await upload("doc", "registration_certificate", pdf, "My cert.pdf");
+    expect(await upload("doc", "registration_certificate")).toMatchObject({
+      ok: true,
+      complete: false,
+    });
+    expect(await readProfessionalVerification("doc")).toMatchObject({
+      state: "needed",
+      missing: ["degree_certificate"],
+    });
+    sent.length = 0;
+
+    const result = await upload("doc", "degree_certificate", pdf, "My degree.pdf");
     expect(result).toMatchObject({
       ok: true,
       complete: true,
-      document: { fileName: "My cert.pdf", contentType: "application/pdf" },
+      document: { fileName: "My degree.pdf", contentType: "application/pdf" },
     });
 
     const after = await readProfessionalVerification("doc");
     expect(after?.state).toBe("review");
     expect(after?.submittedAt).toBeInstanceOf(Date);
     expect(after?.missing).toEqual([]);
-    const row = await db.professionalDocument.findFirstOrThrow({ where: { userId: "doc" } });
+    const row = await db.professionalDocument.findFirstOrThrow({
+      where: { userId: "doc", documentType: "degree_certificate" },
+    });
     expect(row.sizeBytes).toBe(pdf.byteLength);
     expect(await fileExists(row.fileKey)).toBe(true);
 
@@ -129,6 +143,73 @@ describe("uploadDocument", () => {
       complete: true,
     });
     expect((await readProfessionalVerification("pharm"))?.state).toBe("review");
+  });
+
+  it("a student's college ID card completes the set", async () => {
+    await createUser("student", "student");
+    expect(await readProfessionalVerification("student")).toMatchObject({
+      required: ["college_id_card"],
+      phone: null,
+    });
+    expect(await upload("student", "college_id_card", jpeg, "id.jpg")).toMatchObject({
+      ok: true,
+      complete: true,
+    });
+    expect((await readProfessionalVerification("student"))?.state).toBe("review");
+  });
+
+  it("a clinic needs its Aadhaar and PAN cards and a phone number", async () => {
+    await createUser("clinic", "clinic");
+    expect(await readProfessionalVerification("clinic")).toMatchObject({
+      required: ["aadhaar_card", "pan_card"],
+      phone: { number: null, fromSignIn: false },
+    });
+    await upload("clinic", "aadhaar_card");
+    expect(await upload("clinic", "pan_card")).toMatchObject({ ok: true, complete: false });
+    expect((await readProfessionalVerification("clinic"))?.state).toBe("needed");
+    sent.length = 0;
+
+    // The phone number is the last piece: it sends the account for review.
+    expect(await saveContactPhone({ userId: "clinic", phone: "+919812345678" })).toEqual({
+      ok: true,
+      complete: true,
+    });
+    expect(await readProfessionalVerification("clinic")).toMatchObject({
+      state: "review",
+      phone: { number: "+919812345678", fromSignIn: false },
+    });
+    expect(sent.map((message) => message.to)).toEqual(["clinic@example.test", "admin@example.test"]);
+    expect((await readVerificationReview("clinic"))?.contactPhone).toBe("+919812345678");
+  });
+
+  it("a stockist who signed in by mobile is complete with the two cards", async () => {
+    await createUser("stock", "stockist", { phoneNumber: "+919812345670" });
+    expect((await readProfessionalVerification("stock"))?.phone).toEqual({
+      number: "+919812345670",
+      fromSignIn: true,
+    });
+    await upload("stock", "pan_card");
+    expect(await upload("stock", "aadhaar_card")).toMatchObject({ ok: true, complete: true });
+    // A sign-in mobile is used as is; there's no second number to give.
+    expect(await saveContactPhone({ userId: "stock", phone: "+919812345678" })).toEqual({
+      ok: false,
+      error: "notNeeded",
+    });
+  });
+
+  it("only clinics and stockists without a sign-in mobile give a contact phone", async () => {
+    await createUser("doc", "doctor");
+    expect(await saveContactPhone({ userId: "doc", phone: "+919812345678" })).toEqual({
+      ok: false,
+      error: "notNeeded",
+    });
+    await createUser("done", "clinic", { verificationStatus: "approved" });
+    expect(await saveContactPhone({ userId: "done", phone: "+919812345678" })).toEqual({
+      ok: false,
+      error: "locked",
+    });
+    const rows = await db.user.findMany({ where: { contactPhone: { not: null } } });
+    expect(rows).toHaveLength(0);
   });
 
   it("replacing a document deletes the old file", async () => {
@@ -210,6 +291,7 @@ describe("decisions", () => {
   it("reject with a reason, re-upload, then approve", async () => {
     await createUser("doc", "doctor");
     await upload("doc", "registration_certificate");
+    await upload("doc", "degree_certificate");
     sent.length = 0;
 
     await decideVerification(["doc"], "rejected", "The certificate is blurred.", "admin-1");

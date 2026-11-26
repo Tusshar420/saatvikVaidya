@@ -5,7 +5,7 @@ import type { ShipmentStatusKey } from "@/lib/shipping";
 // provider later without changes to them: it would book a courier in
 // createShipment() and check its webhook in verifyEvent().
 
-export type ShippingProviderName = "test";
+export type ShippingProviderName = "test" | "manual";
 
 export type CreateShipmentInput = {
   orderId: string;
@@ -16,6 +16,9 @@ export type CreateShipmentInput = {
   pincode: string;
   /** Units in the parcel. */
   units: number;
+  /** Typed by the admin when the team booked the courier themselves (manual provider). */
+  courierName?: string | null;
+  trackingNumber?: string | null;
 };
 
 /** A status change the provider reported for a shipment, once checked. */

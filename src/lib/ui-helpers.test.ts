@@ -82,6 +82,7 @@ describe("isDesignPageEnabled", () => {
 describe("cn", () => {
   it("keeps custom text sizes next to text colours", () => {
     expect(cn("text-h2 text-ink", "text-brand")).toBe("text-h2 text-brand");
+    expect(cn("text-page-title text-ink", "text-white")).toBe("text-page-title text-white");
   });
 
   it("lets a caller override a token-based class", () => {

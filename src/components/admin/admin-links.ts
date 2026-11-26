@@ -20,8 +20,10 @@ import {
   LineChart,
   ListChecks,
   ListOrdered,
+  MousePointerClick,
   MessageSquareQuote,
   Package,
+  PhoneCall,
   Pill,
   Plus,
   Settings,
@@ -34,11 +36,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { admin as copy } from "@/content/admin";
+import { assistedOrders as assistedCopy } from "@/content/assisted-orders";
 import { adminSecurity } from "@/content/admin-security";
 import { adminHome } from "@/content/admin-site";
 import { brand as brandCopy } from "@/content/brand";
 import { errorLog } from "@/content/errors";
 import { inventory as inventoryCopy } from "@/content/inventory";
+import { traffic as trafficCopy } from "@/content/traffic";
 import {
   roleCanAccess,
   type AdminArea,
@@ -79,6 +83,13 @@ export const adminLinkGroups: AdminLinkGroup[] = [
         icon: LineChart,
         keywords: words.reports,
       },
+      {
+        href: "/admin/traffic",
+        area: "reports",
+        label: trafficCopy.nav,
+        icon: MousePointerClick,
+        keywords: trafficCopy.keywords,
+      },
     ],
   },
   {
@@ -92,6 +103,13 @@ export const adminLinkGroups: AdminLinkGroup[] = [
         label: copy.nav.orders,
         icon: Package,
         keywords: words.orders,
+      },
+      {
+        href: "/admin/assisted-orders",
+        area: "orders",
+        label: assistedCopy.admin.nav,
+        icon: PhoneCall,
+        keywords: assistedCopy.admin.keywords,
       },
       {
         href: "/admin/brand-orders",
@@ -179,6 +197,13 @@ export const adminLinkGroups: AdminLinkGroup[] = [
         area: "content",
         label: copy.nav.quiz,
         icon: ListChecks,
+        keywords: words.quiz,
+      },
+      {
+        href: "/admin/content/quiz-categories",
+        area: "content",
+        label: home.quizCategories,
+        icon: Shapes,
         keywords: words.quiz,
       },
       {

@@ -32,6 +32,11 @@ describe("recordServerError (onRequestError)", () => {
     expect(await db.errorGroup.count()).toBe(0);
   });
 
+  it("ignores a request the browser cancelled mid-stream", async () => {
+    await recordServerError(new Error("The destination stream closed early."), request, context);
+    expect(await db.errorGroup.count()).toBe(0);
+  });
+
   it("copes with non-Error values", async () => {
     await recordServerError("a string", request, context);
     await recordServerError(undefined, request, context);

@@ -20,6 +20,7 @@ const checked = z.preprocess((value) => value === "on", z.boolean());
 export const coinRulesForm = z.object({
   enabled: checked,
   earnPerThousandRupees: whole(0, 10_000),
+  minOrderRupees: whole(0, 10_000_000),
   earnAfterDelivery: checked,
   interestsReward: whole(0, 1_000_000),
   detailsReward: whole(0, 1_000_000),

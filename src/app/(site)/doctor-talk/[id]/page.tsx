@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AuthorLine, LikeButton } from "@/components/site/doctor-talk/thread-card";
+import { AuthorLine, LikeButton, LinkedText, ThreadImages, ThreadPoll } from "@/components/site/doctor-talk/thread-card";
 import { ReplyForm } from "@/components/site/doctor-talk/thread-forms";
 import { PortalShell, portalCardClasses } from "@/components/site/portal/page-hero";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +36,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
             <Badge>{threads.kindLabel[thread.kind]}</Badge>
           </div>
           <h1 className="mt-4 text-h3 text-ink">{thread.title}</h1>
-          <p className="mt-3 text-body-lg whitespace-pre-line text-ink">{thread.body}</p>
+          <p className="mt-3 text-body-lg whitespace-pre-line text-ink">
+            <LinkedText text={thread.body} />
+          </p>
+          <ThreadImages thread={thread} />
+          {thread.poll && <ThreadPoll threadId={thread.id} poll={thread.poll} />}
           <div className="mt-4 border-t border-line pt-2">
             <LikeButton thread={thread} canLike />
           </div>
@@ -53,7 +57,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               {replies.map((reply) => (
                 <li key={reply.id} className={`${portalCardClasses} p-4`}>
                   <AuthorLine author={reply.author} createdAt={reply.createdAt} />
-                  <p className="mt-2.5 text-small whitespace-pre-line text-ink">{reply.body}</p>
+                  <p className="mt-2.5 text-small whitespace-pre-line text-ink">
+                    <LinkedText text={reply.body} />
+                  </p>
                 </li>
               ))}
             </ul>

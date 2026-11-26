@@ -50,7 +50,7 @@ export function Header({
       )}
     >
       <div className="shell grid h-16.25 grid-cols-[auto_1fr_auto] items-center gap-2 sm:h-17.5 sm:gap-4.5 md:h-20.5 md:grid-cols-[170px_minmax(240px,1fr)_auto] lg:grid-cols-[185px_minmax(240px,1fr)_auto] lg:gap-8">
-        <Logo priority />
+        <Logo slogan priority />
         <HeaderSearch
           popularSearches={popularSearches}
           className="justify-self-end md:w-full md:max-w-127.5 md:justify-self-center"

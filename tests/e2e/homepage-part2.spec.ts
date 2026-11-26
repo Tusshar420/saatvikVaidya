@@ -37,8 +37,8 @@ test.describe("Homepage part 2 (bottom half)", () => {
     const nav = page.getByRole("navigation", { name: /sections/i });
 
     // v2 rail links to pages, not to homepage sections. On phones the bottom
-    // dock has Courses, Coins and Order, so the rail leaves those out.
-    const wideOnly = ["Courses", "Saatvik Coins", "Track Order"];
+    // dock has Quiz & Win, Coins and Order, so the rail leaves those out.
+    const wideOnly = ["Quiz & Win", "Saatvik Coins", "Track Order"];
     for (const name of [
       "Dr. Talk",
       "Quiz & Win",

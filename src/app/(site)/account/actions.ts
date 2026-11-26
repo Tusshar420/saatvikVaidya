@@ -6,6 +6,8 @@ import { isAPIError } from "better-auth/api";
 import { z } from "zod";
 import { account as copy } from "@/content/account";
 import { authErrors } from "@/content/auth";
+import { verification } from "@/content/verification";
+import { toIndianE164 } from "@/lib/phone";
 import { formValues, type FormState } from "@/server/admin/form";
 import { updateName, updateNotifications } from "@/server/account/settings";
 import { auth } from "@/server/auth";
@@ -21,6 +23,7 @@ import {
   saveAddressFromForm,
   type AddressFormState,
 } from "@/server/checkout/addresses";
+import { saveContactPhone } from "@/server/verification/documents";
 
 // Server actions for /account. Each checks the session itself (requireUser)
 // and validates its input with Zod; the user id always comes from the
@@ -160,4 +163,34 @@ export async function deleteAddressAction(_: FormState, formData: FormData): Pro
   return removed
     ? { status: "success", message: copy.addresses.removed }
     : { status: "error", message: copy.addresses.notFound };
+}
+
+const contactPhoneSchema = z.object({
+  phone: z
+    .string()
+    .max(20)
+    .transform((value) => toIndianE164(value))
+    .pipe(z.string({ error: verification.phone.invalid })),
+});
+
+/** The phone number a clinic or stockist gives for verification. */
+export async function saveContactPhoneAction(_: FormState, formData: FormData): Promise<FormState> {
+  const { user } = await requireUser("/account");
+  const values = formValues(formData);
+  const parsed = contactPhoneSchema.safeParse(values);
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: copy.errors.form,
+      fieldErrors: { phone: verification.phone.invalid },
+      values,
+    };
+  }
+  const result = await saveContactPhone({ userId: user.id, phone: parsed.data.phone });
+  if (!result.ok) return { status: "error", message: verification.phone[result.error] };
+  revalidatePath("/account");
+  return {
+    status: "success",
+    message: result.complete ? verification.submitted : verification.phone.saved,
+  };
 }

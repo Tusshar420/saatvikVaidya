@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BadgeCheck, BookOpen, ChevronRight, Coins, GraduationCap, LayoutDashboard, Presentation, LifeBuoy, MapPin, Package, Tag, Phone, ShieldCheck, Sparkles, UserRound, type LucideIcon } from "lucide-react";
-import { PageHero } from "@/components/site/page-hero";
 import { NameForm, NotificationsForm, PasswordForm, TestEmailButton, VerifyEmailButton } from "@/components/site/account/profile-forms";
 import { FormAlert } from "@/components/site/auth/form-alert";
+import { ContactPhone } from "@/components/site/account/contact-phone";
 import { DocumentUpload } from "@/components/site/account/document-upload";
 import { MyEbooks } from "@/components/site/ebooks/my-ebooks";
 import { listOwnedEbooks } from "@/server/ebooks/ebooks";
@@ -85,14 +85,6 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
 
   return (
     <>
-      <PageHero
-        eyebrow={copy.hero.eyebrow}
-        title={copy.hero.title}
-        titleAs="p"
-        description={copy.hero.description}
-        note={{ status: copy.hero.status, title: copy.hero.noteTitle, text: copy.hero.noteText }}
-      />
-
       <div className="bg-cream pt-7 pb-19 sm:pt-9.5 md:pt-13.5 md:pb-24">
         <div className="shell grid items-start gap-5.5 md:grid-cols-[310px_minmax(0,1fr)]">
           <aside className={cn(cardClass, "p-5 sm:p-6.25 md:sticky md:top-28")}>
@@ -503,6 +495,13 @@ function Documents({ verification }: { verification: ProfessionalVerification })
             />
           );
         })}
+        {verification.phone && (
+          <ContactPhone
+            number={verification.phone.number}
+            fromSignIn={verification.phone.fromSignIn}
+            locked={locked}
+          />
+        )}
       </ul>
     </Card>
   );

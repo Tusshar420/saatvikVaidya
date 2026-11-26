@@ -11,7 +11,7 @@ export const quiz = {
       kicker: "Quiz & Win",
       title: "Learn Ayurveda.",
       emphasis: "Earn rewards.",
-      cta: "Play this week's quiz",
+      cta: "Choose a quiz",
       ctaNone: "See when the next quiz opens",
     },
     board: {
@@ -22,6 +22,27 @@ export const quiz = {
     },
   },
   challenge: "Weekly challenge",
+  /** The /quiz boxes, grouped by category. */
+  grid: {
+    title: "Choose a quiz",
+    more: "More quizzes",
+    /** Shown on a box when neither the quiz nor its category has a mark. */
+    glyph: "प्र",
+    until: (date: string) => `Open till ${date}`,
+    opens: (date: string) => `Opens ${date}`,
+    played: "Played",
+    playing: "In progress",
+  },
+  back: "All quizzes",
+  upcoming: {
+    title: "This quiz hasn't opened yet",
+    opens: (when: string) => `It opens ${when}. Come back then to play.`,
+  },
+  closed: {
+    title: "This quiz has closed",
+    body: "Its week is over. Pick one of the open quizzes instead.",
+    cta: "See open quizzes",
+  },
   board: {
     eyebrow: "Leaderboard",
     title: "Top scores this week",
@@ -89,7 +110,7 @@ export const quiz = {
     empty: "No one has finished a quiz in this period yet.",
     yourRank: (rank: number) => `Your rank: ${count(rank)}`,
     notRanked: "You haven't finished a quiz in this period.",
-    play: "Play this week's quiz",
+    play: "Choose a quiz",
     back: "Back to Quiz & Win",
   },
   home: {

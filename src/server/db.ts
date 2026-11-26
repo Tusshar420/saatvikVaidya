@@ -23,8 +23,13 @@ function connectionString(url: string): string {
   }
 }
 
+// The collation above was not enough: with the default binary protocol,
+// MariaDB still types each search value as utf8mb4_bin, so every `contains`
+// search (`LIKE CONCAT('%', ?, '%')`) failed there with the same error. The
+// text protocol puts values into the SQL as ordinary string literals, which
+// take the connection collation, so LIKE works on MariaDB and MySQL 8 alike.
 function createClient(): PrismaClient {
-  const adapter = new PrismaMariaDb(connectionString(serverEnv().DATABASE_URL));
+  const adapter = new PrismaMariaDb(connectionString(serverEnv().DATABASE_URL), { useTextProtocol: true });
   return new PrismaClient({ adapter });
 }
 
