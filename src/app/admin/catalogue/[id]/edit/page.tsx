@@ -9,7 +9,7 @@ import { ProductForm } from "@/components/admin/product-form";
 import { ProductImages } from "@/components/admin/product-images";
 import { buttonClasses } from "@/components/ui/button";
 import { admin as copy } from "@/content/admin";
-import { brandThemeOf } from "@/lib/brand-theme";
+import { brandThemeOf, toVariantNames } from "@/lib/brand-theme";
 import { productHref, productImageSrc } from "@/lib/catalogue";
 import {
   getAdminProduct,
@@ -23,6 +23,7 @@ import {
   deleteProductImageAction,
   moveProductImageAction,
   updateProductAction,
+  saveVariantNamesAction,
   updateProductImageAction,
 } from "../../actions";
 
@@ -73,6 +74,8 @@ export default async function EditProductPage({
           product.brandEligible ||
           product.images.some((image) => image.variant !== null)
         }
+        variantNames={toVariantNames(product.variantNames)}
+        namesAction={saveVariantNamesAction.bind(null, product.id)}
         moveAction={moveProductImageAction}
         deleteAction={deleteProductImageAction}
         altAction={updateProductImageAction}

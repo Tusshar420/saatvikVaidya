@@ -70,6 +70,7 @@ export default async function LaunchProductPage({ params }: PageProps<"/launch/[
         detail={`${product.formName} • ${product.packSize}`}
         initialTheme={brandThemeOf(inCart?.labelTheme).key}
         photos={photos}
+        names={product.variantNames}
         action={session ? chooseBrandProductAction : null}
         signInHref={signInPath(`/launch/${product.slug}`)}
       >

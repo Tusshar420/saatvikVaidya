@@ -10,7 +10,13 @@ import { Field, inputClasses, useFieldIds } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
-import { brandThemes, type BrandThemeKey } from "@/lib/brand-theme";
+import {
+  MAX_VARIANT_NAME,
+  brandThemes,
+  variantName,
+  type BrandThemeKey,
+  type VariantNames,
+} from "@/lib/brand-theme";
 import { MAX_PRODUCT_IMAGES, productImageUpload } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import { formatFileSize } from "@/lib/verification";
@@ -21,6 +27,7 @@ const text = copy.catalogue.images;
 const maxSize = formatFileSize(productImageUpload.maxBytes);
 
 const themeNames = brandCopy.customise.themes;
+const namesText = copy.catalogue.variantNames;
 
 export type ProductImageItem = {
   id: number;
@@ -35,6 +42,10 @@ export type ProductImagesProps = {
   images: ProductImageItem[];
   /** Offer "Shows for" (a Build Your Brand product, or photos already marked). */
   variants: boolean;
+  /** The product's own variant names (used in "Shows for" and the badges). */
+  variantNames: VariantNames;
+  /** Saves the variant names; bound to the product. */
+  namesAction: (state: FormState, formData: FormData) => Promise<FormState>;
   moveAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
   altAction: (state: FormState, formData: FormData) => Promise<FormState>;
@@ -48,6 +59,8 @@ export function ProductImages({
   productId,
   images,
   variants,
+  variantNames,
+  namesAction,
   moveAction,
   deleteAction,
   altAction,
@@ -66,6 +79,7 @@ export function ProductImages({
         {text.description(MAX_PRODUCT_IMAGES, maxSize)}
       </p>
       {variants && <p className="mt-1 text-small text-muted">{text.variantNote}</p>}
+      {variants && <VariantNamesForm names={variantNames} action={namesAction} />}
 
       {images.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed border-line-strong bg-surface-alt px-4 py-6 text-center text-sm text-muted">
@@ -89,13 +103,14 @@ export function ProductImages({
                 {image.id === mainId && <Badge>{text.main}</Badge>}
                 {image.variant && (
                   <Badge variant="orange">
-                    {text.variantBadge(themeNames[image.variant] ?? image.variant)}
+                    {text.variantBadge(nameFor(image.variant, variantNames))}
                   </Badge>
                 )}
                 <DetailsForm
                   image={image}
                   position={index + 1}
                   variants={variants}
+                  names={variantNames}
                   action={altAction}
                 />
                 <div className="flex flex-wrap gap-2">
@@ -136,21 +151,83 @@ export function ProductImages({
       )}
 
       {images.length < MAX_PRODUCT_IMAGES && (
-        <UploadForm productId={productId} variants={variants} />
+        <UploadForm productId={productId} variants={variants} names={variantNames} />
       )}
     </section>
+  );
+}
+
+/** "Hingwastak label (Saffron Glow)" for a renamed variant, else "Saffron Glow". */
+function nameFor(key: BrandThemeKey, names: VariantNames) {
+  const name = variantName(key, names, themeNames);
+  return name === themeNames[key] ? name : `${name} (${themeNames[key]})`;
+}
+
+/** The product's own names for its four label variants. */
+function VariantNamesForm({
+  names,
+  action,
+}: {
+  names: VariantNames;
+  action: ProductImagesProps["namesAction"];
+}) {
+  const [state, formAction, pending] = useActionState(action, idleForm);
+  return (
+    <form
+      action={formAction}
+      aria-labelledby="variant-names-title"
+      className="mt-4 rounded-lg border border-line p-4"
+    >
+      <h3 id="variant-names-title" className="text-base font-extrabold text-ink">
+        {namesText.title}
+      </h3>
+      <p className="mt-1 text-small text-muted">{namesText.description}</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {brandThemes.map((theme) => {
+          const field = `name-${theme.key}`;
+          return (
+            <Input
+              key={theme.key}
+              name={field}
+              label={namesText.field(themeNames[theme.key] ?? theme.key)}
+              defaultValue={state.values?.[field] ?? names[theme.key] ?? ""}
+              placeholder={themeNames[theme.key]}
+              maxLength={MAX_VARIANT_NAME}
+              error={state.fieldErrors?.[field]}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="secondary" size="sm" loading={pending}>
+          {namesText.save}
+        </Button>
+        {state.status === "success" && (
+          <p role="status" className="text-small font-semibold text-success">
+            {state.message}
+          </p>
+        )}
+        {state.status === "error" && state.message && (
+          <p role="alert" className="text-small font-semibold text-danger">
+            {state.message}
+          </p>
+        )}
+      </div>
+    </form>
   );
 }
 
 /** "Shows for": general, or one Build Your Brand label variant. */
 function VariantSelect({
   label,
+  names,
   defaultValue,
   error,
   help,
   className,
 }: {
   label: string;
+  names: VariantNames;
   defaultValue: BrandThemeKey | null;
   error?: string;
   help?: string;
@@ -170,7 +247,7 @@ function VariantSelect({
         <option value="">{text.variantGeneral}</option>
         {brandThemes.map((theme) => (
           <option key={theme.key} value={theme.key}>
-            {themeNames[theme.key]}
+            {nameFor(theme.key, names)}
           </option>
         ))}
       </select>
@@ -183,11 +260,13 @@ function DetailsForm({
   image,
   position,
   variants,
+  names,
   action,
 }: {
   image: ProductImageItem;
   position: number;
   variants: boolean;
+  names: VariantNames;
   action: ProductImagesProps["altAction"];
 }) {
   const [state, formAction, pending] = useActionState(action, idleForm);
@@ -205,6 +284,7 @@ function DetailsForm({
       {variants ? (
         <VariantSelect
           label={text.variantFor(position)}
+          names={names}
           defaultValue={image.variant}
           error={state.fieldErrors?.variant}
           className="sm:w-60"
@@ -230,7 +310,15 @@ type UploadState =
   | { status: "done" }
   | { status: "error"; message: string; field?: "file" | "alt" | "variant" };
 
-function UploadForm({ productId, variants }: { productId: number; variants: boolean }) {
+function UploadForm({
+  productId,
+  variants,
+  names,
+}: {
+  productId: number;
+  variants: boolean;
+  names: VariantNames;
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<UploadState>({ status: "idle" });
@@ -324,6 +412,7 @@ function UploadForm({ productId, variants }: { productId: number; variants: bool
         {variants && (
           <VariantSelect
             label={text.variant}
+            names={names}
             defaultValue={null}
             help={text.variantHelp}
             error={variantError}

@@ -810,6 +810,16 @@ export const admin = {
       featured: "Featured (listed first)",
       isSample: "Sample product (labelled “Sample” on the site)",
     },
+    variantNames: {
+      title: "Variant names",
+      description:
+        "Build Your Brand: rename this product's label variants. Buyers see these names when they pick a variant, in their cart and on their order. Leave a name empty to use the default.",
+      field: (defaultName: string) => `Name for ${defaultName}`,
+      save: "Save names",
+      errors: {
+        tooLong: (max: number) => `Keep the name to ${max} characters.`,
+      },
+    },
     images: {
       title: "Images",
       description: (max: number, size: string) =>

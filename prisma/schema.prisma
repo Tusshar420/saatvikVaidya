@@ -962,6 +962,8 @@ model Product {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   images                 ProductImage[]
+  /// Build Your Brand: this product's own names for the label variants.
+  variantNames           ProductVariantName[]
   bulkTiers              BulkPriceTier[]
   cartItems              CartItem[]
   orderItems             OrderItem[]
@@ -1002,6 +1004,19 @@ model ProductImage {
   createdAt   DateTime @default(now())
 
   @@index([productId, sortOrder])
+}
+
+/// A product's own name for one Build Your Brand label variant (e.g.
+/// "Hingwastak label" for Saffron Glow). A variant without a row uses its
+/// default name (src/content/brand.ts, customise.themes).
+model ProductVariantName {
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// A label theme key (src/lib/brand-theme.ts).
+  variant   String  @db.VarChar(24)
+  name      String  @db.VarChar(40)
+
+  @@id([productId, variant])
 }
 
 /// A lower unit price from a quantity upwards, for user types with

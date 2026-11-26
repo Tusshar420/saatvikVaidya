@@ -124,3 +124,44 @@ test("an admin adds a photo per label variant and the page shows it for that var
   await expect(photo("Front of the jar")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("an admin renames a product's label variants and buyers see the new names", async ({
+  page,
+  baseURL,
+}) => {
+  const errors = collectErrors(page);
+  const product = await makeBrandProduct();
+  await signInAs(page, baseURL!, { role: "admin", adminRole: "catalogue" });
+  const names = admin.catalogue.variantNames;
+
+  await page.goto(`/admin/catalogue/${product.id}/edit`);
+  const form = page.locator("#admin-main").getByRole("form", { name: names.title });
+  await form.getByLabel(names.field(themes["saffron-glow"]!)).fill("Hingwastak label");
+  // Up to 40 characters fit.
+  await form.getByLabel(names.field(themes["royal-maroon"]!)).fill("x".repeat(40));
+  await form.getByRole("button", { name: names.save }).click();
+  await expect(form.getByRole("status")).toHaveText(admin.common.notices.saved);
+  await checkPage(page, errors);
+
+  // "Shows for" offers the new name next to the default one.
+  const images = page.locator("#admin-main").getByRole("region", { name: text.title });
+  await images.getByLabel(text.variant, { exact: true }).selectOption({
+    label: `Hingwastak label (${themes["saffron-glow"]})`,
+  });
+
+  await page.goto(`/launch/${product.slug}`);
+  await expect(page.getByRole("radio", { name: "Hingwastak label" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "x".repeat(40) })).toBeVisible();
+  await expect(page.getByRole("radio", { name: themes["classic-green"] })).toBeVisible();
+  await expect(page.getByRole("radio", { name: themes["saffron-glow"] })).toHaveCount(0);
+  await checkPage(page, errors);
+
+  // Emptied again: back to the default name.
+  await page.goto(`/admin/catalogue/${product.id}/edit`);
+  await form.getByLabel(names.field(themes["saffron-glow"]!)).fill("");
+  await form.getByRole("button", { name: names.save }).click();
+  await expect(form.getByRole("status")).toHaveText(admin.common.notices.saved);
+  await page.goto(`/launch/${product.slug}`);
+  await expect(page.getByRole("radio", { name: themes["saffron-glow"] })).toBeVisible();
+  expect(errors).toEqual([]);
+});

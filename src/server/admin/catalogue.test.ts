@@ -14,6 +14,8 @@ import {
   getAdminProduct,
   updateProduct,
   imageVariantSchema,
+  parseVariantNames,
+  saveProductVariantNames,
   updateProductImageDetails,
   type ProductInput,
 } from "./catalogue";
@@ -324,5 +326,49 @@ describe("product images", () => {
     expect(imageVariantSchema.parse(null)).toBeNull();
     expect(imageVariantSchema.parse("minimal-white")).toBe("minimal-white");
     expect(imageVariantSchema.safeParse("neon-pink").success).toBe(false);
+  });
+});
+
+describe("variant names", () => {
+  it("reads the four name fields: trimmed, empty means default, too long refused", () => {
+    const form: Record<string, string> = {
+      "name-classic-green": "  Hingwastak label  ",
+      "name-saffron-glow": "",
+      "name-royal-maroon": "Lavan Bhaskar",
+    };
+    expect(parseVariantNames((field) => form[field])).toEqual({
+      ok: true,
+      names: { "classic-green": "Hingwastak label", "royal-maroon": "Lavan Bhaskar" },
+    });
+    expect(parseVariantNames(() => "x".repeat(41))).toMatchObject({
+      ok: false,
+      fieldErrors: { "name-classic-green": expect.any(String), "name-minimal-white": expect.any(String) },
+    });
+  });
+
+  it("saves a product's names with an audit entry; a removed name goes back to the default", async () => {
+    const id = (await db.product.findUniqueOrThrow({ where: { slug: "triphala-churna" } })).id;
+    expect(
+      await saveProductVariantNames(id, { "saffron-glow": "Hingwastak label" }, adminId),
+    ).toEqual({ productId: id });
+    expect((await getAdminProduct(id))?.variantNames).toEqual([
+      { variant: "saffron-glow", name: "Hingwastak label" },
+    ]);
+    const log = await db.adminLog.findFirstOrThrow({
+      where: { resource: "Product", resourceId: String(id), action: "product.update" },
+      orderBy: { id: "desc" },
+    });
+    expect(log.changes).toEqual({ "name.saffron-glow": { from: null, to: "Hingwastak label" } });
+
+    // Saving the same names again changes nothing and logs nothing.
+    const logs = await db.adminLog.count();
+    await saveProductVariantNames(id, { "saffron-glow": "Hingwastak label" }, adminId);
+    expect(await db.adminLog.count()).toBe(logs);
+
+    await saveProductVariantNames(id, { "royal-maroon": "Lavan Bhaskar" }, adminId);
+    expect((await getAdminProduct(id))?.variantNames).toEqual([
+      { variant: "royal-maroon", name: "Lavan Bhaskar" },
+    ]);
+    expect(await saveProductVariantNames(999_999, {}, adminId)).toBeNull();
   });
 });

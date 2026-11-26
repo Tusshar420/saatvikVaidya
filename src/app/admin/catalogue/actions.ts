@@ -11,6 +11,8 @@ import {
   imageVariantSchema,
   moveProductImage,
   parseProductForm,
+  parseVariantNames,
+  saveProductVariantNames,
   updateProduct,
   updateProductImageDetails,
 } from "@/server/admin/catalogue";
@@ -120,6 +122,23 @@ export async function updateProductImageAction(
     { alt: alt.data, variant: variant.data },
     user.id,
   );
+  if (!result) return { status: "error", message: copy.common.notFound };
+  afterChange();
+  return { status: "success", message: copy.common.notices.saved };
+}
+
+/** Saves a Build Your Brand product's own names for its label variants. */
+export async function saveVariantNamesAction(
+  productId: number,
+  _: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const { user } = await requireAdmin("catalogue");
+  const parsed = parseVariantNames((field) => formData.get(field));
+  if (!parsed.ok) {
+    return { status: "error", fieldErrors: parsed.fieldErrors, values: formValues(formData) };
+  }
+  const result = await saveProductVariantNames(productId, parsed.names, user.id);
   if (!result) return { status: "error", message: copy.common.notFound };
   afterChange();
   return { status: "success", message: copy.common.notices.saved };

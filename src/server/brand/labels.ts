@@ -21,6 +21,8 @@ import {
   type LabelSpecData,
   type LabelValues,
 } from "@/lib/label";
+import { brand as brandCopy } from "@/content/brand";
+import { toVariantNames, variantName } from "@/lib/brand-theme";
 import { db } from "@/server/db";
 
 // Per-product label details of a Launch cart line. The spec of the product
@@ -82,6 +84,8 @@ export type LabelLine = {
   name: string;
   /** The label colour theme chosen on the product page. */
   theme: string | null;
+  /** The theme's name for this product (its own name, or the default). */
+  themeName: string | null;
   /** The MRP per pack typed on the brand details step, in paise. */
   packMrpPaise: number | null;
   spec: LabelSpecData;
@@ -108,6 +112,7 @@ const lineSelect = {
       ingredients: true,
       dosage: true,
       labelSpec: { select: specSelect },
+      variantNames: { select: { variant: true, name: true } },
     },
   },
 } satisfies Prisma.BrandCartItemSelect;
@@ -132,6 +137,13 @@ function toLabelLine(
     productId: row.productId,
     name: row.product.name,
     theme: row.labelTheme,
+    themeName: row.labelTheme
+      ? variantName(
+          row.labelTheme,
+          toVariantNames(row.product.variantNames),
+          brandCopy.customise.themes,
+        )
+      : null,
     packMrpPaise: row.packMrpPaise,
     spec,
     defaults,
@@ -171,6 +183,7 @@ export function labelSnapshot(line: LabelLine): LabelSnapshot {
     values: line.values,
     overridden: specFields(spec).filter((field) => line.overrides[field] !== undefined),
     ...(line.theme && { theme: line.theme }),
+    ...(line.themeName && { themeName: line.themeName }),
     ...(line.packMrpPaise !== null && { packMrpPaise: line.packMrpPaise }),
   };
 }
@@ -234,6 +247,7 @@ const snapshotSchema = z.object({
   values: overridesSchema,
   overridden: z.array(z.enum(labelFields)),
   theme: z.string().max(24).optional(),
+  themeName: z.string().max(40).optional(),
   packMrpPaise: z.number().int().positive().optional(),
 });
 

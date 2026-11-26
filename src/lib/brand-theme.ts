@@ -18,6 +18,35 @@ export const brandThemeKeys = brandThemes.map((theme) => theme.key) as [
 
 export const DEFAULT_BRAND_THEME: BrandThemeKey = "classic-green";
 
+/** The longest name an admin may give a product's label variant. */
+export const MAX_VARIANT_NAME = 40;
+
+/** A product's own names for its label variants; missing ones use the default. */
+export type VariantNames = Partial<Record<BrandThemeKey, string>>;
+
+/** Stored variant names as a lookup; rows for unknown variants are ignored. */
+export function toVariantNames(rows: { variant: string; name: string }[]): VariantNames {
+  const names: VariantNames = {};
+  for (const row of rows) {
+    const key = brandThemeKeys.find((known) => known === row.variant);
+    if (key) names[key] = row.name;
+  }
+  return names;
+}
+
+/**
+ * The name to show for a variant: the product's own name when it has one,
+ * else the default (`defaults`, from src/content/brand.ts). Unknown keys
+ * (an old order) show as stored.
+ */
+export function variantName(
+  key: string,
+  names: VariantNames | undefined,
+  defaults: Record<string, string>,
+): string {
+  return names?.[key as BrandThemeKey] || defaults[key] || key;
+}
+
 /** The theme for a stored key; an unknown or missing key is the first theme. */
 export function brandThemeOf(key: string | null | undefined) {
   return brandThemes.find((theme) => theme.key === key) ?? brandThemes[0];

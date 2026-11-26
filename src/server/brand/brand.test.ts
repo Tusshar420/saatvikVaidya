@@ -385,7 +385,42 @@ describe("drafts", () => {
     expect(placed.ok).toBe(true);
     if (!placed.ok) return;
     const item = await db.orderItem.findFirstOrThrow({ where: { orderId: placed.orderId } });
-    expect(parseLabelSnapshot(item.labelDetails)).toMatchObject({ theme: "saffron-glow", packMrpPaise: 45_000 });
+    expect(parseLabelSnapshot(item.labelDetails)).toMatchObject({
+      theme: "saffron-glow",
+      themeName: "Saffron Glow",
+      packMrpPaise: 45_000,
+    });
+  });
+
+  it("keeps the product's own variant name with the order, as it was when ordered", async () => {
+    const { userId, product, addressId } = await readyDraft();
+    await db.productVariantName.create({
+      data: { productId: product.id, variant: "saffron-glow", name: "Hingwastak label" },
+    });
+    expect(await chooseBrandProduct(userId, product.id, "saffron-glow")).toMatchObject({ ok: true });
+    expect((await readBrandCart(userId)).lines[0]?.product?.variantNames).toEqual({
+      "saffron-glow": "Hingwastak label",
+    });
+    expect(await savePackaging(userId, { mrps: new Map([[product.id, 450]]) })).toEqual({ ok: true });
+    const cart = await readBrandCart(userId);
+    const placed = await placeBrandOrder({
+      userId,
+      addressId,
+      checkoutKey: randomUUID(),
+      expectedTotalPaise: brandCartTotals(cart, shipping).totalPaise,
+      shipping,
+    });
+    if (!placed.ok) throw new Error("order failed");
+    // Renamed after the order: the order keeps the name it was placed with.
+    await db.productVariantName.update({
+      where: { productId_variant: { productId: product.id, variant: "saffron-glow" } },
+      data: { name: "Something else" },
+    });
+    const item = await db.orderItem.findFirstOrThrow({ where: { orderId: placed.orderId } });
+    expect(parseLabelSnapshot(item.labelDetails)).toMatchObject({
+      theme: "saffron-glow",
+      themeName: "Hingwastak label",
+    });
   });
 
   it("replaces a brand's logo file and removes the old one", async () => {

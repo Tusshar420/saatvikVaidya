@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { toVariantNames, variantName } from "./brand-theme";
 import {
   MAX_BRAND_ORDER_PAISE,
   MAX_BRAND_UNITS,
@@ -164,5 +165,28 @@ describe("pack MRP", () => {
     ]);
     expect(brandThemeOf("royal-maroon").key).toBe("royal-maroon");
     for (const unknown of [null, undefined, "", "neon"]) expect(brandThemeOf(unknown).key).toBe("classic-green");
+  });
+});
+
+describe("variant names", () => {
+  const defaults = { "classic-green": "Classic Green", "saffron-glow": "Saffron Glow" };
+  it("uses the product's own name, else the default, else the stored key", () => {
+    expect(variantName("saffron-glow", { "saffron-glow": "Hingwastak label" }, defaults)).toBe(
+      "Hingwastak label",
+    );
+    expect(variantName("classic-green", { "saffron-glow": "Hingwastak label" }, defaults)).toBe(
+      "Classic Green",
+    );
+    expect(variantName("classic-green", undefined, defaults)).toBe("Classic Green");
+    expect(variantName("old-theme", undefined, defaults)).toBe("old-theme");
+  });
+
+  it("ignores stored rows for unknown variants", () => {
+    expect(
+      toVariantNames([
+        { variant: "royal-maroon", name: "Lavan Bhaskar" },
+        { variant: "neon-pink", name: "Old" },
+      ]),
+    ).toEqual({ "royal-maroon": "Lavan Bhaskar" });
   });
 });

@@ -6442,3 +6442,49 @@ uploaded photos had no link to a variant.
 **Later**
 - A theme with several photos uses only the first; a per-variant gallery
   could follow if wanted.
+
+## Build Your Brand: rename a product's label variants (2026-11-26)
+
+The owner asked to rename the variant labels (Classic Green, Saffron Glow,
+Royal Maroon, Minimal White). The question "per product or site-wide, and
+are four enough" went unanswered, so this is **per product, four variants**:
+the owner's photos are different label designs per product, so a site-wide
+name wouldn't fit.
+
+**Built**
+- New table `ProductVariantName` (product, variant, name up to 40;
+  migration `20261126150000_product_variant_names`). A variant without a
+  row uses its default name. `variantName()` / `toVariantNames()` in
+  `src/lib/brand-theme.ts` pick the name everywhere.
+- Admin product edit, **Images**: a **Variant names** form (four fields,
+  placeholder = default name, empty = default, one Save). "Shows for" and
+  the photo badges show "Hingwastak label (Saffron Glow)" for a renamed
+  variant. Saved row by row with an audit entry (`product.update`,
+  `name.<variant>` from/to).
+- Buyers see the product's names on the product page's "Select variant",
+  in the Launch cart, and on the order's label details (My Brand and admin
+  Brand orders). The order keeps the name it was placed with
+  (`LabelSnapshot.themeName`), so renaming later doesn't change old orders;
+  older orders without it show the default name as before.
+- The drawn pack colours stay tied to the variant; only the name changes.
+
+**Checked**
+- Typecheck, lint, unit tests (1048; new: name lookup and unknown rows,
+  form parsing and limits, saving with audit and back to default, the
+  order keeping the name after a rename).
+- `brand-variant-photos.spec.ts` gains a rename test (phone and desktop):
+  rename, see the name in "Shows for" and on the product page, empty it
+  to get the default back; axe and no sideways scroll. It found two bugs,
+  fixed: a long name without spaces made the phone page scroll sideways
+  (now wraps anywhere), and saving names for two products at once could
+  deadlock in MySQL (a range delete took gap locks; now row by row).
+  Repeated 3× on both sizes without failures. Form checked at 375 and
+  1280 px.
+- Full `pnpm test:e2e`: the first run had 19 failures across unrelated
+  specs (orders, checkout, layout widths, inventory), mostly 60 s
+  timeouts, with the machine's load average at 9 to 12. Running the main
+  suite again: 361 passed, 0 failed; manual-payment and order-request
+  configs 2 + 2 passed.
+
+**Deploy note**
+- Needs `pnpm db:deploy` (one new table) on staging and live.

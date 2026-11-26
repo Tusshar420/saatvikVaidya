@@ -5,7 +5,12 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { brand as copy } from "@/content/brand";
-import { brandThemes, type BrandThemeKey } from "@/lib/brand-theme";
+import {
+  brandThemes,
+  variantName,
+  type BrandThemeKey,
+  type VariantNames,
+} from "@/lib/brand-theme";
 import { cn } from "@/lib/cn";
 import { ThemedPack } from "./themed-pack";
 
@@ -33,6 +38,7 @@ export function ProductCustomiser({
   detail,
   initialTheme,
   photos = {},
+  names,
   action,
   signInHref,
   children,
@@ -44,6 +50,8 @@ export function ProductCustomiser({
   initialTheme: BrandThemeKey;
   /** The admin's photo per label theme; themes left out show the drawn pack. */
   photos?: Partial<Record<BrandThemeKey, { src: string; alt: string }>>;
+  /** The product's own variant names; missing ones use the default name. */
+  names?: VariantNames;
   action: ((formData: FormData) => Promise<void>) | null;
   signInHref: string;
   /** The product's facts, drawn between the pack and the variants. */
@@ -123,7 +131,9 @@ export function ProductCustomiser({
                       <span className={cn("w-1/2", left)} />
                       <span className={cn("w-1/2", right)} />
                     </span>
-                    <span className="min-w-0 flex-1">{text.themes[option.key]}</span>
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                      {variantName(option.key, names, text.themes)}
+                    </span>
                     <span
                       aria-hidden
                       className={cn(

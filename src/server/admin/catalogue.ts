@@ -4,7 +4,13 @@ import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
 import { sortField, type Sort } from "@/lib/admin-sort";
 import { MAX_BRAND_MIN_QTY, MAX_BRAND_TIERS, MAX_BRAND_UNITS, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
-import { brandThemeKeys, type BrandThemeKey } from "@/lib/brand-theme";
+import {
+  MAX_VARIANT_NAME,
+  brandThemeKeys,
+  toVariantNames,
+  type BrandThemeKey,
+  type VariantNames,
+} from "@/lib/brand-theme";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_BULK_TIERS,
@@ -377,6 +383,7 @@ export async function getAdminProduct(id: number) {
       bulkTiers: { orderBy: { minQuantity: "asc" } },
       brandTiers: { orderBy: { minQuantity: "asc" } },
       images: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+      variantNames: { select: { variant: true, name: true } },
     },
   });
 }
@@ -794,5 +801,79 @@ export async function updateProductImageDetails(
       changes: { imageId: { from: imageId, to: imageId }, ...changes },
     });
     return { productId: image.productId };
+  });
+}
+
+// ─── Build Your Brand variant names ─────────────────────────────────────────
+
+/** One variant's name as typed: trimmed, up to MAX_VARIANT_NAME; "" = default. */
+export const variantNameSchema = z
+  .string()
+  .trim()
+  .max(MAX_VARIANT_NAME, copy.catalogue.variantNames.errors.tooLong(MAX_VARIANT_NAME));
+
+/**
+ * Reads the four name fields ("name-<variant>") of the variant names form.
+ * Returns the names (empty ones left out) or the field errors.
+ */
+export function parseVariantNames(
+  get: (field: string) => unknown,
+):
+  | { ok: true; names: VariantNames }
+  | { ok: false; fieldErrors: Record<string, string> } {
+  const names: VariantNames = {};
+  const fieldErrors: Record<string, string> = {};
+  for (const key of brandThemeKeys) {
+    const field = `name-${key}`;
+    const parsed = variantNameSchema.safeParse(get(field) ?? "");
+    if (!parsed.success) {
+      fieldErrors[field] = parsed.error.issues[0]?.message ?? "";
+    } else if (parsed.data) {
+      names[key] = parsed.data;
+    }
+  }
+  return Object.keys(fieldErrors).length > 0 ? { ok: false, fieldErrors } : { ok: true, names };
+}
+
+/**
+ * Sets a product's own names for its label variants; a variant left out goes
+ * back to its default name. Null when the product doesn't exist.
+ */
+export async function saveProductVariantNames(
+  productId: number,
+  names: VariantNames,
+  actorId: string,
+): Promise<{ productId: number } | null> {
+  return db.$transaction(async (tx) => {
+    const product = await tx.product.findUnique({
+      where: { id: productId },
+      select: { variantNames: { select: { variant: true, name: true } } },
+    });
+    if (!product) return null;
+    const before = toVariantNames(product.variantNames);
+    const changes = diffFields(
+      Object.fromEntries(brandThemeKeys.map((key) => [`name.${key}`, before[key] ?? null])),
+      Object.fromEntries(brandThemeKeys.map((key) => [`name.${key}`, names[key] ?? null])),
+    );
+    if (Object.keys(changes).length === 0) return { productId };
+    // Row by row, by exact key: a range delete takes gap locks in MySQL, and
+    // two products saved at once could then deadlock.
+    for (const key of brandThemeKeys) {
+      const from = before[key];
+      const to = names[key];
+      if (from === to) continue;
+      const where = { productId_variant: { productId, variant: key } };
+      if (!to) await tx.productVariantName.delete({ where });
+      else if (from) await tx.productVariantName.update({ where, data: { name: to } });
+      else await tx.productVariantName.create({ data: { productId, variant: key, name: to } });
+    }
+    await logAdminAction(tx, {
+      actorId,
+      action: "product.update",
+      resource: "Product",
+      resourceId: productId,
+      changes,
+    });
+    return { productId };
   });
 }

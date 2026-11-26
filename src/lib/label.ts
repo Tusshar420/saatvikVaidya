@@ -245,6 +245,8 @@ export type LabelSnapshot = {
   overridden: LabelField[];
   /** The label colour theme chosen on the product page (src/lib/brand-theme.ts). */
   theme?: string;
+  /** The variant's name when ordered (the product's own name, or the default). */
+  themeName?: string;
   /** The MRP the customer prints on one pack, in paise. */
   packMrpPaise?: number;
 };

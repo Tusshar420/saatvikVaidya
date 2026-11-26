@@ -11,7 +11,9 @@ import {
 import {
   brandThemeKeys,
   packMrpProblem,
+  toVariantNames,
   type BrandThemeKey,
+  type VariantNames,
 } from "@/lib/brand-theme";
 import type { LabelProblem, LabelValues } from "@/lib/label";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
@@ -62,6 +64,7 @@ export const brandProductSelect = {
     take: 1,
     select: { id: true, alt: true },
   },
+  variantNames: { select: { variant: true, name: true } },
 } satisfies Prisma.ProductSelect;
 
 export type BrandProductRow = Prisma.ProductGetPayload<{ select: typeof brandProductSelect }>;
@@ -77,6 +80,8 @@ export type BrandProduct = {
   glyph: string | null;
   makerName: string | null;
   image: { src: string; alt: string } | null;
+  /** The product's own names for its label variants (see variantName()). */
+  variantNames: VariantNames;
   terms: BrandTerms;
   /**
    * Units that can be made from the components in stock (a multiple of the
@@ -100,6 +105,7 @@ export function toBrandProduct(row: BrandProductRow, makeable: number | null = n
     glyph: row.form.glyph,
     makerName: row.brand?.name ?? null,
     image: image ? { src: productImageSrc(image.id), alt: image.alt } : null,
+    variantNames: toVariantNames(row.variantNames),
     terms,
     makeable,
   };
