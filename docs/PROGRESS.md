@@ -6389,3 +6389,56 @@ and who uses them. Nothing recorded page views before this.
   run); move the overrides to `pnpm-workspace.yaml`.
 - Possible next steps if wanted: a CSV export of Traffic, where visitors
   come from (referrer), and time spent on a page.
+
+## Build Your Brand: a photo per label variant (2026-11-26)
+
+The owner asked for an upload section where a product has its main photo
+plus a photo for each label variant, and for the product page to show the
+picked variant's photo. Before this, the four variants (Classic Green,
+Saffron Glow, Royal Maroon, Minimal White) were only drawn packs, and
+uploaded photos had no link to a variant.
+
+**Built**
+- `ProductImage.variant` (nullable, migration
+  `20261126120000_product_image_variant`): null is a general photo; a
+  label theme key from `src/lib/brand-theme.ts` marks that variant's photo.
+- Admin product edit, **Images**: for a Build Your Brand product (or one
+  that already has variant photos) the upload form has **Shows for**
+  (General, or one of the four variants), and every photo has its own
+  "Shows for" next to its description, saved with the one Save button.
+  Photos show a "Variant: …" badge; "Main image" is now the first
+  *general* photo. The help text says 1200 × 1200 px square works best.
+- Upload route and `updateProductImageAction` check the variant with Zod
+  (`imageVariantSchema`: "" or a known theme key). Changes are in the
+  audit log (`product.image.update` with `variant` from/to).
+- `/launch/[slug]`: `brandVariantPhotos()` loads the first photo per
+  theme. Picking a variant shows its photo in the big frame and in that
+  variant's thumbnail; variants without a photo keep the drawn pack.
+- Variant photos stay out of the shop: the catalogue cards, product
+  gallery, cart, order history, admin list thumbnail and the Build Your
+  Brand listing only use general photos.
+
+**Checked**
+- Typecheck, lint, unit tests (1043, 2 new: variant photos per theme and
+  out of the shop gallery, with audit; variant validation).
+- New `brand-variant-photos.spec.ts` (phone 375 px and desktop 1280 px):
+  admin uploads a general and a Saffron Glow photo, the page shows the
+  photo only for Saffron Glow, then re-marking the general photo as
+  Royal Maroon moves it there; no sideways scroll, no axe issues. Both
+  screens checked in screenshots at 375 and 1280 px.
+- Full `pnpm test:e2e` (production build included): 329 passed, 10
+  skipped (the usual phone/desktop-only skips), 1 failed: "forgot password:
+  the emailed link sets a new password" (desktop) timed out waiting for the
+  welcome message under full parallel load. It passes on its own on phone
+  and desktop; it doesn't touch product photos. Manual-payment and
+  order-request configs: 2 + 2 passed.
+- pnpm 11 still wants to reinstall `node_modules` without a TTY, so runs
+  used `pnpm_config_verify_deps_before_run=false` (as on 2026-11-07).
+
+**Deploy note**
+- Needs `pnpm db:deploy` (one new nullable column). Existing photos stay
+  general, so nothing changes until an admin marks a photo.
+
+**Later**
+- A theme with several photos uses only the first; a per-variant gallery
+  could follow if wanted.

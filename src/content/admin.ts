@@ -813,7 +813,14 @@ export const admin = {
     images: {
       title: "Images",
       description: (max: number, size: string) =>
-        `Up to ${max} photos; the first is the main image. JPG, PNG or WebP, up to ${size} each.`,
+        `Up to ${max} photos; the first general photo is the main image. JPG, PNG or WebP, up to ${size} each. Square photos of 1200 × 1200 px work best.`,
+      variantNote:
+        "For a Build Your Brand product, mark a photo with a label variant: when a buyer picks that variant, the site shows its photo. Variants without a photo show the drawn pack. Variant photos are not shown in the shop.",
+      variant: "Shows for",
+      variantFor: (n: number) => `Image ${n} shows for`,
+      variantHelp: "General photos show in the shop and on listings.",
+      variantGeneral: "General (main photo and gallery)",
+      variantBadge: (name: string) => `Variant: ${name}`,
       saveFirst: "Save the product first, then add its images here.",
       empty: "No images yet. The site shows the form's mark instead.",
       file: "Photo",
@@ -826,7 +833,7 @@ export const admin = {
       item: (n: number) => `Image ${n}`,
       moveUp: (n: number) => `Move image ${n} earlier`,
       moveDown: (n: number) => `Move image ${n} later`,
-      saveAlt: "Save description",
+      saveAlt: "Save",
       altFor: (n: number) => `Description of image ${n}`,
       deleteName: (n: number) => `image ${n}`,
       errors: {
@@ -834,6 +841,7 @@ export const admin = {
         tooLarge: (size: string) => `That photo is too large. The limit is ${size}.`,
         fileType: "Use a JPG, PNG or WebP photo.",
         alt: "Describe the photo in 1 to 200 characters.",
+        variant: "Choose a variant from the list.",
         tooMany: (max: number) => `A product can have up to ${max} images. Delete one first.`,
         notFound: "That product no longer exists.",
         failed: "The upload didn't work. Please try again.",

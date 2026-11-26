@@ -11,7 +11,10 @@ import { formatPaise } from "@/lib/format";
 import { signInPath } from "@/lib/auth-routes";
 import { getSession } from "@/server/auth/session";
 import { db } from "@/server/db";
-import { findBrandProductBySlug } from "@/server/brand/drafts";
+import {
+  brandVariantPhotos,
+  findBrandProductBySlug,
+} from "@/server/brand/drafts";
 
 const text = copy.customise;
 
@@ -35,7 +38,10 @@ export default async function LaunchProductPage({ params }: PageProps<"/launch/[
   const { slug } = await params;
   const product = await findBrandProductBySlug(slug);
   if (!product) notFound();
-  const session = await getSession();
+  const [session, photos] = await Promise.all([
+    getSession(),
+    brandVariantPhotos(product.id),
+  ]);
   const inCart = session
     ? await db.brandCartItem.findUnique({
         where: { userId_productId: { userId: session.user.id, productId: product.id } },
@@ -63,6 +69,7 @@ export default async function LaunchProductPage({ params }: PageProps<"/launch/[
         name={product.name}
         detail={`${product.formName} • ${product.packSize}`}
         initialTheme={brandThemeOf(inCart?.labelTheme).key}
+        photos={photos}
         action={session ? chooseBrandProductAction : null}
         signInHref={signInPath(`/launch/${product.slug}`)}
       >

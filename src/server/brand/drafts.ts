@@ -8,7 +8,11 @@ import {
   brandTermsOf,
   type BrandTerms,
 } from "@/lib/brand";
-import { packMrpProblem } from "@/lib/brand-theme";
+import {
+  brandThemeKeys,
+  packMrpProblem,
+  type BrandThemeKey,
+} from "@/lib/brand-theme";
 import type { LabelProblem, LabelValues } from "@/lib/label";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
 import { searchWhere } from "@/server/catalogue/products";
@@ -51,7 +55,9 @@ export const brandProductSelect = {
   brandTiers: { select: { minQuantity: true, pricePaise: true } },
   form: { select: { key: true, name: true, glyph: true } },
   brand: { select: { name: true } },
+  // The main photo: the first general one (variant photos are per theme).
   images: {
+    where: { variant: null },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     take: 1,
     select: { id: true, alt: true },
@@ -285,6 +291,29 @@ export async function findBrandProductBySlug(slug: string): Promise<BrandProduct
   const row = await db.product.findUnique({ where: { slug }, select: brandProductSelect });
   if (!row) return null;
   return toBrandProduct(row, (await makeableByProduct([row.id])).get(row.id) ?? null);
+}
+
+export type BrandVariantPhoto = { src: string; alt: string };
+
+/**
+ * The admin's photo for each label theme of a product (the first by order
+ * when a theme has more than one). Themes without a photo are left out, and
+ * the page draws the pack for them.
+ */
+export async function brandVariantPhotos(
+  productId: number,
+): Promise<Partial<Record<BrandThemeKey, BrandVariantPhoto>>> {
+  const rows = await db.productImage.findMany({
+    where: { productId, variant: { in: brandThemeKeys } },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    select: { id: true, alt: true, variant: true },
+  });
+  const photos: Partial<Record<BrandThemeKey, BrandVariantPhoto>> = {};
+  for (const row of rows) {
+    const key = row.variant as BrandThemeKey; // Narrowed by the `in` filter above.
+    photos[key] ??= { src: productImageSrc(row.id), alt: row.alt };
+  }
+  return photos;
 }
 
 // ─── Drafts ─────────────────────────────────────────────────────────────────

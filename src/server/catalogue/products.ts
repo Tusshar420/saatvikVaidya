@@ -191,6 +191,7 @@ const cardSelect = {
   brand: { select: { name: true } },
   form: { select: { name: true, glyph: true } },
   images: {
+    where: { variant: null },
     orderBy: byOrder,
     take: 1,
     select: { id: true, alt: true },
@@ -302,7 +303,8 @@ export async function readProductPage(
         orderBy: byOrder,
         select: { key: true, name: true },
       },
-      images: { orderBy: byOrder, select: { id: true, alt: true } },
+      // Build Your Brand variant photos belong to that page only.
+      images: { where: { variant: null }, orderBy: byOrder, select: { id: true, alt: true } },
       bulkTiers: { select: { minQuantity: true, pricePaise: true } },
     },
   });

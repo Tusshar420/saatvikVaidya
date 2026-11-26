@@ -994,6 +994,10 @@ model ProductImage {
   contentType String   @db.VarChar(64)
   sizeBytes   Int
   alt         String   @db.VarChar(200)
+  /// Null: a general photo (shop gallery; the first is the main image).
+  /// A label theme key (src/lib/brand-theme.ts): shown on the Build Your
+  /// Brand page when that variant is picked, and nowhere else.
+  variant     String?  @db.VarChar(24)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
 

@@ -13,9 +13,13 @@ import {
   productFormValues,
   getAdminProduct,
   updateProduct,
-  updateProductImageAlt,
+  imageVariantSchema,
+  updateProductImageDetails,
   type ProductInput,
 } from "./catalogue";
+import { brandVariantPhotos } from "@/server/brand/drafts";
+import { readProductPage } from "@/server/catalogue/products";
+import { guestViewer } from "@/server/pricing";
 
 // Catalogue admin: the product form's rules, saving with an audit trail, and
 // product images in Storage (a temporary folder in tests).
@@ -254,7 +258,7 @@ describe("product images", () => {
     // Moving past the end does nothing.
     await moveProductImage(second.id, "up", adminId);
 
-    await updateProductImageAlt(first.id, "Front of the pack", adminId);
+    await updateProductImageDetails(first.id, { alt: "Front of the pack", variant: null }, adminId);
     expect((await db.productImage.findUniqueOrThrow({ where: { id: first.id } })).alt).toBe(
       "Front of the pack",
     );
@@ -278,5 +282,47 @@ describe("product images", () => {
     for (let i = 0; i < MAX_PRODUCT_IMAGES; i += 1) expect((await add(png)).ok).toBe(true);
     expect(await add(png)).toEqual({ ok: false, error: "tooMany" });
     expect(await db.productImage.count({ where: { productId: id } })).toBe(MAX_PRODUCT_IMAGES);
+  });
+
+  it("keeps variant photos for their Build Your Brand theme, out of the shop", async () => {
+    const id = await productId();
+    const add = (alt: string, variant: "saffron-glow" | null) =>
+      addProductImage({ productId: id, bytes: png, alt, variant, actorId: adminId });
+    const general = await add("Front", null);
+    const saffron = await add("Saffron label", "saffron-glow");
+    const saffronBack = await add("Saffron back", "saffron-glow");
+    const maroon = await add("Maroon label", null);
+    if (!general.ok || !saffron.ok || !saffronBack.ok || !maroon.ok) {
+      throw new Error("upload failed");
+    }
+
+    // Marked later: the fourth photo becomes Royal Maroon's, with an audit entry.
+    await updateProductImageDetails(
+      maroon.id,
+      { alt: "Maroon label", variant: "royal-maroon" },
+      adminId,
+    );
+    const log = await db.adminLog.findFirstOrThrow({
+      where: { resource: "Product", resourceId: String(id), action: "product.image.update" },
+      orderBy: { id: "desc" },
+    });
+    expect(log.changes).toMatchObject({ variant: { from: null, to: "royal-maroon" } });
+
+    // The first photo per theme; themes without one are left out.
+    expect(await brandVariantPhotos(id)).toEqual({
+      "saffron-glow": { src: `/api/product-images/${saffron.id}`, alt: "Saffron label" },
+      "royal-maroon": { src: `/api/product-images/${maroon.id}`, alt: "Maroon label" },
+    });
+
+    // The shop gallery shows only the general photo.
+    const page = await readProductPage("triphala-churna", guestViewer);
+    expect(page?.images.map((image) => image.alt)).toEqual(["Front"]);
+  });
+
+  it("accepts only known variants", () => {
+    expect(imageVariantSchema.parse("")).toBeNull();
+    expect(imageVariantSchema.parse(null)).toBeNull();
+    expect(imageVariantSchema.parse("minimal-white")).toBe("minimal-white");
+    expect(imageVariantSchema.safeParse("neon-pink").success).toBe(false);
   });
 });

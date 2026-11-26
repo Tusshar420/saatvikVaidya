@@ -9,6 +9,7 @@ import { ProductForm } from "@/components/admin/product-form";
 import { ProductImages } from "@/components/admin/product-images";
 import { buttonClasses } from "@/components/ui/button";
 import { admin as copy } from "@/content/admin";
+import { brandThemeOf } from "@/lib/brand-theme";
 import { productHref, productImageSrc } from "@/lib/catalogue";
 import {
   getAdminProduct,
@@ -22,7 +23,7 @@ import {
   deleteProductImageAction,
   moveProductImageAction,
   updateProductAction,
-  updateProductImageAltAction,
+  updateProductImageAction,
 } from "../../actions";
 
 export const metadata: Metadata = { title: copy.catalogue.metaTitle };
@@ -65,10 +66,16 @@ export default async function EditProductPage({
           id: image.id,
           src: productImageSrc(image.id),
           alt: image.alt,
+          variant:
+            image.variant === null ? null : brandThemeOf(image.variant).key,
         }))}
+        variants={
+          product.brandEligible ||
+          product.images.some((image) => image.variant !== null)
+        }
         moveAction={moveProductImageAction}
         deleteAction={deleteProductImageAction}
-        altAction={updateProductImageAltAction}
+        altAction={updateProductImageAction}
       />
       <ProductForm
         // A fresh form after each save, so it starts from the saved values.

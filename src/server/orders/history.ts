@@ -17,6 +17,7 @@ export const BUY_AGAIN_LIMIT = 10;
 const BOUGHT_STATUSES: OrderStatus[] = ["paid", "processing", "shipped", "delivered"];
 
 const firstImage = {
+  where: { variant: null },
   orderBy: [{ sortOrder: "asc" as const }, { id: "asc" as const }],
   take: 1,
   select: { id: true, alt: true },

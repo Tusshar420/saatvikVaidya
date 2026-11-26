@@ -7,6 +7,7 @@ import { formatFileSize } from "@/lib/verification";
 import {
   addProductImage,
   imageAltSchema,
+  imageVariantSchema,
   type ImageUploadError,
 } from "@/server/admin/catalogue";
 import { intId } from "@/server/admin/form";
@@ -15,17 +16,18 @@ import { readBodyWithLimit } from "@/server/storage/files";
 import { isSameOrigin } from "@/server/request-origin";
 
 // POST /api/admin/products/[id]/images: an admin adds a product photo
-// (multipart form: file, alt). A route handler rather than a server action,
-// because server actions cap request bodies at 1 MB. Signed-out visitors and
-// non-admins get a 404, like the rest of the admin area. Replies with JSON:
-// { ok: true, id } or { ok: false, error, message }.
+// (multipart form: file, alt, and an optional variant: a label theme key for
+// a Build Your Brand variant photo). A route handler rather than a server
+// action, because server actions cap request bodies at 1 MB. Signed-out
+// visitors and non-admins get a 404, like the rest of the admin area. Replies
+// with JSON: { ok: true, id } or { ok: false, error, message }.
 
 const copy = admin.catalogue.images.errors;
 
 /** Room for the multipart boundaries and the alt text. */
 const FORM_OVERHEAD_BYTES = 16 * 1024;
 
-type ErrorCode = ImageUploadError | "alt" | "failed";
+type ErrorCode = ImageUploadError | "alt" | "variant" | "failed";
 
 const maxSize = formatFileSize(productImageUpload.maxBytes);
 
@@ -36,6 +38,7 @@ const errors: Record<ErrorCode, { status: number; message: string }> = {
   tooLarge: { status: 413, message: copy.tooLarge(maxSize) },
   fileType: { status: 415, message: copy.fileType },
   alt: { status: 400, message: copy.alt },
+  variant: { status: 400, message: copy.variant },
   failed: { status: 400, message: copy.failed },
 };
 
@@ -82,12 +85,15 @@ export async function POST(
   if (!(file instanceof File) || file.size === 0) return fail("empty");
   const parsed = formSchema.safeParse({ alt: form.get("alt"), file });
   if (!parsed.success) return fail("alt");
+  const variant = imageVariantSchema.safeParse(form.get("variant"));
+  if (!variant.success) return fail("variant");
   if (file.size > productImageUpload.maxBytes) return fail("tooLarge");
 
   const result = await addProductImage({
     productId: productId.data,
     bytes: new Uint8Array(await file.arrayBuffer()),
     alt: parsed.data.alt,
+    variant: variant.data,
     actorId: session.user.id,
   });
   if (!result.ok) return fail(result.error);
