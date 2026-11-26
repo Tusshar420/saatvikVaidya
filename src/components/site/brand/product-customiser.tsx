@@ -5,12 +5,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { ButtonArrow, buttonClasses } from "@/components/ui/button";
 import { brand as copy } from "@/content/brand";
-import {
-  brandThemes,
-  variantName,
-  type BrandThemeKey,
-  type VariantNames,
-} from "@/lib/brand-theme";
+import type { BrandThemeKey, BrandVariant } from "@/lib/brand-theme";
 import { cn } from "@/lib/cn";
 import { ThemedPack } from "./themed-pack";
 
@@ -25,20 +20,21 @@ const swatches: Record<BrandThemeKey, [string, string]> = {
 };
 
 /**
- * A product's page: the big pack that follows the chosen label theme (the
- * admin's photo for that theme when there is one, else the drawn pack), one
- * small pack per theme, "Select variant" (a radio group, so it also works
- * with the keyboard) and the button that puts the product in the Launch cart
- * with that theme and goes on to the quantity step. `action` is a server
+ * A product's page: the big pack that follows the chosen label variant (the
+ * admin's photo for that variant when there is one, else the drawn pack in
+ * the variant's colours), one small pack per variant, "Select variant" (a
+ * radio group, so it also works with the keyboard) and the button that puts
+ * the product in the Launch cart with that variant and goes on to the
+ * quantity step. `action` is a server
  * action; with no `action` (signed out) the button is a sign-in link.
  */
 export function ProductCustomiser({
   productId,
   name,
   detail,
+  variants,
   initialTheme,
   photos = {},
-  names,
   action,
   signInHref,
   children,
@@ -47,17 +43,19 @@ export function ProductCustomiser({
   name: string;
   /** "Tablet • 60 tabs". */
   detail: string;
-  initialTheme: BrandThemeKey;
-  /** The admin's photo per label theme; themes left out show the drawn pack. */
-  photos?: Partial<Record<BrandThemeKey, { src: string; alt: string }>>;
-  /** The product's own variant names; missing ones use the default name. */
-  names?: VariantNames;
+  /** The product's label variants, in order (at least one). */
+  variants: BrandVariant[];
+  /** The key of the variant picked first. */
+  initialTheme: string;
+  /** The admin's photo per variant key; variants left out show the drawn pack. */
+  photos?: Record<string, { src: string; alt: string }>;
   action: ((formData: FormData) => Promise<void>) | null;
   signInHref: string;
   /** The product's facts, drawn between the pack and the variants. */
   children: React.ReactNode;
 }) {
-  const [theme, setTheme] = useState<BrandThemeKey>(initialTheme);
+  const [theme, setTheme] = useState(initialTheme);
+  const style = variants.find((variant) => variant.key === theme)?.style ?? "classic-green";
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start lg:gap-10">
       <div className="min-w-0">
@@ -73,11 +71,11 @@ export function ProductCustomiser({
               className="aspect-square w-full max-w-[360px] rounded-xl object-contain"
             />
           ) : (
-            <ThemedPack theme={theme} name={name} detail={detail} size="lg" />
+            <ThemedPack theme={style} name={name} detail={detail} size="lg" />
           )}
         </div>
         <ul aria-hidden className="mt-3 grid grid-cols-4 gap-2">
-          {brandThemes.map((option) => (
+          {variants.map((option) => (
             <li
               key={option.key}
               className={cn(
@@ -95,7 +93,7 @@ export function ProductCustomiser({
                   className="aspect-square w-full max-w-17 object-contain"
                 />
               ) : (
-                <ThemedPack theme={option.key} name={name} detail={detail} size="sm" />
+                <ThemedPack theme={option.style} name={name} detail={detail} size="sm" />
               )}
             </li>
           ))}
@@ -112,9 +110,9 @@ export function ProductCustomiser({
             <h2 className="text-h3 text-ink">{text.variantTitle}</h2>
             <p className="mt-1 mb-4 text-small text-muted">{text.variantLine}</p>
             <div role="radiogroup" aria-label={text.variantLabel} className="grid gap-3 sm:grid-cols-2">
-              {brandThemes.map((option) => {
+              {variants.map((option) => {
                 const active = option.key === theme;
-                const [left, right] = swatches[option.key];
+                const [left, right] = swatches[option.style];
                 return (
                   <button
                     key={option.key}
@@ -132,7 +130,7 @@ export function ProductCustomiser({
                       <span className={cn("w-1/2", right)} />
                     </span>
                     <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                      {variantName(option.key, names, text.themes)}
+                      {option.name}
                     </span>
                     <span
                       aria-hidden

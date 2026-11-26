@@ -11,8 +11,8 @@ import {
   imageVariantSchema,
   moveProductImage,
   parseProductForm,
-  parseVariantNames,
-  saveProductVariantNames,
+  parseVariantsForm,
+  saveProductVariants,
   updateProduct,
   updateProductImageDetails,
 } from "@/server/admin/catalogue";
@@ -123,23 +123,31 @@ export async function updateProductImageAction(
     user.id,
   );
   if (!result) return { status: "error", message: copy.common.notFound };
+  if ("error" in result) {
+    return {
+      status: "error",
+      fieldErrors: { variant: copy.catalogue.images.errors.variant },
+      values: formValues(formData),
+    };
+  }
   afterChange();
   return { status: "success", message: copy.common.notices.saved };
 }
 
-/** Saves a Build Your Brand product's own names for its label variants. */
-export async function saveVariantNamesAction(
+/** Saves a Build Your Brand product's label variants (names, colours, order). */
+export async function saveVariantsAction(
   productId: number,
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const { user } = await requireAdmin("catalogue");
-  const parsed = parseVariantNames((field) => formData.get(field));
-  if (!parsed.ok) {
-    return { status: "error", fieldErrors: parsed.fieldErrors, values: formValues(formData) };
-  }
-  const result = await saveProductVariantNames(productId, parsed.names, user.id);
+  const parsed = parseVariantsForm((field) => formData.getAll(field));
+  if (!parsed.ok) return { status: "error", fieldErrors: parsed.fieldErrors };
+  const result = await saveProductVariants(productId, parsed.variants, user.id);
   if (!result) return { status: "error", message: copy.common.notFound };
+  if ("error" in result) {
+    return { status: "error", message: copy.catalogue.variants.errors.unknownKey };
+  }
   afterChange();
   return { status: "success", message: copy.common.notices.saved };
 }

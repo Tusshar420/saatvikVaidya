@@ -394,13 +394,19 @@ describe("drafts", () => {
 
   it("keeps the product's own variant name with the order, as it was when ordered", async () => {
     const { userId, product, addressId } = await readyDraft();
-    await db.productVariantName.create({
-      data: { productId: product.id, variant: "saffron-glow", name: "Hingwastak label" },
+    await db.productVariant.createMany({
+      data: [
+        { productId: product.id, key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow", sortOrder: 10 },
+        { productId: product.id, key: "v0000abcd", name: "Lavan Bhaskar", style: "royal-maroon", sortOrder: 20 },
+      ],
     });
+    // Only the product's own variants can be chosen.
+    expect(await chooseBrandProduct(userId, product.id, "royal-maroon")).toMatchObject({ ok: false });
     expect(await chooseBrandProduct(userId, product.id, "saffron-glow")).toMatchObject({ ok: true });
-    expect((await readBrandCart(userId)).lines[0]?.product?.variantNames).toEqual({
-      "saffron-glow": "Hingwastak label",
-    });
+    expect((await readBrandCart(userId)).lines[0]?.product?.variants.map((v) => v.name)).toEqual([
+      "Hingwastak label",
+      "Lavan Bhaskar",
+    ]);
     expect(await savePackaging(userId, { mrps: new Map([[product.id, 450]]) })).toEqual({ ok: true });
     const cart = await readBrandCart(userId);
     const placed = await placeBrandOrder({
@@ -412,8 +418,8 @@ describe("drafts", () => {
     });
     if (!placed.ok) throw new Error("order failed");
     // Renamed after the order: the order keeps the name it was placed with.
-    await db.productVariantName.update({
-      where: { productId_variant: { productId: product.id, variant: "saffron-glow" } },
+    await db.productVariant.update({
+      where: { productId_key: { productId: product.id, key: "saffron-glow" } },
       data: { name: "Something else" },
     });
     const item = await db.orderItem.findFirstOrThrow({ where: { orderId: placed.orderId } });
@@ -421,6 +427,20 @@ describe("drafts", () => {
       theme: "saffron-glow",
       themeName: "Hingwastak label",
     });
+  });
+
+  it("a cart line whose variant was removed falls back to the product's first variant", async () => {
+    const { userId, product } = await readyDraft();
+    await db.productVariant.createMany({
+      data: [
+        { productId: product.id, key: "v0000aaaa", name: "First", style: "classic-green", sortOrder: 10 },
+        { productId: product.id, key: "v0000bbbb", name: "Second", style: "royal-maroon", sortOrder: 20 },
+      ],
+    });
+    expect(await chooseBrandProduct(userId, product.id, "v0000bbbb")).toMatchObject({ ok: true });
+    expect((await readBrandCart(userId)).lines[0]?.theme).toBe("v0000bbbb");
+    await db.productVariant.delete({ where: { productId_key: { productId: product.id, key: "v0000bbbb" } } });
+    expect((await readBrandCart(userId)).lines[0]?.theme).toBe("v0000aaaa");
   });
 
   it("replaces a brand's logo file and removes the old one", async () => {

@@ -14,8 +14,8 @@ import {
   getAdminProduct,
   updateProduct,
   imageVariantSchema,
-  parseVariantNames,
-  saveProductVariantNames,
+  parseVariantsForm,
+  saveProductVariants,
   updateProductImageDetails,
   type ProductInput,
 } from "./catalogue";
@@ -321,54 +321,110 @@ describe("product images", () => {
     expect(page?.images.map((image) => image.alt)).toEqual(["Front"]);
   });
 
-  it("accepts only known variants", () => {
+  it("accepts only well-formed variant keys (the product's own list is checked on save)", () => {
     expect(imageVariantSchema.parse("")).toBeNull();
     expect(imageVariantSchema.parse(null)).toBeNull();
     expect(imageVariantSchema.parse("minimal-white")).toBe("minimal-white");
-    expect(imageVariantSchema.safeParse("neon-pink").success).toBe(false);
+    expect(imageVariantSchema.parse("v0a1b2c3d")).toBe("v0a1b2c3d");
+    expect(imageVariantSchema.safeParse("Neon Pink!").success).toBe(false);
+    expect(imageVariantSchema.safeParse("x".repeat(25)).success).toBe(false);
   });
 });
 
-describe("variant names", () => {
-  it("reads the four name fields: trimmed, empty means default, too long refused", () => {
-    const form: Record<string, string> = {
-      "name-classic-green": "  Hingwastak label  ",
-      "name-saffron-glow": "",
-      "name-royal-maroon": "Lavan Bhaskar",
-    };
-    expect(parseVariantNames((field) => form[field])).toEqual({
+describe("label variants", () => {
+  const productId = async () =>
+    (await db.product.findUniqueOrThrow({ where: { slug: "triphala-churna" } })).id;
+  const form = (rows: [string, string, string][]) => (field: string) =>
+    rows.map(([key, name, style]) =>
+      field === "variantKey" ? key : field === "variantName" ? name : style,
+    );
+  const names = async (id: number) =>
+    (await getAdminProduct(id))?.variants.map((variant) => variant.name);
+
+  it("reads the rows: trimmed names, 1 to 8 rows, known colours", () => {
+    expect(
+      parseVariantsForm(
+        form([
+          ["saffron-glow", "  Hingwastak label ", "saffron-glow"],
+          ["", "Lavan Bhaskar", "royal-maroon"],
+        ]),
+      ),
+    ).toEqual({
       ok: true,
-      names: { "classic-green": "Hingwastak label", "royal-maroon": "Lavan Bhaskar" },
+      variants: [
+        { key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow" },
+        { key: "", name: "Lavan Bhaskar", style: "royal-maroon" },
+      ],
     });
-    expect(parseVariantNames(() => "x".repeat(41))).toMatchObject({
+    expect(parseVariantsForm(form([["", " ", "neon"]]))).toMatchObject({
       ok: false,
-      fieldErrors: { "name-classic-green": expect.any(String), "name-minimal-white": expect.any(String) },
+      fieldErrors: { "variantName-0": expect.any(String), "variantStyle-0": expect.any(String) },
     });
+    expect(parseVariantsForm(form([]))).toMatchObject({ ok: false, fieldErrors: { variants: expect.any(String) } });
+    const nine = Array.from({ length: 9 }, (_, i): [string, string, string] => ["", `V${i}`, "classic-green"]);
+    expect(parseVariantsForm(form(nine))).toMatchObject({ ok: false });
+    expect(
+      parseVariantsForm(form([["a", "One", "classic-green"], ["a", "Two", "classic-green"]])),
+    ).toMatchObject({ ok: false, fieldErrors: { variants: expect.any(String) } });
   });
 
-  it("saves a product's names with an audit entry; a removed name goes back to the default", async () => {
-    const id = (await db.product.findUniqueOrThrow({ where: { slug: "triphala-churna" } })).id;
+  it("renames, adds and removes variants; a removed variant's photos become general", async () => {
+    const id = await productId();
+    const maroonPhoto = await addProductImage({
+      productId: id,
+      bytes: png,
+      alt: "Maroon label",
+      variant: "royal-maroon",
+      actorId: adminId,
+    });
+    if (!maroonPhoto.ok) throw new Error("upload failed");
+
+    // Keep two defaults (one renamed), drop the other two, add one.
     expect(
-      await saveProductVariantNames(id, { "saffron-glow": "Hingwastak label" }, adminId),
+      await saveProductVariants(
+        id,
+        [
+          { key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow" },
+          { key: "classic-green", name: "Classic Green", style: "classic-green" },
+          { key: "", name: "Lavan Bhaskar", style: "minimal-white" },
+        ],
+        adminId,
+      ),
     ).toEqual({ productId: id });
-    expect((await getAdminProduct(id))?.variantNames).toEqual([
-      { variant: "saffron-glow", name: "Hingwastak label" },
+    const saved = (await getAdminProduct(id))!.variants;
+    expect(saved.map((variant) => [variant.name, variant.style])).toEqual([
+      ["Hingwastak label", "saffron-glow"],
+      ["Classic Green", "classic-green"],
+      ["Lavan Bhaskar", "minimal-white"],
     ]);
+    const newKey = saved[2]!.key;
+    expect(newKey).toMatch(/^v[0-9a-f]{8}$/);
+    // Royal Maroon was removed: its photo is a general photo now.
+    expect((await db.productImage.findUniqueOrThrow({ where: { id: maroonPhoto.id } })).variant).toBeNull();
     const log = await db.adminLog.findFirstOrThrow({
       where: { resource: "Product", resourceId: String(id), action: "product.update" },
       orderBy: { id: "desc" },
     });
-    expect(log.changes).toEqual({ "name.saffron-glow": { from: null, to: "Hingwastak label" } });
+    expect(log.changes).toMatchObject({ variants: { to: expect.stringContaining("Lavan Bhaskar") } });
 
-    // Saving the same names again changes nothing and logs nothing.
-    const logs = await db.adminLog.count();
-    await saveProductVariantNames(id, { "saffron-glow": "Hingwastak label" }, adminId);
-    expect(await db.adminLog.count()).toBe(logs);
+    // A photo can be marked with the new variant, not with a removed one.
+    const photo = await addProductImage({ productId: id, bytes: png, alt: "Lavan", variant: newKey, actorId: adminId });
+    expect(photo.ok).toBe(true);
+    expect(
+      await addProductImage({ productId: id, bytes: png, alt: "Old", variant: "royal-maroon", actorId: adminId }),
+    ).toEqual({ ok: false, error: "variant" });
+    expect(
+      await updateProductImageDetails(maroonPhoto.id, { alt: "Maroon label", variant: "royal-maroon" }, adminId),
+    ).toEqual({ error: "variant" });
 
-    await saveProductVariantNames(id, { "royal-maroon": "Lavan Bhaskar" }, adminId);
-    expect((await getAdminProduct(id))?.variantNames).toEqual([
-      { variant: "royal-maroon", name: "Lavan Bhaskar" },
-    ]);
-    expect(await saveProductVariantNames(999_999, {}, adminId)).toBeNull();
+    // Down to one variant.
+    await saveProductVariants(id, [{ key: newKey, name: "Lavan Bhaskar", style: "minimal-white" }], adminId);
+    expect(await names(id)).toEqual(["Lavan Bhaskar"]);
+
+    // A key the product doesn't have (a stale form) is refused; a missing product is null.
+    expect(
+      await saveProductVariants(id, [{ key: "saffron-glow", name: "Back", style: "saffron-glow" }], adminId),
+    ).toEqual({ error: "unknownKey" });
+    expect(await saveProductVariants(999_999, [], adminId)).toBeNull();
   });
 });

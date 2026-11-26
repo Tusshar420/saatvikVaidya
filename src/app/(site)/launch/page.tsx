@@ -979,7 +979,7 @@ async function ReviewStep({
                       {text.themeMrp(
                         variantName(
                           line.theme,
-                          line.product?.variantNames,
+                          line.product?.variants,
                           copy.customise.themes,
                         ),
                         formatPaise(line.packMrpPaise),

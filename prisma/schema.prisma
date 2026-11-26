@@ -962,8 +962,8 @@ model Product {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   images                 ProductImage[]
-  /// Build Your Brand: this product's own names for the label variants.
-  variantNames           ProductVariantName[]
+  /// Build Your Brand: this product's label variants (none: the four defaults).
+  variants               ProductVariant[]
   bulkTiers              BulkPriceTier[]
   cartItems              CartItem[]
   orderItems             OrderItem[]
@@ -997,8 +997,8 @@ model ProductImage {
   sizeBytes   Int
   alt         String   @db.VarChar(200)
   /// Null: a general photo (shop gallery; the first is the main image).
-  /// A label theme key (src/lib/brand-theme.ts): shown on the Build Your
-  /// Brand page when that variant is picked, and nowhere else.
+  /// A variant key (ProductVariant.key): shown on the Build Your Brand page
+  /// when that variant is picked, and nowhere else.
   variant     String?  @db.VarChar(24)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
@@ -1006,17 +1006,21 @@ model ProductImage {
   @@index([productId, sortOrder])
 }
 
-/// A product's own name for one Build Your Brand label variant (e.g.
-/// "Hingwastak label" for Saffron Glow). A variant without a row uses its
-/// default name (src/content/brand.ts, customise.themes).
-model ProductVariantName {
+/// One Build Your Brand label variant of a product, in the admin's order.
+/// A product without rows offers the four default variants
+/// (src/lib/brand-theme.ts, defaultBrandVariants).
+model ProductVariant {
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  /// A label theme key (src/lib/brand-theme.ts).
-  variant   String  @db.VarChar(24)
+  /// Never changes: cart lines (labelTheme), photos (ProductImage.variant)
+  /// and orders refer to it. A default variant keeps its theme key.
+  key       String  @db.VarChar(24)
   name      String  @db.VarChar(40)
+  /// The drawn pack's colours when the variant has no photo: a theme key.
+  style     String  @db.VarChar(24)
+  sortOrder Int     @default(0)
 
-  @@id([productId, variant])
+  @@id([productId, key])
 }
 
 /// A lower unit price from a quantity upwards, for user types with

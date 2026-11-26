@@ -6488,3 +6488,55 @@ name wouldn't fit.
 
 **Deploy note**
 - Needs `pnpm db:deploy` (one new table) on staging and live.
+
+## Build Your Brand: add and remove label variants per product (2026-11-26)
+
+The owner asked to change the number of variants too, not just rename
+them. Each Build Your Brand product now has its own list of 1 to 8
+variants. This replaces the names-only "Variant names" box from the
+entry above (committed but never deployed).
+
+**Built**
+- Table `ProductVariant` (product, key, name, pack colour `style`,
+  order) replaces `ProductVariantName` (migration
+  `20261126170000_product_variants` copies any saved names: a product
+  with names gets all four defaults as rows, with its names, then the old
+  table is dropped; checked on sample rows). A product without rows still
+  offers the four defaults, so nothing changes for untouched products.
+- Variant keys never change: the four defaults keep their theme key
+  (existing photos and cart lines stay valid); new variants get
+  "v" + 8 hex characters. `src/lib/brand-theme.ts`: `BrandVariant`,
+  `toBrandVariants`, `pickVariant`, `variantName`, `MAX_BRAND_VARIANTS`.
+- Admin product edit, Images: a **Variants** editor (name and pack colour
+  per row, Add variant, Remove, Save variants; 1 to 8). "Shows for" and
+  the badges list the product's variants. Saved row by row by exact key
+  (no gap-lock deadlocks) under a lock on the product row, with an audit
+  entry listing the variants before and after.
+- Removing a variant turns its photos into general photos; a cart line
+  that had chosen it falls back to the product's first variant (cart,
+  label step and the order's copy). Photos and the "Continue" choice only
+  accept a key the product has (Zod checks the shape, the server checks
+  the product).
+- Product page: one radio, swatch and thumbnail per variant (the
+  thumbnails wrap 4 per row); the drawn pack uses the variant's pack
+  colour.
+
+**Checked**
+- Typecheck, lint, unit tests 1050 (new: the variant list helpers; form
+  rows, limits, duplicates; rename/add/remove with photos becoming
+  general and unknown keys refused; a removed variant in the cart falling
+  back to the first).
+- `brand-variant-photos.spec.ts`, phone and desktop, run twice: rename one, remove
+  one, add one with its own colour, an empty name refused, a photo for the
+  new variant shown on the product page, then down to one variant (the
+  last can't be removed). Screens checked at 375 and 1280 px; that check
+  found the editor showing the wrong pack colour after saving (React
+  resets a form after its action), fixed by submitting it by hand, and
+  the test now checks the saved values stay shown.
+- Full `pnpm test:e2e` (production build included): 361 passed, 0
+  failed, 11 skipped (the usual phone/desktop-only skips); manual-payment
+  and order-request configs 2 + 2 passed.
+
+**Deploy note**
+- Needs `pnpm db:deploy` on staging (two migrations: the names table,
+  then this one, which replaces it).

@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
-import { brandThemeOf, type BrandThemeKey } from "@/lib/brand-theme";
+import { pickVariant } from "@/lib/brand-theme";
 import {
   brandLineTotal,
   brandUnitPriceFor,
@@ -26,8 +26,11 @@ export type BrandCartLine = {
   /** Name as it is now, also when the product is no longer open for branding. */
   name: string;
   quantity: number;
-  /** The label colour theme chosen on the product page. */
-  theme: BrandThemeKey;
+  /**
+   * The label variant chosen on the product page (its key); the product's
+   * first variant when none was chosen or the chosen one was removed.
+   */
+  theme: string;
   /** The MRP the buyer prints on one pack, in paise; null until entered. */
   packMrpPaise: number | null;
   /** Null when the product was taken off Build Your Brand or hidden. */
@@ -80,7 +83,7 @@ export async function readBrandCart(
       productId: row.productId,
       name: row.product.name,
       quantity: row.quantity,
-      theme: brandThemeOf(row.labelTheme).key,
+      theme: (product && pickVariant(row.labelTheme, product.variants)?.key) ?? row.labelTheme ?? "",
       packMrpPaise: row.packMrpPaise,
       product,
       valid,
@@ -152,10 +155,14 @@ async function totalWith(userId: string, productId: number, lineTotalPaise: numb
 export async function addToBrandCart(
   userId: string,
   productId: number,
-  theme?: BrandThemeKey,
+  theme?: string,
 ): Promise<BrandCartChange> {
   const product = await findBrandProduct(productId);
   if (!product) return { ok: false, error: { kind: "unavailable" } };
+  // Only a variant the product offers (a removed one: the cart line keeps its own).
+  if (theme !== undefined && !product.variants.some((variant) => variant.key === theme)) {
+    return { ok: false, error: { kind: "unavailable" } };
+  }
   const { terms } = product;
   const existing = await db.brandCartItem.findUnique({
     where: { userId_productId: { userId, productId } },
@@ -191,13 +198,17 @@ export async function addToBrandCart(
 export async function chooseBrandProduct(
   userId: string,
   productId: number,
-  theme: BrandThemeKey,
+  theme: string,
 ): Promise<BrandCartChange> {
   const existing = await db.brandCartItem.findUnique({
     where: { userId_productId: { userId, productId } },
     select: { quantity: true },
   });
   if (!existing) return addToBrandCart(userId, productId, theme);
+  const product = await findBrandProduct(productId);
+  if (!product?.variants.some((variant) => variant.key === theme)) {
+    return { ok: false, error: { kind: "unavailable" } };
+  }
   const updated = await db.brandCartItem.updateMany({
     where: { userId, productId },
     data: { labelTheme: theme },

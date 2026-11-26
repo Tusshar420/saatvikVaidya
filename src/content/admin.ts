@@ -810,14 +810,20 @@ export const admin = {
       featured: "Featured (listed first)",
       isSample: "Sample product (labelled “Sample” on the site)",
     },
-    variantNames: {
-      title: "Variant names",
-      description:
-        "Build Your Brand: rename this product's label variants. Buyers see these names when they pick a variant, in their cart and on their order. Leave a name empty to use the default.",
-      field: (defaultName: string) => `Name for ${defaultName}`,
-      save: "Save names",
+    variants: {
+      title: "Variants",
+      description: (max: number) =>
+        `Build Your Brand: the label variants buyers pick from, in this order (1 to ${max}). Rename them, add or remove them. A variant without a photo shows the drawn pack in its pack colour. Removing a variant turns its photos into general photos.`,
+      name: (n: number) => `Variant ${n} name`,
+      style: (n: number) => `Variant ${n} pack colour`,
+      add: "Add variant",
+      remove: (n: number) => `Remove variant ${n}`,
+      save: "Save variants",
       errors: {
-        tooLong: (max: number) => `Keep the name to ${max} characters.`,
+        name: (max: number) => `Enter a name of 1 to ${max} characters.`,
+        style: "Choose a pack colour from the list.",
+        count: (max: number) => `A product needs 1 to ${max} variants. Reload the page and try again.`,
+        unknownKey: "These variants were changed elsewhere. Reload the page and try again.",
       },
     },
     images: {

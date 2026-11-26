@@ -7,7 +7,7 @@ import { brand as copy } from "@/content/brand";
 import { formValues, type FormState } from "@/server/admin/form";
 import { requireUser } from "@/server/auth/session";
 import { MAX_BRAND_UNITS, packagingLimits } from "@/lib/brand";
-import { brandThemeKeys } from "@/lib/brand-theme";
+import { variantKeyPattern } from "@/lib/brand-theme";
 import { formatPaise } from "@/lib/format";
 import { MAX_BRAND_PROFILES } from "@/lib/label";
 import {
@@ -209,7 +209,7 @@ export async function deleteBrandProfileAction(
 
 const chooseProductSchema = z.object({
   productId: z.coerce.number().int().positive().max(2_147_483_647),
-  theme: z.enum(brandThemeKeys),
+  theme: z.string().regex(variantKeyPattern),
 });
 
 /** "Continue — choose quantity" on a product's page: into the cart with the label theme, then step 2. */

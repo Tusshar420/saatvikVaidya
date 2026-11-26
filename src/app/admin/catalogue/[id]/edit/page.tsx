@@ -9,7 +9,8 @@ import { ProductForm } from "@/components/admin/product-form";
 import { ProductImages } from "@/components/admin/product-images";
 import { buttonClasses } from "@/components/ui/button";
 import { admin as copy } from "@/content/admin";
-import { brandThemeOf, toVariantNames } from "@/lib/brand-theme";
+import { toBrandVariants } from "@/lib/brand-theme";
+import { brand as brandCopy } from "@/content/brand";
 import { productHref, productImageSrc } from "@/lib/catalogue";
 import {
   getAdminProduct,
@@ -23,7 +24,7 @@ import {
   deleteProductImageAction,
   moveProductImageAction,
   updateProductAction,
-  saveVariantNamesAction,
+  saveVariantsAction,
   updateProductImageAction,
 } from "../../actions";
 
@@ -67,15 +68,14 @@ export default async function EditProductPage({
           id: image.id,
           src: productImageSrc(image.id),
           alt: image.alt,
-          variant:
-            image.variant === null ? null : brandThemeOf(image.variant).key,
+          variant: image.variant,
         }))}
         variants={
           product.brandEligible ||
           product.images.some((image) => image.variant !== null)
         }
-        variantNames={toVariantNames(product.variantNames)}
-        namesAction={saveVariantNamesAction.bind(null, product.id)}
+        variantList={toBrandVariants(product.variants, brandCopy.customise.themes)}
+        variantsAction={saveVariantsAction.bind(null, product.id)}
         moveAction={moveProductImageAction}
         deleteAction={deleteProductImageAction}
         altAction={updateProductImageAction}

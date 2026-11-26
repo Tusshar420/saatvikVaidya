@@ -22,7 +22,7 @@ import {
   type LabelValues,
 } from "@/lib/label";
 import { brand as brandCopy } from "@/content/brand";
-import { toVariantNames, variantName } from "@/lib/brand-theme";
+import { pickVariant, toBrandVariants } from "@/lib/brand-theme";
 import { db } from "@/server/db";
 
 // Per-product label details of a Launch cart line. The spec of the product
@@ -112,7 +112,7 @@ const lineSelect = {
       ingredients: true,
       dosage: true,
       labelSpec: { select: specSelect },
-      variantNames: { select: { variant: true, name: true } },
+      variants: { select: { key: true, name: true, style: true } },
     },
   },
 } satisfies Prisma.BrandCartItemSelect;
@@ -133,17 +133,15 @@ function toLabelLine(
     }
   }
   const values = effectiveLabelValues(defaults, overrides, spec);
+  // The chosen variant; one the admin removed since becomes the product's first.
+  const variant = row.labelTheme
+    ? pickVariant(row.labelTheme, toBrandVariants(row.product.variants, brandCopy.customise.themes))
+    : undefined;
   return {
     productId: row.productId,
     name: row.product.name,
-    theme: row.labelTheme,
-    themeName: row.labelTheme
-      ? variantName(
-          row.labelTheme,
-          toVariantNames(row.product.variantNames),
-          brandCopy.customise.themes,
-        )
-      : null,
+    theme: variant?.key ?? row.labelTheme,
+    themeName: variant?.name ?? null,
     packMrpPaise: row.packMrpPaise,
     spec,
     defaults,
