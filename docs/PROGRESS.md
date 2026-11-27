@@ -6540,3 +6540,56 @@ entry above (committed but never deployed).
 **Deploy note**
 - Needs `pnpm db:deploy` on staging (two migrations: the names table,
   then this one, which replaces it).
+
+## Catalogue: bulk photo upload (2026-11-27)
+
+The owner asked for one place to upload many product photos at once: pick
+the medicine by searching its name, add image 1, image 2 and so on, each
+with its variant, then one Upload button.
+
+**Built**
+- New admin page `/admin/catalogue/photos` ("catalogue" permission),
+  linked from the Catalogue header ("Bulk photo upload"), from each
+  product's Images section ("Upload several photos at once", which opens
+  the page with that product chosen via `?product=<id>`) and from the
+  admin search console.
+- One row per photo: **Medicine** (a searchable list: name, brand or pack
+  size, every word must match; keyboard and mouse; shows brand, pack,
+  "n of 8 photos", Build Your Brand and Hidden), **Variant** (General or
+  one of that product's label variants; general only for products not on
+  Build Your Brand), **Image** (thumbnail, file name and size) and an
+  optional **Description** (empty: "Medicine: Variant").
+- "Add photo" keeps the last row's medicine and moves to its next
+  variant; "Add several images" picks many files at once, one row each
+  for the last chosen medicine. Rows can be removed.
+- Upload checks every row first (medicine, image, size, type, and the
+  8-photo limit per product counting the rows queued) and marks problems
+  in red without sending anything. Then it sends the rows one by one to
+  the existing `POST /api/admin/products/[id]/images` route (same checks,
+  storage and audit log as the single upload), showing "Uploading n of
+  m" and each row's status. Failed rows stay to be fixed and retried;
+  uploaded rows get "Open product" and can be cleared.
+- `src/lib/bulk-photos.ts` (search, room left, over-limit rows, default
+  description); `listPhotoUploadProducts()` in
+  `src/server/admin/catalogue.ts`. Copy in `admin.catalogue.bulkPhotos`.
+
+**Checked**
+- Typecheck, lint, unit tests 1055 (new: search, limits, default
+  description, the product list with photo counts and variants).
+- New `tests/e2e/bulk-photos.spec.ts`, phone and desktop: the link from
+  the product page, search and pick, next variant on a new row, several
+  images at once, a second medicine by keyboard, a row without an image
+  stopping the upload, then 4 photos uploaded with the right products,
+  variants and descriptions; axe and no sideways scroll. Screens checked
+  at 375 and 1280 px (the variant list's "General" label was shortened
+  so it fits).
+- Full `pnpm test:e2e` (production build included): 363 passed, 0
+  failed, 11 skipped; manual-payment and order-request configs 2 + 2
+  passed. A first run had one failure: `catalogue.spec.ts` (phone) saw a
+  404 for a resource on a shop page, likely another test's product photo
+  being removed mid-run. It passed 4 times on its own and in the full rerun.
+
+**Known gaps**
+- Rows upload one after another (not in parallel) to keep the server and
+  the per-product limit simple; 20 photos take a few seconds.
+- No migration; nothing to run on deploy.

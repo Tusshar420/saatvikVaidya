@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Upload } from "lucide-react";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,13 @@ export function ProductImages({
         {text.description(MAX_PRODUCT_IMAGES, maxSize)}
       </p>
       {variants && <p className="mt-1 text-small text-muted">{text.variantNote}</p>}
+      <Link
+        href={`/admin/catalogue/photos?product=${productId}`}
+        className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-small font-bold text-brand hover:underline"
+      >
+        <ImagePlus aria-hidden className="size-4" />
+        {text.bulkLink}
+      </Link>
       {variants && (
         <ProductVariants
           variants={variantList}

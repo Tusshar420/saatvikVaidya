@@ -23,6 +23,7 @@ import {
   productSlugPattern,
   slugify,
 } from "@/lib/catalogue";
+import type { PhotoProduct } from "@/lib/bulk-photos";
 import { paiseToRupeeInput, rupeesToPaise } from "@/lib/format";
 import { db } from "@/server/db";
 import { makeableByProduct, sellableByProduct } from "@/server/inventory/availability";
@@ -395,6 +396,42 @@ export async function getAdminProduct(id: number) {
 }
 
 export type AdminProduct = NonNullable<Awaited<ReturnType<typeof getAdminProduct>>>;
+
+/**
+ * Every product for the bulk photo upload (/admin/catalogue/photos): name,
+ * brand, how many photos it has and its label variants (the four defaults
+ * until set). Hidden products are included; Build Your Brand products first.
+ */
+export async function listPhotoUploadProducts(): Promise<PhotoProduct[]> {
+  const products = await db.product.findMany({
+    orderBy: [{ brandEligible: "desc" }, { name: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      packSize: true,
+      active: true,
+      brandEligible: true,
+      brand: { select: { name: true } },
+      _count: { select: { images: true } },
+      variants: {
+        orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+        select: { key: true, name: true, style: true },
+      },
+    },
+  });
+  return products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    brand: product.brand?.name ?? null,
+    packSize: product.packSize,
+    active: product.active,
+    brandEligible: product.brandEligible,
+    imageCount: product._count.images,
+    variants: product.brandEligible
+      ? toBrandVariants(product.variants, brandCopy.customise.themes)
+      : [],
+  }));
+}
 
 /** Brands, forms and practice areas for the product form's choices. */
 export async function readProductFormOptions() {

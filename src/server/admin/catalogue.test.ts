@@ -14,6 +14,7 @@ import {
   getAdminProduct,
   updateProduct,
   imageVariantSchema,
+  listPhotoUploadProducts,
   parseVariantsForm,
   saveProductVariants,
   updateProductImageDetails,
@@ -426,5 +427,30 @@ describe("label variants", () => {
       await saveProductVariants(id, [{ key: "saffron-glow", name: "Back", style: "saffron-glow" }], adminId),
     ).toEqual({ error: "unknownKey" });
     expect(await saveProductVariants(999_999, [], adminId)).toBeNull();
+  });
+});
+
+describe("listPhotoUploadProducts", () => {
+  it("lists every product with its photo count and, for Build Your Brand, its variants", async () => {
+    const triphala = await db.product.findUniqueOrThrow({ where: { slug: "triphala-churna" } });
+    await db.product.update({ where: { id: triphala.id }, data: { brandEligible: true } });
+    await addProductImage({ productId: triphala.id, bytes: png, alt: "Front", actorId: adminId });
+    await saveProductVariants(
+      triphala.id,
+      [{ key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow" }],
+      adminId,
+    );
+
+    const list = await listPhotoUploadProducts();
+    expect(list).toHaveLength(await db.product.count());
+    const row = list.find((product) => product.id === triphala.id);
+    expect(row).toMatchObject({ name: triphala.name, brandEligible: true, imageCount: 1 });
+    expect(row?.variants).toEqual([
+      { key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow" },
+    ]);
+    // Build Your Brand products come first; others offer general photos only.
+    const firstPlain = list.findIndex((product) => !product.brandEligible);
+    expect(list.slice(0, firstPlain === -1 ? undefined : firstPlain).every((p) => p.brandEligible)).toBe(true);
+    expect(list.filter((p) => !p.brandEligible).every((p) => p.variants.length === 0)).toBe(true);
   });
 });
