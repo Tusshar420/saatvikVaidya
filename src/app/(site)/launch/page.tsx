@@ -559,21 +559,26 @@ function ProductChoice({
         chosen ? "border-brand" : "border-line",
       )}
     >
+      {/* The label photo (label 1) when the product has one, else a drawn pack. */}
       <div
         className={cn(
-          "relative flex h-35.5 flex-col items-center justify-center p-3.75 text-center text-white",
-          pack,
+          "relative flex h-35.5 flex-col items-center justify-center text-center",
+          product.image ? "border-b border-line bg-surface p-2" : cn("p-3.75 text-white", pack),
         )}
       >
-        <div aria-hidden className="flex flex-col items-center">
-          <span className="font-heading text-[10px] font-bold tracking-[0.09em] uppercase">
-            {copy.launch.yourBrand(product.formName)}
-          </span>
-          <b className="mt-3.5 mb-2 line-clamp-2 font-heading text-[19px] leading-[1.1] font-extrabold">
-            {product.name}
-          </b>
-          <small className="text-[11px] opacity-80">{product.packSize}</small>
-        </div>
+        {product.image ? (
+          <ProductVisual image={product.image} glyph={product.glyph} />
+        ) : (
+          <div aria-hidden className="flex flex-col items-center">
+            <span className="font-heading text-[10px] font-bold tracking-[0.09em] uppercase">
+              {copy.launch.yourBrand(product.formName)}
+            </span>
+            <b className="mt-3.5 mb-2 line-clamp-2 font-heading text-[19px] leading-[1.1] font-extrabold">
+              {product.name}
+            </b>
+            <small className="text-[11px] opacity-80">{product.packSize}</small>
+          </div>
+        )}
         {chosen && (
           <Badge variant="orange" className="absolute top-2.5 left-2.5">
             {text.inCart}

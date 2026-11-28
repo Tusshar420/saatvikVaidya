@@ -94,8 +94,9 @@ export async function loadLabelPhotos(actorId: string, options: Options = {}): P
     let added: boolean;
     try {
       added = await db.$transaction(async (tx) => {
-        // Checked again inside the transaction: an admin may have just added
-        // a photo or variants by hand.
+        // Lock the product row, then check again: an admin may have just
+        // added a photo or variants, or pressed the button twice at once.
+        await tx.$queryRaw`SELECT id FROM Product WHERE id = ${product.id} FOR UPDATE`;
         const [images, variants] = await Promise.all([
           tx.productImage.count({ where: { productId: product.id } }),
           tx.productVariant.count({ where: { productId: product.id } }),

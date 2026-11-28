@@ -4,7 +4,8 @@
 // "Load label photos" on /admin/catalogue/photos (src/server/admin/label-photos.ts).
 //
 // The client's files are print artwork (CMYK, 1.5–4 MB). Each copy is sRGB,
-// which every browser shows correctly, at most 1200 px a side (about 80 KB).
+// which every browser shows correctly, trimmed of the white margins around the
+// label, at most 1200 px a side (about 80 KB).
 // Run on a developer's computer only; the server never needs sharp.
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -23,6 +24,7 @@ if (!folder) {
 // than adding a second one. Only the calls used here are typed.
 type SharpImage = {
   rotate(): SharpImage;
+  trim(options: { threshold: number }): SharpImage;
   resize(options: { width: number; height: number; fit: "inside"; withoutEnlargement: boolean }): SharpImage;
   toColourspace(space: "srgb"): SharpImage;
   jpeg(options: { quality: number; mozjpeg: boolean }): SharpImage;
@@ -49,6 +51,9 @@ async function main(): Promise<void> {
   for (const file of files) {
     const bytes = await sharp(await readFile(join(folder!, file)))
       .rotate()
+      // The labels sit in the middle of a white square; cut the white away
+      // so a short, wide card shows the label at full size.
+      .trim({ threshold: 12 })
       .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: "inside", withoutEnlargement: true })
       .toColourspace("srgb")
       .jpeg({ quality: 80, mozjpeg: true })

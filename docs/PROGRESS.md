@@ -6669,3 +6669,17 @@ inside the running site instead:
 
 **After deploying:** sign in as an admin with catalogue access, open
 Catalogue > Bulk photos, press "Load label photos". No migration.
+
+### Follow-up: label photos on the Build Your Brand cards (2026-11-28)
+
+The owner asked for the photos on the /launch list cards too.
+- `ProductChoice` (src/app/(site)/launch/page.tsx) shows the product's shop
+  photo (label 1) in the card's top area when it has one; products without
+  photos keep the drawn coloured pack.
+- `photos:prepare` now trims the white margins around each label, so the
+  copies are wide strips (2:1 to 3:1) that fill a short, wide card. The
+  product page gallery fits images in its box, so it looks the same.
+- Fix: two presses at the same moment (two admins, a double click) could both
+  add the same variants and fail; the loader now locks the product row first.
+- `label-photos.spec.ts` also checks the card photo on /launch (phone and
+  desktop, both pressing at once).
