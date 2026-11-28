@@ -886,6 +886,7 @@ export const admin = {
       variant: (n: number) => `Variant for photo ${n}`,
       variantGeneral: "General photo",
       variantNone: "This medicine isn't on Build Your Brand, so its photos are general.",
+      variantPick: "Choose a medicine to see its variants.",
       file: (n: number) => `Image ${n}`,
       alt: (n: number) => `Description of photo ${n}`,
       altPlaceholder: "Leave empty to use the medicine and variant name",

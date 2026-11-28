@@ -6594,6 +6594,26 @@ with its variant, then one Upload button.
   the per-product limit simple; 20 photos take a few seconds.
 - No migration; nothing to run on deploy.
 
+### Follow-up: variants as chips (2026-11-28)
+
+- The owner asked for the variant choice to look like size chips. Each
+  row now shows "General photo" plus every variant of the chosen medicine
+  as chips (the shared `ChoiceChips` radio group: arrow keys move, the
+  chosen one is green), on their own line under the medicine and image.
+  Before a medicine is chosen only "General photo" shows, with a hint.
+- `ChoiceChips` (wrap layout) lets a long label wrap inside its chip
+  instead of running off a phone screen; the scroll layout is unchanged.
+- The product edit page's Images section uses the same chips for "Image N
+  shows for" and the upload form's "Shows for" (a hidden `variant` field
+  carries the choice, so the server action and upload API are unchanged;
+  the upload chips go back to General after each upload).
+- `bulk-photos.spec.ts` and `brand-variant-photos.spec.ts` click and check
+  the chips. Screens checked at 375 and 1280 px.
+- Note: the global pnpm is now 11.x and refuses to run scripts until it
+  reinstalls `node_modules` (no TTY in unattended runs). Checks here ran
+  with `pnpm_config_verify_deps_before_run=false`; a `pnpm install` by the
+  owner would clear it.
+
 ## Catalogue: client label photos as Build Your Brand variants (2026-11-28)
 
 The owner put the label artwork in `Client Data/product images` (159 files)

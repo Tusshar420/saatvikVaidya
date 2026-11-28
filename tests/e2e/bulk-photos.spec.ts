@@ -1,6 +1,6 @@
 import { stockCreate } from "../setup/stock-create";
 import { randomInt } from "node:crypto";
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 import { admin } from "../../src/content/admin";
 import { E2E_CONTENT_PREFIX, e2eDb, signInAs } from "./auth-helpers";
 import { png } from "./brand-helpers";
@@ -40,6 +40,10 @@ async function makeProduct(token: string, name: string, brandEligible: boolean) 
   });
 }
 
+/** A row's variant chip. */
+const chip = (row: Locator, n: number, name: string) =>
+  row.getByRole("radiogroup", { name: text.variant(n) }).getByRole("radio", { name, exact: true });
+
 const file = (name: string) => ({ name, mimeType: "image/png", buffer: png });
 
 test("an admin uploads many variant photos for several medicines at once", async ({
@@ -62,33 +66,38 @@ test("an admin uploads many variant photos for several medicines at once", async
 
   // Search picks the medicine; the variant list is that product's.
   await page.goto("/admin/catalogue/photos");
+  await expect(row(1).getByRole("radiogroup", { name: text.variant(1) }).getByRole("radio")).toHaveCount(1);
+  await expect(row(1).getByText(text.variantPick)).toBeVisible();
   const picker = row(1).getByRole("combobox", { name: text.product(1) });
   await picker.fill(`bulk jar ${token}`);
   const results = section.getByRole("listbox", { name: text.product(1) });
   await expect(results.getByRole("option")).toHaveCount(1);
   await results.getByRole("option", { name: jar.name }).click();
   await expect(picker).toHaveValue(jar.name);
-  await row(1).getByLabel(text.variant(1)).selectOption({ label: "Saffron Glow" });
+  await chip(row(1), 1, "Saffron Glow").click();
+  await expect(chip(row(1), 1, "Saffron Glow")).toBeChecked();
+  await expect(chip(row(1), 1, text.variantGeneral)).not.toBeChecked();
   await row(1).getByLabel(text.file(1), { exact: true }).setInputFiles(file("saffron.png"));
   await expect(row(1).getByText("saffron.png")).toBeVisible();
 
   // A new row keeps the medicine and moves on to the next variant.
   await section.getByRole("button", { name: text.addRow }).click();
   await expect(row(2).getByRole("combobox", { name: text.product(2) })).toHaveValue(jar.name);
-  await expect(row(2).getByLabel(text.variant(2))).toHaveValue("royal-maroon");
+  await expect(chip(row(2), 2, "Royal Maroon")).toBeChecked();
   await row(2).getByLabel(text.file(2), { exact: true }).setInputFiles(file("maroon.png"));
 
   // Several images at once: one row each.
   await section.getByLabel(text.addMany).setInputFiles([file("white.png"), file("other.png")]);
   await expect(section.getByRole("listitem")).toHaveCount(4);
-  await expect(row(3).getByLabel(text.variant(3))).toHaveValue("minimal-white");
+  await expect(chip(row(3), 3, "Minimal White")).toBeChecked();
 
   // Row 4 is for the other medicine (keyboard): no variants, so general.
   const picker4 = row(4).getByRole("combobox", { name: text.product(4) });
   await picker4.fill(`bulk plain ${token}`);
   await picker4.press("Enter");
   await expect(picker4).toHaveValue(plain.name);
-  await expect(row(4).getByLabel(text.variant(4))).toBeDisabled();
+  await expect(chip(row(4), 4, text.variantGeneral)).toBeChecked();
+  await expect(row(4).getByRole("radiogroup", { name: text.variant(4) }).getByRole("radio")).toHaveCount(1);
   await expect(row(4).getByText(text.variantNone)).toBeVisible();
   await row(4).getByLabel(text.alt(4)).fill("Front of the plain pack");
 

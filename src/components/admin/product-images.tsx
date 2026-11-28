@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Upload } from "lucide-react";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChoiceChips } from "@/components/ui/choice-chips";
 import { Field, inputClasses, useFieldIds } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { admin as copy } from "@/content/admin";
@@ -166,8 +167,14 @@ function nameFor(key: string, variants: BrandVariant[]) {
   return variants.find((variant) => variant.key === key)?.name ?? key;
 }
 
-/** "Shows for": general, or one Build Your Brand label variant. */
-function VariantSelect({
+/** The chip value for a general photo (variant keys never look like this). */
+const GENERAL = "__general";
+
+/**
+ * "Shows for" as chips: general, or one Build Your Brand label variant. The
+ * choice is sent as the hidden `variant` field ("" for a general photo).
+ */
+function VariantChips({
   label,
   names,
   defaultValue,
@@ -182,25 +189,22 @@ function VariantSelect({
   help?: string;
   className?: string;
 }) {
-  const ids = useFieldIds(undefined, { help, error });
+  const [value, setValue] = useState(defaultValue ?? "");
   return (
-    <Field ids={ids} label={label} help={help} error={error} className={className}>
-      <select
-        id={ids.inputId}
-        name="variant"
-        defaultValue={defaultValue ?? ""}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={ids.describedBy}
-        className={cn(inputClasses, "cursor-pointer")}
-      >
-        <option value="">{text.variantGeneral}</option>
-        {names.map((variant) => (
-          <option key={variant.key} value={variant.key}>
-            {variant.name}
-          </option>
-        ))}
-      </select>
-    </Field>
+    <div className={className}>
+      <ChoiceChips
+        label={label}
+        options={[
+          { value: GENERAL, label: text.variantGeneral },
+          ...names.map((variant) => ({ value: variant.key, label: variant.name })),
+        ]}
+        value={value || GENERAL}
+        onValueChange={(next) => setValue(next === GENERAL ? "" : next)}
+        error={error}
+      />
+      <input type="hidden" name="variant" value={value} />
+      {help && <p className="mt-1.5 text-small text-muted">{help}</p>}
+    </div>
   );
 }
 
@@ -231,12 +235,12 @@ function DetailsForm({
         wrapperClassName="flex-1 sm:min-w-56"
       />
       {variants ? (
-        <VariantSelect
+        <VariantChips
           label={text.variantFor(position)}
           names={names}
           defaultValue={image.variant}
           error={state.fieldErrors?.variant}
-          className="sm:w-60"
+          className="w-full"
         />
       ) : (
         <input type="hidden" name="variant" value={image.variant ?? ""} />
@@ -271,6 +275,7 @@ function UploadForm({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<UploadState>({ status: "idle" });
+  const [uploads, setUploads] = useState(0);
   const fileIds = useFieldIds(undefined, {
     error: state.status === "error" && state.field === "file" ? state.message : undefined,
   });
@@ -313,6 +318,7 @@ function UploadForm({
         return;
       }
       formRef.current?.reset();
+      setUploads((count) => count + 1);
       setState({ status: "done" });
       router.refresh();
     } catch {
@@ -359,12 +365,16 @@ function UploadForm({
           error={altError}
         />
         {variants && (
-          <VariantSelect
+          <VariantChips
+            // A new key after each upload puts the choice back to general,
+            // like the form reset does for the other fields.
+            key={uploads}
             label={text.variant}
             names={names}
             defaultValue={null}
             help={text.variantHelp}
             error={variantError}
+            className="sm:col-span-2"
           />
         )}
       </div>
