@@ -11,7 +11,10 @@ import { ThemedPack } from "./themed-pack";
 
 const text = copy.customise;
 
-/** One theme's two-tone swatch (header colour beside the body colour). */
+/**
+ * One theme's two-tone swatch (header colour beside the body colour), for a
+ * variant without a photo. A variant with a photo shows its label instead.
+ */
 const swatches: Record<BrandThemeKey, [string, string]> = {
   "classic-green": ["bg-pack-green", "bg-orange"],
   "saffron-glow": ["bg-orange", "bg-pack-green"],
@@ -126,8 +129,22 @@ export function ProductCustomiser({
                     )}
                   >
                     <span aria-hidden className="flex h-8 w-10 shrink-0 overflow-hidden rounded-sm border border-line">
-                      <span className={cn("w-1/2", left)} />
-                      <span className={cn("w-1/2", right)} />
+                      {photos[option.key] ? (
+                        // The variant's own label, cropped, so the swatch shows
+                        // its real colours (the drawn theme may not match).
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={photos[option.key]?.src}
+                          alt=""
+                          loading="lazy"
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <>
+                          <span className={cn("w-1/2", left)} />
+                          <span className={cn("w-1/2", right)} />
+                        </>
+                      )}
                     </span>
                     <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                       {option.name}

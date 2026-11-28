@@ -6683,3 +6683,8 @@ The owner asked for the photos on the /launch list cards too.
   add the same variants and fail; the loader now locks the product row first.
 - `label-photos.spec.ts` also checks the card photo on /launch (phone and
   desktop, both pressing at once).
+- The variant swatch on a Build Your Brand product page showed the nearest
+  drawn theme, so "Purple" looked maroon and gold and "Blue" white and green.
+  A variant with a photo now shows its own label, cropped, as the swatch;
+  variants without photos keep the theme colours. Checked at 375 and 1280 px;
+  brand, variant-photo, label-photo and account-brand specs pass (16).
