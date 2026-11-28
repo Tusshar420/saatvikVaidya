@@ -553,9 +553,12 @@ function ProductChoice({
   // Fewer can be made than the minimum order: nothing can be ordered yet.
   const soldOut = product.makeable !== null && product.makeable < terms.minQty;
   return (
+    // The whole card opens the product: "View & customise" is stretched over
+    // it (one link for keyboards and screen readers). Sold-out cards have no link.
     <li
       className={cn(
-        "flex min-w-0 flex-col overflow-hidden rounded-xl border bg-surface shadow-card",
+        "group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-surface shadow-card transition",
+        "has-[a]:hover:border-brand/60 has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-brand/20",
         chosen ? "border-brand" : "border-line",
       )}
     >
@@ -638,7 +641,7 @@ function ProductChoice({
             <Link
               href={`/launch/${product.slug}`}
               aria-label={copy.customise.viewLabel(product.name)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-3 text-xs font-extrabold text-white transition hover:bg-brand-mid"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-3 text-xs font-extrabold text-white transition outline-none after:absolute after:inset-0 after:content-[''] group-hover:bg-brand-mid"
             >
               {copy.customise.view}
               <ButtonArrow className="size-3.5" />

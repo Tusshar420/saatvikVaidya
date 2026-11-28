@@ -6688,3 +6688,8 @@ The owner asked for the photos on the /launch list cards too.
   A variant with a photo now shows its own label, cropped, as the swatch;
   variants without photos keep the theme colours. Checked at 375 and 1280 px;
   brand, variant-photo, label-photo and account-brand specs pass (16).
+- The whole Build Your Brand list card now opens the product, not only its
+  "View & customise" button: the link is stretched over the card (still one
+  link for keyboards and screen readers). Hovering the card darkens the
+  button and tints the border; keyboard focus rings the card. Sold-out cards
+  have no link, as before. `label-photos.spec.ts` clicks a card.
