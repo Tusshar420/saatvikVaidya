@@ -6,6 +6,7 @@ import { ImagePlus, Plus, Trash2, Upload } from "lucide-react";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { ChoiceChips } from "@/components/ui/choice-chips";
 import { Field, inputClasses, useFieldIds } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { admin as copy } from "@/content/admin";
@@ -22,6 +23,9 @@ import { formatFileSize } from "@/lib/verification";
 const text = copy.catalogue.bulkPhotos;
 const imageErrors = copy.catalogue.images.errors;
 const maxSize = formatFileSize(productImageUpload.maxBytes);
+
+/** The chip value for a general photo (variant keys never look like this). */
+const GENERAL = "__general";
 
 type RowField = "product" | "variant" | "file" | "alt";
 type RowStatus = "ready" | "uploading" | "done" | "error";
@@ -380,10 +384,11 @@ function PhotoRow({
   const error = (field: RowField) =>
     row.status === "error" && row.field === field ? row.message : undefined;
   const fileIds = useFieldIds(undefined, { error: error("file") });
-  const variantIds = useFieldIds(undefined, {
-    error: error("variant"),
-    help: product && product.variants.length === 0 ? text.variantNone : undefined,
-  });
+  const variantHelp = !product
+    ? text.variantPick
+    : product.variants.length === 0
+      ? text.variantNone
+      : undefined;
 
   return (
     <li
@@ -419,7 +424,7 @@ function PhotoRow({
       {row.status === "error" && row.message && !row.field && (
         <FormAlert className="mb-3">{row.message}</FormAlert>
       )}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="grid gap-4 md:grid-cols-2">
         <ProductPicker
           label={text.product(position)}
           products={products}
@@ -433,29 +438,6 @@ function PhotoRow({
             })
           }
         />
-        <Field
-          ids={variantIds}
-          label={text.variant(position)}
-          error={error("variant")}
-          help={product && product.variants.length === 0 ? text.variantNone : undefined}
-        >
-          <select
-            id={variantIds.inputId}
-            value={row.variant}
-            disabled={disabled || !product || product.variants.length === 0}
-            onChange={(event) => onChange({ variant: event.target.value })}
-            aria-invalid={error("variant") ? true : undefined}
-            aria-describedby={variantIds.describedBy}
-            className={cn(inputClasses, "cursor-pointer")}
-          >
-            <option value="">{text.variantGeneral}</option>
-            {product?.variants.map((variant) => (
-              <option key={variant.key} value={variant.key}>
-                {variant.name}
-              </option>
-            ))}
-          </select>
-        </Field>
         <Field ids={fileIds} label={text.file(position)} error={error("file")}>
           <div className="flex items-center gap-3">
             {row.preview ? (
@@ -492,6 +474,23 @@ function PhotoRow({
             </p>
           )}
         </Field>
+        <div className="md:col-span-2">
+          <ChoiceChips
+            label={text.variant(position)}
+            options={[
+              { value: GENERAL, label: text.variantGeneral },
+              ...(product?.variants ?? []).map((variant) => ({
+                value: variant.key,
+                label: variant.name,
+              })),
+            ]}
+            value={row.variant || GENERAL}
+            onValueChange={(value) => onChange({ variant: value === GENERAL ? "" : value })}
+            disabled={disabled || !product || product.variants.length === 0}
+            error={error("variant")}
+          />
+          {variantHelp && <p className="mt-1.5 text-small text-muted">{variantHelp}</p>}
+        </div>
         <Input
           label={text.alt(position)}
           optional
@@ -501,7 +500,7 @@ function PhotoRow({
           disabled={disabled}
           error={error("alt")}
           onChange={(event) => onChange({ alt: event.target.value })}
-          wrapperClassName="md:col-span-2 xl:col-span-3"
+          wrapperClassName="md:col-span-2"
         />
       </div>
     </li>

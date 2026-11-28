@@ -6594,6 +6594,26 @@ with its variant, then one Upload button.
   the per-product limit simple; 20 photos take a few seconds.
 - No migration; nothing to run on deploy.
 
+### Follow-up: variants as chips (2026-11-28)
+
+- The owner asked for the variant choice to look like size chips. Each
+  row now shows "General photo" plus every variant of the chosen medicine
+  as chips (the shared `ChoiceChips` radio group: arrow keys move, the
+  chosen one is green), on their own line under the medicine and image.
+  Before a medicine is chosen only "General photo" shows, with a hint.
+- `ChoiceChips` (wrap layout) lets a long label wrap inside its chip
+  instead of running off a phone screen; the scroll layout is unchanged.
+- The product edit page's Images section uses the same chips for "Image N
+  shows for" and the upload form's "Shows for" (a hidden `variant` field
+  carries the choice, so the server action and upload API are unchanged;
+  the upload chips go back to General after each upload).
+- `bulk-photos.spec.ts` and `brand-variant-photos.spec.ts` click and check
+  the chips. Screens checked at 375 and 1280 px.
+- Note: the global pnpm is now 11.x and refuses to run scripts until it
+  reinstalls `node_modules` (no TTY in unattended runs). Checks here ran
+  with `pnpm_config_verify_deps_before_run=false`; a `pnpm install` by the
+  owner would clear it.
+
 ## Catalogue: client label photos as Build Your Brand variants (2026-11-28)
 
 The owner put the label artwork in `Client Data/product images` (159 files)
@@ -6669,3 +6689,27 @@ inside the running site instead:
 
 **After deploying:** sign in as an admin with catalogue access, open
 Catalogue > Bulk photos, press "Load label photos". No migration.
+
+### Follow-up: label photos on the Build Your Brand cards (2026-11-28)
+
+The owner asked for the photos on the /launch list cards too.
+- `ProductChoice` (src/app/(site)/launch/page.tsx) shows the product's shop
+  photo (label 1) in the card's top area when it has one; products without
+  photos keep the drawn coloured pack.
+- `photos:prepare` now trims the white margins around each label, so the
+  copies are wide strips (2:1 to 3:1) that fill a short, wide card. The
+  product page gallery fits images in its box, so it looks the same.
+- Fix: two presses at the same moment (two admins, a double click) could both
+  add the same variants and fail; the loader now locks the product row first.
+- `label-photos.spec.ts` also checks the card photo on /launch (phone and
+  desktop, both pressing at once).
+- The variant swatch on a Build Your Brand product page showed the nearest
+  drawn theme, so "Purple" looked maroon and gold and "Blue" white and green.
+  A variant with a photo now shows its own label, cropped, as the swatch;
+  variants without photos keep the theme colours. Checked at 375 and 1280 px;
+  brand, variant-photo, label-photo and account-brand specs pass (16).
+- The whole Build Your Brand list card now opens the product, not only its
+  "View & customise" button: the link is stretched over the card (still one
+  link for keyboards and screen readers). Hovering the card darkens the
+  button and tints the border; keyboard focus rings the card. Sold-out cards
+  have no link, as before. `label-photos.spec.ts` clicks a card.

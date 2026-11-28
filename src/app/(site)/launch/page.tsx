@@ -553,27 +553,35 @@ function ProductChoice({
   // Fewer can be made than the minimum order: nothing can be ordered yet.
   const soldOut = product.makeable !== null && product.makeable < terms.minQty;
   return (
+    // The whole card opens the product: "View & customise" is stretched over
+    // it (one link for keyboards and screen readers). Sold-out cards have no link.
     <li
       className={cn(
-        "flex min-w-0 flex-col overflow-hidden rounded-xl border bg-surface shadow-card",
+        "group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-surface shadow-card transition",
+        "has-[a]:hover:border-brand/60 has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-brand/20",
         chosen ? "border-brand" : "border-line",
       )}
     >
+      {/* The label photo (label 1) when the product has one, else a drawn pack. */}
       <div
         className={cn(
-          "relative flex h-35.5 flex-col items-center justify-center p-3.75 text-center text-white",
-          pack,
+          "relative flex h-35.5 flex-col items-center justify-center text-center",
+          product.image ? "border-b border-line bg-surface p-2" : cn("p-3.75 text-white", pack),
         )}
       >
-        <div aria-hidden className="flex flex-col items-center">
-          <span className="font-heading text-[10px] font-bold tracking-[0.09em] uppercase">
-            {copy.launch.yourBrand(product.formName)}
-          </span>
-          <b className="mt-3.5 mb-2 line-clamp-2 font-heading text-[19px] leading-[1.1] font-extrabold">
-            {product.name}
-          </b>
-          <small className="text-[11px] opacity-80">{product.packSize}</small>
-        </div>
+        {product.image ? (
+          <ProductVisual image={product.image} glyph={product.glyph} />
+        ) : (
+          <div aria-hidden className="flex flex-col items-center">
+            <span className="font-heading text-[10px] font-bold tracking-[0.09em] uppercase">
+              {copy.launch.yourBrand(product.formName)}
+            </span>
+            <b className="mt-3.5 mb-2 line-clamp-2 font-heading text-[19px] leading-[1.1] font-extrabold">
+              {product.name}
+            </b>
+            <small className="text-[11px] opacity-80">{product.packSize}</small>
+          </div>
+        )}
         {chosen && (
           <Badge variant="orange" className="absolute top-2.5 left-2.5">
             {text.inCart}
@@ -633,7 +641,7 @@ function ProductChoice({
             <Link
               href={`/launch/${product.slug}`}
               aria-label={copy.customise.viewLabel(product.name)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-3 text-xs font-extrabold text-white transition hover:bg-brand-mid"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-3 text-xs font-extrabold text-white transition outline-none after:absolute after:inset-0 after:content-[''] group-hover:bg-brand-mid"
             >
               {copy.customise.view}
               <ButtonArrow className="size-3.5" />

@@ -62,8 +62,9 @@ async function upload(page: Page, alt: string, variant: string) {
     .setInputFiles({ name: "pack.png", mimeType: "image/png", buffer: png });
   await images.getByLabel(text.alt, { exact: true }).fill(alt);
   await images
-    .getByLabel(text.variant, { exact: true })
-    .selectOption({ label: variant });
+    .getByRole("radiogroup", { name: text.variant, exact: true })
+    .getByRole("radio", { name: variant, exact: true })
+    .click();
   await images.getByRole("button", { name: text.upload }).click();
   await expect(images.getByRole("img", { name: alt })).toBeVisible();
 }
@@ -107,9 +108,10 @@ test("an admin adds a photo per label variant and the page shows it for that var
 
   // Mark the general photo as Royal Maroon's: it moves to that variant.
   await page.goto(`/admin/catalogue/${product.id}/edit`);
-  await images.getByLabel(text.variantFor(1), { exact: true }).selectOption({
-    label: themes["royal-maroon"]!,
-  });
+  await images
+    .getByRole("radiogroup", { name: text.variantFor(1), exact: true })
+    .getByRole("radio", { name: themes["royal-maroon"]!, exact: true })
+    .click();
   await images
     .getByRole("listitem", { name: text.item(1) })
     .getByRole("button", { name: text.saveAlt })

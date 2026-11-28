@@ -61,5 +61,17 @@ test("an admin loads the client's label photos onto a medicine", async ({ page, 
     select: { variant: true },
   });
   expect(images.map((image) => image.variant)).toEqual([null, "blue-panel", "blue-wave"]);
+
+  // The Build Your Brand list card shows label 1 instead of the drawn pack.
+  await page.goto("/launch?q=Supari+Pak");
+  const photo = page.getByRole("img", { name: "Supari Pak label, Blue panel" }).first();
+  await expect(photo).toBeVisible();
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+  // The whole card opens the product, not only its button.
+  // (The stretched link covers the photo, so click the card itself.)
+  await page.getByRole("listitem").filter({ has: photo }).first().click();
+  await expect(page).toHaveURL(/\/launch\/[a-z0-9-]+$/);
+  await expect(page.getByRole("radiogroup")).toBeVisible();
   expect(errors).toEqual([]);
 });
