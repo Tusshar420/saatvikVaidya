@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Pencil, Plus, Search, Upload } from "lucide-react";
+import { ImagePlus, Pencil, Plus, Search, Upload } from "lucide-react";
 import { ActiveBadge } from "@/components/admin/badges";
 import {
   DataTable,
@@ -63,6 +63,13 @@ export default async function CataloguePage({
             >
               <Upload aria-hidden className="size-4.5" />
               {brandCopy.catalogue.importLink}
+            </Link>
+            <Link
+              href="/admin/catalogue/photos"
+              className={buttonClasses({ variant: "secondary" })}
+            >
+              <ImagePlus aria-hidden className="size-4.5" />
+              {text.bulkPhotos.link}
             </Link>
             <Link href="/admin/catalogue/new" className={buttonClasses()}>
               <Plus aria-hidden className="size-4.5" />

@@ -18,6 +18,68 @@ export const brandThemeKeys = brandThemes.map((theme) => theme.key) as [
 
 export const DEFAULT_BRAND_THEME: BrandThemeKey = "classic-green";
 
+/** The longest name an admin may give a product's label variant. */
+export const MAX_VARIANT_NAME = 40;
+
+/** How many label variants a product may have (at least one). */
+export const MAX_BRAND_VARIANTS = 8;
+
+/**
+ * A variant's key: the four default variants use their theme key; variants
+ * an admin adds get "v" and random letters. Stored on cart lines, photos and
+ * orders, so it never changes once made.
+ */
+export const variantKeyPattern = /^[a-z0-9-]{1,24}$/;
+
+/**
+ * One label variant of a Build Your Brand product: what the buyer picks on
+ * the product page. `style` is the drawn pack's colours, used when the
+ * variant has no photo.
+ */
+export type BrandVariant = { key: string; name: string; style: BrandThemeKey };
+
+/** The four variants every product has until an admin sets its own list. */
+export function defaultBrandVariants(defaults: Record<string, string>): BrandVariant[] {
+  return brandThemes.map((theme) => ({
+    key: theme.key,
+    name: defaults[theme.key] ?? theme.key,
+    style: theme.key,
+  }));
+}
+
+/**
+ * A product's variants from its stored rows (in their order), or the four
+ * defaults when it has none. `defaults` are the default names
+ * (src/content/brand.ts, customise.themes).
+ */
+export function toBrandVariants(
+  rows: { key: string; name: string; style: string }[],
+  defaults: Record<string, string>,
+): BrandVariant[] {
+  if (rows.length === 0) return defaultBrandVariants(defaults);
+  return rows.map((row) => ({ key: row.key, name: row.name, style: brandThemeOf(row.style).key }));
+}
+
+/** The variant for a stored key, or the product's first when it's gone. */
+export function pickVariant(
+  key: string | null | undefined,
+  variants: BrandVariant[],
+): BrandVariant | undefined {
+  return variants.find((variant) => variant.key === key) ?? variants[0];
+}
+
+/**
+ * The name to show for a variant key: the product's variant name when it
+ * still has it, else the default name, else the key as stored (an old order).
+ */
+export function variantName(
+  key: string,
+  variants: BrandVariant[] | undefined,
+  defaults: Record<string, string>,
+): string {
+  return variants?.find((variant) => variant.key === key)?.name || defaults[key] || key;
+}
+
 /** The theme for a stored key; an unknown or missing key is the first theme. */
 export function brandThemeOf(key: string | null | undefined) {
   return brandThemes.find((theme) => theme.key === key) ?? brandThemes[0];

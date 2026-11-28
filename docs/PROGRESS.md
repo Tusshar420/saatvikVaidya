@@ -6442,3 +6442,230 @@ uploaded photos had no link to a variant.
 **Later**
 - A theme with several photos uses only the first; a per-variant gallery
   could follow if wanted.
+
+## Build Your Brand: rename a product's label variants (2026-11-26)
+
+The owner asked to rename the variant labels (Classic Green, Saffron Glow,
+Royal Maroon, Minimal White). The question "per product or site-wide, and
+are four enough" went unanswered, so this is **per product, four variants**:
+the owner's photos are different label designs per product, so a site-wide
+name wouldn't fit.
+
+**Built**
+- New table `ProductVariantName` (product, variant, name up to 40;
+  migration `20261126150000_product_variant_names`). A variant without a
+  row uses its default name. `variantName()` / `toVariantNames()` in
+  `src/lib/brand-theme.ts` pick the name everywhere.
+- Admin product edit, **Images**: a **Variant names** form (four fields,
+  placeholder = default name, empty = default, one Save). "Shows for" and
+  the photo badges show "Hingwastak label (Saffron Glow)" for a renamed
+  variant. Saved row by row with an audit entry (`product.update`,
+  `name.<variant>` from/to).
+- Buyers see the product's names on the product page's "Select variant",
+  in the Launch cart, and on the order's label details (My Brand and admin
+  Brand orders). The order keeps the name it was placed with
+  (`LabelSnapshot.themeName`), so renaming later doesn't change old orders;
+  older orders without it show the default name as before.
+- The drawn pack colours stay tied to the variant; only the name changes.
+
+**Checked**
+- Typecheck, lint, unit tests (1048; new: name lookup and unknown rows,
+  form parsing and limits, saving with audit and back to default, the
+  order keeping the name after a rename).
+- `brand-variant-photos.spec.ts` gains a rename test (phone and desktop):
+  rename, see the name in "Shows for" and on the product page, empty it
+  to get the default back; axe and no sideways scroll. It found two bugs,
+  fixed: a long name without spaces made the phone page scroll sideways
+  (now wraps anywhere), and saving names for two products at once could
+  deadlock in MySQL (a range delete took gap locks; now row by row).
+  Repeated 3× on both sizes without failures. Form checked at 375 and
+  1280 px.
+- Full `pnpm test:e2e`: the first run had 19 failures across unrelated
+  specs (orders, checkout, layout widths, inventory), mostly 60 s
+  timeouts, with the machine's load average at 9 to 12. Running the main
+  suite again: 361 passed, 0 failed; manual-payment and order-request
+  configs 2 + 2 passed.
+
+**Deploy note**
+- Needs `pnpm db:deploy` (one new table) on staging and live.
+
+## Build Your Brand: add and remove label variants per product (2026-11-26)
+
+The owner asked to change the number of variants too, not just rename
+them. Each Build Your Brand product now has its own list of 1 to 8
+variants. This replaces the names-only "Variant names" box from the
+entry above (committed but never deployed).
+
+**Built**
+- Table `ProductVariant` (product, key, name, pack colour `style`,
+  order) replaces `ProductVariantName` (migration
+  `20261126170000_product_variants` copies any saved names: a product
+  with names gets all four defaults as rows, with its names, then the old
+  table is dropped; checked on sample rows). A product without rows still
+  offers the four defaults, so nothing changes for untouched products.
+- Variant keys never change: the four defaults keep their theme key
+  (existing photos and cart lines stay valid); new variants get
+  "v" + 8 hex characters. `src/lib/brand-theme.ts`: `BrandVariant`,
+  `toBrandVariants`, `pickVariant`, `variantName`, `MAX_BRAND_VARIANTS`.
+- Admin product edit, Images: a **Variants** editor (name and pack colour
+  per row, Add variant, Remove, Save variants; 1 to 8). "Shows for" and
+  the badges list the product's variants. Saved row by row by exact key
+  (no gap-lock deadlocks) under a lock on the product row, with an audit
+  entry listing the variants before and after.
+- Removing a variant turns its photos into general photos; a cart line
+  that had chosen it falls back to the product's first variant (cart,
+  label step and the order's copy). Photos and the "Continue" choice only
+  accept a key the product has (Zod checks the shape, the server checks
+  the product).
+- Product page: one radio, swatch and thumbnail per variant (the
+  thumbnails wrap 4 per row); the drawn pack uses the variant's pack
+  colour.
+
+**Checked**
+- Typecheck, lint, unit tests 1050 (new: the variant list helpers; form
+  rows, limits, duplicates; rename/add/remove with photos becoming
+  general and unknown keys refused; a removed variant in the cart falling
+  back to the first).
+- `brand-variant-photos.spec.ts`, phone and desktop, run twice: rename one, remove
+  one, add one with its own colour, an empty name refused, a photo for the
+  new variant shown on the product page, then down to one variant (the
+  last can't be removed). Screens checked at 375 and 1280 px; that check
+  found the editor showing the wrong pack colour after saving (React
+  resets a form after its action), fixed by submitting it by hand, and
+  the test now checks the saved values stay shown.
+- Full `pnpm test:e2e` (production build included): 361 passed, 0
+  failed, 11 skipped (the usual phone/desktop-only skips); manual-payment
+  and order-request configs 2 + 2 passed.
+
+**Deploy note**
+- Needs `pnpm db:deploy` on staging (two migrations: the names table,
+  then this one, which replaces it).
+
+## Catalogue: bulk photo upload (2026-11-27)
+
+The owner asked for one place to upload many product photos at once: pick
+the medicine by searching its name, add image 1, image 2 and so on, each
+with its variant, then one Upload button.
+
+**Built**
+- New admin page `/admin/catalogue/photos` ("catalogue" permission),
+  linked from the Catalogue header ("Bulk photo upload"), from each
+  product's Images section ("Upload several photos at once", which opens
+  the page with that product chosen via `?product=<id>`) and from the
+  admin search console.
+- One row per photo: **Medicine** (a searchable list: name, brand or pack
+  size, every word must match; keyboard and mouse; shows brand, pack,
+  "n of 8 photos", Build Your Brand and Hidden), **Variant** (General or
+  one of that product's label variants; general only for products not on
+  Build Your Brand), **Image** (thumbnail, file name and size) and an
+  optional **Description** (empty: "Medicine: Variant").
+- "Add photo" keeps the last row's medicine and moves to its next
+  variant; "Add several images" picks many files at once, one row each
+  for the last chosen medicine. Rows can be removed.
+- Upload checks every row first (medicine, image, size, type, and the
+  8-photo limit per product counting the rows queued) and marks problems
+  in red without sending anything. Then it sends the rows one by one to
+  the existing `POST /api/admin/products/[id]/images` route (same checks,
+  storage and audit log as the single upload), showing "Uploading n of
+  m" and each row's status. Failed rows stay to be fixed and retried;
+  uploaded rows get "Open product" and can be cleared.
+- `src/lib/bulk-photos.ts` (search, room left, over-limit rows, default
+  description); `listPhotoUploadProducts()` in
+  `src/server/admin/catalogue.ts`. Copy in `admin.catalogue.bulkPhotos`.
+
+**Checked**
+- Typecheck, lint, unit tests 1055 (new: search, limits, default
+  description, the product list with photo counts and variants).
+- New `tests/e2e/bulk-photos.spec.ts`, phone and desktop: the link from
+  the product page, search and pick, next variant on a new row, several
+  images at once, a second medicine by keyboard, a row without an image
+  stopping the upload, then 4 photos uploaded with the right products,
+  variants and descriptions; axe and no sideways scroll. Screens checked
+  at 375 and 1280 px (the variant list's "General" label was shortened
+  so it fits).
+- Full `pnpm test:e2e` (production build included): 363 passed, 0
+  failed, 11 skipped; manual-payment and order-request configs 2 + 2
+  passed. A first run had one failure: `catalogue.spec.ts` (phone) saw a
+  404 for a resource on a shop page, likely another test's product photo
+  being removed mid-run. It passed 4 times on its own and in the full rerun.
+
+**Known gaps**
+- Rows upload one after another (not in parallel) to keep the server and
+  the per-product limit simple; 20 photos take a few seconds.
+- No migration; nothing to run on deploy.
+
+## Catalogue: client label photos as Build Your Brand variants (2026-11-28)
+
+The owner put the label artwork in `Client Data/product images` (159 files)
+and asked for it on the products: file 1 the default image, files 2, 3... the
+other variants, each variant named after the label's colour.
+
+**Built**
+- `src/server/seed/product-photos.ts`: which file belongs to which catalogue
+  product and the variant name of each, in order (file 1 first). Names are
+  the label's colour, read from sRGB swatches of the coloured band (Purple,
+  Blue, Royal Blue, Navy Blue, Violet, Green, Dark Green, Brown, Maroon,
+  Wine, Red...). Churna labels are all blue and guggulu/vati labels all dark
+  green, so their names add the layout: "Blue panel / wave / band", "Green
+  band / panel / wave". "1 copy" and "1 copy 2" files count as 2 and 3.
+- `pnpm db:seed:photos "<folder>" [--dry-run] [--replace]`
+  (`scripts/import-product-photos.ts`): per product (every pack size with the
+  name, never the samples) it sets the variants to one per photo, adds photo
+  1 as the shop photo and every photo as its variant's photo. The files are
+  CMYK print artwork (1.5–4 MB); each is converted to sRGB JPEG, at most
+  1600 px (about 120 KB). A product that already has photos or its own
+  variants is skipped unless `--replace`. sharp is loaded from Next.js's own
+  dependency, so no package was added.
+- `product-photos.test.ts`: every name is in the catalogue list, files are
+  used once, keys are unique and valid, limits hold, file 1 comes first.
+- Local run: `pnpm db:seed:catalogue`, then the import: 48 products, 202
+  photos. Checked /launch/ashwagandharishta-450-ml and a shop page at 375 and
+  1280 px (picking "Green" shows the green label).
+
+**Mapping decisions (owner to confirm)**
+- "Chyawan Pran Avleh" labels read "Sugar Free", so they go on
+  "Chyawanprash - Sugar Free"; "Chyawanprash" goes on "Chyawanprash -
+  Regular" (both sizes), not on Black container or Extra Honey.
+- "GUGGULU-62" and "GUGGULU_Artboard 2 copy(/ 2)" are Basant Kusumakar Ras:
+  put on "Vasant Kusmakar Ras S.Y.".
+- Not loaded: Amritarishta 3 and Maharasnadi Kwath 4 (same picture as file
+  1); Kanchanar Kwath, Mahavat Vidhwans Ras and Praval Panchamrit Ras
+  ("GUGGULU-61", "Artboard 1 copy(/ 2)") are not in the catalogue;
+  Punarnavarishta (the catalogue has Punarnavasava, a different medicine).
+
+**Known gaps**
+- The swatch beside a variant name uses the nearest of the four drawn
+  themes (blue names get the white theme); the photo itself is right.
+- No admin audit-log rows (a script, like the catalogue seed).
+
+**Deploy note**
+- Not on the test or live site yet. On the server, after the catalogue is
+  loaded: copy the folder up, run `pnpm db:seed:photos "<folder>" --dry-run`,
+  then without `--dry-run`. Files go to STORAGE_DIR. No migration.
+
+### Follow-up: load the photos on the site with one button (2026-11-28)
+
+The owner asked to deploy. Hostinger has no terminal and its build step's
+STORAGE_DIR was never confirmed to be the disk the running site reads, so the
+photos can't be loaded by a command or during the build. They now load
+inside the running site instead:
+- `pnpm photos:prepare "<folder>"` (`scripts/prepare-product-photos.ts`,
+  replaces the `db:seed:photos` script) writes sRGB web copies, at most
+  1200 px, to `prisma/product-photos/` (144 files, 11 MB, committed).
+- `src/server/admin/label-photos.ts`: the same rules as before (every pack
+  size, not samples, products with photos or own variants left alone), plus
+  one audit row per product (`product.label_photos`). Every file is read and
+  checked before anything changes; a missing one stops it with a message.
+- /admin/catalogue/photos shows a "Client label photos" card with "Load label
+  photos" while any product is ready; it disappears once all are loaded.
+- `next.config.mjs` traces `prisma/product-photos/*.jpg` into the standalone
+  build for that page (checked: all 144 are in `.next/standalone`).
+- Tests: `label-photos.test.ts` (3), a check that every listed photo has its
+  committed copy, `label-photos.spec.ts` (phone and desktop: card, overflow,
+  axe, load, variants and photos saved).
+- Checked: typecheck, lint, 1067 unit tests, build. e2e: 335 passed, 1 failed
+  in `inventory.spec.ts` (status filter URL timed out under load); it passed
+  alone (5/5). Manual and request configs: 2 + 2 passed.
+
+**After deploying:** sign in as an admin with catalogue access, open
+Catalogue > Bulk photos, press "Load label photos". No migration.

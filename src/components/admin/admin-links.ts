@@ -14,6 +14,7 @@ import {
   Database,
   GalleryHorizontal,
   GraduationCap,
+  ImagePlus,
   KeyRound,
   LayoutDashboard,
   LayoutList,
@@ -330,6 +331,13 @@ export const adminQuickActions: AdminLink[] = [
     label: actions.newProduct,
     icon: Plus,
     keywords: words.catalogue,
+  },
+  {
+    href: "/admin/catalogue/photos",
+    area: "catalogue",
+    label: copy.catalogue.bulkPhotos.link,
+    icon: ImagePlus,
+    keywords: words.bulkPhotos,
   },
   {
     href: "/admin/ebooks/new",

@@ -38,6 +38,7 @@ import {
   launchStepNumber,
   nextBrandTier,
 } from "@/lib/brand";
+import { variantName } from "@/lib/brand-theme";
 import { cn } from "@/lib/cn";
 import { formatPaise } from "@/lib/format";
 import { telHref } from "@/lib/phone";
@@ -976,7 +977,11 @@ async function ReviewStep({
                   {line.packMrpPaise !== null && (
                     <span className="block text-small text-muted">
                       {text.themeMrp(
-                        copy.customise.themes[line.theme] ?? line.theme,
+                        variantName(
+                          line.theme,
+                          line.product?.variants,
+                          copy.customise.themes,
+                        ),
                         formatPaise(line.packMrpPaise),
                       )}
                     </span>

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { brand as copy } from "@/content/brand";
+import { variantName } from "@/lib/brand-theme";
 import { formatPaise } from "@/lib/format";
 import { specFields, type LabelSnapshot } from "@/lib/label";
 
@@ -41,7 +42,8 @@ export function OrderLabels({
                 {(label.theme || label.packMrpPaise) && (
                   <p className="mt-1 text-small font-bold text-ink">
                     {[
-                      label.theme && `${text.theme}: ${copy.customise.themes[label.theme] ?? label.theme}`,
+                      label.theme &&
+                        `${text.theme}: ${label.themeName ?? variantName(label.theme, undefined, copy.customise.themes)}`,
                       label.packMrpPaise && `${text.packMrp}: ${formatPaise(label.packMrpPaise)}`,
                     ]
                       .filter(Boolean)

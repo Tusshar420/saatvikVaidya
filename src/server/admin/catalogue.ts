@@ -4,7 +4,16 @@ import { admin as copy } from "@/content/admin";
 import { brand as brandCopy } from "@/content/brand";
 import { sortField, type Sort } from "@/lib/admin-sort";
 import { MAX_BRAND_MIN_QTY, MAX_BRAND_TIERS, MAX_BRAND_UNITS, MAX_BRAND_UNIT_PRICE_PAISE } from "@/lib/brand";
-import { brandThemeKeys, type BrandThemeKey } from "@/lib/brand-theme";
+import { randomBytes } from "node:crypto";
+import {
+  MAX_BRAND_VARIANTS,
+  MAX_VARIANT_NAME,
+  brandThemeKeys,
+  toBrandVariants,
+  variantKeyPattern,
+  type BrandThemeKey,
+  type BrandVariant,
+} from "@/lib/brand-theme";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_BULK_TIERS,
@@ -14,6 +23,7 @@ import {
   productSlugPattern,
   slugify,
 } from "@/lib/catalogue";
+import type { PhotoProduct } from "@/lib/bulk-photos";
 import { paiseToRupeeInput, rupeesToPaise } from "@/lib/format";
 import { db } from "@/server/db";
 import { makeableByProduct, sellableByProduct } from "@/server/inventory/availability";
@@ -377,11 +387,51 @@ export async function getAdminProduct(id: number) {
       bulkTiers: { orderBy: { minQuantity: "asc" } },
       brandTiers: { orderBy: { minQuantity: "asc" } },
       images: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+      variants: {
+        orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+        select: { key: true, name: true, style: true },
+      },
     },
   });
 }
 
 export type AdminProduct = NonNullable<Awaited<ReturnType<typeof getAdminProduct>>>;
+
+/**
+ * Every product for the bulk photo upload (/admin/catalogue/photos): name,
+ * brand, how many photos it has and its label variants (the four defaults
+ * until set). Hidden products are included; Build Your Brand products first.
+ */
+export async function listPhotoUploadProducts(): Promise<PhotoProduct[]> {
+  const products = await db.product.findMany({
+    orderBy: [{ brandEligible: "desc" }, { name: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      packSize: true,
+      active: true,
+      brandEligible: true,
+      brand: { select: { name: true } },
+      _count: { select: { images: true } },
+      variants: {
+        orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+        select: { key: true, name: true, style: true },
+      },
+    },
+  });
+  return products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    brand: product.brand?.name ?? null,
+    packSize: product.packSize,
+    active: product.active,
+    brandEligible: product.brandEligible,
+    imageCount: product._count.images,
+    variants: product.brandEligible
+      ? toBrandVariants(product.variants, brandCopy.customise.themes)
+      : [],
+  }));
+}
 
 /** Brands, forms and practice areas for the product form's choices. */
 export async function readProductFormOptions() {
@@ -614,20 +664,41 @@ export async function updateProduct(
 export const imageAltSchema = requiredText(200, imageErrors.alt);
 
 /**
- * Which picture a photo is: "" (or missing) for a general photo, or a label
- * theme key for that Build Your Brand variant's photo.
+ * Which picture a photo is: "" (or missing) for a general photo, or a
+ * variant key for that Build Your Brand variant's photo. Whether the product
+ * has that variant is checked when saving.
  */
 export const imageVariantSchema = z
-  .union([z.literal(""), z.enum(brandThemeKeys)])
+  .union([z.literal(""), z.string().regex(variantKeyPattern)])
   .nullish()
-  .transform((value): BrandThemeKey | null => value || null);
+  .transform((value): string | null => value || null);
 
 export type ImageUploadError =
   | "notFound"
   | "tooMany"
   | "empty"
   | "tooLarge"
-  | "fileType";
+  | "fileType"
+  /** The product has no variant with that key. */
+  | "variant";
+
+/** A product's label variants as buyers see them (the four defaults until set). */
+async function productVariants(
+  client: Prisma.TransactionClient,
+  productId: number,
+): Promise<BrandVariant[]> {
+  const rows = await client.productVariant.findMany({
+    where: { productId },
+    orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+    select: { key: true, name: true, style: true },
+  });
+  return toBrandVariants(rows, brandCopy.customise.themes);
+}
+
+async function hasVariant(client: Prisma.TransactionClient, productId: number, key: string | null) {
+  if (key === null) return true;
+  return (await productVariants(client, productId)).some((variant) => variant.key === key);
+}
 
 /** Locks the product row so two uploads can't both take the last slot. */
 async function lockProduct(tx: Prisma.TransactionClient, productId: number) {
@@ -644,8 +715,8 @@ export async function addProductImage(options: {
   productId: number;
   bytes: Uint8Array;
   alt: string;
-  /** A label theme for a Build Your Brand variant photo; null or missing: general. */
-  variant?: BrandThemeKey | null;
+  /** A variant key for a Build Your Brand variant photo; null or missing: general. */
+  variant?: string | null;
   actorId: string;
 }): Promise<{ ok: true; id: number } | { ok: false; error: ImageUploadError }> {
   const checked = checkUpload(options.bytes, productImageUpload);
@@ -669,6 +740,9 @@ export async function addProductImage(options: {
       });
       if (images.length >= MAX_PRODUCT_IMAGES) {
         return { ok: false as const, error: "tooMany" as const };
+      }
+      if (!(await hasVariant(tx, options.productId, options.variant ?? null))) {
+        return { ok: false as const, error: "variant" as const };
       }
       const last = Math.max(0, ...images.map((image) => image.sortOrder));
       const image = await tx.productImage.create({
@@ -771,12 +845,15 @@ export async function moveProductImage(
 /** Changes a photo's description and which variant (if any) it shows. */
 export async function updateProductImageDetails(
   imageId: number,
-  details: { alt: string; variant: BrandThemeKey | null },
+  details: { alt: string; variant: string | null },
   actorId: string,
-): Promise<{ productId: number } | null> {
+): Promise<{ productId: number } | { error: "variant" } | null> {
   return db.$transaction(async (tx) => {
     const image = await tx.productImage.findUnique({ where: { id: imageId } });
     if (!image) return null;
+    if (details.variant !== image.variant && !(await hasVariant(tx, image.productId, details.variant))) {
+      return { error: "variant" as const };
+    }
     const changes = diffFields(
       { alt: image.alt, variant: image.variant },
       { alt: details.alt, variant: details.variant },
@@ -794,5 +871,144 @@ export async function updateProductImageDetails(
       changes: { imageId: { from: imageId, to: imageId }, ...changes },
     });
     return { productId: image.productId };
+  });
+}
+
+// ─── Build Your Brand variants ──────────────────────────────────────────────
+
+const variantErrors = copy.catalogue.variants.errors;
+
+/** One variant as typed in the Variants form; `key` is "" for a new one. */
+export type VariantInput = { key: string; name: string; style: BrandThemeKey };
+
+const variantRowSchema = z.object({
+  key: z.union([z.literal(""), z.string().regex(variantKeyPattern)]),
+  name: z
+    .string()
+    .trim()
+    .min(1, variantErrors.name(MAX_VARIANT_NAME))
+    .max(MAX_VARIANT_NAME, variantErrors.name(MAX_VARIANT_NAME)),
+  style: z.enum(brandThemeKeys, { error: variantErrors.style }),
+});
+
+/**
+ * Reads the Variants form: one "variantKey", "variantName" and
+ * "variantStyle" per row, in order. Field errors are keyed
+ * "variantName-<index>" / "variantStyle-<index>"; "variants" is for the list.
+ */
+export function parseVariantsForm(
+  getAll: (field: string) => unknown[],
+): { ok: true; variants: VariantInput[] } | { ok: false; fieldErrors: Record<string, string> } {
+  const keys = getAll("variantKey");
+  const names = getAll("variantName");
+  const styles = getAll("variantStyle");
+  if (keys.length !== names.length || keys.length !== styles.length) {
+    return { ok: false, fieldErrors: { variants: variantErrors.count(MAX_BRAND_VARIANTS) } };
+  }
+  if (keys.length < 1 || keys.length > MAX_BRAND_VARIANTS) {
+    return { ok: false, fieldErrors: { variants: variantErrors.count(MAX_BRAND_VARIANTS) } };
+  }
+  const variants: VariantInput[] = [];
+  const fieldErrors: Record<string, string> = {};
+  keys.forEach((key, index) => {
+    const parsed = variantRowSchema.safeParse({ key, name: names[index], style: styles[index] });
+    if (parsed.success) {
+      variants.push(parsed.data);
+      return;
+    }
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0] === "style" ? "variantStyle" : "variantName";
+      fieldErrors[`${field}-${index}`] ??= issue.message;
+    }
+    // A changed hidden key: the whole list is refused.
+    if (parsed.error.issues.some((issue) => issue.path[0] === "key")) {
+      fieldErrors.variants = variantErrors.count(MAX_BRAND_VARIANTS);
+    }
+  });
+  const savedKeys = variants.map((variant) => variant.key).filter(Boolean);
+  if (new Set(savedKeys).size !== savedKeys.length) {
+    fieldErrors.variants = variantErrors.count(MAX_BRAND_VARIANTS);
+  }
+  return Object.keys(fieldErrors).length > 0 ? { ok: false, fieldErrors } : { ok: true, variants };
+}
+
+const describeVariants = (variants: { name: string; style: string }[]) =>
+  variants.map((variant) => `${variant.name} (${variant.style})`).join(", ");
+
+/**
+ * Sets a product's label variants: renames, colours, order, new ones (a
+ * fresh key) and removed ones. Photos of a removed variant become general
+ * photos; cart lines that chose it fall back to the first variant when read.
+ * Null when the product doesn't exist; "unknownKey" when a kept key isn't
+ * one of the product's variants (a stale form).
+ */
+export async function saveProductVariants(
+  productId: number,
+  input: VariantInput[],
+  actorId: string,
+): Promise<{ productId: number } | { error: "unknownKey" } | null> {
+  return db.$transaction(async (tx) => {
+    // One save per product at a time; the row lock is on Product only.
+    if (!(await lockProduct(tx, productId))) return null;
+    const stored = await tx.productVariant.findMany({
+      where: { productId },
+      select: { key: true, name: true, style: true },
+    });
+    const before = await productVariants(tx, productId);
+    const beforeKeys = new Set(before.map((variant) => variant.key));
+    if (input.some((variant) => variant.key && !beforeKeys.has(variant.key))) {
+      return { error: "unknownKey" as const };
+    }
+    const after = input.map((variant) => ({
+      ...variant,
+      key: variant.key || `v${randomBytes(4).toString("hex")}`,
+    }));
+    const changes = diffFields(
+      { variants: describeVariants(before) },
+      { variants: describeVariants(after) },
+    );
+    const sameOrder = before.map((v) => v.key).join() === after.map((v) => v.key).join();
+    if (Object.keys(changes).length === 0 && sameOrder && stored.length > 0) {
+      return { productId };
+    }
+
+    // Row by row, by exact key: a range delete takes gap locks in MySQL, and
+    // two products saved at once could then deadlock.
+    const afterKeys = new Set(after.map((variant) => variant.key));
+    for (const row of stored) {
+      if (!afterKeys.has(row.key)) {
+        await tx.productVariant.delete({ where: { productId_key: { productId, key: row.key } } });
+      }
+    }
+    const storedKeys = new Set(stored.map((row) => row.key));
+    for (const [index, variant] of after.entries()) {
+      const data = { name: variant.name, style: variant.style, sortOrder: (index + 1) * 10 };
+      if (storedKeys.has(variant.key)) {
+        await tx.productVariant.update({
+          where: { productId_key: { productId, key: variant.key } },
+          data,
+        });
+      } else {
+        await tx.productVariant.create({ data: { productId, key: variant.key, ...data } });
+      }
+    }
+    const removed = before.filter((variant) => !afterKeys.has(variant.key)).map((v) => v.key);
+    if (removed.length > 0) {
+      await tx.productImage.updateMany({
+        where: { productId, variant: { in: removed } },
+        data: { variant: null },
+      });
+    }
+    await logAdminAction(tx, {
+      actorId,
+      action: "product.update",
+      resource: "Product",
+      resourceId: productId,
+      changes:
+        Object.keys(changes).length > 0
+          ? changes
+          : { variants: { from: describeVariants(before), to: describeVariants(after) } },
+    });
+    return { productId };
   });
 }

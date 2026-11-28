@@ -8,11 +8,7 @@ import {
   brandTermsOf,
   type BrandTerms,
 } from "@/lib/brand";
-import {
-  brandThemeKeys,
-  packMrpProblem,
-  type BrandThemeKey,
-} from "@/lib/brand-theme";
+import { packMrpProblem, toBrandVariants, type BrandVariant } from "@/lib/brand-theme";
 import type { LabelProblem, LabelValues } from "@/lib/label";
 import { CATALOGUE_PAGE_SIZE, productImageSrc } from "@/lib/catalogue";
 import { searchWhere } from "@/server/catalogue/products";
@@ -62,6 +58,10 @@ export const brandProductSelect = {
     take: 1,
     select: { id: true, alt: true },
   },
+  variants: {
+    orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+    select: { key: true, name: true, style: true },
+  },
 } satisfies Prisma.ProductSelect;
 
 export type BrandProductRow = Prisma.ProductGetPayload<{ select: typeof brandProductSelect }>;
@@ -77,6 +77,8 @@ export type BrandProduct = {
   glyph: string | null;
   makerName: string | null;
   image: { src: string; alt: string } | null;
+  /** The label variants a buyer picks from (the four defaults until set). */
+  variants: BrandVariant[];
   terms: BrandTerms;
   /**
    * Units that can be made from the components in stock (a multiple of the
@@ -100,6 +102,7 @@ export function toBrandProduct(row: BrandProductRow, makeable: number | null = n
     glyph: row.form.glyph,
     makerName: row.brand?.name ?? null,
     image: image ? { src: productImageSrc(image.id), alt: image.alt } : null,
+    variants: toBrandVariants(row.variants, copy.customise.themes),
     terms,
     makeable,
   };
@@ -296,22 +299,21 @@ export async function findBrandProductBySlug(slug: string): Promise<BrandProduct
 export type BrandVariantPhoto = { src: string; alt: string };
 
 /**
- * The admin's photo for each label theme of a product (the first by order
- * when a theme has more than one). Themes without a photo are left out, and
- * the page draws the pack for them.
+ * The admin's photo for each label variant of a product, by variant key (the
+ * first by order when a variant has more than one). Variants without a photo
+ * are left out, and the page draws the pack for them.
  */
 export async function brandVariantPhotos(
   productId: number,
-): Promise<Partial<Record<BrandThemeKey, BrandVariantPhoto>>> {
+): Promise<Record<string, BrandVariantPhoto>> {
   const rows = await db.productImage.findMany({
-    where: { productId, variant: { in: brandThemeKeys } },
+    where: { productId, variant: { not: null } },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     select: { id: true, alt: true, variant: true },
   });
-  const photos: Partial<Record<BrandThemeKey, BrandVariantPhoto>> = {};
+  const photos: Record<string, BrandVariantPhoto> = {};
   for (const row of rows) {
-    const key = row.variant as BrandThemeKey; // Narrowed by the `in` filter above.
-    photos[key] ??= { src: productImageSrc(row.id), alt: row.alt };
+    if (row.variant) photos[row.variant] ??= { src: productImageSrc(row.id), alt: row.alt };
   }
   return photos;
 }

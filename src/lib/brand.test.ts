@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pickVariant, toBrandVariants, variantName } from "./brand-theme";
 import {
   MAX_BRAND_ORDER_PAISE,
   MAX_BRAND_UNITS,
@@ -164,5 +165,47 @@ describe("pack MRP", () => {
     ]);
     expect(brandThemeOf("royal-maroon").key).toBe("royal-maroon");
     for (const unknown of [null, undefined, "", "neon"]) expect(brandThemeOf(unknown).key).toBe("classic-green");
+  });
+});
+
+describe("label variants", () => {
+  const defaults = {
+    "classic-green": "Classic Green",
+    "saffron-glow": "Saffron Glow",
+    "royal-maroon": "Royal Maroon",
+    "minimal-white": "Minimal White",
+  };
+  const own = toBrandVariants(
+    [
+      { key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow" },
+      { key: "v1a2b3c4d", name: "Lavan Bhaskar", style: "neon" },
+    ],
+    defaults,
+  );
+
+  it("uses a product's own list, or the four defaults when it has none", () => {
+    expect(own).toEqual([
+      { key: "saffron-glow", name: "Hingwastak label", style: "saffron-glow" },
+      // An unknown pack colour becomes the first one.
+      { key: "v1a2b3c4d", name: "Lavan Bhaskar", style: "classic-green" },
+    ]);
+    expect(toBrandVariants([], defaults).map((variant) => variant.name)).toEqual([
+      "Classic Green",
+      "Saffron Glow",
+      "Royal Maroon",
+      "Minimal White",
+    ]);
+  });
+
+  it("picks the stored variant, or the first when it was removed", () => {
+    expect(pickVariant("v1a2b3c4d", own)?.name).toBe("Lavan Bhaskar");
+    expect(pickVariant("royal-maroon", own)?.name).toBe("Hingwastak label");
+    expect(pickVariant(null, own)?.name).toBe("Hingwastak label");
+  });
+
+  it("names a key: the product's name, else the default, else the key", () => {
+    expect(variantName("v1a2b3c4d", own, defaults)).toBe("Lavan Bhaskar");
+    expect(variantName("royal-maroon", own, defaults)).toBe("Royal Maroon");
+    expect(variantName("old-theme", undefined, defaults)).toBe("old-theme");
   });
 });

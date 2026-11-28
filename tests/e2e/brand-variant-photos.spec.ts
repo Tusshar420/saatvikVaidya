@@ -124,3 +124,61 @@ test("an admin adds a photo per label variant and the page shows it for that var
   await expect(photo("Front of the jar")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("an admin renames, adds and removes a product's variants and buyers see the new list", async ({
+  page,
+  baseURL,
+}) => {
+  const errors = collectErrors(page);
+  const product = await makeBrandProduct();
+  await signInAs(page, baseURL!, { role: "admin", adminRole: "catalogue" });
+  const v = admin.catalogue.variants;
+
+  await page.goto(`/admin/catalogue/${product.id}/edit`);
+  const form = page.locator("#admin-main").getByRole("form", { name: v.title });
+  // The four defaults to start with.
+  await expect(form.getByLabel(v.name(4))).toHaveValue(themes["minimal-white"]!);
+  await form.getByLabel(v.name(2)).fill("Hingwastak label");
+  await form.getByRole("button", { name: v.remove(4) }).click();
+  await form.getByRole("button", { name: v.add }).click();
+  await form.getByLabel(v.name(4)).fill("Lavan Bhaskar");
+  await form.getByLabel(v.style(4)).selectOption({ label: themes["royal-maroon"]! });
+  await form.getByRole("button", { name: v.add }).click();
+  // An empty name is refused.
+  await form.getByRole("button", { name: v.save }).click();
+  await expect(form.getByText(v.errors.name(40))).toBeVisible();
+  await form.getByRole("button", { name: v.remove(5) }).click();
+  await form.getByRole("button", { name: v.save }).click();
+  await expect(form.getByRole("status")).toHaveText(admin.common.notices.saved);
+  // The editor still shows what was saved.
+  await expect(form.getByLabel(v.name(4))).toHaveValue("Lavan Bhaskar");
+  await expect(form.getByLabel(v.style(4))).toHaveValue("royal-maroon");
+  await checkPage(page, errors);
+
+  // "Shows for" lists the new variants.
+  const images = page.locator("#admin-main").getByRole("region", { name: text.title });
+  await upload(page, "Lavan Bhaskar jar", "Lavan Bhaskar");
+
+  await page.goto(`/launch/${product.slug}`);
+  const radios = page.getByRole("radiogroup").getByRole("radio");
+  await expect(radios).toHaveText([
+    themes["classic-green"]!,
+    "Hingwastak label",
+    themes["royal-maroon"]!,
+    "Lavan Bhaskar",
+  ]);
+  await page.getByRole("radio", { name: "Lavan Bhaskar" }).click();
+  await expect(page.getByRole("img", { name: "Lavan Bhaskar jar" })).toBeVisible();
+  await checkPage(page, errors);
+
+  // Down to one variant: the photo of a removed one becomes general.
+  await page.goto(`/admin/catalogue/${product.id}/edit`);
+  for (const n of [4, 3, 2]) await form.getByRole("button", { name: v.remove(n) }).click();
+  await expect(form.getByRole("button", { name: v.remove(1) })).toBeDisabled();
+  await form.getByRole("button", { name: v.save }).click();
+  await expect(form.getByRole("status")).toHaveText(admin.common.notices.saved);
+  await expect(images.getByText(text.main, { exact: true })).toHaveCount(1);
+  await page.goto(`/launch/${product.slug}`);
+  await expect(radios).toHaveText([themes["classic-green"]!]);
+  expect(errors).toEqual([]);
+});

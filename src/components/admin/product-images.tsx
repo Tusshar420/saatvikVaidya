@@ -1,33 +1,32 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Upload } from "lucide-react";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, inputClasses, useFieldIds } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { admin as copy } from "@/content/admin";
-import { brand as brandCopy } from "@/content/brand";
-import { brandThemes, type BrandThemeKey } from "@/lib/brand-theme";
+import type { BrandVariant } from "@/lib/brand-theme";
 import { MAX_PRODUCT_IMAGES, productImageUpload } from "@/lib/catalogue";
 import { cn } from "@/lib/cn";
 import { formatFileSize } from "@/lib/verification";
 import { idleForm, type FormState } from "@/server/admin/form";
 import { ConfirmDelete } from "./confirm-delete";
+import { ProductVariants } from "./product-variants";
 
 const text = copy.catalogue.images;
 const maxSize = formatFileSize(productImageUpload.maxBytes);
-
-const themeNames = brandCopy.customise.themes;
 
 export type ProductImageItem = {
   id: number;
   src: string;
   alt: string;
-  /** The Build Your Brand variant this photo is for; null: a general photo. */
-  variant: BrandThemeKey | null;
+  /** The Build Your Brand variant key this photo is for; null: a general photo. */
+  variant: string | null;
 };
 
 export type ProductImagesProps = {
@@ -35,6 +34,10 @@ export type ProductImagesProps = {
   images: ProductImageItem[];
   /** Offer "Shows for" (a Build Your Brand product, or photos already marked). */
   variants: boolean;
+  /** The product's label variants (for "Shows for", the badges and the editor). */
+  variantList: BrandVariant[];
+  /** Saves the variant list; bound to the product. */
+  variantsAction: (state: FormState, formData: FormData) => Promise<FormState>;
   moveAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
   altAction: (state: FormState, formData: FormData) => Promise<FormState>;
@@ -48,6 +51,8 @@ export function ProductImages({
   productId,
   images,
   variants,
+  variantList,
+  variantsAction,
   moveAction,
   deleteAction,
   altAction,
@@ -66,6 +71,19 @@ export function ProductImages({
         {text.description(MAX_PRODUCT_IMAGES, maxSize)}
       </p>
       {variants && <p className="mt-1 text-small text-muted">{text.variantNote}</p>}
+      <Link
+        href={`/admin/catalogue/photos?product=${productId}`}
+        className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-small font-bold text-brand hover:underline"
+      >
+        <ImagePlus aria-hidden className="size-4" />
+        {text.bulkLink}
+      </Link>
+      {variants && (
+        <ProductVariants
+          variants={variantList}
+          action={variantsAction}
+        />
+      )}
 
       {images.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed border-line-strong bg-surface-alt px-4 py-6 text-center text-sm text-muted">
@@ -89,13 +107,14 @@ export function ProductImages({
                 {image.id === mainId && <Badge>{text.main}</Badge>}
                 {image.variant && (
                   <Badge variant="orange">
-                    {text.variantBadge(themeNames[image.variant] ?? image.variant)}
+                    {text.variantBadge(nameFor(image.variant, variantList))}
                   </Badge>
                 )}
                 <DetailsForm
                   image={image}
                   position={index + 1}
                   variants={variants}
+                  names={variantList}
                   action={altAction}
                 />
                 <div className="flex flex-wrap gap-2">
@@ -136,22 +155,29 @@ export function ProductImages({
       )}
 
       {images.length < MAX_PRODUCT_IMAGES && (
-        <UploadForm productId={productId} variants={variants} />
+        <UploadForm productId={productId} variants={variants} names={variantList} />
       )}
     </section>
   );
 }
 
+/** A variant's name; a key the product no longer has shows as stored. */
+function nameFor(key: string, variants: BrandVariant[]) {
+  return variants.find((variant) => variant.key === key)?.name ?? key;
+}
+
 /** "Shows for": general, or one Build Your Brand label variant. */
 function VariantSelect({
   label,
+  names,
   defaultValue,
   error,
   help,
   className,
 }: {
   label: string;
-  defaultValue: BrandThemeKey | null;
+  names: BrandVariant[];
+  defaultValue: string | null;
   error?: string;
   help?: string;
   className?: string;
@@ -168,9 +194,9 @@ function VariantSelect({
         className={cn(inputClasses, "cursor-pointer")}
       >
         <option value="">{text.variantGeneral}</option>
-        {brandThemes.map((theme) => (
-          <option key={theme.key} value={theme.key}>
-            {themeNames[theme.key]}
+        {names.map((variant) => (
+          <option key={variant.key} value={variant.key}>
+            {variant.name}
           </option>
         ))}
       </select>
@@ -183,11 +209,13 @@ function DetailsForm({
   image,
   position,
   variants,
+  names,
   action,
 }: {
   image: ProductImageItem;
   position: number;
   variants: boolean;
+  names: BrandVariant[];
   action: ProductImagesProps["altAction"];
 }) {
   const [state, formAction, pending] = useActionState(action, idleForm);
@@ -205,6 +233,7 @@ function DetailsForm({
       {variants ? (
         <VariantSelect
           label={text.variantFor(position)}
+          names={names}
           defaultValue={image.variant}
           error={state.fieldErrors?.variant}
           className="sm:w-60"
@@ -230,7 +259,15 @@ type UploadState =
   | { status: "done" }
   | { status: "error"; message: string; field?: "file" | "alt" | "variant" };
 
-function UploadForm({ productId, variants }: { productId: number; variants: boolean }) {
+function UploadForm({
+  productId,
+  variants,
+  names,
+}: {
+  productId: number;
+  variants: boolean;
+  names: BrandVariant[];
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<UploadState>({ status: "idle" });
@@ -324,6 +361,7 @@ function UploadForm({ productId, variants }: { productId: number; variants: bool
         {variants && (
           <VariantSelect
             label={text.variant}
+            names={names}
             defaultValue={null}
             help={text.variantHelp}
             error={variantError}

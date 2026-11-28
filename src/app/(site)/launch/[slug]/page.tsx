@@ -6,7 +6,7 @@ import { chooseBrandProductAction } from "@/app/(site)/launch/actions";
 import { LaunchFrame } from "@/components/site/brand/launch-frame";
 import { ProductCustomiser } from "@/components/site/brand/product-customiser";
 import { brand as copy } from "@/content/brand";
-import { brandThemeOf } from "@/lib/brand-theme";
+import { pickVariant } from "@/lib/brand-theme";
 import { formatPaise } from "@/lib/format";
 import { signInPath } from "@/lib/auth-routes";
 import { getSession } from "@/server/auth/session";
@@ -68,7 +68,8 @@ export default async function LaunchProductPage({ params }: PageProps<"/launch/[
         productId={product.id}
         name={product.name}
         detail={`${product.formName} • ${product.packSize}`}
-        initialTheme={brandThemeOf(inCart?.labelTheme).key}
+        variants={product.variants}
+        initialTheme={pickVariant(inCart?.labelTheme, product.variants)?.key ?? ""}
         photos={photos}
         action={session ? chooseBrandProductAction : null}
         signInHref={signInPath(`/launch/${product.slug}`)}
