@@ -29,7 +29,7 @@
     "db:seed": "prisma db seed",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
     "db:seed:catalogue": "tsx scripts/seed-catalogue.ts",
-    "db:seed:photos": "tsx scripts/import-product-photos.ts",
+    "photos:prepare": "tsx scripts/prepare-product-photos.ts",
     "db:reset": "prisma migrate reset --force && prisma db seed",
     "db:test:prepare": "tsx scripts/db-test-prepare.ts",
     "db:clear-test-data": "tsx scripts/clear-test-data.ts",

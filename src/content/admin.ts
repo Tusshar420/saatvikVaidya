@@ -205,6 +205,7 @@ export const admin = {
       "product.image.add": "Added product image",
       "product.image.update": "Edited product image",
       "product.image.delete": "Deleted product image",
+      "product.label_photos": "Loaded label photos",
       "order.cancel": "Cancelled order",
       "order.mark_paid": "Marked order paid",
       "assisted.create": "Prepared order",

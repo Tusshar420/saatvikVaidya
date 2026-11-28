@@ -6642,3 +6642,30 @@ other variants, each variant named after the label's colour.
 - Not on the test or live site yet. On the server, after the catalogue is
   loaded: copy the folder up, run `pnpm db:seed:photos "<folder>" --dry-run`,
   then without `--dry-run`. Files go to STORAGE_DIR. No migration.
+
+### Follow-up: load the photos on the site with one button (2026-11-28)
+
+The owner asked to deploy. Hostinger has no terminal and its build step's
+STORAGE_DIR was never confirmed to be the disk the running site reads, so the
+photos can't be loaded by a command or during the build. They now load
+inside the running site instead:
+- `pnpm photos:prepare "<folder>"` (`scripts/prepare-product-photos.ts`,
+  replaces the `db:seed:photos` script) writes sRGB web copies, at most
+  1200 px, to `prisma/product-photos/` (144 files, 11 MB, committed).
+- `src/server/admin/label-photos.ts`: the same rules as before (every pack
+  size, not samples, products with photos or own variants left alone), plus
+  one audit row per product (`product.label_photos`). Every file is read and
+  checked before anything changes; a missing one stops it with a message.
+- /admin/catalogue/photos shows a "Client label photos" card with "Load label
+  photos" while any product is ready; it disappears once all are loaded.
+- `next.config.mjs` traces `prisma/product-photos/*.jpg` into the standalone
+  build for that page (checked: all 144 are in `.next/standalone`).
+- Tests: `label-photos.test.ts` (3), a check that every listed photo has its
+  committed copy, `label-photos.spec.ts` (phone and desktop: card, overflow,
+  axe, load, variants and photos saved).
+- Checked: typecheck, lint, 1067 unit tests, build. e2e: 335 passed, 1 failed
+  in `inventory.spec.ts` (status filter URL timed out under load); it passed
+  alone (5/5). Manual and request configs: 2 + 2 passed.
+
+**After deploying:** sign in as an admin with catalogue access, open
+Catalogue > Bulk photos, press "Load label photos". No migration.

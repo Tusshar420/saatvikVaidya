@@ -1,5 +1,7 @@
-// The client's label photos ("Client Data/product images", November 2026),
-// loaded by `pnpm db:seed:photos <folder>` (scripts/import-product-photos.ts).
+// The client's label photos ("Client Data/product images", November 2026).
+// `pnpm photos:prepare <folder>` makes web copies in prisma/product-photos/
+// (committed); "Load label photos" on /admin/catalogue/photos puts them on the
+// products (src/server/admin/label-photos.ts).
 //
 // One set per medicine. The first photo (the file numbered 1) is the default:
 // it becomes the shop photo and the first Build Your Brand variant. The
@@ -131,6 +133,19 @@ export const photoSets: readonly PhotoSet[] = [
     ],
   },
 ];
+
+/** Where the web copies live, relative to the project folder. */
+export const LABEL_PHOTOS_DIR = "prisma/product-photos";
+
+/** A client file's web copy name: "Arishta_X 1.jpg" → "arishta-x-1.jpg". */
+export function preparedFileName(file: string): string {
+  const base = file
+    .replace(/\.jpe?g$/i, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${base}.jpg`;
+}
 
 /** A variant's stored key from its name: "Royal Blue" → "royal-blue". */
 export function photoVariantKey(name: string): string {

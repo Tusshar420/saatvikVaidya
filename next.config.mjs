@@ -32,6 +32,11 @@ export default function config(phase) {
     poweredByHeader: false,
     // Hostinger looks for a standalone build when it checks the output.
     output: "standalone",
+    // Files read at run time, which the standalone build would leave out:
+    // the client's label photos for "Load label photos" (src/server/admin/label-photos.ts).
+    outputFileTracingIncludes: {
+      "/admin/catalogue/photos": ["./prisma/product-photos/*.jpg"],
+    },
     env: { NEXT_PUBLIC_APP_VERSION: appVersion() },
     async headers() {
       return [

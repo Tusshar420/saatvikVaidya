@@ -1,8 +1,17 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { brandThemeKeys, MAX_BRAND_VARIANTS, MAX_VARIANT_NAME, variantKeyPattern } from "@/lib/brand-theme";
 import { MAX_PRODUCT_IMAGES } from "@/lib/catalogue";
 import { catalogueRows } from "./catalogue-list";
-import { photoAlt, photoSets, photoVariantKey, photoVariantStyle } from "./product-photos";
+import {
+  LABEL_PHOTOS_DIR,
+  photoAlt,
+  photoSets,
+  photoVariantKey,
+  photoVariantStyle,
+  preparedFileName,
+} from "./product-photos";
 
 describe("client label photos", () => {
   const catalogueNames = new Set(catalogueRows.map((row) => row[1]));
@@ -41,6 +50,18 @@ describe("client label photos", () => {
       for (const key of keys) expect(key).toMatch(variantKeyPattern);
       expect(new Set(keys).size, set.products.join()).toBe(keys.length);
     }
+  });
+
+  it("has a committed web copy of every photo, and no others", () => {
+    const expected = photoSets.flatMap((set) => set.photos.map((photo) => preparedFileName(photo.file)));
+    expect(new Set(expected).size).toBe(expected.length);
+    for (const name of expected) expect(existsSync(join(LABEL_PHOTOS_DIR, name)), name).toBe(true);
+    expect(readdirSync(LABEL_PHOTOS_DIR).filter((name) => name.endsWith(".jpg")).sort()).toEqual(
+      [...expected].sort(),
+    );
+    expect(preparedFileName("CHYWANPRASH_PRAN JEEVAN AVLEH - KESAR .jpg")).toBe(
+      "chywanprash-pran-jeevan-avleh-kesar.jpg",
+    );
   });
 
   it("puts the file numbered 1 first", () => {
