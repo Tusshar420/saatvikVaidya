@@ -48,7 +48,7 @@ export default async function BulkPhotosPage({
           formatFileSize(productImageUpload.maxBytes),
         )}
       />
-      <LabelPhotos products={labels.products} photos={labels.photos} />
+      <LabelPhotos products={labels.products} photos={labels.photos} outdated={labels.outdated} />
       <BulkPhotoUpload
         products={products}
         initialProductId={product.success ? product.data : undefined}

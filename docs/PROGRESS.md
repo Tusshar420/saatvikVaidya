@@ -6768,3 +6768,23 @@ later) and to use email OTP instead.
   `pnpm.overrides` field in package.json). The checks were run with
   `pnpm_config_verify_deps_before_run=false`; worth moving the overrides
   to `pnpm-workspace.yaml` in a separate change.
+
+### Follow-up: "Update label photos" for the older copies (2026-11-28)
+
+On the live site the photos had been loaded from the first copies (white
+margin kept), so the list cards showed the label tiny; the trimmed copies
+only reached products without photos.
+- `updateLabelPhotos` (src/server/admin/label-photos.ts) replaces the older
+  copies with the current ones. It only touches products whose label photos
+  are exactly as the loader left them (same variants in order; shop photo plus
+  one per variant with the loader's descriptions) and whose stored sizes
+  differ from the current files. New photo rows are made (new ids), because
+  photos are cached by id for a day; variants and cart lines are unchanged.
+  Old files are deleted afterwards; one audit row per product.
+- The "Client label photos" card shows "Update label photos" while any
+  product has older copies.
+- Tests: a unit test (replaced with new ids, an admin-edited product left
+  alone); `label-photos.spec.ts` marks its product's photos as older, updates
+  them (phone and desktop, overflow and axe checked).
+
+**After deploying:** Catalogue > Bulk photos > "Update label photos".

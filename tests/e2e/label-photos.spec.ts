@@ -62,6 +62,22 @@ test("an admin loads the client's label photos onto a medicine", async ({ page, 
   });
   expect(images.map((image) => image.variant)).toEqual([null, "blue-panel", "blue-wave"]);
 
+  // Photos loaded from older copies (a different size) can be updated.
+  await db.productImage.updateMany({ where: { productId: product.id }, data: { sizeBytes: 1 } });
+  await page.reload();
+  const update = card.getByRole("button", { name: text.update });
+  await expect(update).toBeVisible();
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  expect(await axeViolations(page)).toEqual([]);
+  await update.click();
+  await expect(card.getByText(/^Label photos updated/)).toBeVisible();
+  const updated = await db.productImage.findMany({
+    where: { productId: product.id },
+    select: { id: true, sizeBytes: true },
+  });
+  expect(updated).toHaveLength(3);
+  expect(updated.every((image) => image.sizeBytes > 1)).toBe(true);
+
   // The Build Your Brand list card shows label 1 instead of the drawn pack.
   await page.goto("/launch?q=Supari+Pak");
   const photo = page.getByRole("img", { name: "Supari Pak label, Blue panel" }).first();
