@@ -6593,3 +6593,52 @@ with its variant, then one Upload button.
 - Rows upload one after another (not in parallel) to keep the server and
   the per-product limit simple; 20 photos take a few seconds.
 - No migration; nothing to run on deploy.
+
+## Catalogue: client label photos as Build Your Brand variants (2026-11-28)
+
+The owner put the label artwork in `Client Data/product images` (159 files)
+and asked for it on the products: file 1 the default image, files 2, 3... the
+other variants, each variant named after the label's colour.
+
+**Built**
+- `src/server/seed/product-photos.ts`: which file belongs to which catalogue
+  product and the variant name of each, in order (file 1 first). Names are
+  the label's colour, read from sRGB swatches of the coloured band (Purple,
+  Blue, Royal Blue, Navy Blue, Violet, Green, Dark Green, Brown, Maroon,
+  Wine, Red...). Churna labels are all blue and guggulu/vati labels all dark
+  green, so their names add the layout: "Blue panel / wave / band", "Green
+  band / panel / wave". "1 copy" and "1 copy 2" files count as 2 and 3.
+- `pnpm db:seed:photos "<folder>" [--dry-run] [--replace]`
+  (`scripts/import-product-photos.ts`): per product (every pack size with the
+  name, never the samples) it sets the variants to one per photo, adds photo
+  1 as the shop photo and every photo as its variant's photo. The files are
+  CMYK print artwork (1.5–4 MB); each is converted to sRGB JPEG, at most
+  1600 px (about 120 KB). A product that already has photos or its own
+  variants is skipped unless `--replace`. sharp is loaded from Next.js's own
+  dependency, so no package was added.
+- `product-photos.test.ts`: every name is in the catalogue list, files are
+  used once, keys are unique and valid, limits hold, file 1 comes first.
+- Local run: `pnpm db:seed:catalogue`, then the import: 48 products, 202
+  photos. Checked /launch/ashwagandharishta-450-ml and a shop page at 375 and
+  1280 px (picking "Green" shows the green label).
+
+**Mapping decisions (owner to confirm)**
+- "Chyawan Pran Avleh" labels read "Sugar Free", so they go on
+  "Chyawanprash - Sugar Free"; "Chyawanprash" goes on "Chyawanprash -
+  Regular" (both sizes), not on Black container or Extra Honey.
+- "GUGGULU-62" and "GUGGULU_Artboard 2 copy(/ 2)" are Basant Kusumakar Ras:
+  put on "Vasant Kusmakar Ras S.Y.".
+- Not loaded: Amritarishta 3 and Maharasnadi Kwath 4 (same picture as file
+  1); Kanchanar Kwath, Mahavat Vidhwans Ras and Praval Panchamrit Ras
+  ("GUGGULU-61", "Artboard 1 copy(/ 2)") are not in the catalogue;
+  Punarnavarishta (the catalogue has Punarnavasava, a different medicine).
+
+**Known gaps**
+- The swatch beside a variant name uses the nearest of the four drawn
+  themes (blue names get the white theme); the photo itself is right.
+- No admin audit-log rows (a script, like the catalogue seed).
+
+**Deploy note**
+- Not on the test or live site yet. On the server, after the catalogue is
+  loaded: copy the folder up, run `pnpm db:seed:photos "<folder>" --dry-run`,
+  then without `--dry-run`. Files go to STORAGE_DIR. No migration.
