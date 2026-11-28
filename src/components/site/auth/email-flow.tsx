@@ -15,7 +15,7 @@ import {
 import type { SignUpUserType } from "@/server/content/user-types";
 import { FormAlert } from "./form-alert";
 import { TwoFactorStep } from "./two-factor-step";
-import type { SignedIn } from "./phone-flow";
+import type { SignedIn } from "./otp-flow";
 import {
   emptyRegistration,
   focusFirstError,

@@ -7,11 +7,10 @@ import { threads } from "../../src/content/threads";
 import { verification } from "../../src/content/verification";
 import {
   createEmailAccount,
-  exhaustOtpSends,
-  expireOtp,
+  exhaustEmailSends,
+  expireEmailOtp,
   freshEmail,
-  freshPhone,
-  latestOtp,
+  latestEmailOtp,
   resetTokenFor,
   useFreshIp,
 } from "./auth-helpers";
@@ -39,8 +38,9 @@ const profileButton = (page: Page) =>
   header(page).getByRole("button", { name: shell.header.profileTitle });
 const accountMenu = (page: Page, name: string) =>
   header(page).getByRole("button", { name: signIn.menu.trigger(name) });
-const phoneField = (page: Page) =>
-  dialog(page).getByRole("textbox", { name: signIn.phone.label });
+/** The email field of the "Email code" tab, where the modal opens. */
+const codeEmailField = (page: Page) =>
+  dialog(page).getByRole("textbox", { name: signIn.emailCode.label });
 const firstDigit = (page: Page) =>
   dialog(page).getByRole("textbox", { name: "Digit 1 of 6" });
 const otpGroup = (page: Page) =>
@@ -70,19 +70,19 @@ async function openSignIn(page: Page) {
     await profileButton(page).click();
   }
   await expect(dialog(page)).toBeVisible();
-  await expect(phoneField(page)).toBeFocused();
+  await expect(codeEmailField(page)).toBeFocused();
 }
 
-/** Phone step: number, then "Continue with OTP"; lands on the code step. */
-async function requestCode(page: Page, phone: string) {
-  await phoneField(page).fill(phone);
-  await dialog(page).getByRole("button", { name: signIn.phone.submit }).click();
+/** Email step: address, then "Email me a code"; lands on the code step. */
+async function requestCode(page: Page, email: string) {
+  await codeEmailField(page).fill(email);
+  await dialog(page)
+    .getByRole("button", { name: signIn.emailCode.submit })
+    .click();
   await expect(
     dialog(page).getByRole("heading", { name: signIn.otp.heading }),
   ).toBeVisible();
-  await expect(dialog(page)).toContainText(
-    signIn.otp.sentTo(`+91 ${phone.slice(0, 5)} ${phone.slice(5)}`),
-  );
+  await expect(dialog(page)).toContainText(signIn.otp.sentToEmail(email));
   await expect(firstDigit(page)).toBeFocused();
 }
 
@@ -133,24 +133,28 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-test("register by phone as a doctor, sign out, then sign in with a code", async ({
+test("register with an email code as a doctor, sign out, then sign in with a code", async ({
   page,
 }) => {
   const errors = collectErrors(page);
-  const phone = freshPhone();
+  const email = freshEmail();
   const name = "Dr Asha Verma";
 
   await page.goto("/");
   await openSignIn(page);
-  await requestCode(page, phone);
+  // No Mobile tab while phone sign-in is hidden.
+  await expect(
+    dialog(page).getByRole("tab", { name: signIn.tabs.mobile }),
+  ).toHaveCount(0);
+  await requestCode(page, email);
   expect(await axeViolations(page)).toEqual([]);
   // Resend waits for its timer.
   await expect(
     dialog(page).getByRole("button", { name: /Resend code in 0:\d\d/ }),
   ).toBeDisabled();
 
-  // A new number: the right code asks for the registration details.
-  await typeCode(page, await latestOtp(phone));
+  // A new email: the right code asks for the registration details.
+  await typeCode(page, await latestEmailOtp(email));
   await expect(
     dialog(page).getByRole("heading", { name: signIn.register.heading }),
   ).toBeVisible();
@@ -204,9 +208,7 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
   await expect(page).toHaveURL(/\/account$/);
   const main = page.getByRole("main");
   await expect(main.getByRole("heading", { level: 1 })).toContainText(name);
-  await expect(main).toContainText(
-    `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`,
-  );
+  await expect(main).toContainText(email);
   await expect(main).toContainText("Ayurveda Doctor");
   // A new doctor is asked for their documents (P1.2).
   await expect(main).toContainText(verification.state.needed.badge);
@@ -224,10 +226,10 @@ test("register by phone as a doctor, sign out, then sign in with a code", async 
   await signOutFromMenu(page, name);
   await expect(page).toHaveURL(/\/$/);
 
-  // Back in with a code: a known number signs straight in.
+  // Back in with a code: a known email signs straight in.
   await openSignIn(page);
-  await requestCode(page, phone);
-  await typeCode(page, await latestOtp(phone));
+  await requestCode(page, email);
+  await typeCode(page, await latestEmailOtp(email));
   await expectSignedIn(page, name);
   expect(unexpected(errors)).toEqual([]);
 });
@@ -242,7 +244,7 @@ test("register by email as a customer, then sign in and sign out", async ({
 
   await page.goto("/");
   await openSignIn(page);
-  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page).getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog(page)
     .getByRole("button", { name: signIn.email.toRegisterLink })
     .click();
@@ -290,7 +292,7 @@ test("register by email as a customer, then sign in and sign out", async ({
 
   // Sign in with the same email and password.
   await openSignIn(page);
-  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page).getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog(page)
     .getByRole("textbox", { name: signIn.email.email })
     .fill(email);
@@ -325,11 +327,11 @@ test("register by email as a customer, then sign in and sign out", async ({
 test("a wrong code, an expired code and too many sends each explain themselves", async ({
   page,
 }) => {
-  const phone = freshPhone();
+  const email = freshEmail();
   await page.goto("/");
   await openSignIn(page);
-  await requestCode(page, phone);
-  const code = await latestOtp(phone);
+  await requestCode(page, email);
+  const code = await latestEmailOtp(email);
 
   // Wrong code: message under the boxes, boxes cleared, focus back on box 1.
   const wrong = code.slice(0, 5) + ((Number(code[5]) + 1) % 10);
@@ -348,7 +350,7 @@ test("a wrong code, an expired code and too many sends each explain themselves",
   );
 
   // Expired code.
-  await expireOtp(phone);
+  await expireEmailOtp(email);
   await firstDigit(page).fill("");
   // Typed over what's left of "12", so a repeated digit must still advance.
   await typeCode(page, code);
@@ -356,22 +358,22 @@ test("a wrong code, an expired code and too many sends each explain themselves",
     authErrors.OTP_EXPIRED,
   );
 
-  // A number that has had too many codes: the send is refused and says
+  // An address that has had too many codes: the send is refused and says
   // how long to wait.
   await dialog(page)
-    .getByRole("button", { name: signIn.otp.changeNumber })
+    .getByRole("button", { name: signIn.otp.changeEmail })
     .click();
-  await expect(phoneField(page)).toBeFocused();
-  await expect(phoneField(page)).toHaveValue(phone);
-  const busyPhone = freshPhone();
-  await exhaustOtpSends(busyPhone);
-  await phoneField(page).fill(busyPhone);
-  const send = dialog(page).getByRole("button", { name: signIn.phone.submit });
+  await expect(codeEmailField(page)).toBeFocused();
+  await expect(codeEmailField(page)).toHaveValue(email);
+  const busyEmail = freshEmail();
+  await exhaustEmailSends(busyEmail);
+  await codeEmailField(page).fill(busyEmail);
+  const send = dialog(page).getByRole("button", { name: signIn.emailCode.submit });
   await send.click();
-  await expect(phoneField(page)).toHaveAccessibleDescription(
+  await expect(codeEmailField(page)).toHaveAccessibleDescription(
     `${authErrors.RATE_LIMITED} ${signIn.errors.retryIn(10)}`,
   );
-  await expect(phoneField(page)).toBeFocused();
+  await expect(codeEmailField(page)).toBeFocused();
   // The button is translucent while loading; check once it's back.
   await expect(send).toBeEnabled();
   expect(await axeViolations(page)).toEqual([]);
@@ -408,7 +410,7 @@ test("a signed-in page sends a signed-out visitor to sign-in, then back", async 
   expect(url.searchParams.get("next")).toBe("/account/addresses");
   await expect(dialog(page)).toBeVisible();
 
-  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page).getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog(page)
     .getByRole("textbox", { name: signIn.email.email })
     .fill(email);
@@ -448,7 +450,7 @@ test("signing in from the header updates the page underneath, no reload needed",
   ).toBeVisible();
 
   await openSignIn(page);
-  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page).getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog(page)
     .getByRole("textbox", { name: signIn.email.email })
     .fill(email);
@@ -484,7 +486,7 @@ test("forgot password: the emailed link sets a new password", async ({
 
   await page.goto("/");
   await openSignIn(page);
-  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page).getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog(page).getByRole("button", { name: signIn.email.forgot }).click();
   const emailField = dialog(page).getByRole("textbox", {
     name: signIn.email.email,
@@ -520,7 +522,7 @@ test("forgot password: the emailed link sets a new password", async ({
   await page
     .getByRole("button", { name: signIn.resetPage.signIn, exact: true })
     .click();
-  await dialog(page).getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog(page).getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog(page)
     .getByRole("textbox", { name: signIn.email.email })
     .fill(email);

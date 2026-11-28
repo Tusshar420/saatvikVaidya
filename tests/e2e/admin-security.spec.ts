@@ -76,7 +76,7 @@ test("signing in through the form asks for the authenticator code", async ({ pag
 
   await page.goto("/?auth=sign-in&next=%2Fadmin");
   const dialog = page.getByRole("dialog", { name: signIn.title });
-  await dialog.getByRole("tab", { name: signIn.tabs.email }).click();
+  await dialog.getByRole("tab", { name: signIn.tabs.password }).click();
   await dialog.getByRole("textbox", { name: signIn.email.email, exact: true }).fill(email);
   await dialog.getByLabel(signIn.email.password, { exact: true }).first().fill(password);
   await dialog.getByRole("button", { name: signIn.email.submit, exact: true }).click();
@@ -85,11 +85,11 @@ test("signing in through the form asks for the authenticator code", async ({ pag
   await expect(dialog.getByRole("heading", { name: copy.signIn.title })).toBeVisible();
   expect(await db.session.count({ where: { user: { email } } })).toBe(0);
 
-  await dialog.getByLabel(copy.signIn.code).fill("000000");
+  await dialog.getByRole("textbox", { name: copy.signIn.code, exact: true }).fill("000000");
   await dialog.getByRole("button", { name: copy.signIn.submit }).click();
   await expect(dialog.getByText(authErrors.TWO_FACTOR_INVALID)).toBeVisible();
 
-  await dialog.getByLabel(copy.signIn.code).fill(totp.code());
+  await dialog.getByRole("textbox", { name: copy.signIn.code, exact: true }).fill(totp.code());
   await dialog.getByRole("button", { name: copy.signIn.submit }).click();
   await expect(dialog).toBeHidden();
   await page.goto("/admin");

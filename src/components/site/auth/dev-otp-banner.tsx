@@ -7,11 +7,18 @@ import { signIn as copy } from "@/content/sign-in";
 const POLL_MS = 2000;
 
 /**
- * Dev only: shows the latest code sent to `phone`, read from /api/dev/otp.
+ * Dev only: shows the latest code sent to `to` (10 phone digits or an
+ * email address), read from /api/dev/otp.
  * Only rendered when the server says DEV_SHOW_OTP is on outside production
  * (the route itself is a 404 otherwise).
  */
-export function DevOtpBanner({ phone }: { phone: string }) {
+export function DevOtpBanner({
+  channel,
+  to,
+}: {
+  channel: "phone" | "email";
+  to: string;
+}) {
   const [code, setCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,7 +26,7 @@ export function DevOtpBanner({ phone }: { phone: string }) {
     const load = async () => {
       try {
         const response = await fetch(
-          `/api/dev/otp?phone=${encodeURIComponent(phone)}`,
+          `/api/dev/otp?${channel}=${encodeURIComponent(to)}`,
           { cache: "no-store" },
         );
         if (!response.ok) return;
@@ -28,7 +35,7 @@ export function DevOtpBanner({ phone }: { phone: string }) {
         };
         if (active) setCode(body.otp?.code ?? null);
       } catch {
-        // Dev helper only; the SMS in the server log is the fallback.
+        // Dev helper only; the message in the server log is the fallback.
       }
     };
     void load();
@@ -38,7 +45,7 @@ export function DevOtpBanner({ phone }: { phone: string }) {
       active = false;
       window.clearInterval(timer);
     };
-  }, [phone]);
+  }, [channel, to]);
 
   return (
     <aside

@@ -9,6 +9,11 @@ export const labelPhotos = {
   pending: "Loading photos…",
   loaded: (products: number, photos: number) =>
     `Label photos loaded: ${products} ${products === 1 ? "product" : "products"}, ${photos} photos.`,
+  outdated: (products: number) =>
+    `${products} ${products === 1 ? "product has an older copy of its" : "products have older copies of their"} label photos, with a wide white margin that makes the label look small. Update them to the trimmed copies; variants, cart lines and any photos you changed are left as they are.`,
+  update: "Update label photos",
+  updated: (products: number, photos: number) =>
+    `Label photos updated: ${products} ${products === 1 ? "product" : "products"}, ${photos} photos.`,
   missing: (file: string) =>
     `The photo file ${file} is missing from this version of the site, so nothing was changed.`,
 } as const;

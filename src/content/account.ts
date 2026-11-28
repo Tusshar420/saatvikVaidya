@@ -142,7 +142,7 @@ export const account = {
     save: "Change password",
     saved: "Password changed. Your other devices have been signed out.",
     wrongCurrent: "That isn't your current password.",
-    none: "You sign in with a code sent to your mobile, so there is no password to change. To set one, sign out and use “Forgot password” on the sign-in screen.",
+    none: "You sign in with a one-time code, so there is no password to change. To set one, sign out and use “Forgot password” on the sign-in screen.",
   },
 
   notifications: {

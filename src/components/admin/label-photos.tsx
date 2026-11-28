@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Images } from "lucide-react";
+import { Images, RefreshCw } from "lucide-react";
 import { loadLabelPhotosAction } from "@/app/admin/catalogue/photos/actions";
 import { FormAlert } from "@/components/site/auth/form-alert";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,21 @@ import { idleForm } from "@/server/admin/form";
 
 /**
  * "Client label photos" on /admin/catalogue/photos: loads the client's label
- * photos onto the products that have none yet. Hidden once nothing is left
- * to load, apart from the result of the last press.
+ * photos onto the products that have none yet, and replaces older copies
+ * (with the wide white margin) with the trimmed ones. Hidden once there is
+ * nothing to do, apart from the result of the last press.
  */
-export function LabelPhotos({ products, photos }: { products: number; photos: number }) {
+export function LabelPhotos({
+  products,
+  photos,
+  outdated,
+}: {
+  products: number;
+  photos: number;
+  outdated: number;
+}) {
   const [state, action, pending] = useActionState(loadLabelPhotosAction, idleForm);
-  if (products === 0 && state.status === "idle") return null;
+  if (products === 0 && outdated === 0 && state.status === "idle") return null;
   return (
     <form
       action={action}
@@ -25,18 +34,37 @@ export function LabelPhotos({ products, photos }: { products: number; photos: nu
       <h2 id="label-photos-title" className="text-base font-extrabold text-ink">
         {text.title}
       </h2>
-      <p className="text-sm text-muted">
-        {products > 0 ? text.ready(products, photos) : text.none}
-      </p>
-      {products > 0 && (
-        <Button
-          type="submit"
-          loading={pending}
-          icon={<Images aria-hidden className="size-4" />}
-          className="self-start max-sm:w-full"
-        >
-          {pending ? text.pending : text.button}
-        </Button>
+      {products > 0 && <p className="text-sm text-muted">{text.ready(products, photos)}</p>}
+      {outdated > 0 && <p className="text-sm text-muted">{text.outdated(outdated)}</p>}
+      {products === 0 && outdated === 0 && <p className="text-sm text-muted">{text.none}</p>}
+      {(products > 0 || outdated > 0) && (
+        <div className="flex flex-wrap gap-3">
+          {products > 0 && (
+            <Button
+              type="submit"
+              name="intent"
+              value="load"
+              loading={pending}
+              icon={<Images aria-hidden className="size-4" />}
+              className="max-sm:w-full"
+            >
+              {pending ? text.pending : text.button}
+            </Button>
+          )}
+          {outdated > 0 && (
+            <Button
+              type="submit"
+              name="intent"
+              value="update"
+              variant={products > 0 ? "secondary" : "primary"}
+              loading={pending}
+              icon={<RefreshCw aria-hidden className="size-4" />}
+              className="max-sm:w-full"
+            >
+              {pending ? text.pending : text.update}
+            </Button>
+          )}
+        </div>
       )}
       {state.message && (
         <FormAlert tone={state.status === "error" ? "error" : "success"}>{state.message}</FormAlert>

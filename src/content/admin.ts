@@ -371,7 +371,7 @@ export const admin = {
     newTitle: "Add a user",
     editTitle: (name: string) => `Edit ${name}`,
     newDescription:
-      "Creates an account straight away. Customers and professionals can then sign in with their mobile OTP, or with the password you set here.",
+      "Creates an account straight away. Customers and professionals can then sign in with a code sent to their email, or with the password you set here.",
     name: "Full name",
     email: "Email",
     emailHelp: "Needed for email sign-in. Email or mobile is required.",

@@ -88,6 +88,22 @@ export const authBodySchemas = {
     termsAccepted: z.unknown().optional(),
     marketingOptIn: z.unknown().optional(),
   }),
+  // Email sign-in codes. Only the "sign-in" type is used; reset and
+  // verification stay on links.
+  "/email-otp/send-verification-otp": z.strictObject({
+    email: newEmailSchema,
+    type: z.literal("sign-in"),
+  }),
+  // As with phone codes, registration fields are only needed (and checked)
+  // when the email has no account yet.
+  "/sign-in/email-otp": z.strictObject({
+    email: newEmailSchema,
+    otp: otpCodeSchema,
+    name: z.unknown().optional(),
+    userTypeId: z.unknown().optional(),
+    termsAccepted: z.unknown().optional(),
+    marketingOptIn: z.unknown().optional(),
+  }),
   "/phone-number/request-password-reset": z.strictObject({
     phoneNumber: phoneNumberSchema,
   }),

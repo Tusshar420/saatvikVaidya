@@ -2,6 +2,7 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { phoneNumber } from "better-auth/plugins/phone-number";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { site } from "@/content/site";
@@ -12,6 +13,7 @@ import { db } from "@/server/db";
 import { authEnv } from "@/server/env";
 import {
   sendExistingAccountEmail,
+  sendOtpEmail,
   sendOtpSms,
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -73,6 +75,21 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    // Email sign-in codes: the main way in for now (the phone tab is hidden
+    // until SMS delivery exists, see src/lib/auth-methods.ts). A verified
+    // code for a new email creates the account; the policy plugin makes sure
+    // the registration fields are there first, and refuses admin accounts.
+    emailOTP({
+      otpLength: otpPolicy.length,
+      expiresIn: otpPolicy.expiresInSeconds,
+      allowedAttempts: otpPolicy.allowedAttempts,
+      // Stored like phone codes (short-lived, few attempts); the e2e tests
+      // read them from the Verification table.
+      storeOTP: "plain",
+      sendVerificationOTP: ({ email, otp }) => sendOtpEmail(email, otp),
+    }),
+    // Phone codes: kept working on the server for later, but not offered in
+    // the sign-in modal while SMS only reaches the server log.
     phoneNumber({
       otpLength: otpPolicy.length,
       expiresIn: otpPolicy.expiresInSeconds,

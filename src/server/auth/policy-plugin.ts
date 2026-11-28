@@ -36,13 +36,15 @@ import {
 //    into "+91XXXXXXXXXX".
 // 3. New passwords: 8-128 characters and not a common password.
 // 4. Sign-up: the user type must be active.
-// 5. Phone OTP for a number with no account: see phoneVerify().
+// 5. Phone or email OTP for a number/email with no account: see
+//    phoneVerify() and emailOtpSignIn().
 // None of these depend on whether an account exists, so errors don't reveal
 // that.
 
 /** Endpoints that send an SMS or email. */
 const sendPaths = new Set<AuthPath>([
   "/phone-number/send-otp",
+  "/email-otp/send-verification-otp",
   "/phone-number/request-password-reset",
   "/request-password-reset",
   "/send-verification-email",
@@ -54,6 +56,7 @@ const signInPaths = new Set<AuthPath>([
   "/sign-in/phone-number",
   "/sign-up/email",
   "/phone-number/verify",
+  "/sign-in/email-otp",
   "/phone-number/reset-password",
   "/reset-password",
   "/change-password",
@@ -106,13 +109,16 @@ type VerificationReader = {
   ): Promise<{ value: string; expiresAt: Date } | null>;
 };
 
-/** True if `code` is the live OTP for this phone. Doesn't use it up. */
+/**
+ * True if `code` is the live OTP stored under `identifier` (the phone, or
+ * "sign-in-otp-<email>" for email codes). Doesn't use it up.
+ */
 async function isLiveOtp(
   adapter: VerificationReader,
-  phoneNumber: string,
+  identifier: string,
   code: string,
 ): Promise<boolean> {
-  const row = await adapter.findVerificationValue(phoneNumber);
+  const row = await adapter.findVerificationValue(identifier);
   if (!row || row.expiresAt <= new Date()) return false;
   const [storedCode, rawAttempts] = row.value.split(":");
   const attempts = Number(rawAttempts ?? 0) || 0;
@@ -155,6 +161,44 @@ async function phoneVerify(
   if (!parsed.success) throw registrationError(parsed.error);
   await requireActiveUserType(parsed.data.userTypeId);
   return { body: { phoneNumber, code, ...parsed.data } };
+}
+
+/** Where Better Auth's email-otp plugin keeps an email's sign-in code. */
+const emailOtpIdentifier = (email: string) => `sign-in-otp-${email}`;
+
+/**
+ * Email OTP sign-in, the same rules as phoneVerify(): a known email signs in
+ * (registration fields dropped; admins refused like a wrong code, since they
+ * must use password + authenticator), and a new email needs valid
+ * registration fields before the right code creates the account.
+ */
+async function emailOtpSignIn(
+  body: Body<"/sign-in/email-otp">,
+  adapter: VerificationReader,
+): Promise<{ body: Record<string, unknown> } | { registrationRequired: true }> {
+  const { email, otp, ...registration } = body;
+  const existing = await db.user.findUnique({
+    where: { email },
+    select: { id: true, role: true },
+  });
+  if (existing?.role === "admin") throw authError("BAD_REQUEST", "INVALID_OTP");
+  if (existing) return { body: { email, otp } };
+  // Reading the code makes Better Auth clear expired codes, so an expired
+  // one would then look wrong; say "expired" here as Better Auth would.
+  const row = await adapter.findVerificationValue(emailOtpIdentifier(email));
+  if (row && row.expiresAt <= new Date())
+    throw authError("BAD_REQUEST", "OTP_EXPIRED");
+  if (!(await isLiveOtp(adapter, emailOtpIdentifier(email), otp)))
+    return { body: { email, otp } };
+
+  const hasRegistration = Object.values(registration).some(
+    (value) => value !== undefined,
+  );
+  if (!hasRegistration) return { registrationRequired: true };
+  const parsed = registrationSchema.safeParse(registration);
+  if (!parsed.success) throw registrationError(parsed.error);
+  await requireActiveUserType(parsed.data.userTypeId);
+  return { body: { email, otp, ...parsed.data } };
 }
 
 /** Endpoints that check a second-factor code or change two-factor settings. */
@@ -235,6 +279,21 @@ export function policyPlugin() {
               if ("registrationRequired" in result) {
                 return ctx.json({
                   status: false,
+                  registrationRequired: true,
+                  token: null,
+                  user: null,
+                });
+              }
+              body = result.body;
+            }
+
+            if (path === "/sign-in/email-otp") {
+              const result = await emailOtpSignIn(
+                body as Body<"/sign-in/email-otp">,
+                ctx.context.internalAdapter,
+              );
+              if ("registrationRequired" in result) {
+                return ctx.json({
                   registrationRequired: true,
                   token: null,
                   user: null,

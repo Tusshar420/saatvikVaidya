@@ -6,21 +6,30 @@ export const signIn = {
   eyebrow: "Welcome to Saatvik Vaidya",
   title: "One profile. Every opportunity.",
   description:
-    "Sign in with your mobile number or email to save products, track orders, access courses and earn Saatvik Coins.",
+    "Sign in with a code sent to your email, or with your password, to save products, track orders, access courses and earn Saatvik Coins.",
   tabs: {
     label: "Sign in with",
     mobile: "Mobile",
-    email: "Email",
+    emailCode: "Email code",
+    password: "Email & password",
   },
   phone: {
     label: "Mobile number",
     placeholder: "Enter 10-digit number",
     submit: "Continue with OTP",
   },
+  emailCode: {
+    label: "Email",
+    placeholder: "you@example.com",
+    submit: "Email me a code",
+  },
   otp: {
     heading: "Enter your code",
     sentTo: (phone: string) => `We sent a 6-digit code by SMS to ${phone}.`,
+    sentToEmail: (email: string) =>
+      `We sent a 6-digit code to ${email}. It can take a minute; check your spam folder too.`,
     changeNumber: "Change number",
+    changeEmail: "Change email",
     label: "6-digit code",
     incomplete: "Enter all 6 digits of the code.",
     submit: "Verify and continue",
