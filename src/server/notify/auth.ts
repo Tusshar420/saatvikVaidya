@@ -3,7 +3,9 @@ import { authMessages } from "@/content/auth";
 import { emailVerificationLinkSeconds, otpPolicy, passwordResetLinkSeconds } from "@/server/auth/policy";
 import { isPlaceholderEmail } from "@/server/auth/placeholder-email";
 import { signInPath } from "@/lib/auth-routes";
+import { isDevOtpVisible } from "@/server/env";
 import { sendEmail, siteLink } from "./compose";
+import { recordDevOtp } from "./dev-outbox";
 import { getNotifier, type OtpPurpose } from "./index";
 
 // The messages the auth system sends. Text lives in src/content/auth.ts.
@@ -28,6 +30,34 @@ export async function sendOtpSms(
       purpose,
       expiresAt: new Date(Date.now() + otpPolicy.expiresInSeconds * 1000),
     },
+  });
+}
+
+/**
+ * The email sign-in code (email OTP). With DEV_SHOW_OTP on (never in
+ * production) the code is also kept for the dev banner in the sign-in modal.
+ */
+export async function sendOtpEmail(email: string, code: string): Promise<void> {
+  const text = authMessages.otpEmail;
+  if (isDevOtpVisible()) {
+    recordDevOtp({
+      to: email,
+      code,
+      purpose: "sign-in",
+      expiresAt: new Date(Date.now() + otpPolicy.expiresInSeconds * 1000),
+    });
+  }
+  await sendEmail(email, {
+    subject: text.subject(code),
+    preheader: text.preheader,
+    heading: text.heading,
+    footer: "account",
+    blocks: [
+      { kind: "text", text: text.line },
+      { kind: "details", rows: [{ label: text.codeLabel, value: code }] },
+      { kind: "text", text: text.expiry(otpMinutes) },
+      { kind: "text", text: text.ignore },
+    ],
   });
 }
 

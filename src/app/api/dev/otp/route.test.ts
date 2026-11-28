@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isDevOtpVisible } from "@/server/env";
 import { devLogNotifier } from "@/server/notify";
 import { sendOtpSms } from "@/server/notify/auth";
-import { clearDevOtps } from "@/server/notify/dev-outbox";
+import { clearDevOtps, recordDevOtp } from "@/server/notify/dev-outbox";
 import { GET } from "./route";
 
 const url = (phone: string) =>
@@ -105,5 +105,24 @@ describe("GET /api/dev/otp", () => {
       },
     });
     expect(await GET(url("9812345678")).json()).toEqual({ otp: null });
+  });
+
+  it("returns the latest code emailed to an address", async () => {
+    vi.stubEnv("DEV_SHOW_OTP", "true");
+    recordDevOtp({
+      to: "kavya@example.com",
+      code: "444444",
+      purpose: "sign-in",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const response = GET(
+      new Request("http://localhost:3000/api/dev/otp?email=Kavya%40Example.com"),
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()).otp).toMatchObject({ code: "444444" });
+    const other = GET(
+      new Request("http://localhost:3000/api/dev/otp?email=someone%40example.com"),
+    );
+    expect(await other.json()).toEqual({ otp: null });
   });
 });

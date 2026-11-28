@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { OtpInput } from "@/components/ui/otp-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { authErrors } from "@/content/auth";
 import { signIn as copy } from "@/content/sign-in";
 import {
+  sendEmailOtp,
   sendOtp,
+  verifyEmailOtp,
   verifyOtp,
   type AuthFailure,
   type Registration,
@@ -38,30 +41,77 @@ const otpErrorCodes = new Set<AuthFailure["code"]>([
   "TOO_MANY_ATTEMPTS",
 ]);
 
-/** The phone input's id, so the modal can focus it when it opens. */
-export const phoneInputId = "sign-in-phone";
+/** The first field's id per channel, so the modal can focus it on open. */
+export const otpInputIds = {
+  phone: "sign-in-phone",
+  email: "sign-in-email-code",
+} as const;
 
-type Step = "phone" | "otp" | "register";
+/** A light check before asking the server, which checks properly. */
+function looksLikeEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+export type OtpChannel = "phone" | "email";
+
+/** What differs between the SMS and the email version of the flow. */
+const channels = {
+  phone: {
+    isValid: isValidIndianMobile,
+    invalid: authErrors.INVALID_PHONE_NUMBER,
+    send: sendOtp,
+    verify: verifyOtp,
+    display: formatIndianPhone,
+    copy: {
+      ...copy.phone,
+      sentTo: copy.otp.sentTo,
+      change: copy.otp.changeNumber,
+      registerSubmit: copy.register.submitPhone,
+    },
+  },
+  email: {
+    isValid: looksLikeEmail,
+    invalid: authErrors.INVALID_EMAIL,
+    send: sendEmailOtp,
+    verify: verifyEmailOtp,
+    display: (email: string) => email,
+    copy: {
+      ...copy.emailCode,
+      sentTo: copy.otp.sentToEmail,
+      change: copy.otp.changeEmail,
+      registerSubmit: copy.register.submitPhone,
+    },
+  },
+} as const;
+
+type Step = "start" | "otp" | "register";
 
 export type SignedIn = { name: string; isNew: boolean };
 
-export type PhoneFlowProps = {
+export type OtpFlowProps = {
+  channel: OtpChannel;
   userTypes: readonly SignUpUserType[];
   devShowOtp: boolean;
   onSignedIn: (result: SignedIn) => void;
 };
 
 /**
- * Mobile sign-in: number, then the SMS code. A number without an account
- * gets a short register step; the same code is sent again with the details.
+ * Sign-in with a one-time code, by SMS (`channel="phone"`) or email: the
+ * number or address, then the code. One without an account gets a short
+ * register step; the same code is sent again with the details.
  */
-export function PhoneFlow({
+export function OtpFlow({
+  channel,
   userTypes,
   devShowOtp,
   onSignedIn,
-}: PhoneFlowProps) {
-  const [step, setStep] = useState<Step>("phone");
+}: OtpFlowProps) {
+  const config = channels[channel];
+  const [step, setStep] = useState<Step>("start");
+  // 10 national digits for phones, the address as typed for email.
   const [phone, setPhone] = useState("");
+  /** What the server gets: "+91" is added later for phones; emails trimmed. */
+  const target = channel === "email" ? phone.trim() : phone;
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<"send" | "verify" | "resend" | null>(null);
   const [phoneError, setPhoneError] = useState<string>();
@@ -96,7 +146,7 @@ export function PhoneFlow({
       firstRender.current = false;
       return;
     }
-    if (step === "phone") phoneRef.current?.focus();
+    if (step === "start") phoneRef.current?.focus();
     if (step === "otp") focusOtp();
     if (step === "register") nameRef.current?.focus();
   }, [step]);
@@ -104,14 +154,14 @@ export function PhoneFlow({
   const submitPhone = async (event: FormEvent) => {
     event.preventDefault();
     if (busy) return;
-    if (!isValidIndianMobile(phone)) {
-      setPhoneError(authErrors.INVALID_PHONE_NUMBER);
+    if (!config.isValid(phone)) {
+      setPhoneError(config.invalid);
       phoneRef.current?.focus();
       return;
     }
     setBusy("send");
     setPhoneError(undefined);
-    const result = await sendOtp(phone);
+    const result = await config.send(target);
     setBusy(null);
     if (!result.ok) {
       setPhoneError(result.error.message);
@@ -131,7 +181,7 @@ export function PhoneFlow({
     setBusy("resend");
     setResendError(undefined);
     setNotice(undefined);
-    const result = await sendOtp(phone);
+    const result = await config.send(target);
     setBusy(null);
     if (!result.ok) {
       setResendError(result.error.message);
@@ -147,7 +197,7 @@ export function PhoneFlow({
   /** Sends the code (and the details, if we have them). */
   const verify = async (otp: string, details?: Registration) => {
     setBusy("verify");
-    const result = await verifyOtp(phone, otp, details);
+    const result = await config.verify(target, otp, details);
     setBusy(null);
 
     if (result.ok) {
@@ -215,55 +265,74 @@ export function PhoneFlow({
     void verify(code, toRegistration(registration));
   };
 
-  if (step === "phone") {
+  if (step === "start") {
     return (
       <form noValidate onSubmit={submitPhone} className="flex flex-col">
-        <PhoneInput
-          ref={phoneRef}
-          id={phoneInputId}
-          label={copy.phone.label}
-          placeholder={copy.phone.placeholder}
-          value={phone}
-          onValueChange={(digits) => {
-            setPhone(digits);
-            setPhoneError(undefined);
-          }}
-          error={phoneError}
-        />
+        {channel === "phone" ? (
+          <PhoneInput
+            ref={phoneRef}
+            id={otpInputIds.phone}
+            label={config.copy.label}
+            placeholder={config.copy.placeholder}
+            value={phone}
+            onValueChange={(digits) => {
+              setPhone(digits);
+              setPhoneError(undefined);
+            }}
+            error={phoneError}
+          />
+        ) : (
+          <Input
+            ref={phoneRef}
+            id={otpInputIds.email}
+            type="email"
+            label={config.copy.label}
+            placeholder={config.copy.placeholder}
+            autoComplete="email"
+            inputMode="email"
+            maxLength={191}
+            value={phone}
+            onChange={(event) => {
+              setPhone(event.target.value);
+              setPhoneError(undefined);
+            }}
+            error={phoneError}
+          />
+        )}
         <Button
           type="submit"
           arrow
           loading={busy === "send"}
           className="mt-3.5 w-full"
         >
-          {copy.phone.submit}
+          {config.copy.submit}
         </Button>
       </form>
     );
   }
 
   if (step === "otp") {
-    const displayPhone = formatIndianPhone(phone);
+    const displayPhone = config.display(target);
     return (
       <div className="flex flex-col">
         <h3 className="text-lg font-extrabold text-ink">{copy.otp.heading}</h3>
         <p className="mt-1 text-sm text-muted">
-          {copy.otp.sentTo(displayPhone)}{" "}
+          {config.copy.sentTo(displayPhone)}{" "}
           <Button
             type="button"
             variant="link"
             className="-my-3 inline-flex font-extrabold"
             onClick={() => {
               setCodeError(undefined);
-              setStep("phone");
+              setStep("start");
             }}
           >
-            {copy.otp.changeNumber}
+            {config.copy.change}
           </Button>
         </p>
         {devShowOtp && (
           <div className="mt-4">
-            <DevOtpBanner phone={phone} />
+            <DevOtpBanner channel={channel} to={target} />
           </div>
         )}
         <form
@@ -357,7 +426,7 @@ export function PhoneFlow({
         disabled={userTypes.length === 0}
         className="mt-5 w-full"
       >
-        {copy.register.submitPhone}
+        {config.copy.registerSubmit}
       </Button>
     </form>
   );

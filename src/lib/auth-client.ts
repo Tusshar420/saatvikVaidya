@@ -1,5 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 import {
+  emailOTPClient,
   inferAdditionalFields,
   phoneNumberClient,
 } from "better-auth/client/plugins";
@@ -15,7 +16,7 @@ import type { Auth } from "@/server/auth";
 // `useAuthSession()`, which refreshes after sign-in and sign-out.
 
 export const authClient = createAuthClient({
-  plugins: [inferAdditionalFields<Auth>(), phoneNumberClient()],
+  plugins: [inferAdditionalFields<Auth>(), phoneNumberClient(), emailOTPClient()],
 });
 
 export const useAuthSession = authClient.useSession;
@@ -56,6 +57,7 @@ export function authFailure(
 const sessionPaths = new Set([
   "/sign-in/email",
   "/phone-number/verify",
+  "/sign-in/email-otp",
   "/reset-password",
 ]);
 
@@ -119,6 +121,35 @@ export function verifyOtp(
     code,
     ...registration,
   });
+}
+
+/** Sends a sign-in code by email (new or known address: same reply). */
+export function sendEmailOtp(email: string) {
+  return post<{ success: boolean }>("/email-otp/send-verification-otp", {
+    email,
+    type: "sign-in",
+  });
+}
+
+/**
+ * Checks an email code, like verifyOtp(): a known email is signed in, a new
+ * one gets `registrationRequired` (the code stays valid) until the
+ * registration details are sent with the same code.
+ */
+export async function verifyEmailOtp(
+  email: string,
+  otp: string,
+  registration?: Registration,
+): Promise<AuthResult<VerifyOtpReply>> {
+  const result = await post<
+    { user: { name: string } } | { registrationRequired: true; user: null }
+  >("/sign-in/email-otp", { email, otp, ...registration });
+  if (!result.ok) return result;
+  const data = result.data;
+  if ("registrationRequired" in data) {
+    return { ok: true, data: { status: false, registrationRequired: true } };
+  }
+  return { ok: true, data: { status: true, user: data.user } };
 }
 
 /** The reply to a password sign-in: signed in, or a second-factor step is next. */

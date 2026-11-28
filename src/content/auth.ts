@@ -7,6 +7,16 @@ export const authMessages = {
     `${code} is your Saatvik Vaidya sign-in code. It expires in ${minutes} minutes. Never share it with anyone.`,
   passwordResetSms: (code: string, minutes: number) =>
     `${code} is your Saatvik Vaidya password reset code. It expires in ${minutes} minutes. If you didn't ask for it, you can ignore this message.`,
+  otpEmail: {
+    subject: (code: string) => `${code} is your Saatvik Vaidya sign-in code`,
+    preheader: "Enter this code on the site to sign in.",
+    heading: "Your sign-in code",
+    line: "Enter this code on the Saatvik Vaidya site to sign in or create your account.",
+    codeLabel: "Your code",
+    expiry: (minutes: number) =>
+      `The code expires in ${minutes} minutes. Never share it with anyone, even if they say they're from Saatvik Vaidya.`,
+    ignore: "If you didn't ask for this code, you can ignore this email.",
+  },
   passwordResetEmail: {
     subject: "Reset your Saatvik Vaidya password",
     preheader: "Use the button inside to choose a new password.",
@@ -58,7 +68,7 @@ export const authErrors = {
   INVALID_INPUT: "Please check the highlighted details and try again.",
   INVALID_PHONE_NUMBER: "Enter a valid 10-digit Indian mobile number.",
   INVALID_EMAIL: "Enter a valid email address.",
-  INVALID_OTP: "That code isn't right. Check the SMS and try again.",
+  INVALID_OTP: "That code isn't right. Check the code we sent and try again.",
   OTP_EXPIRED: "That code has expired. Ask for a new one.",
   OTP_NOT_FOUND: "That code has expired. Ask for a new one.",
   TOO_MANY_ATTEMPTS: "Too many wrong codes. Ask for a new one.",

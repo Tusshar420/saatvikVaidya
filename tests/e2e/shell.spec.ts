@@ -395,7 +395,7 @@ test.describe("modals", () => {
     await expect(dialog).toHaveCount(0);
   });
 
-  test("sign-in starts in the phone field and closes from its close button", async ({
+  test("sign-in starts in the email-code field and closes from its close button", async ({
     page,
     isMobile,
   }) => {
@@ -404,13 +404,17 @@ test.describe("modals", () => {
     const dialog = page.getByRole("dialog", { name: signIn.title });
     await expect(dialog).toHaveAccessibleDescription(signIn.description);
     await expect(
-      dialog.getByRole("tab", { name: signIn.tabs.mobile }),
+      dialog.getByRole("tab", { name: signIn.tabs.emailCode }),
     ).toHaveAttribute("aria-selected", "true");
     await expect(
-      dialog.getByRole("tab", { name: signIn.tabs.email }),
+      dialog.getByRole("tab", { name: signIn.tabs.password }),
     ).toBeVisible();
+    // Phone sign-in is hidden for now (src/lib/auth-methods.ts).
     await expect(
-      dialog.getByRole("textbox", { name: signIn.phone.label }),
+      dialog.getByRole("tab", { name: signIn.tabs.mobile }),
+    ).toHaveCount(0);
+    await expect(
+      dialog.getByRole("textbox", { name: signIn.emailCode.label }),
     ).toBeFocused();
     await dialog.getByRole("button", { name: ui.close }).click();
     await expect(dialog).toBeHidden();

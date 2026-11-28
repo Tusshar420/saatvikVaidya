@@ -101,6 +101,48 @@ export async function exhaustOtpSends(phone: string) {
   });
 }
 
+/** Where Better Auth keeps an email's sign-in code. */
+const emailOtpIdentifier = (email: string) => `sign-in-otp-${email}`;
+
+/** The live sign-in code emailed to `email`, waiting for it to arrive. */
+export async function latestEmailOtp(email: string, notCode?: string) {
+  let code = "";
+  await expect
+    .poll(
+      async () => {
+        const row = await e2eDb().verification.findFirst({
+          where: { identifier: emailOtpIdentifier(email) },
+          orderBy: { createdAt: "desc" },
+        });
+        code = row?.value.split(":")[0] ?? "";
+        return code !== "" && code !== notCode;
+      },
+      { message: `a code emailed to ${email}` },
+    )
+    .toBe(true);
+  return code;
+}
+
+/** Makes the email's current sign-in code expired. */
+export async function expireEmailOtp(email: string) {
+  await e2eDb().verification.updateMany({
+    where: { identifier: emailOtpIdentifier(email) },
+    data: { expiresAt: new Date(Date.now() - 60_000) },
+  });
+}
+
+/** Uses up the address's email sends for this window (as if sent 3 times). */
+export async function exhaustEmailSends(email: string) {
+  const rule = rateLimitRules.emailSendPerAddress;
+  const key = `${rule.name}:${email.toLowerCase()}`;
+  const resetAtMs = BigInt(Date.now() + rule.windowSeconds * 1000);
+  await e2eDb().authRateLimit.upsert({
+    where: { key },
+    create: { key, count: rule.max, resetAtMs },
+    update: { count: rule.max, resetAtMs },
+  });
+}
+
 /** The email reset token Better Auth stored for this user. */
 export async function resetTokenFor(email: string) {
   let token = "";
@@ -377,7 +419,14 @@ export async function cleanUpE2eData() {
     // Page views the traffic tests made (Traffic, /admin/traffic).
     db.pageView.deleteMany({ where: { path: { startsWith: `/products/${E2E_CONTENT_PREFIX}` } } }),
     db.verification.deleteMany({
-      where: { OR: [{ identifier: phones }, { value: { in: ids } }] },
+      where: {
+        OR: [
+          { identifier: phones },
+          // Email sign-in codes ("sign-in-otp-<email>").
+          { identifier: { endsWith: `@${E2E_EMAIL_DOMAIN}` } },
+          { value: { in: ids } },
+        ],
+      },
     }),
     // Guest carts the e2e tests left (their e2e products, and with them the
     // cart lines, are deleted above). Empty guest carts hold nothing.

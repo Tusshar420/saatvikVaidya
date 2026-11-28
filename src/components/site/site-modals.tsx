@@ -25,7 +25,7 @@ import { useAuthSession } from "@/lib/auth-client";
 import { safeNextPath } from "@/lib/auth-routes";
 import { telHref } from "@/lib/phone";
 import type { SignUpUserType } from "@/server/content/user-types";
-import type { SignedIn } from "./auth/phone-flow";
+import type { SignedIn } from "./auth/otp-flow";
 import { SignInModal } from "./auth/sign-in-modal";
 import { TrackOrderForm } from "./orders/track-order-form";
 import { ReportProblemModal } from "./report-problem";

@@ -1,14 +1,16 @@
 import "server-only";
 
-// Dev only: the latest OTP sent to each phone, so the sign-in UI can show it
+// Dev only: the latest OTP sent to each phone or email address, so the sign-in UI can show it
 // (GET /api/dev/otp). Filled only when isDevOtpVisible() is true, which is
 // never in production. Kept on globalThis so every route in the dev server
 // shares one copy. Memory only; nothing is stored.
 
 export type OtpPurpose = "sign-in" | "password-reset" | "order-confirm";
 
+/** Where an OTP went: "+91XXXXXXXXXX" or a lowercase email address. */
+
 export interface DevOtp {
-  phoneNumber: string;
+  to: string;
   code: string;
   purpose: OtpPurpose;
   expiresAt: Date;
@@ -25,21 +27,21 @@ function outbox(): Map<string, DevOtp> {
 
 export function recordDevOtp(otp: DevOtp): void {
   const entries = outbox();
-  entries.delete(otp.phoneNumber);
-  entries.set(otp.phoneNumber, otp);
+  entries.delete(otp.to);
+  entries.set(otp.to, otp);
   // Keep the newest entries only (a Map iterates oldest first).
-  for (const phone of entries.keys()) {
+  for (const key of entries.keys()) {
     if (entries.size <= MAX_ENTRIES) break;
-    entries.delete(phone);
+    entries.delete(key);
   }
 }
 
-/** The latest unexpired OTP sent to `phoneNumber`, if any. */
+/** The latest unexpired OTP sent to `to` (a phone or an email), if any. */
 export function latestDevOtp(
-  phoneNumber: string,
+  to: string,
   now: Date = new Date(),
 ): DevOtp | null {
-  const otp = outbox().get(phoneNumber);
+  const otp = outbox().get(to);
   return otp && otp.expiresAt > now ? otp : null;
 }
 

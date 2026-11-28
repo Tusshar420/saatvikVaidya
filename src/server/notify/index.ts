@@ -52,7 +52,7 @@ export const devLogNotifier: Notifier = {
         : `sms to ${message.to}`;
     console.info(`[notify:dev] ${heading}\n${message.text}`);
     if (message.channel === "sms" && message.otp && isDevOtpVisible()) {
-      recordDevOtp({ phoneNumber: message.to, ...message.otp });
+      recordDevOtp({ to: message.to, ...message.otp });
     }
   },
 };

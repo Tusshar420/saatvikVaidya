@@ -6713,3 +6713,58 @@ The owner asked for the photos on the /launch list cards too.
   link for keyboards and screen readers). Hovering the card darkens the
   button and tints the border; keyboard focus rings the card. Sold-out cards
   have no link, as before. `label-photos.spec.ts` clicks a card.
+
+## Sign-in: email codes instead of phone codes (2026-11-28)
+
+The owner asked to hide phone sign-in and sign-up for now (it comes back
+later) and to use email OTP instead.
+
+**Built**
+- Better Auth's `emailOTP` plugin (`src/server/auth/index.ts`): 6 digits,
+  5 minutes, 5 wrong tries, like phone codes. The code email is
+  `sendOtpEmail()` in `src/server/notify/auth.ts` (text in
+  `src/content/auth.ts`, `otpEmail`); it goes through the normal notifier,
+  so the dev log, or SMTP when it's set up.
+- Policy plugin: `/email-otp/send-verification-otp` (type `sign-in` only)
+  and `/sign-in/email-otp` are checked with Zod (unknown keys refused) and
+  rate-limited like the other sends and sign-ins (3 emails per address per
+  10 minutes, per-IP limits). `emailOtpSignIn()` works like `phoneVerify()`:
+  a known email signs straight in, a new one gets `registrationRequired`
+  (code kept) until name, user type and terms come with the same code, and
+  admins are refused (password + authenticator only). The send reply is the
+  same for new and known emails.
+- Sign-in modal: tabs are now **Email code** (opens first) and **Email &
+  password**. The Mobile tab is hidden by `phoneSignInEnabled = false` in
+  `src/lib/auth-methods.ts`; set it to true to bring it back (it becomes a
+  third tab). The phone server routes still work.
+- `phone-flow.tsx` became `otp-flow.tsx`: one `OtpFlow` with
+  `channel="phone" | "email"`, so both use the same steps (address, code,
+  register). The dev OTP banner and `/api/dev/otp?email=` show email codes
+  too when DEV_SHOW_OTP is on.
+- Wording: the "wrong code" message no longer says SMS; the account page's
+  "no password" note and the admin "new user" help no longer say mobile OTP.
+- Tests: `src/server/auth/email-otp.test.ts` (10), a dev route test, and
+  the e2e sign-in, shell and admin-security specs now use the email code
+  flow (e2e reads codes from the Verification table; cleanup removes e2e
+  email codes).
+
+**Decisions**
+- Codes are stored as plain text like phone codes (short-lived, few tries),
+  so e2e can read them.
+- An email that registered with a password but never verified it, then
+  signs in with a code, loses the old password (Better Auth's protection
+  against someone pre-registering another person's email). They can set a
+  new one with "Forgot password".
+- Reading a code makes Better Auth delete expired codes, so the policy
+  plugin returns "expired" itself for an expired code on a new email.
+
+**Known gaps / next steps**
+- Real delivery needs SMTP on the server (SMTP_HOST etc.); without it codes
+  only reach the server log. Check that the code email arrives (spam
+  folder) on the test site.
+- Accounts made by phone earlier can still sign in only through the hidden
+  phone route or a password; none should exist on the test site yet.
+- `pnpm <script>` asks to reinstall node_modules here (pnpm 11 ignores the
+  `pnpm.overrides` field in package.json). The checks were run with
+  `pnpm_config_verify_deps_before_run=false`; worth moving the overrides
+  to `pnpm-workspace.yaml` in a separate change.

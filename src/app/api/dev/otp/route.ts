@@ -1,15 +1,18 @@
 import { z } from "zod";
 import { toIndianE164 } from "@/lib/phone";
 import { isDevOtpVisible } from "@/server/env";
-import { latestDevOtp } from "@/server/notify/dev-outbox";
+import { latestDevOtp, type DevOtp } from "@/server/notify/dev-outbox";
 
-// Dev only: the latest OTP sent to a phone, for the dev banner in the sign-in
-// UI. 404 unless NODE_ENV isn't production and DEV_SHOW_OTP=true.
-// GET /api/dev/otp?phone=9876543210
+// Dev only: the latest OTP sent to a phone or an email, for the dev banner in
+// the sign-in UI. 404 unless NODE_ENV isn't production and DEV_SHOW_OTP=true.
+// GET /api/dev/otp?phone=9876543210 or /api/dev/otp?email=you@example.com
 
 export const dynamic = "force-dynamic";
 
-const querySchema = z.object({ phone: z.string().max(32) });
+const querySchema = z.union([
+  z.object({ phone: z.string().max(32) }),
+  z.object({ email: z.string().trim().toLowerCase().max(191).pipe(z.email()) }),
+]);
 
 export function GET(request: Request): Response {
   if (!isDevOtpVisible()) return new Response("Not found", { status: 404 });
@@ -17,12 +20,18 @@ export function GET(request: Request): Response {
   const query = querySchema.safeParse(
     Object.fromEntries(new URL(request.url).searchParams),
   );
-  const phoneNumber = query.success ? toIndianE164(query.data.phone) : null;
+  if (query.success && "email" in query.data) {
+    return reply(latestDevOtp(query.data.email));
+  }
+  const phoneNumber =
+    query.success && "phone" in query.data ? toIndianE164(query.data.phone) : null;
   if (!phoneNumber) {
     return Response.json({ error: "INVALID_PHONE_NUMBER" }, { status: 400 });
   }
+  return reply(latestDevOtp(phoneNumber));
+}
 
-  const otp = latestDevOtp(phoneNumber);
+function reply(otp: DevOtp | null): Response {
   return Response.json(
     {
       otp: otp && {
